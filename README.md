@@ -16,6 +16,7 @@ Each step opens with a "Qui puoi" (what you can do here) box that lists the avai
 
 ### 1 · Carica (load)
 
+- A loading panel shows progress («3 di 20: filename») while files are read.
 - You can load single files, several files or a whole folder, by drag and drop or with the buttons.
 - Accepted formats: `.txt` `.asc` `.csv` `.dat` `.dpt` `.prn` `.xy`.
 - The instrument is detected automatically:
@@ -37,6 +38,7 @@ Each step opens with a "Qui puoi" (what you can do here) box that lists the avai
   - %T ↔ absorbance conversion (A = 2 − log₁₀ %T) or 0–1 normalization;
   - automatic baseline correction (rubber band, good for fluorescence in Raman) or linear baseline;
   - Savitzky–Golay smoothing (light, medium or strong).
+- **Large plot** (⛶ Grafico grande) that fills the screen, with **zoom** (mouse wheel or 🔍 buttons) and **pan** (drag), for placing peaks precisely. The zoom only affects the preview, not the output.
 - **Cursor readout** of x and y while the mouse is over the plot.
 - **Search** in the file list and checkboxes to exclude files from the output.
 - Edits to each file (name, description, peaks, labels, range) are **remembered on that computer**: reloading the same file brings them back.

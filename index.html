@@ -100,6 +100,17 @@ p.hint{color:var(--muted);margin:0 0 14px}
 .fitem.off .nm{opacity:.45;text-decoration:line-through}
 .fitem .ed{color:#d9741c;font-size:12px}
 .preview canvas{width:100%;display:block;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:crosshair}
+.pvtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.pvtools .hint2{font-size:12.5px;color:var(--muted);margin-left:4px}
+.zoomtag{display:none;background:#fff6ec;border:1px solid #f0b37a;color:#8a4a0c;border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}
+.preview.zoomed .zoomtag{display:inline-block}
+#closeBig{display:none}
+.preview.big{position:fixed;inset:10px;z-index:45;overflow:auto;box-shadow:0 20px 70px rgba(20,30,50,.35)}
+.preview.big canvas{height:calc(100vh - 250px);min-height:300px}
+.preview.big .mini,.preview.big .editgrid,.preview.big details{display:none}
+.preview.big #closeBig{display:inline-flex}
+body.bigmode{overflow:hidden}
+body.bigmode::before{content:"";position:fixed;inset:0;background:rgba(20,30,50,.4);z-index:44}
 .readout{font:12.5px ui-monospace,Consolas,monospace;color:var(--muted);min-height:18px;margin-top:6px}
 .tip{font-size:13px;color:var(--muted);margin:2px 0 0}
 .editgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;margin-top:14px}
@@ -188,11 +199,26 @@ dialog::backdrop{background:rgba(20,30,50,.35)}
 .libitem span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .libform{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .libform input,.libform select{border:1px solid var(--line);border-radius:9px;padding:6px 8px;width:100%;background:#fff;min-width:0}
+.loader{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:18px;padding:12px 18px 12px 12px;display:flex;gap:12px;align-items:center;min-width:300px;max-width:calc(100% - 32px)}
+.loader[hidden]{display:none}
+.loader svg{width:46px;height:46px;flex:none;animation:ldbob .9s ease-in-out infinite}
+@keyframes ldbob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-6px) rotate(6deg)}}
+.loader b{display:block;font-size:15px}
+.loader small{display:block;color:var(--muted);font-size:12.5px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ldbar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 3px;width:260px;max-width:60vw}
+.ldbar div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#5a9bff);border-radius:99px;transition:width .12s}
+.ldbar.indet div{width:35% !important;animation:indet 1.1s ease-in-out infinite}
+@keyframes indet{0%{transform:translateX(-110%)}100%{transform:translateX(310%)}}
+body.busy, body.busy *{cursor:progress !important}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 </style>
 </head>
 <body>
 <canvas id="confetti"></canvas>
+<div class="loader" id="loader" hidden role="status" aria-live="polite">
+  <svg viewBox="0 0 32 34" aria-hidden="true"><path d="M6 15a10 10 0 0 1 20 0v14l-3.3-2.4L19.3 29 16 26.6 12.7 29l-3.4-2.4L6 29z" fill="#fff" stroke="#1c2230" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12.3" cy="14" r="1.6" fill="#1c2230"/><circle cx="19.7" cy="14" r="1.6" fill="#1c2230"/><ellipse cx="16" cy="18.5" rx="1.6" ry="2" fill="#1c2230"/><path d="M8.5 23h3l1.5-3 2 5 2-7 2 5h4.5" fill="none" stroke="#2563c9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div><b id="ldTitle">Gino sta acchiappando i file…</b><div class="ldbar" id="ldBar"><div></div></div><small id="ldSub">&nbsp;</small></div>
+</div>
 <header>
   <div class="bar">
     <div class="brand">
@@ -298,7 +324,8 @@ dialog::backdrop{background:rgba(20,30,50,.35)}
     <span class="it">💡 accettare i <b>nomi suggeriti</b> per i picchi, o scriverli tu</span>
     <span class="it">🎚️ scegliere <b>quanti picchi</b> trovare</span>
     <span class="it">🧪 <b>convertire</b>, correggere la <b>linea di base</b>, fare <b>smoothing</b></span>
-    <span class="it">📏 <b>ingrandire</b> una zona dell'asse X</span>
+    <span class="it">⛶ allargare il grafico e <b>zoomare</b> per mettere i picchi con precisione</span>
+    <span class="it">📏 scegliere l'<b>intervallo X</b> da stampare</span>
     <span class="it">☑️ <b>escludere</b> i file che non servono</span>
   </div>
   <div class="layout">
@@ -323,6 +350,16 @@ dialog::backdrop{background:rgba(20,30,50,.35)}
         <button class="btn small" id="nextF" title="File successivo (→)">▶</button>
       </div>
       <canvas id="pv" width="1200" height="740"></canvas>
+      <div class="pvtools">
+        <button class="btn small" id="bigBtn" title="Grafico a schermo intero (Esc per uscire)">⛶ Grafico grande</button>
+        <button class="btn small" id="zIn" title="Ingrandisci (rotellina del mouse)">🔍＋</button>
+        <button class="btn small" id="zOut" title="Rimpicciolisci">🔍－</button>
+        <button class="btn small" id="zReset" title="Mostra tutto (tasto 0)">↺ Tutto</button>
+        <span class="zoomtag" id="zoomTag">zoom attivo · solo in anteprima</span>
+        <span class="hint2">rotellina = zoom · trascina = sposta</span>
+        <span class="spacer"></span>
+        <button class="btn small primary" id="closeBig">✕ Chiudi</button>
+      </div>
       <div class="readout" id="readout">&nbsp;</div>
 
       <div class="editgrid">
@@ -1097,10 +1134,25 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+const frame = () => new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+let ldTimer=null;
+function loader(show, title, sub, frac){
+  const L=$('#loader');
+  clearTimeout(ldTimer);
+  if (!show){ L.hidden=true; document.body.classList.remove('busy'); return; }
+  L.hidden=false; document.body.classList.add('busy');
+  if (title!=null) $('#ldTitle').textContent=title;
+  $('#ldSub').textContent = sub || '\u00a0';
+  const bar=$('#ldBar'); if (frac==null){ bar.classList.add('indet'); } else { bar.classList.remove('indet'); bar.firstElementChild.style.width=(Math.max(0,Math.min(1,frac))*100)+'%'; }
+}
 async function addEntries(entries){
   let skipped=[], errors=[], unreadable=[], dup=0, added=0;
+  const tot=entries.length; let done=0, lastPaint=0;
+  if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
   try{
     for (const {file, path, err} of entries){
+      done++;
+      if (performance.now()-lastPaint > 60 || done===1){ loader(true, null, `${done} di ${tot} · ${path}`, (done-1)/tot); await frame(); lastPaint=performance.now(); }
       if (err || !file){ unreadable.push(path); continue; }
       if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
       if (files.some(f=>f.path===path && f.size===file.size)){ dup++; continue; }
@@ -1143,8 +1195,10 @@ async function addEntries(entries){
   } else {
     say('#hello', 'Ops, con questo non ci riesco… 😕 Guarda il messaggio qui sotto.');
   }
+  if (tot){ loader(true, 'Preparo i grafici…', `${added} spettri acchiappati`, 1); await frame(); }
   try{ refreshAll(); }catch(e){ console.error(e); }
   if (added && curView===2) renderPreview();
+  loader(false);
 }
 async function entriesFromDrop(dt, fallback){
   const roots = [...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
@@ -1173,16 +1227,41 @@ document.addEventListener('drop', async e=>{
   const fallback=[...(dt.files||[])].map(f=>({file:f, path:f.name}));   // da leggere subito, prima di qualsiasi await
   if (!fallback.length && !(dt.items && dt.items.length)) return;
   say('#hello','Lo sto acchiappando… 👻🧐');
+  loader(true, 'Gino sta guardando cosa hai trascinato…', '', null); await frame();
   let entries;
   try{ entries = await entriesFromDrop(dt, fallback); }catch(err){ console.error(err); entries = fallback; }
   await addEntries(entries);
 });
-drop.addEventListener('click', e=>{ if (e.target===drop || e.target.classList.contains('big') || e.target.classList.contains('ico')) $('#inFiles').click(); });
-$('#pickFiles').onclick=e=>{ e.stopPropagation(); $('#inFiles').click(); };
-$('#pickFolder').onclick=e=>{ e.stopPropagation(); $('#inFolder').click(); };
-$('#addMore').onclick=()=>$('#inFiles').click();
-$('#inFiles').onchange=async e=>{ await addEntries([...e.target.files].map(f=>({file:f,path:f.name}))); e.target.value=''; };
-$('#inFolder').onchange=async e=>{ await addEntries([...e.target.files].map(f=>({file:f,path:f.webkitRelativePath||f.name}))); e.target.value=''; };
+drop.addEventListener('click', e=>{ if (e.target===drop || e.target.classList.contains('big') || e.target.classList.contains('ico')) openPicker($('#inFiles'), false); });
+/* dal clic su «Scegli…» alla lista: feedback continuo */
+let picking=null;
+function openPicker(input, folder){
+  picking={folder, t:Date.now()};
+  say('#hello', folder ? 'Scegli la cartella… 📂 poi aspettami un attimo!' : 'Scegli i file… 📂');
+  input.click();
+}
+window.addEventListener('focus', ()=>{               // la finestra di scelta si è chiusa
+  if (!picking) return;
+  const wasFolder=picking.folder;
+  setTimeout(()=>{ if (!picking) return;            // se è già partito il caricamento non serve
+    loader(true, wasFolder?'Il browser sta preparando la cartella…':'Il browser sta preparando i file…', 'Con cartelle grandi o su OneDrive/rete può volerci qualche secondo', null);
+    ldTimer=setTimeout(()=>{ if (picking){ picking=null; loader(false); say('#hello','Nessun file scelto? Nessun problema, sono qui. 👻'); } }, wasFolder?60000:8000);
+  }, 150);
+});
+['#inFiles','#inFolder'].forEach(sel=>$(sel).addEventListener('cancel', ()=>{ picking=null; loader(false); say('#hello','Ok, niente file per ora. 👻'); }));
+async function fromInput(e, folder){
+  picking=null;
+  const list=[...e.target.files];
+  if (!list.length){ loader(false); return; }
+  loader(true, `Gino sta acchiappando ${list.length} file…`, '', 0); await frame();
+  await addEntries(list.map(f=>({file:f, path: folder ? (f.webkitRelativePath||f.name) : f.name})));
+  e.target.value='';
+}
+$('#pickFiles').onclick=e=>{ e.stopPropagation(); openPicker($('#inFiles'), false); };
+$('#pickFolder').onclick=e=>{ e.stopPropagation(); openPicker($('#inFolder'), true); };
+$('#addMore').onclick=()=>openPicker($('#inFiles'), false);
+$('#inFiles').onchange=e=>fromInput(e,false);
+$('#inFolder').onchange=e=>fromInput(e,true);
 
 /* ---------------- OMINO ---------------- */
 function say(sel, txt){ const b=$(sel); if (b) b.textContent=txt; }
@@ -1211,6 +1290,7 @@ let curView=1;
 function go(n){
   if (n>1 && !files.length) return;
   curView=n;
+  if (n!==2 && document.body.classList.contains('bigmode')) setBig(false);
   $$('.view').forEach((v,i)=>v.classList.toggle('on', i===n-1));
   $$('.step').forEach(b=>{ const s=+b.dataset.go; b.classList.toggle('on', s===n); b.classList.toggle('done', s<n); });
   if (n===2){ say('#tip2', TIPS2[tipI++ % TIPS2.length]); renderPreview(); }
@@ -1250,13 +1330,27 @@ $('#allOn').onclick=()=>{ const all=files.every(f=>f.include); files.forEach(f=>
 
 /* ---------------- ANTEPRIMA ---------------- */
 const pv=$('#pv'); let geo=null, pvView=null;
-const PV_W=160, PV_H=100;
+let PV_W=160, PV_H=100;
+function zoomSlice(d, z){
+  if (!z) return d;
+  const xs=d.xs; let lo=0, hi=xs.length-1;
+  while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--;
+  if (hi-lo<3) return d;
+  const sx=xs.subarray(lo,hi+1), sy=d.ys.subarray(lo,hi+1);
+  return Object.assign({}, d, {xs:sx, ys:sy, series:[Object.assign({}, d.series[0], {xs:sx, ys:sy})]});
+}
 function renderPreview(){
   const f=files[cur];
   if (!f){ $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
+  const big=$('.preview').classList.contains('big');
   const cssW = pv.clientWidth || 800, dpr = window.devicePixelRatio||1;
-  pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssW*PV_H/PV_W*dpr);
-  const d = viewOf(f); d.fontPt = 9; d.highlightManual = true; pvView=d;
+  const cssH = big ? (pv.clientHeight || cssW*0.5) : cssW*100/160;
+  if (!big) pv.style.height='';
+  PV_W = cssW/5; PV_H = cssH/5;
+  pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssH*dpr);
+  const full = viewOf(f); full.fontPt = big ? 10 : 9; full.highlightManual = true;
+  const d = zoomSlice(full, f._zoom); pvView=d;
+  $('.preview').classList.toggle('zoomed', !!f._zoom);
   geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S);
   $('#pvTitle').textContent=dispTitle(f); $('#pvTitle').title=f.path;
   if (document.activeElement!==$('#fTitle')) $('#fTitle').value=f.title||'';
@@ -1372,6 +1466,7 @@ function mmPos(e){ const r=pv.getBoundingClientRect(); return [(e.clientX-r.left
 function xAt(mx){ const t=(mx-geo.px0)/geo.pw; return geo.invertX ? geo.xmax - t*(geo.xmax-geo.xmin) : geo.xmin + t*(geo.xmax-geo.xmin); }
 pv.addEventListener('click', e=>{
   const f=files[cur]; if(!f || !geo) return;
+  if (drag && drag.moved){ drag=null; return; } drag=null;
   if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
   const [mx,my]=mmPos(e);
   const hit = geo.hits.find(h=>Math.abs(h.x-mx)<1.6 && Math.abs(h.y-my)<14);
@@ -1391,7 +1486,49 @@ pv.addEventListener('mousemove', e=>{
   const unit=INSTR[pvView.instr].xPdf.replace('cm-1','cm⁻¹');
   $('#readout').textContent = `x = ${(+xs[i].toPrecision(6)).toString().replace('.',dec)} ${unit}   ·   y = ${(+ys[i].toPrecision(5)).toString().replace('.',dec)}${onPk?'   ·   clic per togliere il picco':''}`;
 });
-pv.addEventListener('mouseleave', ()=>$('#readout').innerHTML='&nbsp;');
+pv.addEventListener('mouseleave', ()=>{ $('#readout').innerHTML='&nbsp;'; });
+function fullRange(f){ const P=processed(f); return [P.xs[0], P.xs[P.xs.length-1]]; }
+function setZoom(f, a, b){
+  const [fa,fb]=fullRange(f), W=fb-fa, minW=W/300;
+  if (b-a<minW){ const c=(a+b)/2; a=c-minW/2; b=c+minW/2; }
+  if (b-a>=W*0.995){ f._zoom=null; } else {
+    if (a<fa){ b+=fa-a; a=fa; } if (b>fb){ a-=b-fb; b=fb; }
+    f._zoom=[Math.max(fa,a), Math.min(fb,b)];
+  }
+  renderPreview();
+}
+function zoomBy(k, xc){
+  const f=files[cur]; if(!f) return; const [fa,fb]=fullRange(f); const [a,b]=f._zoom||[fa,fb];
+  if (xc==null) xc=(a+b)/2;
+  setZoom(f, xc-(xc-a)*k, xc+(b-xc)*k);
+}
+pv.addEventListener('wheel', e=>{
+  if (!geo || !files[cur]) return; e.preventDefault();
+  const [mx]=mmPos(e); const xc = xAt(Math.min(Math.max(mx,geo.px0),geo.px0+geo.pw));
+  zoomBy(e.deltaY>0 ? 1.25 : 0.8, xc);
+}, {passive:false});
+let drag=null;
+pv.addEventListener('mousedown', e=>{ const f=files[cur]; if(!f||!geo||e.button!==0) return; drag={x0:e.clientX, z:(f._zoom||fullRange(f)).slice(), moved:false, pw:geo.pw}; });
+window.addEventListener('mousemove', e=>{
+  if (!drag || !(e.buttons&1)) return; const f=files[cur]; if(!f) return;
+  const dxPx=e.clientX-drag.x0; if (Math.abs(dxPx)>4) drag.moved=true; if (!drag.moved || !f._zoom) return;
+  const r=pv.getBoundingClientRect(), dxMM=dxPx/r.width*PV_W, W=drag.z[1]-drag.z[0];
+  let shift = dxMM/drag.pw*W * (INSTR[f.instr].invertX ? 1 : -1);
+  const [fa,fb]=fullRange(f); shift=Math.max(fa-drag.z[0], Math.min(fb-drag.z[1], shift));
+  f._zoom=[drag.z[0]+shift, drag.z[1]+shift]; pv.style.cursor='grabbing'; renderPreview();
+});
+window.addEventListener('mouseup', ()=>{ if (drag && !drag.moved) drag=null; else if (drag) setTimeout(()=>{ drag=null; },0); });
+$('#zIn').onclick=()=>zoomBy(0.6);
+$('#zOut').onclick=()=>zoomBy(1.6);
+$('#zReset').onclick=()=>{ const f=files[cur]; if(f){ f._zoom=null; renderPreview(); } };
+function setBig(on){
+  $('.preview').classList.toggle('big', on); document.body.classList.toggle('bigmode', on);
+  $('#bigBtn').textContent = on ? '⛶ Grafico normale' : '⛶ Grafico grande';
+  requestAnimationFrame(renderPreview);
+  if (on) say('#tip2','Ecco il grafico in grande! Rotellina per zoomare, clic per i picchi. Esc per uscire. 🔍');
+}
+$('#bigBtn').onclick=()=>setBig(!$('.preview').classList.contains('big'));
+$('#closeBig').onclick=()=>setBig(false);
 $('#fTitle').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.title=e.target.value; changed(f); });
 $('#fDesc').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.desc=e.target.value; changed(f); });
 $('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
@@ -1412,6 +1549,8 @@ $('#nextF').onclick=()=>{ if(cur<files.length-1){cur++; renderList(); renderPrev
 document.addEventListener('keydown', e=>{
   if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key==='ArrowLeft') $('#prevF').click(); if (e.key==='ArrowRight') $('#nextF').click();
+  if (e.key==='Escape' && $('.preview').classList.contains('big')) setBig(false);
+  if (e.key==='0') $('#zReset').click(); if (e.key==='+') zoomBy(0.6); if (e.key==='-') zoomBy(1.6);
 });
 window.addEventListener('resize', ()=>{ if(curView===2) renderPreview(); });
 
