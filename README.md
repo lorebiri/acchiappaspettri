@@ -12,7 +12,7 @@ Everything happens in the browser: the data never leave the computer of the pers
 
 ## The three steps
 
-Each step opens with a "Qui puoi" (what you can do here) box that lists the available actions. A small scientist and Gino, his ghost, guide the user through the steps (click on Gino 😉).
+In step 2 the tools sit under the plot in tabs named after what you want to do (Nome, Picchi, Ritocca lo spettro, Zona e strumento, Aspetto e lingua). A coloured label on each option shows where it applies: green = only this spectrum, blue = every spectrum from the same instrument, yellow = all plots. A guided tour with Gino is offered the first time you open step 2. In step 3 you tick what you want (PDF, PNG images, peak list, processed data) and a single button downloads it. A small scientist and Gino, his ghost, guide the user through the steps (click on Gino 😉).
 
 ### 1 · Carica (load)
 
@@ -23,7 +23,8 @@ Each step opens with a "Qui puoi" (what you can do here) box that lists the avai
   - FTIR from the PerkinElmer `PE IR` header or from the IR range with %T/A values;
   - Raman from cm⁻¹ shift with counts;
   - HPLC from DAD/VWD in the file name, or from an x axis in minutes;
-  - UV-Vis from a 150–1200 nm range.
+  - UV-Vis from a 150–1200 nm range;
+  - JCAMP-style header fields (`DATA TYPE`, `XUNITS`, `YUNITS`, instrument name) are read first, so JASCO exports (UV-Vis V-750, FT/IR, NRS Raman) and JCAMP-DX files are recognised from their header, including the instrument model.
 
 ### 2 · Controlla (review)
 
@@ -34,6 +35,7 @@ Each step opens with a "Qui puoi" (what you can do here) box that lists the avai
   - **click on a peak** to remove it;
   - **click on a peak's number** to write an assignment, for example "C=O amide I".
 - **X-axis range** for each file, for example the 1800–600 cm⁻¹ fingerprint region, with a button to apply it to every file from the same instrument.
+- **Peak-name database by sample type**: choose 🏛️ cultural heritage, 🧬 biological, ⚗️ organic & organometallic chemistry or 🧱 materials, polymers & catalysis, globally or per file. General functional groups are always proposed; names go on the plot only after the user approves them. A personal library adds your own bands or HPLC retention times.
 - **Data processing**, set for each instrument:
   - %T ↔ absorbance conversion (A = 2 − log₁₀ %T) or 0–1 normalization;
   - automatic baseline correction (rubber band, good for fluorescence in Raman) or linear baseline;

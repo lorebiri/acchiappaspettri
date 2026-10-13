@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Acchiappaspettri</title>
 <meta name="description" content="Acchiappaspettri: grafici rapidi di spettri e cromatogrammi (FTIR, Raman, UV-Vis, HPLC) da file di testo: PDF di consultazione e immagini PNG a 600 dpi.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -33,7 +35,7 @@ main{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
 h2{font-size:20px;margin:0 0 4px}
-h3{font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+h3{font-size:15px;margin:0 0 10px;color:var(--ink)}
 p.hint{color:var(--muted);margin:0 0 14px}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:transform .08s}
 .btn:hover{border-color:#b9c3d3}
@@ -210,6 +212,69 @@ dialog::backdrop{background:rgba(20,30,50,.35)}
 .ldbar.indet div{width:35% !important;animation:indet 1.1s ease-in-out infinite}
 @keyframes indet{0%{transform:translateX(-110%)}100%{transform:translateX(310%)}}
 body.busy, body.busy *{cursor:progress !important}
+/* ---- banco di lavoro (passo 2) ---- */
+.stephead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.stephead .mini{flex:1;margin:0}
+.bench{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:960px){.bench{grid-template-columns:1fr}}
+.listhint{font-size:12.5px;color:var(--muted);margin:0 4px 8px}
+.linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-top:16px}
+.tab{border:0;background:none;padding:10px 14px;font-weight:700;font-size:14.5px;color:var(--muted);cursor:pointer;border-radius:12px 12px 0 0;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--ink);background:#f3f6fb}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-soft)}
+.tab:focus-visible,.btn:focus-visible,.choice:focus-visible,.pill:focus-visible{outline:3px solid #9cc0ff;outline-offset:2px}
+.panel{display:none;padding:16px 4px 4px}
+.panel.on{display:block}
+.phead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.phead b{font-size:16px}
+.scope{font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;border:1.5px solid}
+.s-one{background:#e7f7ee;border-color:#9fd9b6;color:#156b3d}
+.s-instr{background:#e8f0fd;border-color:#a9c4f2;color:#1f4f9a}
+.s-all{background:#fff6dc;border-color:#f0d48a;color:#7a5a00}
+.why{color:var(--muted);font-size:13.5px;margin:2px 0 12px;max-width:72ch}
+.opt-l{font-weight:400;color:var(--muted);font-size:12.5px}
+.slider{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);max-width:560px}
+.slider input{flex:1;accent-color:var(--accent)}
+.pkcount{font-size:13.5px;margin-top:4px;font-weight:700;color:var(--ink)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
+.pill:hover{border-color:#b9c3d3}
+.pill.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.choices{display:flex;gap:8px;flex-wrap:wrap}
+.cgroup{margin-bottom:18px}
+.cgroup>b{display:block;font-size:14.5px;margin-bottom:2px}
+.cgroup>.why{margin-bottom:8px}
+.choice{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 12px 9px;cursor:pointer;text-align:left;min-width:132px;max-width:190px}
+.choice svg{display:block;width:100%;height:38px;margin-bottom:5px}
+.choice b{display:block;font-size:13.5px}
+.choice small{display:block;color:var(--muted);font-size:12px;line-height:1.3;margin-top:1px}
+.choice:hover{border-color:#b9c3d3}
+.choice.on{border-color:var(--accent);background:var(--accent-soft)}
+.choice.on b{color:var(--accent)}
+.navrow{margin-top:14px}
+/* ---- passo 3 ---- */
+.qtitle{margin:6px 0 10px;font-size:20px}
+.outgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px;align-items:start}
+@media (max-width:800px){.outgrid{grid-template-columns:1fr}}
+.outcard{border:2px solid var(--line);border-radius:18px;background:#fff;transition:border-color .12s, background .12s}
+.outcard.on{border-color:var(--accent);background:#fbfdff}
+.ohead{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer}
+.ohead input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.oico{font-size:28px;flex:none}
+.ohead b{display:block;font-size:16px}
+.ohead small{display:block;color:var(--muted);font-size:13px}
+.obody{padding:0 16px 14px 48px;display:none}
+.outcard.on .obody{display:block}
+.outcard:not(.on) .ohead b{color:var(--muted)}
+.dlcard{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.dlcard .summary{margin-bottom:4px}
+#doDl{font-size:17px;padding:14px 26px}
+/* ---- giro guidato ---- */
+.tourhole{position:fixed;z-index:80;border-radius:14px;box-shadow:0 0 0 9999px rgba(20,30,50,.55);pointer-events:none;transition:all .25s ease}
+.tourbox{position:fixed;z-index:81;background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:18px;padding:14px 16px;max-width:340px}
+.tourbox p{margin:6px 0 12px;font-size:14.5px}
+.tourbox .row{justify-content:flex-end}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 </style>
 </head>
@@ -318,36 +383,29 @@ body.busy, body.busy *{cursor:progress !important}
 
 <!-- STEP 2 -->
 <section class="view" id="v2">
-  <div class="cando"><span class="ttl">🧰 Qui puoi:</span>
-    <span class="it">✏️ <b>rinominare</b> e <b>descrivere</b> lo spettro</span>
-    <span class="it">👆 <b>aggiungere</b> o <b>togliere</b> picchi col clic</span>
-    <span class="it">💡 accettare i <b>nomi suggeriti</b> per i picchi, o scriverli tu</span>
-    <span class="it">🎚️ scegliere <b>quanti picchi</b> trovare</span>
-    <span class="it">🧪 <b>convertire</b>, correggere la <b>linea di base</b>, fare <b>smoothing</b></span>
-    <span class="it">⛶ allargare il grafico e <b>zoomare</b> per mettere i picchi con precisione</span>
-    <span class="it">📏 scegliere l'<b>intervallo X</b> da stampare</span>
-    <span class="it">☑️ <b>escludere</b> i file che non servono</span>
+  <div class="stephead">
+    <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="71" cy="69" r="3.2" fill="#1c2230"/><circle cx="93" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M70 84q10 9 20 0" stroke="#1c2230" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      <div class="bubble" id="tip2">Controlla i grafici uno per uno. Sotto al grafico trovi gli strumenti, divisi per cosa vuoi fare.</div></div>
+    <button class="btn small" id="tourBtn">👻 Giro guidato</button>
   </div>
-  <div class="layout">
-    <div class="card files">
+  <div class="bench">
+    <div class="card files" id="filesCard">
       <div class="row" style="padding:2px 2px 8px">
-        <h3 style="margin:0">File (<span id="nFiles">0</span>)</h3>
+        <h3 style="margin:0">I tuoi spettri (<span id="nFiles">0</span>)</h3>
         <span class="spacer"></span>
-        <button class="btn small ghost" id="allOn" title="Seleziona o deseleziona tutti">Tutti</button>
         <button class="btn small ghost" id="addMore" title="Aggiungi altri file">+ Aggiungi</button>
       </div>
-      <input type="search" id="filter" placeholder="🔎 Cerca un file…">
+      <input type="search" id="filter" placeholder="🔎 Cerca uno spettro…">
+      <div class="listhint">La spunta decide cosa finisce nel PDF e nelle immagini. <button class="linkbtn" id="allOn">Tutti / nessuno</button></div>
       <div id="flist"></div>
     </div>
 
-    <div class="card preview">
-      <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="71" cy="69" r="3.2" fill="#1c2230"/><circle cx="93" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M70 84q10 9 20 0" stroke="#1c2230" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
-        <div class="bubble" id="tip2">Tocca il grafico per aggiungere un picco, tocca un picco per toglierlo. Facile!</div></div>
+    <div class="card preview" id="workCard">
       <div class="row" style="margin-bottom:8px">
-        <h2 id="pvTitle" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">—</h2>
+        <h2 id="pvTitle" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">—</h2>
         <span class="spacer"></span>
-        <button class="btn small" id="prevF" title="File precedente (←)">◀</button>
-        <button class="btn small" id="nextF" title="File successivo (→)">▶</button>
+        <button class="btn small" id="prevF" title="Spettro precedente (←)">◀</button>
+        <button class="btn small" id="nextF" title="Spettro successivo (→)">▶</button>
       </div>
       <canvas id="pv" width="1200" height="740"></canvas>
       <div class="pvtools">
@@ -355,184 +413,208 @@ body.busy, body.busy *{cursor:progress !important}
         <button class="btn small" id="zIn" title="Ingrandisci (rotellina del mouse)">🔍＋</button>
         <button class="btn small" id="zOut" title="Rimpicciolisci">🔍－</button>
         <button class="btn small" id="zReset" title="Mostra tutto (tasto 0)">↺ Tutto</button>
-        <span class="zoomtag" id="zoomTag">zoom attivo · solo in anteprima</span>
-        <span class="hint2">rotellina = zoom · trascina = sposta</span>
+        <span class="zoomtag" id="zoomTag">zoom attivo, solo in anteprima</span>
         <span class="spacer"></span>
         <button class="btn small primary" id="closeBig">✕ Chiudi</button>
       </div>
-      <div class="readout" id="readout">&nbsp;</div>
+      <div class="readout" id="readout">Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom</div>
 
-      <div class="editgrid">
-        <div class="field" style="margin:0"><label for="fTitle">Nome sul grafico</label><input type="text" id="fTitle" placeholder="nome del file"></div>
-        <div class="field" style="margin:0"><label for="fDesc">Descrizione <span style="font-weight:400">(facoltativa, va sotto il titolo)</span></label><input type="text" id="fDesc" placeholder="es. campione A, polvere, 32 scansioni"></div>
+      <div class="tabs" id="tabs" role="tablist">
+        <button class="tab on" data-tab="name" role="tab">✏️ Nome</button>
+        <button class="tab" data-tab="peaks" role="tab">📍 Picchi</button>
+        <button class="tab" data-tab="proc" role="tab">🧪 Ritocca lo spettro</button>
+        <button class="tab" data-tab="zone" role="tab">📏 Zona e strumento</button>
+        <button class="tab" data-tab="look" role="tab">🎨 Aspetto e lingua</button>
       </div>
 
-      <div style="margin-top:14px">
-        <div class="row"><span class="lbl">Picchi</span><small style="color:var(--muted)">clic su un numero per dargli un nome · 💡 = ho un suggerimento</small><span class="spacer"></span><button class="btn small" id="suggestAll">💡 Suggerisci nomi</button><button class="btn small ghost" id="resetPeaks">↺ Picchi automatici</button></div>
+      <!-- NOME -->
+      <div class="panel on" data-panel="name">
+        <div class="phead"><b>Come si chiama questo spettro sul grafico</b><span class="scope s-one">solo questo spettro</span></div>
+        <p class="why">Il nome del file spesso è un codice. Qui puoi scrivere un nome chiaro e una riga di descrizione, che compaiono sul grafico, nel PDF e nel nome dell'immagine.</p>
+        <div class="editgrid">
+          <div class="field"><label for="fTitle">Nome sul grafico</label><input type="text" id="fTitle" placeholder="nome del file"></div>
+          <div class="field"><label for="fDesc">Descrizione <span class="opt-l">facoltativa, va sotto il titolo</span></label><input type="text" id="fDesc" placeholder="es. campione A, polvere, 32 scansioni"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="fInclude"> Mettilo nel PDF e nelle immagini</label>
+      </div>
+
+      <!-- PICCHI -->
+      <div class="panel" data-panel="peaks">
+        <div class="phead"><b>I picchi di questo spettro</b><span class="scope s-one">solo questo spettro</span></div>
+        <p class="why">Clic sul grafico per aggiungere un picco, clic su un picco o sulla × per toglierlo. Clic sul numero per dargli un nome. Il 💡 indica che ho un nome da suggerirti: lo metto sul grafico solo se lo approvi.</p>
         <div class="chips" id="chips"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn small" id="suggestAll">💡 Suggerisci nomi</button>
+          <button class="btn small ghost" id="resetPeaks">↺ Torna ai picchi automatici</button>
+        </div>
+
+        <div class="phead" style="margin-top:20px"><b>Quanti picchi cerco in automatico</b><span class="scope s-all">tutti i grafici</span></div>
+        <label class="check"><input type="checkbox" data-k="showPeaks"> Cerca i picchi in automatico</label>
+        <div class="slider">
+          <span>tanti, anche i piccoli</span>
+          <input type="range" min="1" max="30" step="0.5" data-k="sens" aria-label="Quanti picchi">
+          <span>pochi, solo i grandi</span>
+        </div>
+        <div class="pkcount" id="pkCount"></div>
+
+        <div class="phead" style="margin-top:20px"><b>Che campioni sono?</b><span class="scope s-all">tutti i grafici</span></div>
+        <p class="why">Serve a suggerirti i nomi giusti dei picchi. Per un solo spettro diverso vai in «Zona e strumento».</p>
+        <div class="pills" id="samplePills"></div>
+
+        <details class="sec">
+          <summary>📚 La mia libreria di nomi</summary>
+          <div class="in">
+            <p class="why">Aggiungi bande o composti tuoi, per esempio «glucosio» a 28,5–29 min in HPLC. Li proporrò insieme a quelli già inclusi.</p>
+            <div id="libList"></div>
+            <div class="libform">
+              <select id="libInstr" aria-label="Strumento"></select>
+              <input type="text" id="libName" placeholder="nome">
+              <input type="number" id="libA" step="any" placeholder="da">
+              <input type="number" id="libB" step="any" placeholder="a">
+            </div>
+            <button class="btn small" id="libAdd" style="margin-top:8px">+ Aggiungi alla libreria</button>
+          </div>
+        </details>
+        <details class="sec">
+          <summary>Altre opzioni sui picchi</summary>
+          <div class="in">
+            <div class="field" style="max-width:240px"><label>Massimo di picchi per grafico</label><input type="number" min="0" max="60" data-k="maxPeaks"></div>
+            <label class="check"><input type="checkbox" data-k="peakLabels"> Scrivi il valore accanto a ogni picco</label>
+          </div>
+        </details>
       </div>
 
-      <details class="sec" style="margin-top:12px">
-        <summary>Più opzioni per questo file</summary>
-        <div class="in">
-          <div class="row" style="align-items:flex-start;gap:18px">
-            <div class="field" style="min-width:200px;margin:0">
-              <label for="fInstr">Strumento</label>
-              <select id="fInstr"></select>
-              <small id="fReason" style="color:var(--muted)"></small>
-            </div>
-            <div class="field" style="margin:0">
-              <label>Intervallo asse X <span style="font-weight:400" id="xrUnit"></span></label>
-              <div class="xr"><input type="number" id="xrA" step="any" placeholder="da"> – <input type="number" id="xrB" step="any" placeholder="a"><button class="btn small" id="xrAll" title="Mostra tutto">Tutto</button></div>
-              <button class="btn small ghost" id="xrApply" style="align-self:flex-start;margin-top:4px">Applica a tutti i file di questo strumento</button>
-            </div>
-            <div class="field" style="margin:0">
-              <label>Nell'output</label>
-              <label class="check" style="margin:4px 0 0"><input type="checkbox" id="fInclude"> includi</label>
-              <button class="btn small ghost" id="resetFile" style="align-self:flex-start">Annulla tutte le modifiche</button>
-            </div>
-          </div>
-        </div>
-      </details>
-    </div>
+      <!-- RITOCCA -->
+      <div class="panel" data-panel="proc">
+        <div class="phead"><b>Ritocca lo spettro</b><span class="scope s-instr" id="procScope">tutti gli spettri FTIR</span></div>
+        <p class="why">Cambia come vengono disegnati i dati, per tutti gli spettri dello stesso strumento. I file originali non vengono mai modificati.</p>
+        <div id="procBox"></div>
+      </div>
 
-    <div class="card" id="settingsPanel">
-      <h3>Per tutti i grafici</h3>
-      <div class="field"><label>Lingua dei grafici</label>
-        <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div></div>
-      <label class="check"><input type="checkbox" data-k="showPeaks"> Trova i picchi in automatico</label>
-      <div class="field"><label>Quanti picchi? <span id="sensV" style="font-weight:400"></span></label>
-        <input type="range" min="1" max="30" step="0.5" data-k="sens" style="direction:rtl">
-        <div class="row" style="font-size:12px;color:var(--muted)"><span>pochi, solo i grandi</span><span class="spacer"></span><span>tanti, anche i piccoli</span></div></div>
+      <!-- ZONA E STRUMENTO -->
+      <div class="panel" data-panel="zone">
+        <div class="phead"><b>Quale parte dello spettro stampare</b><span class="scope s-one">solo questo spettro</span></div>
+        <p class="why">Per esempio solo l'impronta digitale 1800–600 cm⁻¹. Lascia vuoto per stampare tutto. Lo zoom con la rotellina invece vale solo per l'anteprima.</p>
+        <div class="xr"><input type="number" id="xrA" step="any" placeholder="da" aria-label="da"> – <input type="number" id="xrB" step="any" placeholder="a" aria-label="a"> <span id="xrUnit" class="opt-l"></span>
+          <button class="btn small" id="xrAll">Tutto lo spettro</button></div>
+        <button class="btn small ghost" id="xrApply" style="margin-top:6px">Usa questa zona per tutti gli spettri di questo strumento</button>
 
-      <details class="sec">
-        <summary>Elaborazione dati</summary>
-        <div class="in" id="procBox"></div>
-      </details>
-      <details class="sec">
-        <summary>Picchi, opzioni avanzate</summary>
-        <div class="in">
-          <div class="field"><label>Massimo picchi per grafico</label><input type="number" min="0" max="60" data-k="maxPeaks"></div>
-          <label class="check"><input type="checkbox" data-k="peakLabels"> Scrivi il valore sui picchi</label>
+        <div class="phead" style="margin-top:20px"><b>Strumento e tipo di campione</b><span class="scope s-one">solo questo spettro</span></div>
+        <div class="row" style="align-items:flex-start;gap:16px">
+          <div class="field" style="min-width:220px"><label for="fInstr">Strumento</label><select id="fInstr"></select><small id="fReason" class="opt-l"></small></div>
+          <div class="field" style="min-width:260px"><label for="fSample">Tipo di campione</label><select id="fSample"></select></div>
         </div>
-      </details>
-      <details class="sec">
-        <summary>📚 La mia libreria di nomi</summary>
-        <div class="in">
-          <p class="hint" style="font-size:13px;margin-bottom:8px">Aggiungi bande o composti tuoi (es. «glucosio» a 3,2–3,4 min in HPLC). Li proporrò come suggerimenti, insieme a quelli già inclusi per FTIR, Raman e UV-Vis.</p>
-          <div id="libList"></div>
-          <div class="libform">
-            <select id="libInstr"></select>
-            <input type="text" id="libName" placeholder="nome">
-            <input type="number" id="libA" step="any" placeholder="da">
-            <input type="number" id="libB" step="any" placeholder="a">
-          </div>
-          <button class="btn small" id="libAdd" style="margin-top:8px">+ Aggiungi alla libreria</button>
+        <button class="btn small ghost" id="resetFile">↺ Annulla tutte le modifiche a questo spettro</button>
+      </div>
+
+      <!-- ASPETTO -->
+      <div class="panel" data-panel="look">
+        <div class="phead"><b>Lingua dei grafici</b><span class="scope s-all">tutti i grafici</span></div>
+        <p class="why">Etichette degli assi, separatore decimale, pagina di riepilogo ed elenco dei picchi.</p>
+        <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div>
+
+        <div class="phead" style="margin-top:20px"><b>Colore e linea</b><span class="scope s-all">tutti i grafici</span></div>
+        <div class="choices" id="colorChoices"></div>
+        <div class="field" id="colorRow" style="margin-top:8px;max-width:200px"><label>Il tuo colore</label><input type="color" data-k="color" style="width:60px;height:34px;border:1px solid var(--line);border-radius:8px"></div>
+        <div class="choices" id="lwChoices" style="margin-top:10px"></div>
+        <div style="margin-top:12px">
+          <label class="check"><input type="checkbox" data-k="grid"> Griglia di sfondo</label>
+          <label class="check"><input type="checkbox" data-k="showInstr"> Nome dello strumento in alto a destra</label>
         </div>
-      </details>
-      <details class="sec">
-        <summary>Aspetto</summary>
-        <div class="in">
-          <div class="field"><label>Colore della linea</label>
-            <select data-k="colorMode"><option value="instr">Uno per strumento</option><option value="single">Scelgo io</option><option value="black">Nero</option></select></div>
-          <div class="field" id="colorRow"><label>Colore</label><input type="color" data-k="color" style="width:60px;height:32px;border:1px solid var(--line);border-radius:8px"></div>
-          <div class="field"><label>Spessore linea</label><select data-k="lineW"><option value="0.15">Sottile</option><option value="0.25">Normale</option><option value="0.4">Spessa</option></select></div>
-          <label class="check"><input type="checkbox" data-k="grid"> Griglia</label>
-          <label class="check"><input type="checkbox" data-k="showInstr"> Nome strumento in alto a destra</label>
-        </div>
-      </details>
+      </div>
     </div>
   </div>
-  <div class="row" style="margin-top:14px"><button class="btn" data-go="1">← Indietro</button><span class="spacer"></span><button class="btn primary big" data-go="3">Tutto ok, avanti →</button></div>
+  <div class="row navrow"><button class="btn" data-go="1">← Carica altri file</button><span class="spacer"></span><button class="btn primary big" data-go="3" id="toV3">Tutto ok, vai a scaricare</button></div>
 </section>
 
 <!-- STEP 3 -->
 <section class="view" id="v3">
-  <div class="cando"><span class="ttl">🧰 Qui puoi:</span>
-    <span class="it">🌍 scegliere la <b>lingua</b> dei grafici</span>
-    <span class="it">🗂️ decidere <b>quanti grafici per pagina</b></span>
-    <span class="it">📄 scaricare il <b>PDF</b></span>
-    <span class="it">🖼️ scaricare le <b>immagini PNG</b> a 600 dpi</span>
-    <span class="it">📊 aggiungere <b>confronti</b> sovrapposti ed <b>elenco picchi</b></span>
-    <span class="it">💾 <b>salvare le impostazioni</b> per la prossima volta</span>
+  <div class="stephead">
+    <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="69" cy="69" r="3.2" fill="#1c2230"/><circle cx="91" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M68 82q12 14 24 0z" fill="#fff" stroke="#1c2230" stroke-width="3" stroke-linejoin="round"/></svg>
+      <div class="bubble" id="tip3">Ultimo passo! Spunta cosa vuoi ricevere, poi premi il pulsante blu.</div></div>
   </div>
-  <div class="export-grid">
-    <div class="card">
-      <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="69" cy="69" r="3.2" fill="#1c2230"/><circle cx="91" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M68 82q12 14 24 0z" fill="#fff" stroke="#1c2230" stroke-width="3" stroke-linejoin="round"/></svg>
-        <div class="bubble" id="tip3">Quasi fatto! Scegli lingua e impaginazione, poi premi un pulsante.</div></div>
 
-      <div class="field"><label>Lingua dei grafici</label>
-        <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div></div>
-      <div class="field"><label>Grafici per pagina nel PDF</label><div class="layoutpick" id="lpick"></div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="row" style="gap:16px">
+      <b style="font-size:16px">Lingua dei grafici</b>
+      <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div>
+      <span class="opt-l">assi, numeri, riepilogo ed elenco dei picchi</span>
+    </div>
+  </div>
 
-      <div class="dlbtns">
-        <button class="dl main" id="doBoth"><span>🎁</span>Tutto<small>PDF + immagini</small></button>
-        <button class="dl" id="doPdf"><span>📄</span>Solo PDF<small>per consultare</small></button>
-        <button class="dl" id="doZip"><span>🖼️</span>Solo immagini<small>PNG ad alta risoluzione</small></button>
+  <h2 class="qtitle">Cosa vuoi scaricare?</h2>
+  <div class="outgrid">
+    <div class="outcard" data-out="outPdf">
+      <label class="ohead"><input type="checkbox" data-k="outPdf"><span class="oico">📄</span><span><b>PDF per consultare</b><small>più grafici per pagina, da sfogliare o stampare</small></span></label>
+      <div class="obody">
+        <div class="field"><label>Grafici per pagina</label><div class="layoutpick" id="lpick"></div></div>
+        <div class="field"><label>Foglio A4</label><div class="seg" id="orientSeg"><button data-v="landscape">Orizzontale</button><button data-v="portrait">Verticale</button></div></div>
+        <label class="check"><input type="checkbox" data-k="summary"> Prima pagina con l'elenco dei campioni e dei picchi</label>
+        <details class="sec">
+          <summary>Altre opzioni del PDF</summary>
+          <div class="in">
+            <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Grafici"></div>
+            <div class="field"><label>Ordine dei grafici</label>
+              <select data-k="order"><option value="instr">Per strumento, poi per nome</option><option value="name">Per nome</option><option value="load">Come li ho caricati</option></select></div>
+            <div class="field"><label>Pagine di confronto, con gli spettri dello stesso strumento sovrapposti</label>
+              <select data-k="overlay"><option value="none">No</option><option value="start">Sì, all'inizio</option><option value="end">Sì, alla fine</option></select></div>
+            <div class="field" id="ovModeRow"><label>Come sovrapporli</label>
+              <select data-k="ovMode"><option value="stack">Uno sopra l'altro, sfalsati</option><option value="over">Tutti nella stessa scala</option></select></div>
+          </div>
+        </details>
       </div>
-      <div class="progress" id="prog"><div></div></div>
-      <div class="status" id="status"></div>
     </div>
-
-    <div class="card">
-      <h3>Cosa riceverai</h3>
-      <ul class="summary" id="sumList"></ul>
-
-      <details class="sec" style="margin-top:12px">
-        <summary>Più opzioni per il PDF</summary>
-        <div class="in">
-          <div class="field"><label>Orientamento A4</label>
-            <div class="seg" id="orientSeg"><button data-v="landscape">Orizzontale</button><button data-v="portrait">Verticale</button></div></div>
-          <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Grafici"></div>
-          <div class="field"><label>Ordine dei grafici</label>
-            <select data-k="order"><option value="instr">Per strumento, poi per nome</option><option value="name">Per nome</option><option value="load">Come li ho caricati</option></select></div>
-          <label class="check"><input type="checkbox" data-k="summary"> Pagina iniziale con l'elenco dei campioni e dei picchi</label>
-          <div class="field"><label>Pagine di confronto (spettri sovrapposti)</label>
-            <select data-k="overlay"><option value="none">No</option><option value="start">Sì, all'inizio</option><option value="end">Sì, alla fine</option></select>
-            <small style="color:var(--muted)">Un grafico per strumento con tutti i suoi spettri insieme.</small></div>
-          <div class="field" id="ovModeRow"><label>Come sovrapporli</label>
-            <select data-k="ovMode"><option value="stack">Sfalsati uno sopra l'altro (normalizzati)</option><option value="over">Sovrapposti nella stessa scala</option></select></div>
+    <div class="outcard" data-out="outPng">
+      <label class="ohead"><input type="checkbox" data-k="outPng"><span class="oico">🖼️</span><span><b>Immagini PNG</b><small>una per grafico, alta risoluzione per tesi e articoli</small></span></label>
+      <div class="obody">
+        <div class="row">
+          <div class="field" style="flex:1"><label>Larghezza (cm)</label><input type="number" min="4" max="40" step="0.5" data-k="pngW"></div>
+          <div class="field" style="flex:1"><label>Altezza (cm)</label><input type="number" min="3" max="30" step="0.5" data-k="pngH"></div>
+          <div class="field" style="flex:1"><label>Risoluzione</label><select data-k="pngDpi"><option value="300">300 dpi</option><option value="600">600 dpi</option></select></div>
         </div>
-      </details>
-      <details class="sec">
-        <summary>Più opzioni per le immagini</summary>
-        <div class="in">
-          <div class="row">
-            <div class="field" style="flex:1"><label>Larghezza (cm)</label><input type="number" min="4" max="40" step="0.5" data-k="pngW"></div>
-            <div class="field" style="flex:1"><label>Altezza (cm)</label><input type="number" min="3" max="30" step="0.5" data-k="pngH"></div>
-            <div class="field" style="flex:1"><label>dpi</label><select data-k="pngDpi"><option value="300">300</option><option value="600">600</option></select></div>
-          </div>
-          <small id="pxInfo" style="color:var(--muted)"></small>
-          <label class="check" style="margin-top:10px"><input type="checkbox" data-k="csvPeaks"> Elenco dei picchi (CSV per Excel)</label>
-          <label class="check"><input type="checkbox" data-k="csvData"> Dati elaborati (un CSV per spettro, come nel grafico)</label>
-          <label class="check"><input type="checkbox" data-k="keepFolders"> Mantieni le sottocartelle</label>
-        </div>
-      </details>
-      <details class="sec">
-        <summary>Impostazioni salvate</summary>
-        <div class="in">
-          <p class="hint" style="margin-bottom:10px">Le ultime impostazioni restano ricordate su questo computer, insieme ai nomi, alle descrizioni e ai picchi di ogni file. Puoi anche salvarle con un nome (es. «FTIR saliva») o passarle a un collega.</p>
-          <div class="row">
-            <select id="presetSel" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff"></select>
-            <button class="btn small" id="presetLoad">Usa</button>
-            <button class="btn small" id="presetDel">Elimina</button>
-          </div>
-          <div class="row" style="margin-top:8px">
-            <input type="text" id="presetName" placeholder="Nome, es. «Raman pigmenti»" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px">
-            <button class="btn small" id="presetSave">Salva</button>
-          </div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn small ghost" id="presetExport">Esporta .json</button>
-            <button class="btn small ghost" id="presetImport">Importa .json</button>
-            <button class="btn small ghost" id="presetReset">Ripristina predefinite</button>
-            <input type="file" id="presetFile" accept=".json,application/json" hidden>
-          </div>
-        </div>
-      </details>
+        <small id="pxInfo" class="opt-l"></small>
+        <label class="check" style="margin-top:8px"><input type="checkbox" data-k="keepFolders"> Mantieni le sottocartelle che hai caricato</label>
+      </div>
+    </div>
+    <div class="outcard" data-out="csvPeaks">
+      <label class="ohead"><input type="checkbox" data-k="csvPeaks"><span class="oico">📊</span><span><b>Elenco dei picchi</b><small>un file per Excel con posizione, valore e nome di ogni picco</small></span></label>
+    </div>
+    <div class="outcard" data-out="csvData">
+      <label class="ohead"><input type="checkbox" data-k="csvData"><span class="oico">🗂️</span><span><b>Dati elaborati</b><small>un CSV per spettro, con le correzioni che hai scelto, per rifare i grafici altrove</small></span></label>
     </div>
   </div>
-  <div class="row" style="margin-top:14px"><button class="btn" data-go="2">← Torna ai grafici</button></div>
+
+  <div class="card dlcard">
+    <ul class="summary" id="sumList"></ul>
+    <button class="btn primary big" id="doDl">Scarica</button>
+    <div class="progress" id="prog"><div></div></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <details class="sec card" style="margin-top:14px;padding:6px 18px">
+    <summary>💾 Salva queste impostazioni per la prossima volta</summary>
+    <div class="in">
+      <p class="why">Le ultime impostazioni restano già ricordate su questo computer, insieme a nomi, descrizioni e picchi di ogni spettro. Qui puoi salvarle con un nome (es. «FTIR saliva») o passarle a un collega.</p>
+      <div class="row">
+        <select id="presetSel" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff"></select>
+        <button class="btn small" id="presetLoad">Usa</button>
+        <button class="btn small" id="presetDel">Elimina</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="presetName" placeholder="Nome, es. «Raman pigmenti»" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px">
+        <button class="btn small" id="presetSave">Salva</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small ghost" id="presetExport">Esporta per un collega (.json)</button>
+        <button class="btn small ghost" id="presetImport">Importa (.json)</button>
+        <button class="btn small ghost" id="presetReset">Ripristina predefinite</button>
+        <input type="file" id="presetFile" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </details>
+  <div class="row navrow"><button class="btn" data-go="2">← Torna ai grafici</button></div>
 </section>
+
 </main>
 <dialog id="dlgLabel"><form method="dialog" class="dlg" id="dlForm">
   <h2>Picco a <span id="dlNum"></span></h2>
@@ -544,6 +626,7 @@ body.busy, body.busy *{cursor:progress !important}
 </form></dialog>
 <dialog id="dlgAll"><form method="dialog" class="dlg">
   <h2>💡 Nomi suggeriti</h2>
+  <div class="row" style="margin:6px 0 4px"><span class="lbl">Tipo di campione</span><select id="daSample" style="flex:1;border:1px solid var(--line);border-radius:9px;padding:5px 8px;background:#fff"></select></div>
   <div style="color:var(--muted);font-size:13.5px;margin-bottom:10px">Spunta quelli che vuoi mettere sul grafico. Quelli non spuntati restano solo con il numero.</div>
   <div class="row" style="margin-bottom:8px"><button class="btn small ghost" type="button" id="daToggle">Seleziona / deseleziona tutti</button></div>
   <div class="allrows" id="daRows"></div>
@@ -581,12 +664,15 @@ const L10N = {
 let LANG = 'it';
 const T_ = () => L10N[LANG] || L10N.it;
 const NOME_IT = L10N.it.nome;
-/* Database di bande/composti: [id, da, a, nome IT, nome EN, gruppo] — valori indicativi da tabelle di letteratura */
+/* Database di bande/composti: [id, da, a, nome IT, nome EN, gruppo di coerenza, tipi di campione]
+   tipi: cult = beni culturali · bio = biologico · chem = chimica organica/organometallica · mat = materiali, polimeri, catalisi
+   senza tipo = gruppo funzionale generale (sempre proposto). Valori indicativi da tabelle di letteratura. */
+const SAMPLE_TYPES = {all:'Tutti i tipi', cult:'🏛️ Beni culturali', bio:'🧬 Biologico', chem:'⚗️ Chimica organica e organometallica', mat:'🧱 Materiali, polimeri e catalisi'};
+const SAMPLE_TYPES_EN = {all:'All types', cult:'🏛️ Cultural heritage', bio:'🧬 Biological', chem:'⚗️ Organic & organometallic chemistry', mat:'🧱 Materials, polymers & catalysis'};
 const BANDS = {
   ftir: [
-    ['f_ohf',3580,3700,'ν O–H libero (es. argille)','free ν O–H (e.g. clays)'],
+    // generali
     ['f_oh',3200,3550,'ν O–H (legato a idrogeno)','ν O–H (H-bonded)'],
-    ['f_amA',3270,3320,'Ammide A (ν N–H)','Amide A (ν N–H)','prot'],
     ['f_nh',3300,3500,'ν N–H (ammine/ammidi)','ν N–H (amines/amides)'],
     ['f_char',3000,3100,'ν =C–H (aromatico/alchene)','ν =C–H (aromatic/alkene)'],
     ['f_ch3a',2950,2975,'νas CH₃','νas CH₃','alk'],
@@ -599,73 +685,191 @@ const BANDS = {
     ['f_est',1735,1750,'ν C=O (estere)','ν C=O (ester)'],
     ['f_ald',1720,1740,'ν C=O (aldeide)','ν C=O (aldehyde)'],
     ['f_acid',1700,1725,'ν C=O (acido carbossilico / chetone)','ν C=O (carboxylic acid / ketone)'],
-    ['f_amI',1620,1690,'Ammide I (ν C=O)','Amide I (ν C=O)','prot'],
     ['f_h2o',1630,1650,'δ H–O–H (acqua)','δ H–O–H (water)'],
     ['f_cooa',1550,1610,'νas COO⁻ (carbossilato)','νas COO⁻ (carboxylate)','coo'],
     ['f_ar1',1585,1610,'ν C=C anello aromatico','aromatic ring ν C=C','ar'],
-    ['f_amII',1510,1570,'Ammide II (δ N–H + ν C–N)','Amide II (δ N–H + ν C–N)','prot'],
     ['f_ar2',1490,1510,'ν C=C anello aromatico','aromatic ring ν C=C','ar'],
     ['f_ch2b',1440,1470,'δ CH₂ / δas CH₃','δ CH₂ / δas CH₃','alk'],
-    ['f_carb3',1400,1450,'ν₃ CO₃²⁻ (carbonato)','ν₃ CO₃²⁻ (carbonate)','carb'],
     ['f_coos',1390,1420,'νs COO⁻ (carbossilato)','νs COO⁻ (carboxylate)','coo'],
     ['f_ch3b',1370,1385,'δs CH₃','δs CH₃','alk'],
-    ['f_amIII',1230,1300,'Ammide III','Amide III','prot'],
-    ['f_po2a',1220,1250,'νas PO₂⁻ (fosfodiesteri)','νas PO₂⁻ (phosphodiesters)','po2'],
     ['f_coe',1150,1260,'ν C–O (esteri, acidi)','ν C–O (esters, acids)'],
-    ['f_so4',1080,1150,'ν₃ SO₄²⁻ (solfati, gesso)','ν₃ SO₄²⁻ (sulfates, gypsum)'],
     ['f_co',1000,1150,'ν C–O / C–O–C (alcoli, eteri, carboidrati)','ν C–O / C–O–C (alcohols, ethers, carbohydrates)'],
-    ['f_po2s',1075,1090,'νs PO₂⁻ (fosfodiesteri)','νs PO₂⁻ (phosphodiesters)','po2'],
-    ['f_sio',1000,1100,'ν Si–O–Si (silicati)','ν Si–O–Si (silicates)'],
-    ['f_po4',1020,1060,'ν₃ PO₄³⁻ (fosfati, idrossiapatite)','ν₃ PO₄³⁻ (phosphates, hydroxyapatite)','po4'],
-    ['f_carb2',860,880,'ν₂ CO₃²⁻ (carbonato)','ν₂ CO₃²⁻ (carbonate)','carb'],
     ['f_oop',650,1000,'δ =C–H fuori dal piano','=C–H out-of-plane bending'],
-    ['f_carb4',705,715,'ν₄ CO₃²⁻ (calcite)','ν₄ CO₃²⁻ (calcite)','carb'],
-    ['f_po4b',560,610,'ν₄ PO₄³⁻ (fosfati)','ν₄ PO₄³⁻ (phosphates)','po4']
+    // biologico
+    ['f_amA',3270,3320,'Ammide A (ν N–H)','Amide A (ν N–H)','prot','bio,cult'],
+    ['f_amI',1620,1690,'Ammide I (ν C=O)','Amide I (ν C=O)','prot','bio,cult'],
+    ['f_amII',1510,1570,'Ammide II (δ N–H + ν C–N)','Amide II (δ N–H + ν C–N)','prot','bio,cult'],
+    ['f_amIII',1230,1300,'Ammide III','Amide III','prot','bio,cult'],
+    ['f_lip',1735,1745,'ν C=O esteri dei lipidi','lipid ester ν C=O','lip','bio'],
+    ['f_po2a',1220,1250,'νas PO₂⁻ (fosfodiesteri, acidi nucleici)','νas PO₂⁻ (phosphodiesters, nucleic acids)','po2','bio'],
+    ['f_po2s',1075,1090,'νs PO₂⁻ (fosfodiesteri, acidi nucleici)','νs PO₂⁻ (phosphodiesters, nucleic acids)','po2','bio'],
+    ['f_glyc',1020,1035,'ν C–O glicogeno / glucosio','glycogen / glucose ν C–O','carb','bio'],
+    ['f_urea',1460,1470,'urea (ν C–N)','urea (ν C–N)',null,'bio'],
+    // beni culturali
+    ['f_carb3',1400,1450,'ν₃ CO₃²⁻ (carbonato, calcite)','ν₃ CO₃²⁻ (carbonate, calcite)','calc','cult,mat'],
+    ['f_carb2',860,880,'ν₂ CO₃²⁻ (calcite)','ν₂ CO₃²⁻ (calcite)','calc','cult,mat'],
+    ['f_carb4',705,715,'ν₄ CO₃²⁻ (calcite)','ν₄ CO₃²⁻ (calcite)','calc','cult,mat'],
+    ['f_gyp1',3525,3550,'gesso (ν O–H)','gypsum (ν O–H)','gyp','cult'],
+    ['f_gyp2',3395,3410,'gesso (ν O–H)','gypsum (ν O–H)','gyp','cult'],
+    ['f_gyp3',1615,1625,'gesso (δ H₂O)','gypsum (δ H₂O)','gyp','cult'],
+    ['f_so4',1080,1150,'ν₃ SO₄²⁻ (solfati, gesso)','ν₃ SO₄²⁻ (sulfates, gypsum)','gyp','cult,mat'],
+    ['f_gyp4',665,675,'gesso (ν₄ SO₄²⁻)','gypsum (ν₄ SO₄²⁻)','gyp','cult'],
+    ['f_kao1',3690,3700,'caolinite (Al–OH)','kaolinite (Al–OH)','kao','cult,mat'],
+    ['f_kao2',3615,3625,'caolinite (Al–OH)','kaolinite (Al–OH)','kao','cult,mat'],
+    ['f_kao3',905,915,'caolinite (δ Al–OH)','kaolinite (δ Al–OH)','kao','cult,mat'],
+    ['f_ox1',1615,1625,'ossalato di calcio (whewellite)','calcium oxalate (whewellite)','ox','cult'],
+    ['f_ox2',1310,1325,'ossalato di calcio (whewellite)','calcium oxalate (whewellite)','ox','cult'],
+    ['f_ox3',775,785,'ossalato di calcio (whewellite)','calcium oxalate (whewellite)','ox','cult'],
+    ['f_prus',2080,2095,'blu di Prussia (ν C≡N)','Prussian blue (ν C≡N)',null,'cult'],
+    ['f_lw',3530,3540,'biacca (idrocerussite, ν O–H)','lead white (hydrocerussite, ν O–H)','lw','cult'],
+    ['f_lw2',675,685,'biacca (δ CO₃²⁻)','lead white (δ CO₃²⁻)','lw','cult'],
+    ['f_oil',1730,1745,'olio siccativo / legante lipidico (ν C=O)','drying oil / lipid binder (ν C=O)','oil','cult'],
+    ['f_soap',1535,1545,'carbossilati metallici (saponi di Pb/Zn)','metal carboxylates (Pb/Zn soaps)','oil','cult'],
+    ['f_azu',812,820,'azzurrite','azurite',null,'cult'],
+    ['f_po4',1020,1060,'ν₃ PO₄³⁻ (fosfati, idrossiapatite, ossa)','ν₃ PO₄³⁻ (phosphates, hydroxyapatite, bone)','po4','bio,cult,mat'],
+    ['f_po4b',560,610,'ν₄ PO₄³⁻ (fosfati, idrossiapatite)','ν₄ PO₄³⁻ (phosphates, hydroxyapatite)','po4','bio,cult,mat'],
+    ['f_sio',1000,1100,'ν Si–O–Si (silicati, silice)','ν Si–O–Si (silicates, silica)',null,'cult,mat'],
+    // chimica organica e organometallica
+    ['f_mco',1850,2125,'ν C≡O carbonile metallico terminale','terminal metal carbonyl ν C≡O','mco','chem'],
+    ['f_mcob',1750,1850,'ν C≡O carbonile a ponte (μ-CO)','bridging carbonyl ν C≡O (μ-CO)','mco','chem'],
+    ['f_mh',1700,2250,'ν M–H (idruro metallico)','ν M–H (metal hydride)',null,'chem'],
+    ['f_no',1650,1850,'ν N≡O (nitrosile coordinato)','ν N≡O (coordinated nitrosyl)',null,'chem'],
+    ['f_pph1',1430,1440,'PPh₃ / fosfine arilate (anello)','PPh₃ / aryl phosphines (ring)','pph','chem'],
+    ['f_pph2',1085,1100,'PPh₃ (P–C fenile)','PPh₃ (P–C phenyl)','pph','chem'],
+    ['f_pph3',740,750,'PPh₃ (δ C–H)','PPh₃ (δ C–H)','pph','chem'],
+    ['f_pph4',690,698,'PPh₃ (anello)','PPh₃ (ring)','pph','chem'],
+    ['f_cp',3085,3110,'ν C–H ciclopentadienile (Cp)','cyclopentadienyl ν C–H (Cp)','cp','chem'],
+    ['f_fc1',1100,1108,'ferrocene / Cp (anello)','ferrocene / Cp (ring)','cp','chem'],
+    ['f_fc2',998,1005,'ferrocene / Cp (δ C–H)','ferrocene / Cp (δ C–H)','cp','chem'],
+    ['f_fc3',810,820,'ferrocene / Cp (δ C–H fuori piano)','ferrocene / Cp (out-of-plane δ C–H)','cp','chem'],
+    ['f_acac1',1570,1590,'acac coordinato (ν C=O)','coordinated acac (ν C=O)','acac','chem'],
+    ['f_acac2',1515,1530,'acac coordinato (ν C=C)','coordinated acac (ν C=C)','acac','chem'],
+    ['f_bh',2300,2500,'ν B–H (borani, BH₄⁻)','ν B–H (boranes, BH₄⁻)',null,'chem'],
+    ['f_sih',2100,2260,'ν Si–H (silani)','ν Si–H (silanes)',null,'chem,mat'],
+    ['f_nco',2250,2280,'ν N=C=O (isocianato)','ν N=C=O (isocyanate)',null,'chem,mat'],
+    ['f_n3',2120,2160,'ν N₃ (azide)','ν N₃ (azide)',null,'chem'],
+    ['f_ccy',2100,2260,'ν C≡C (alchini)','ν C≡C (alkynes)',null,'chem'],
+    ['f_cnm',2100,2180,'ν C≡N (cianuro / isonitrile coordinato)','ν C≡N (coordinated cyanide / isonitrile)',null,'chem'],
+    ['f_imine',1640,1690,'ν C=N (immine, basi di Schiff)','ν C=N (imines, Schiff bases)',null,'chem'],
+    ['f_no2a',1500,1560,'νas NO₂ (nitroderivati)','νas NO₂ (nitro compounds)','no2','chem'],
+    ['f_no2s',1340,1380,'νs NO₂ (nitroderivati)','νs NO₂ (nitro compounds)','no2','chem'],
+    ['f_so2a',1300,1350,'νas SO₂ (solfoni, solfonammidi)','νas SO₂ (sulfones, sulfonamides)','so2','chem'],
+    ['f_so2s',1120,1160,'νs SO₂ (solfoni, solfonammidi)','νs SO₂ (sulfones, sulfonamides)','so2','chem'],
+    ['f_otf',1250,1280,'triflato (ν SO₃ / C–F)','triflate (ν SO₃ / C–F)',null,'chem'],
+    ['f_bf4',1030,1080,'BF₄⁻ (controione)','BF₄⁻ (counterion)',null,'chem'],
+    ['f_pf6',835,845,'PF₆⁻ (controione)','PF₆⁻ (counterion)',null,'chem'],
+    ['f_cf',1000,1400,'ν C–F','ν C–F',null,'chem,mat'],
+    ['f_ccl',550,850,'ν C–Cl','ν C–Cl',null,'chem'],
+    // materiali, polimeri, catalisi
+    ['f_sioh',3735,3750,'Si–OH isolati (silice)','isolated Si–OH (silica)',null,'mat'],
+    ['f_pdms1',1257,1263,'Si–CH₃ (PDMS, siliconi)','Si–CH₃ (PDMS, silicones)','pdms','mat'],
+    ['f_pdms2',1005,1100,'Si–O–Si (PDMS)','Si–O–Si (PDMS)','pdms','mat'],
+    ['f_pdms3',795,805,'Si–CH₃ (PDMS, siliconi)','Si–CH₃ (PDMS, silicones)','pdms','mat'],
+    ['f_pe',718,730,'rocking CH₂ (polietilene, cere, catene lunghe)','CH₂ rocking (polyethylene, waxes, long chains)','alk','mat,cult'],
+    ['f_ps1',755,760,'polistirene (δ C–H aromatico)','polystyrene (aromatic δ C–H)','ps','mat'],
+    ['f_ps2',695,700,'polistirene (anello)','polystyrene (ring)','ps','mat'],
+    ['f_pet1',1710,1720,'PET (ν C=O)','PET (ν C=O)','pet','mat'],
+    ['f_pet2',1235,1245,'PET (ν C–O)','PET (ν C–O)','pet','mat'],
+    ['f_pmma',1725,1735,'PMMA / acrilici (ν C=O)','PMMA / acrylics (ν C=O)','acr','mat,cult'],
+    ['f_py1',1440,1450,'piridina su siti acidi di Lewis','pyridine on Lewis acid sites','py','mat'],
+    ['f_py2',1535,1545,'piridina su siti acidi di Brønsted','pyridine on Brønsted acid sites','py','mat'],
+    ['f_py3',1485,1492,'piridina adsorbita (siti L + B)','adsorbed pyridine (L + B sites)','py','mat'],
+    ['f_coads',2000,2200,'CO adsorbito su metallo','CO adsorbed on metal',null,'mat'],
+    ['f_mo',400,800,'ν M–O (ossidi metallici, es. TiO₂, ZnO)','ν M–O (metal oxides, e.g. TiO₂, ZnO)',null,'mat']
   ],
   raman: [
     ['r_char',3040,3080,'ν =C–H aromatico','aromatic ν =C–H'],
     ['r_ch',2840,3000,'ν C–H (CH₂/CH₃)','ν C–H (CH₂/CH₃)'],
     ['r_co',1725,1750,'ν C=O (esteri, lipidi)','ν C=O (esters, lipids)'],
-    ['r_amI',1640,1680,'Ammide I','Amide I','prot'],
-    ['r_ccl',1650,1670,'ν C=C (lipidi insaturi)','ν C=C (unsaturated lipids)'],
-    ['r_phe2',1600,1610,'Fenilalanina / tirosina (anello)','Phenylalanine / tyrosine (ring)','prot'],
-    ['r_G',1570,1600,'banda G (carbonio grafitico)','G band (graphitic carbon)','carbon'],
-    ['r_car1',1500,1530,'ν₁ C=C carotenoidi','carotenoids ν₁ C=C','carot'],
+    ['r_ccl',1650,1670,'ν C=C (alcheni, lipidi insaturi)','ν C=C (alkenes, unsaturated lipids)'],
     ['r_ch2',1435,1460,'δ CH₂ / CH₃','δ CH₂ / CH₃'],
-    ['r_D',1330,1365,'banda D (carbonio disordinato)','D band (disordered carbon)','carbon'],
-    ['r_amIII',1230,1300,'Ammide III','Amide III','prot'],
-    ['r_car2',1145,1165,'ν₂ C–C carotenoidi','carotenoids ν₂ C–C','carot'],
-    ['r_calc',1083,1090,'ν₁ CO₃²⁻ calcite','ν₁ CO₃²⁻ calcite','calc'],
-    ['r_cer',1048,1055,'ν₁ CO₃²⁻ biacca (cerussite)','ν₁ CO₃²⁻ lead white (cerussite)'],
-    ['r_anh',1014,1020,'ν₁ SO₄²⁻ anidrite','ν₁ SO₄²⁻ anhydrite'],
-    ['r_car3',1004,1012,'ν₃ CH₃ rocking carotenoidi','carotenoids ν₃ CH₃ rocking','carot'],
-    ['r_gyp',1005,1010,'ν₁ SO₄²⁻ gesso','ν₁ SO₄²⁻ gypsum'],
-    ['r_phe',999,1006,'Fenilalanina (respiro dell\'anello)','Phenylalanine (ring breathing)','prot'],
-    ['r_bar',985,990,'ν₁ SO₄²⁻ barite','ν₁ SO₄²⁻ barite'],
-    ['r_hap',955,965,'ν₁ PO₄³⁻ idrossiapatite','ν₁ PO₄³⁻ hydroxyapatite'],
-    ['r_calc4',708,715,'ν₄ CO₃²⁻ calcite','ν₄ CO₃²⁻ calcite','calc'],
-    ['r_rut2',605,615,'rutilo (TiO₂)','rutile (TiO₂)','rut'],
-    ['r_laz',542,552,'lazurite (blu oltremare)','lazurite (ultramarine blue)'],
-    ['r_si',515,525,'silicio cristallino','crystalline silicon'],
-    ['r_qz',460,468,'quarzo','quartz'],
-    ['r_rut1',440,450,'rutilo (TiO₂)','rutile (TiO₂)','rut'],
-    ['r_hem3',405,415,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
-    ['r_cin2',340,348,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin'],
-    ['r_hem2',288,298,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
-    ['r_calc1',278,285,'calcite (reticolo)','calcite (lattice)','calc'],
-    ['r_cin1',250,256,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin'],
-    ['r_hem1',222,230,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
-    ['r_anat',140,148,'anatasio (TiO₂)','anatase (TiO₂)']
+    // biologico
+    ['r_amI',1640,1680,'Ammide I','Amide I','prot','bio,cult'],
+    ['r_phe2',1600,1610,'Fenilalanina / tirosina (anello)','Phenylalanine / tyrosine (ring)','prot','bio'],
+    ['r_amIII',1230,1300,'Ammide III','Amide III','prot','bio,cult'],
+    ['r_phe',999,1006,'Fenilalanina (respiro dell\'anello)','Phenylalanine (ring breathing)','prot','bio'],
+    ['r_tyr1',850,855,'tirosina (doppietto di Fermi)','tyrosine (Fermi doublet)','prot','bio'],
+    ['r_tyr2',825,830,'tirosina (doppietto di Fermi)','tyrosine (Fermi doublet)','prot','bio'],
+    ['r_trp',750,760,'triptofano','tryptophan','prot','bio'],
+    ['r_ss',505,515,'ν S–S (ponti disolfuro)','ν S–S (disulfide bridges)','prot','bio,chem'],
+    ['r_dna1',780,790,'acidi nucleici (anello pirimidinico)','nucleic acids (pyrimidine ring)','dna','bio'],
+    ['r_dna2',1090,1100,'νs PO₂⁻ (scheletro del DNA)','νs PO₂⁻ (DNA backbone)','dna','bio'],
+    ['r_heme',1360,1375,'eme ν₄ (emoglobina, citocromi)','heme ν₄ (hemoglobin, cytochromes)',null,'bio'],
+    ['r_car1',1500,1530,'ν₁ C=C carotenoidi','carotenoids ν₁ C=C','carot','bio,cult'],
+    ['r_car2',1145,1165,'ν₂ C–C carotenoidi','carotenoids ν₂ C–C','carot','bio,cult'],
+    ['r_car3',1004,1012,'ν₃ CH₃ rocking carotenoidi','carotenoids ν₃ CH₃ rocking','carot','bio,cult'],
+    ['r_hap',955,965,'ν₁ PO₄³⁻ idrossiapatite (ossa, denti)','ν₁ PO₄³⁻ hydroxyapatite (bone, teeth)',null,'bio,cult,mat'],
+    // beni culturali
+    ['r_calc',1083,1090,'ν₁ CO₃²⁻ calcite','ν₁ CO₃²⁻ calcite','calc','cult,mat'],
+    ['r_calc4',708,715,'ν₄ CO₃²⁻ calcite','ν₄ CO₃²⁻ calcite','calc','cult,mat'],
+    ['r_calc1',278,285,'calcite (reticolo)','calcite (lattice)','calc','cult,mat'],
+    ['r_cer',1048,1055,'ν₁ CO₃²⁻ biacca (cerussite)','ν₁ CO₃²⁻ lead white (cerussite)',null,'cult'],
+    ['r_anh',1014,1020,'ν₁ SO₄²⁻ anidrite','ν₁ SO₄²⁻ anhydrite',null,'cult'],
+    ['r_gyp',1005,1010,'ν₁ SO₄²⁻ gesso','ν₁ SO₄²⁻ gypsum',null,'cult'],
+    ['r_bar',985,990,'ν₁ SO₄²⁻ barite (bianco fisso)','ν₁ SO₄²⁻ barite (blanc fixe)',null,'cult,mat'],
+    ['r_laz',542,552,'lazurite (blu oltremare)','lazurite (ultramarine blue)',null,'cult'],
+    ['r_min1',546,552,'minio (Pb₃O₄)','red lead (Pb₃O₄)','min','cult'],
+    ['r_min2',388,393,'minio (Pb₃O₄)','red lead (Pb₃O₄)','min','cult'],
+    ['r_hem3',405,415,'ematite (α-Fe₂O₃, ocra rossa)','hematite (α-Fe₂O₃, red ochre)','hem','cult,mat'],
+    ['r_hem2',288,298,'ematite (α-Fe₂O₃, ocra rossa)','hematite (α-Fe₂O₃, red ochre)','hem','cult,mat'],
+    ['r_hem1',222,230,'ematite (α-Fe₂O₃, ocra rossa)','hematite (α-Fe₂O₃, red ochre)','hem','cult,mat'],
+    ['r_goe',382,390,'goethite (ocra gialla)','goethite (yellow ochre)',null,'cult'],
+    ['r_cin2',340,348,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin','cult'],
+    ['r_cin1',250,256,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin','cult'],
+    ['r_mal',430,435,'malachite','malachite',null,'cult'],
+    ['r_azu1',398,403,'azzurrite','azurite','azu','cult'],
+    ['r_azu2',1093,1100,'azzurrite (CO₃²⁻)','azurite (CO₃²⁻)','azu','cult'],
+    ['r_lty',192,200,'giallo di piombo e stagno (tipo I)','lead-tin yellow (type I)',null,'cult'],
+    ['r_prus1',2150,2160,'blu di Prussia (ν C≡N)','Prussian blue (ν C≡N)','prus','cult'],
+    ['r_prus2',2085,2095,'blu di Prussia (ν C≡N)','Prussian blue (ν C≡N)','prus','cult'],
+    ['r_ind1',1570,1575,'indaco','indigo','ind','cult'],
+    ['r_ind2',543,548,'indaco','indigo','ind','cult'],
+    ['r_ox1',1460,1465,'ossalato di calcio (whewellite)','calcium oxalate (whewellite)','ox','cult'],
+    ['r_ox2',1488,1492,'ossalato di calcio (whewellite)','calcium oxalate (whewellite)','ox','cult'],
+    ['r_qz',460,468,'quarzo','quartz',null,'cult,mat'],
+    ['r_G',1570,1600,'banda G (carbonio grafitico, nero di carbone)','G band (graphitic carbon, carbon black)','carbon','cult,mat'],
+    ['r_D',1330,1365,'banda D (carbonio disordinato)','D band (disordered carbon)','carbon','cult,mat'],
+    ['r_rut2',605,615,'rutilo (TiO₂)','rutile (TiO₂)','rut','cult,mat'],
+    ['r_rut1',440,450,'rutilo (TiO₂)','rutile (TiO₂)','rut','cult,mat'],
+    ['r_anat',140,148,'anatasio (TiO₂)','anatase (TiO₂)',null,'cult,mat'],
+    ['r_zno',435,440,'ossido di zinco (bianco di zinco)','zinc oxide (zinc white)',null,'cult,mat'],
+    // chimica
+    ['r_cn',2220,2260,'ν C≡N (nitrile)','ν C≡N (nitrile)',null,'chem'],
+    ['r_ccy',2100,2260,'ν C≡C (alchini)','ν C≡C (alkynes)',null,'chem'],
+    ['r_mco',1850,2125,'ν C≡O carbonile metallico','metal carbonyl ν C≡O',null,'chem'],
+    ['r_cs',630,700,'ν C–S','ν C–S',null,'chem,bio'],
+    ['r_ring',995,1005,'respiro dell\'anello benzenico','benzene ring breathing',null,'chem,mat'],
+    ['r_no3',1045,1050,'ν₁ NO₃⁻ (nitrati)','ν₁ NO₃⁻ (nitrates)',null,'chem,mat,cult'],
+    ['r_so4aq',980,985,'ν₁ SO₄²⁻ (solfati)','ν₁ SO₄²⁻ (sulfates)',null,'chem,mat'],
+    ['r_clo4',930,935,'ν₁ ClO₄⁻ (perclorato)','ν₁ ClO₄⁻ (perchlorate)',null,'chem'],
+    // materiali
+    ['r_si',515,525,'silicio cristallino','crystalline silicon',null,'mat'],
+    ['r_2D',2650,2720,'banda 2D (grafene / grafite)','2D band (graphene / graphite)','carbon','mat'],
+    ['r_rbm',100,300,'modi radiali di respiro (nanotubi di carbonio)','radial breathing modes (carbon nanotubes)','carbon','mat'],
+    ['r_mos1',380,386,'MoS₂ (E¹₂g)','MoS₂ (E¹₂g)','mos','mat'],
+    ['r_mos2',405,410,'MoS₂ (A₁g)','MoS₂ (A₁g)','mos','mat'],
+    ['r_sic',785,800,'carburo di silicio (SiC)','silicon carbide (SiC)',null,'mat'],
+    ['r_ceo2',462,467,'CeO₂ (F₂g)','CeO₂ (F₂g)',null,'mat'],
+    ['r_fe3o4',665,672,'magnetite (Fe₃O₄)','magnetite (Fe₃O₄)',null,'mat,cult'],
+    ['r_pe1',1125,1130,'polietilene (ν C–C)','polyethylene (ν C–C)','pe','mat'],
+    ['r_pe2',1058,1062,'polietilene (ν C–C)','polyethylene (ν C–C)','pe','mat'],
+    ['r_ps',1000,1003,'polistirene (anello)','polystyrene (ring)',null,'mat']
   ],
   uv: [
-    ['u_dna',255,265,'acidi nucleici (~260 nm)','nucleic acids (~260 nm)'],
-    ['u_prot',275,285,'proteine, Trp/Tyr (~280 nm)','proteins, Trp/Tyr (~280 nm)'],
-    ['u_nadh',335,345,'NADH (~340 nm)','NADH (~340 nm)'],
-    ['u_ag',390,420,'plasmone di nanoparticelle d\'argento','silver nanoparticle plasmon'],
-    ['u_soret',405,420,'banda di Soret (porfirine / eme)','Soret band (porphyrins / heme)'],
-    ['u_chl2',425,435,'clorofilla a (Soret)','chlorophyll a (Soret)','chl'],
-    ['u_au',510,540,'plasmone di nanoparticelle d\'oro','gold nanoparticle plasmon'],
-    ['u_chl1',660,670,'clorofilla a (banda Q)','chlorophyll a (Q band)','chl']
+    ['u_pi',200,250,'transizioni π→π* (aromatici, sistemi coniugati)','π→π* transitions (aromatics, conjugated systems)'],
+    ['u_dna',255,265,'acidi nucleici (~260 nm)','nucleic acids (~260 nm)',null,'bio'],
+    ['u_prot',275,285,'proteine, Trp/Tyr (~280 nm)','proteins, Trp/Tyr (~280 nm)',null,'bio'],
+    ['u_nadh',335,345,'NADH (~340 nm)','NADH (~340 nm)',null,'bio'],
+    ['u_soret',405,420,'banda di Soret (porfirine / eme)','Soret band (porphyrins / heme)',null,'bio,chem'],
+    ['u_chl2',425,435,'clorofilla a (Soret)','chlorophyll a (Soret)','chl','bio'],
+    ['u_chl1',660,670,'clorofilla a (banda Q)','chlorophyll a (Q band)','chl','bio'],
+    ['u_mlct',440,460,'banda MLCT (es. complessi di Ru(bpy)₃²⁺)','MLCT band (e.g. Ru(bpy)₃²⁺ complexes)',null,'chem'],
+    ['u_dd',550,900,'transizioni d–d (complessi di metalli di transizione)','d–d transitions (transition-metal complexes)',null,'chem'],
+    ['u_mb',660,668,'blu di metilene (~664 nm)','methylene blue (~664 nm)',null,'chem,mat'],
+    ['u_rhb',550,558,'rodamina B (~554 nm)','rhodamine B (~554 nm)',null,'chem,mat'],
+    ['u_tio2',370,390,'bordo di assorbimento del TiO₂ (~380 nm)','TiO₂ absorption edge (~380 nm)',null,'mat'],
+    ['u_ag',390,420,'plasmone di nanoparticelle d\'argento','silver nanoparticle plasmon',null,'mat'],
+    ['u_au',510,540,'plasmone di nanoparticelle d\'oro','gold nanoparticle plasmon',null,'mat']
   ]
 };
 const LS_LIB='spectraplot.lib.v1';
@@ -674,21 +878,25 @@ function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }cat
 const SNAP_TOL = {ftir:3, raman:3, uv:2, hplc:0, gen:0};
 function dbEntries(instr){
   const own = LIB.filter(e=>e.i===instr).map(e=>({id:e.id, lo:Math.min(e.a,e.b), hi:Math.max(e.a,e.b), it:e.n, en:e.n, g:null, mine:true}));
-  const db = (BANDS[instr]||[]).map(e=>({id:e[0], lo:Math.min(e[1],e[2]), hi:Math.max(e[1],e[2]), it:e[3], en:e[4], g:e[5]||null, mine:false}));
+  const db = (BANDS[instr]||[]).map(e=>({id:e[0], lo:Math.min(e[1],e[2]), hi:Math.max(e[1],e[2]), it:e[3], en:e[4], g:e[5]||null, tags:e[6]?e[6].split(','):null, mine:false}));
   return own.concat(db);
 }
 function entryById(id){
   for (const k in BANDS){ const e=BANDS[k].find(b=>b[0]===id); if (e) return {it:e[3], en:e[4]}; }
   const m=LIB.find(e=>e.id===id); return m ? {it:m.n, en:m.n} : null;
 }
-function suggest(instr, x, others){
-  const tol=SNAP_TOL[instr]||0, all=dbEntries(instr);
+let SAMPLE='all';
+function suggest(instr, x, others, sample){
+  const st = sample || SAMPLE;
+  const tol=SNAP_TOL[instr]||0, all=dbEntries(instr).filter(e=>st==='all' || !e.tags || e.tags.includes(st));
   const hit=(e,v)=> v>=e.lo-tol && v<=e.hi+tol;
   return all.filter(e=>hit(e,x)).map(e=>{
     const c=(e.lo+e.hi)/2, w=e.hi-e.lo;
     let score = Math.abs(x-c)/(w/2+tol+1e-9) + w/400;
     if (e.g && (others||[]).some(o=>Math.abs(o-x)>1e-6 && all.some(f=>f.g===e.g && f.id!==e.id && hit(f,o)))) score -= 0.8;
     if (e.mine) score -= 0.3;
+    if (st!=='all' && e.tags && e.tags.includes(st)) score -= 0.25;
+    if (st==='all' && e.tags) score += 0.35;
     return {id:e.id, it:e.it, en:e.en, score, mine:e.mine, coherent: score<0};
   }).sort((a,b)=>a.score-b.score).slice(0,4);
 }
@@ -738,17 +946,29 @@ function parseText(text){
     start = iData>=0 ? iData+1 : 0;
     for (let i=0;i<start;i++) meta.push(lines[i]);
   }
-  const xs=[], ys=[];
+  const xs=[], ys=[], tail=[];
   for (let i=start;i<lines.length;i++){
     const l = lines[i].trim(); if (!l) continue;
     const p = parseLine(l);
     if (p){ xs.push(p[0]); ys.push(p[1]); }
     else if (xs.length < 3) { if (xs.length){ xs.length=0; ys.length=0; } meta.push(l); }
+    else if (tail.length < 120) tail.push(l);
   }
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
-  return {xs:X, ys:Y, meta, pe, peX, peY};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY};
+}
+/* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
+function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
+function headerInfo(meta){
+  return {
+    type: headerField(meta, /^#*\s*DATA\s*TYPE\s*[;:=,\t]\s*(.+)$/i),
+    xu:   headerField(meta, /^#*\s*XUNITS\s*[;:=,\t]\s*(.+)$/i),
+    yu:   headerField(meta, /^#*\s*YUNITS\s*[;:=,\t]\s*(.+)$/i) || headerField(meta, /^(?:Photometric mode|Vertical axis)\s*[;:=,\t]\s*(.+)$/i),
+    inst: headerField(meta, /^(?:Instrument name|Model name|##?\s*SPECTROMETER\/DATA SYSTEM|Instrument)\s*[;:=,\t]\s*(.+)$/i),
+    origin: headerField(meta, /^#*\s*ORIGIN\s*[;:=,\t]\s*(.+)$/i)
+  };
 }
 function stats(xs,ys){
   let ymin=Infinity,ymax=-Infinity;
@@ -762,6 +982,15 @@ function detectInstrument(p, name){
   const head = (p.meta.join(' ')+' '+name).toLowerCase();
   const s = stats(p.xs,p.ys);
   if (p.pe) return {instr:'ftir', reason:'formato PerkinElmer (PE IR)'};
+  const H=headerInfo(p.meta), who=(H.inst||H.origin||'').replace(/\s+/g,' ').slice(0,40), by = who ? ` · ${who}` : '';
+  const ty=H.type.toLowerCase(), xu=H.xu.toLowerCase();
+  if (/infrared|\bir\b/.test(ty)) return {instr:'ftir', reason:'intestazione: spettro IR'+by};
+  if (/raman/.test(ty)) return {instr:'raman', reason:'intestazione: spettro Raman'+by};
+  if (/ultraviolet|\buv\b|visible|uv.?vis/.test(ty)) return {instr:'uv', reason:'intestazione: spettro UV-Vis'+by};
+  if (/chromatogram/.test(ty)) return {instr:'hplc', reason:'intestazione: cromatogramma'+by};
+  if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
+  if (/nanomet|^nm/.test(xu)) return {instr:'uv', reason:'asse X in nm (intestazione)'+by};
+  if (/minute|^min/.test(xu)) return {instr:'hplc', reason:'asse X in minuti (intestazione)'+by};
   if (/\bopus\b|bruker|nicolet|omnic|\bftir\b|\batr\b|wavenumbers?/.test(head)) return {instr:'ftir', reason:'intestazione FTIR'};
   if (/raman|labspec|renishaw|horiba|\bwire\b/.test(head)) return {instr:'raman', reason:'intestazione Raman'};
   if (/dad\d|vwd\d|fld\d|\.dx_|chemstation|openlab|empower|chromatogram|retention/.test(head)) return {instr:'hplc', reason:'nome/intestazione HPLC (DAD/VWD)'};
@@ -776,6 +1005,9 @@ function detectInstrument(p, name){
 function yKindFor(instr, p){
   if (instr==='ftir' || instr==='uv'){
     if (p.peY){ if (/T/i.test(p.peY)) return 'T'; if (/A/i.test(p.peY)) return 'A'; }
+    const yu = p.meta ? headerInfo(p.meta).yu.toLowerCase() : '';
+    if (/transmit|%t|^t$/.test(yu)) return 'T';
+    if (/absorb|^abs|^a$/.test(yu)) return 'A';
     let ymax=-Infinity; for (const v of p.ys) if (v>ymax) ymax=v;
     return ymax>5 ? 'T' : 'A';
   }
@@ -1030,9 +1262,9 @@ function drawPlot(ctx, W, H, k, d, S){
 const DEFAULTS = {
   lang:'it', perPage:4, orient:'landscape', order:'instr', summary:true, docTitle:'',
   overlay:'none', ovMode:'stack',
-  pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
+  outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
-  showPeaks:true, sens:5, maxPeaks:12, peakLabels:true,
+  showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all',
   conv:{ftir:'orig', raman:'orig', uv:'orig', hplc:'orig', gen:'orig'},
   smooth:{ftir:0, raman:0, uv:0, hplc:0, gen:0},
   base:{ftir:'none', raman:'none', uv:'none', hplc:'none', gen:'none'}
@@ -1044,8 +1276,8 @@ function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ r
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 function merge(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici') r.docTitle=''; return r; }
-let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang;
-function saveS(){ LANG = S.lang; lsSet(LS_KEY, S); }
+let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang; SAMPLE = S.sample;
+function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
 const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv)$/i;
@@ -1054,11 +1286,11 @@ const dispTitle = f => (f.title && f.title.trim()) || f.name;
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
 function fkey(f){ return LS_FILE + f.path + '|' + f.xs.length; }
 function persist(f){
-  const o={title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined};
-  const empty = !o.title && !o.desc && !o.xr && !Object.keys(o.labels).length && !o.removed.length && !o.added.length && o.include && !o.instr;
+  const o={title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined};
+  const empty = !o.title && !o.desc && !o.xr && !Object.keys(o.labels).length && !o.removed.length && !o.added.length && o.include && !o.instr && !o.sample;
   if (empty) lsDel(fkey(f)); else lsSet(fkey(f), o);
 }
-function isEdited(f){ return !!(f.title || f.desc || f.xr || Object.keys(f.labels).length || f.removed.length || f.added.length || f.instr!==f.autoInstr); }
+function isEdited(f){ return !!(f.title || f.desc || f.xr || Object.keys(f.labels).length || f.removed.length || f.added.length || f.instr!==f.autoInstr || f.sample); }
 
 function procKey(f){ const i=f.instr; return [i,S.conv[i],S.smooth[i],S.base[i],f.kind,f.xr?f.xr.join(','):''].join('|'); }
 function processed(f){
@@ -1101,7 +1333,7 @@ function viewOf(f){
     else if (raw) name=raw;
     p.num=fmtPeak(instr,p.x); p.custom=!!name; p.name=name;
     p.label = !name ? p.num : (name.includes(p.num) ? name : p.num+' '+name);
-    p.sugg = name ? [] : suggest(instr, p.x, xsAll);
+    p.sugg = name ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample);
   });
   const color = S.colorMode==='instr' ? prof.colore : S.colorMode==='black' ? '#111' : S.color;
   return {title:dispTitle(f), desc:(f.desc||'').trim(), instrName:L.nome[instr], series:[{xs:P.xs, ys:P.ys, color, name:dispTitle(f)}],
@@ -1164,10 +1396,10 @@ async function addEntries(entries){
         const det = detectInstrument(p, file.name);
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, ys:p.ys, meta:p.meta, peY:p.peY,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
-        f._p = {peY:p.peY, ys:p.ys};
+        f._p = {peY:p.peY, ys:p.ys, meta:p.meta};
         const saved = lsGet(fkey(f));
         if (saved){
-          Object.assign(f, {title:saved.title||'', desc:saved.desc||'', xr:saved.xr||null, labels:saved.labels||{}, removed:saved.removed||[], added:saved.added||[], include:saved.include!==false});
+          Object.assign(f, {title:saved.title||'', desc:saved.desc||'', xr:saved.xr||null, labels:saved.labels||{}, removed:saved.removed||[], added:saved.added||[], include:saved.include!==false, sample:SAMPLE_TYPES[saved.sample]?saved.sample:null});
           if (saved.instr && INSTR[saved.instr]) f.instr=saved.instr;
         }
         f.kind = yKindFor(f.instr, f._p);
@@ -1273,7 +1505,8 @@ const GREET = ['Ciao! 👋 Io e Gino 👻 acchiappiamo i tuoi spettri e li trasf
   'Ehilà! 👋 Trascina qui i file: FTIR, Raman, UV-Vis, HPLC… li prendo tutti!',
   'Niente paura, gli spettri li acchiappo io. 👻🔬'];
 say('#hello', GREET[Math.floor(Math.random()*GREET.length)]);
-const TIPS2 = ['Tocca il grafico per aggiungere un picco, tocca un picco per toglierlo. Facile!',
+const TIPS2 = ['Sotto al grafico trovi gli strumenti divisi per cosa vuoi fare. L\'etichetta colorata ti dice a chi si applica.',
+  'Tocca il grafico per aggiungere un picco, tocca un picco per toglierlo. Facile!',
   'Puoi dare un nome più chiaro allo spettro e aggiungere una descrizione qui sotto. ✍️',
   'Clic sul numero di un picco per scriverci l\'assegnazione, es. «C=O stretch». 🧪',
   'Vedi un 💡 sui picchi? Ho un nome da suggerirti: lo metto sul grafico solo se lo approvi. 🏷️',
@@ -1294,7 +1527,8 @@ function go(n){
   $$('.view').forEach((v,i)=>v.classList.toggle('on', i===n-1));
   $$('.step').forEach(b=>{ const s=+b.dataset.go; b.classList.toggle('on', s===n); b.classList.toggle('done', s<n); });
   if (n===2){ say('#tip2', TIPS2[tipI++ % TIPS2.length]); renderPreview(); }
-  if (n===3){ say('#tip3', 'Quasi fatto! Scegli lingua e impaginazione, poi premi un pulsante. 👇'); renderSummary(); }
+  if (n===3){ say('#tip3', 'Ultimo passo! Spunta cosa vuoi ricevere, poi premi il pulsante blu. 👇'); renderSummary(); }
+  if (n===2 && !lsGet('acch.tourDone')) setTimeout(()=>{ if (curView===2) startTour(); }, 500);
   window.scrollTo({top:0});
 }
 $$('[data-go]').forEach(b=>b.addEventListener('click', ()=>go(+b.dataset.go)));
@@ -1309,9 +1543,14 @@ function renderLoaded(){
   box.innerHTML = `<div class="row" style="margin-bottom:12px"><h2 style="margin:0">${files.length} file pronti</h2>
     <span class="spacer"></span><button class="btn small ghost" id="clearAll">Ricomincia da capo</button>
     <button class="btn primary big" id="toStep2">Vediamo i grafici →</button></div>
+    <div class="cando" style="margin:0 0 12px"><span class="ttl">🔬 Che campioni sono?</span>
+      ${Object.entries(SAMPLE_TYPES).map(([k,v])=>`<button class="btn small ${S.sample===k?'primary':''}" data-st="${k}">${v}</button>`).join('')}
+      <span style="color:var(--muted);font-size:12.5px;align-self:center">serve solo a suggerirti i nomi giusti dei picchi, puoi cambiarlo dopo</span></div>
     <div class="tiles">${files.slice(0,60).map(f=>`<div class="tile" title="${esc(f.path)}"><span class="nm">${esc(dispTitle(f))}</span><span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`).join('')}</div>
     ${files.length>60?`<p class="hint" style="margin-top:8px">… e altri ${files.length-60}</p>`:''}`;
   $('#toStep2').onclick=()=>go(2);
+  $$('#loaded [data-st]').forEach(b=>b.onclick=()=>{ S.sample=b.dataset.st; saveS(); syncControls(); renderLoaded(); renderPreview();
+    say('#hello', S.sample==='all' ? 'Ok, ti propongo nomi di ogni tipo. 👍' : `Perfetto, userò i nomi per ${SAMPLE_TYPES[S.sample].replace(/^\S+ /,'').toLowerCase()}. 👻`); });
   $('#clearAll').onclick=()=>{ files.length=0; cur=-1; say('#hello','Tutti gli spettri liberati! ✨ Carica quello che vuoi.'); refreshAll(); go(1); };
 }
 function renderList(){
@@ -1360,6 +1599,7 @@ function renderPreview(){
   sel.innerHTML = Object.keys(INSTR).map(k=>`<option value="${k}" ${k===f.instr?'selected':''}>${NOME_IT[k]}${k===f.autoInstr?' (rilevato)':''}</option>`).join('');
   $('#fReason').textContent = f.instr===f.autoInstr ? 'Riconosciuto da: '+f.reason : 'Scelto a mano (avevo pensato: '+NOME_IT[f.autoInstr]+')';
   $('#fInclude').checked = f.include;
+  $('#fSample').innerHTML = `<option value="">come per tutti (${SAMPLE_TYPES[S.sample]})</option>` + Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${f.sample===k?'selected':''}>${v}</option>`).join('');
   $('#xrUnit').textContent = INSTR[f.instr].xPdf ? '('+INSTR[f.instr].xPdf+')' : '';
   if (xrShownFor!==f.id || xrForce){
     xrShownFor=f.id; xrForce=false;
@@ -1367,6 +1607,8 @@ function renderPreview(){
     $('#xrA').placeholder = 'da '+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = 'a '+(+f.xs[f.xs.length-1].toPrecision(5));
   }
   const nSug = d.peaks.filter(p=>p.sugg.length).length;
+  $('#pkCount').textContent = S.showPeaks ? `Su questo spettro ne vedo ${d.peaks.length}${d.peaks.some(p=>p.manual)?' (contando quelli aggiunti da te)':''}.` : 'Ricerca automatica spenta: i picchi li aggiungi tu col clic.';
+  if ($('.panel[data-panel="proc"]').classList.contains('on')) renderProc();
   $('#suggestAll').disabled = !S.showPeaks || !nSug;
   $('#suggestAll').textContent = nSug ? `💡 Suggerisci nomi (${nSug})` : '💡 Nessun suggerimento';
   $('#chips').innerHTML = (S.showPeaks ? d.peaks.map(p=>`<span class="chip ${p.manual?'man':''} ${p.custom?'lab':''}" title="${p.manual?'Aggiunto da te':'Trovato in automatico'}${p.custom?' · '+esc(p.name):(p.sugg.length?' · suggerimento: '+esc(LANG==='en'?p.sugg[0].en:p.sugg[0].it):'')}"><button class="t" data-x="${p.x}" title="Dai un nome a questo picco">${esc(p.custom? p.num+' · '+p.name : p.num)}${!p.custom&&p.sugg.length?' <span class="bulb">💡</span>':''}</button><button class="x" data-x="${p.x}" data-m="${p.manual?1:0}" title="Rimuovi">×</button></span>`).join('') : '')
@@ -1384,7 +1626,7 @@ let dlState=null;
 function editLabel(f, x){
   const d=viewOf(f), p=d.peaks.find(q=>Math.abs(q.x-x)<1e-9); if(!p) return;
   const raw=f.labels[lblKey(x)]||'', num=p.num, L=LANG;
-  const sug = suggest(f.instr, x, d.peaks.map(q=>q.x));
+  const sug = suggest(f.instr, x, d.peaks.map(q=>q.x), f.sample||S.sample);
   $('#dlNum').textContent = num+' '+(INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
   const free = raw && raw[0]!=='@' ? raw : '';
   let html = sug.map((g,i)=>`<label class="opt sug"><input type="radio" name="dl" value="@${g.id}" ${raw==='@'+g.id||(!raw&&i===0&&false)?'checked':''}><div><b>${esc(L==='en'?g.en:g.it)}</b>${g.coherent?' <span class="badge" style="background:#e1f3e9;color:#155e39">coerente con altri picchi</span>':''}${g.mine?' <span class="badge">la mia libreria</span>':''}<small>${L==='en'?esc(g.it):esc(g.en)}</small></div></label>`).join('');
@@ -1426,6 +1668,8 @@ $('#suggestAll').onclick=()=>{
   const f=files[cur]; if(!f) return; const d=viewOf(f), L=LANG;
   const rows=d.peaks.filter(p=>p.sugg.length);
   $('#daInstr').textContent = NOME_IT[f.instr];
+  $('#daSample').innerHTML = Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${(f.sample||S.sample)===k?'selected':''}>${v}</option>`).join('');
+  $('#daSample').onchange=e=>{ f.sample = e.target.value===S.sample ? null : e.target.value; persist(f); $('#dlgAll').close(); renderPreview(); $('#suggestAll').click(); };
   $('#daRows').innerHTML = rows.map((p,i)=>`<div class="allrow"><input type="checkbox" data-i="${i}" checked><b>${esc(p.num)}</b>
      <select data-i="${i}">${p.sugg.map(g=>`<option value="${g.id}">${esc(L==='en'?g.en:g.it)}${g.coherent?' ✓':''}${g.mine?' (mia)':''}</option>`).join('')}</select></div>`).join('');
   $('#daOthers').checked=false;
@@ -1532,10 +1776,11 @@ $('#closeBig').onclick=()=>setBig(false);
 $('#fTitle').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.title=e.target.value; changed(f); });
 $('#fDesc').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.desc=e.target.value; changed(f); });
 $('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
+$('#fSample').onchange=e=>{ const f=files[cur]; f.sample=e.target.value||null; changed(f); };
 $('#fInclude').onchange=e=>{ const f=files[cur]; f.include=e.target.checked; persist(f); renderList(); renderSummary(); };
 $('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; f.removed=[]; f.added=[]; f.labels={}; changed(f); };
 $('#resetFile').onclick=()=>{ const f=files[cur]; if(!f) return; if(!confirm('Annullare nome, descrizione, picchi e intervallo di questo file?')) return;
-  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr}); f.kind=yKindFor(f.instr,f._p); f._pk=null; xrForce=true; changed(f); };
+  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr,sample:null}); f.kind=yKindFor(f.instr,f._p); f._pk=null; xrForce=true; changed(f); };
 function readXR(){ const a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value); return (isFinite(a)&&isFinite(b)&&a!==b)?[Math.min(a,b),Math.max(a,b)]:null; }
 ['#xrA','#xrB'].forEach(s=>$(s).addEventListener('change', ()=>{ const f=files[cur]; if(!f) return;
   let a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value);
@@ -1555,27 +1800,69 @@ document.addEventListener('keydown', e=>{
 window.addEventListener('resize', ()=>{ if(curView===2) renderPreview(); });
 
 /* ---------------- CONTROLLI IMPOSTAZIONI ---------------- */
+const ICO = (() => {
+  const box = d => `<svg viewBox="0 0 48 30" aria-hidden="true"><path d="${d}" fill="none" stroke="#2563c9" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  const dash = (d, base) => `<svg viewBox="0 0 48 30" aria-hidden="true"><path d="${base}" fill="none" stroke="#e69a1d" stroke-width="1.6" stroke-dasharray="3 2"/><path d="${d}" fill="none" stroke="#2563c9" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+  const zig = (amp) => { let d='M2 15'; for (let x=4;x<=46;x+=2){ const n=Math.sin(x*1.9)*amp+Math.sin(x*0.7)*amp*0.6; const pk=Math.exp(-((x-24)**2)/14)*9; d+=` L${x} ${(15-pk+n).toFixed(1)}`; } return box(d); };
+  const curve='M2 26 Q10 24 14 21 L17 10 L20 19 Q28 15 32 13 L35 5 L38 11 Q43 9 46 8';
+  return {
+    orig: box('M2 7 L12 7 L15 22 L18 7 L28 7 L31 15 L34 7 L46 7'),
+    T: box('M2 7 L12 7 L15 22 L18 7 L28 7 L31 15 L34 7 L46 7'),
+    A: box('M2 23 L12 23 L15 8 L18 23 L28 23 L31 15 L34 23 L46 23'),
+    norm: `<svg viewBox="0 0 48 30" aria-hidden="true"><path d="M2 4h44M2 26h44" stroke="#c9d1de" stroke-width="1" stroke-dasharray="2 2"/><path d="M2 26 L12 25 L16 4 L20 25 L30 24 L33 15 L36 25 L46 25" fill="none" stroke="#2563c9" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
+    up: box('M2 23 L12 23 L15 8 L18 23 L28 23 L31 15 L34 23 L46 23'),
+    none: box(curve),
+    rubber: box('M2 25 L13 25 L16 13 L19 25 L31 25 L34 6 L37 25 L46 25'),
+    linear: box('M2 25 Q12 21 14 20 L17 9 L20 19 Q28 18 32 19 L35 8 L38 21 Q43 24 46 25'),
+    s0: zig(2.4), s7: zig(1.4), s15: zig(0.7), s31: zig(0.15)
+  };
+})();
+function processedKind(f){ return f.kind; }
+function choiceBtn(attrs, on, ico, title, sub){
+  return `<button class="choice ${on?'on':''}" ${attrs} aria-pressed="${on}">${ico||''}<b>${title}</b>${sub?`<small>${sub}</small>`:''}</button>`;
+}
 function renderProc(){
-  const present = new Set(files.map(f=>f.instr));
-  const keys = Object.keys(INSTR).filter(k=>present.has(k));
-  $('#procBox').innerHTML = (keys.length? keys : ['ftir']).map(k=>`<div style="margin-bottom:12px"><div class="badge b-${k}" style="margin-bottom:6px">${NOME_IT[k]}</div>
-    <div class="field" style="margin-bottom:6px"><select data-p="conv" data-i="${k}">${INSTR[k].conv.map(c=>`<option value="${c}" ${S.conv[k]===c?'selected':''}>${CONV_LABEL[c]}</option>`).join('')}</select></div>
-    <div class="field" style="margin-bottom:6px"><select data-p="base" data-i="${k}">
-      ${[['none','Linea di base: nessuna'],['rubber','Linea di base: automatica'],['linear','Linea di base: lineare']].map(([v,t])=>`<option value="${v}" ${S.base[k]===v?'selected':''}>${t}</option>`).join('')}</select></div>
-    <div class="field" style="margin-bottom:0"><select data-p="smooth" data-i="${k}">
-      ${[[0,'Smoothing: no'],[7,'Smoothing: leggero'],[15,'Smoothing: medio'],[31,'Smoothing: forte']].map(([v,t])=>`<option value="${v}" ${+S.smooth[k]===v?'selected':''}>${t}</option>`).join('')}</select></div></div>`).join('')
-    + `<small style="color:var(--muted)">Linea di base automatica = «rubber band» (inviluppo convesso), ottima per la fluorescenza nel Raman. Assorbanza: A = 2 − log₁₀(%T). Smoothing Savitzky–Golay. I file originali non vengono mai modificati.</small>`;
-  $$('#procBox [data-p]').forEach(s=>s.onchange=()=>{ const p=s.dataset.p; S[p][s.dataset.i] = p==='smooth'? +s.value : s.value; saveS(); renderPreview(); renderSummary(); });
+  const f=files[cur]; const k = f ? f.instr : 'ftir';
+  $('#procScope').textContent = `tutti gli spettri ${NOME_IT[k]}`;
+  const T = k==='ftir'||k==='uv';
+  const convOpts = T
+    ? [['orig','Come nel file','né convertito né normalizzato'],['A','Assorbanza','picchi verso l\'alto'],['T','Trasmittanza %','picchi verso il basso']]
+    : [['orig','Come nel file','intensità originali'],['norm','Normalizzato 0–1','utile per confrontare campioni']];
+  const groups = [
+    {p:'conv', title:'Asse Y', why: T ? 'Scegli se vedere i picchi in su (assorbanza) o in giù (trasmittanza). A = 2 − log₁₀(%T).' : 'Puoi riportare tutti gli spettri tra 0 e 1, così hanno la stessa altezza.',
+      opts: convOpts.map(([v,t,sub])=>({v, t, sub, ico: v==='orig' ? (files[cur] && processedKind(files[cur])==='T' ? ICO.T : ICO.up) : ICO[v]}))},
+    {p:'base', title:'Linea di base', why:'Se lo spettro sale o scende (fluorescenza nel Raman, deriva), tolgo la parte di fondo e restano solo i picchi.',
+      opts:[{v:'none',t:'Nessuna correzione',sub:'il fondo resta inclinato o curvo',ico:ICO.none},{v:'rubber',t:'Automatica',sub:'fondo piatto, restano solo i picchi',ico:ICO.rubber},{v:'linear',t:'Lineare',sub:'tolgo solo l\'inclinazione tra gli estremi',ico:ICO.linear}]},
+    {p:'smooth', title:'Smoothing (pulizia del rumore)', why:'Riduce il rumore. Se è troppo forte allarga e abbassa i picchi stretti.',
+      opts:[{v:0,t:'Nessuno',sub:'dati grezzi',ico:ICO.s0},{v:7,t:'Leggero',sub:'consigliato per Raman',ico:ICO.s7},{v:15,t:'Medio',ico:ICO.s15},{v:31,t:'Forte',sub:'solo per dati molto rumorosi',ico:ICO.s31}]}
+  ];
+  $('#procBox').innerHTML = groups.map(g=>`<div class="cgroup"><b>${g.title}</b><p class="why">${g.why}</p><div class="choices">${
+      g.opts.map(o=>choiceBtn(`data-p="${g.p}" data-i="${k}" data-v="${o.v}"`, String(S[g.p][k])===String(o.v), o.ico, o.t, o.sub)).join('')}</div></div>`).join('');
+  $$('#procBox [data-p]').forEach(b=>b.onclick=()=>{ const p=b.dataset.p; S[p][b.dataset.i] = p==='smooth'? +b.dataset.v : b.dataset.v; saveS(); renderProc(); renderPreview(); renderSummary(); });
+}
+function renderLook(){
+  const cm=[['instr','Un colore per strumento','FTIR blu, Raman rosso…','<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="#1f5fbf" stroke-width="2.2" fill="none"/><path d="M2 26 Q14 14 24 22 T46 18" stroke="#c0392b" stroke-width="2.2" fill="none"/></svg>'],
+            ['black','Nero','classico, ottimo in stampa','<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="#111" stroke-width="2.2" fill="none"/></svg>'],
+            ['single','Scelgo io','un colore uguale per tutti',`<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="${S.color}" stroke-width="2.2" fill="none"/></svg>`]];
+  $('#colorChoices').innerHTML = cm.map(([v,t,sub,ico])=>choiceBtn(`data-cm="${v}"`, S.colorMode===v, ico, t, sub)).join('');
+  const lw=[['0.15','Sottile'],['0.25','Normale'],['0.4','Spessa']];
+  $('#lwChoices').innerHTML = lw.map(([v,t])=>choiceBtn(`data-lw="${v}"`, String(S.lineW)===v, `<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="#1c2230" stroke-width="${(+v)*9}" fill="none" stroke-linecap="round"/></svg>`, 'Linea '+t.toLowerCase())).join('');
+  $$('#colorChoices [data-cm]').forEach(b=>b.onclick=()=>{ S.colorMode=b.dataset.cm; saveS(); syncControls(); renderPreview(); });
+  $$('#lwChoices [data-lw]').forEach(b=>b.onclick=()=>{ S.lineW=+b.dataset.lw; saveS(); renderLook(); renderPreview(); });
+  $('#colorRow').style.display = S.colorMode==='single'?'flex':'none';
+}
+function renderSamplePills(){
+  $('#samplePills').innerHTML = Object.entries(SAMPLE_TYPES).map(([k,v])=>`<button class="pill ${S.sample===k?'on':''}" data-sp="${k}" aria-pressed="${S.sample===k}">${v}</button>`).join('');
+  $$('#samplePills [data-sp]').forEach(b=>b.onclick=()=>{ S.sample=b.dataset.sp; saveS(); renderSamplePills(); renderLoaded(); renderPreview(); });
 }
 function syncControls(){
   $$('[data-k]').forEach(el=>{ const v=S[el.dataset.k]; if (el.type==='checkbox') el.checked=!!v; else el.value=v; });
-  $('#sensV').textContent = S.sens<=3?'(tanti)':S.sens<=7?'(normale)':S.sens<=15?'(pochi)':'(solo i più grandi)';
-  $('#colorRow').style.display = S.colorMode==='single'?'flex':'none';
   $('#ovModeRow').style.display = S.overlay==='none'?'none':'flex';
   $$('#orientSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.orient));
   $$('.langSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.lang));
+  $$('.outcard').forEach(c=>c.classList.toggle('on', !!S[c.dataset.out]));
   $('#docTitle').placeholder = L10N[S.lang].title;
-  renderLayoutPick(); renderProc(); pxInfo();
+  renderLayoutPick(); renderProc(); renderLook(); renderSamplePills(); pxInfo();
 }
 $$('[data-k]').forEach(el=>{
   const ev = (el.type==='range'||el.type==='text'||el.type==='color') ? 'input' : 'change';
@@ -1583,10 +1870,17 @@ $$('[data-k]').forEach(el=>{
     const k=el.dataset.k; let v = el.type==='checkbox' ? el.checked : el.value;
     if (typeof DEFAULTS[k]==='number'){ v=parseFloat(v); if(!isFinite(v)) return; }
     S[k]=v; saveS();
-    if (['sens','colorMode','overlay','pngW','pngH','pngDpi'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','csvPeaks','csvData','color'].includes(k)) syncControls();
+    if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
 });
+$$('#tabs .tab').forEach(t=>t.onclick=()=>openTab(t.dataset.tab));
+function openTab(name){
+  $$('#tabs .tab').forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle('on',on); t.setAttribute('aria-selected',on); });
+  $$('.panel').forEach(p=>p.classList.toggle('on', p.dataset.panel===name));
+  if (name==='proc') renderProc();
+}
 $$('#orientSeg button').forEach(b=>b.onclick=()=>{ S.orient=b.dataset.v; saveS(); syncControls(); renderSummary(); });
 $$('.langSeg button').forEach(b=>b.onclick=()=>{ S.lang=b.dataset.v; saveS(); syncControls(); renderPreview(); renderSummary();
   say(curView===3?'#tip3':'#tip2', S.lang==='en' ? 'Plots in English, coming right up! 🇬🇧' : 'Grafici in italiano, perfetto! 🇮🇹'); });
@@ -1628,15 +1922,23 @@ function included(){
 function renderSummary(){
   const inc=included(), ov = S.overlay!=='none' ? overlayGroups().length : 0;
   const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov;
-  const [c,r]=gridFor(S.perPage,S.orient);
-  $('#sumList').innerHTML = inc.length ? `
-    <li><b>${inc.length}</b> grafici${inc.length<files.length?` (su ${files.length} file)`:''}, in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>
-    <li>📄 PDF A4 ${S.orient==='landscape'?'orizzontale':'verticale'}, ${S.perPage} per pagina → circa <b>${pages}</b> pagin${pages===1?'a':'e'}${S.summary?', con elenco campioni':''}${ov?`, ${ov} confront${ov===1?'o':'i'}`:''}</li>
-    <li>🖼️ ${inc.length+ (ov) } immagini PNG ${S.pngW}×${S.pngH} cm a ${S.pngDpi} dpi${S.csvPeaks?' + elenco picchi':''}${S.csvData?' + dati elaborati':''}</li>
-    ${S.overlay!=='none' && !ov ? '<li>ℹ️ Nessun confronto: servono almeno 2 spettri dello stesso strumento</li>' : ''}
-    <li>🔎 Picchi: ${S.showPeaks?'sì':'no'}${files.some(isEdited)?` · ✎ ${files.filter(isEdited).length} file modificati da te`:''}</li>`
-    : '<li>Nessun file selezionato 🙃</li>';
-  ['#doPdf','#doZip','#doBoth'].forEach(s=>$(s).disabled=!inc.length);
+  const zipParts=[];
+  if (S.outPng) zipParts.push(`${inc.length+ov} immagin${inc.length+ov===1?'e':'i'} PNG`);
+  if (S.csvPeaks) zipParts.push('elenco dei picchi');
+  if (S.csvData) zipParts.push('dati elaborati');
+  const items=[];
+  if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
+  else {
+    items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>`);
+    if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 ${S.orient==='landscape'?'orizzontale':'verticale'}, ${S.perPage} grafic${S.perPage===1?'o':'i'} per pagina, circa ${pages} pagin${pages===1?'a':'e'}${ov?`, ${ov} pagin${ov===1?'a':'e'} di confronto`:''}</li>`);
+    if (zipParts.length) items.push(`<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
+    if (S.overlay!=='none' && !ov) items.push('<li>ℹ️ Niente pagine di confronto: servono almeno 2 spettri dello stesso strumento.</li>');
+  }
+  $('#sumList').innerHTML = items.join('');
+  const what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null].filter(Boolean);
+  const btn=$('#doDl');
+  btn.disabled = !inc.length || !what.length;
+  btn.textContent = !what.length ? 'Spunta almeno una cosa da scaricare' : `⬇️ Scarica ${what.join(' + ')}`;
 }
 
 /* ---------------- EXPORT ---------------- */
@@ -1760,11 +2062,9 @@ async function buildZip(){
   const total=inc.length+groups.length;
   for (let i=0;i<inc.length;i++){
     const f=inc[i], view=viewOf(f);
-    const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt);
     const dir = S.keepFolders && f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')+1) : '';
     const base = f.title && f.title.trim() ? f.title.trim().replace(/[\\/:*?"<>|]+/g,'_') : safeName(f.name);
-    folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi));
-    canvas.width=canvas.height=0;
+    if (S.outPng){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], INSTR[f.instr].xPdf,
       String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto]);
     if (S.csvData){
@@ -1772,9 +2072,9 @@ async function buildZip(){
       for (let k=0;k<P.xs.length;k++) lines.push(String(+P.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+P.ys[k].toPrecision(8)).replace('.',dsep));
       folder.file(uniq(Lx.dataDir+'/'+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
-    progress((i+1)/total*0.9); status(`🖼️ Immagine ${i+1} di ${inc.length}…`); await tick();
+    progress((i+1)/total*0.9); status(`🗜️ Preparo lo ZIP: spettro ${i+1} di ${inc.length}…`); await tick();
   }
-  for (const [instr, list] of groups){
+  for (const [instr, list] of (S.outPng?groups:[])){
     const c=renderCanvas(overlayView(instr,list), wmm, hmm, S.pngDpi, fontPt);
     folder.file(uniq('', `${Lx.ovName}_${instr}`, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; await tick();
   }
@@ -1784,21 +2084,52 @@ async function buildZip(){
 }
 async function runExport(what){
   if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
-  const btns=['#doPdf','#doZip','#doBoth'].map(s=>$(s)); btns.forEach(b=>b.disabled=true);
+  const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
   say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
   try{
     const base=safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp();
-    if (what!=='zip'){ progress(0); download(await buildPdf(), base+'.pdf'); }
-    if (what!=='pdf'){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
+    if (S.outPdf){ progress(0); download(await buildPdf(), base+'.pdf'); }
+    if (S.outPng || S.csvPeaks || S.csvData){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
     status('✅ Fatto! Trovi tutto nella cartella Download.');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
   }catch(e){ console.error(e); status('😬 Qualcosa è andato storto: '+e.message); say('#tip3','Ops… riproviamo? 🙈'); }
-  progress(null); btns.forEach(b=>b.disabled=false);
+  progress(null); renderSummary();
 }
-$('#doPdf').onclick=()=>runExport('pdf');
-$('#doZip').onclick=()=>runExport('zip');
-$('#doBoth').onclick=()=>runExport('both');
+$('#doDl').onclick=()=>runExport();
+
+/* ---------------- GIRO GUIDATO ---------------- */
+const TOUR=[
+  {sel:'#filesCard', t:'Qui ci sono i tuoi spettri. Clicca un nome per vederlo; la spunta decide se finisce nel PDF e nelle immagini.'},
+  {sel:'#pv', t:'Questo è il grafico. Clic per aggiungere un picco, clic su un picco per toglierlo, rotellina per zoomare.'},
+  {sel:'.pvtools', t:'Con «Grafico grande» lo vedi a tutto schermo: comodo per mettere i picchi con precisione.'},
+  {sel:'#tabs', t:'Gli strumenti sono divisi per cosa vuoi fare: nome, picchi, ritocchi, zona da stampare, aspetto.'},
+  {sel:'.panel.on .scope', t:'Questa etichetta ti dice a chi si applica: verde = solo questo spettro, blu = tutti dello stesso strumento, gialla = tutti i grafici.'},
+  {sel:'#toV3', t:'Quando sei contento, vai a scaricare PDF e immagini. Buon lavoro! 👻'}
+];
+let tourI=-1;
+function startTour(){ tourI=0; showTour(); }
+function endTour(){ tourI=-1; $('#tourHole')?.remove(); $('#tourBox')?.remove(); lsSet('acch.tourDone', true); }
+function showTour(){
+  const st=TOUR[tourI]; if(!st){ endTour(); return; }
+  const el=$(st.sel); if(!el){ tourI++; showTour(); return; }
+  el.scrollIntoView({block:'center', behavior:'instant'});
+  let hole=$('#tourHole'), box=$('#tourBox');
+  if(!hole){ hole=document.createElement('div'); hole.id='tourHole'; hole.className='tourhole'; document.body.appendChild(hole); }
+  if(!box){ box=document.createElement('div'); box.id='tourBox'; box.className='tourbox'; box.setAttribute('role','dialog'); document.body.appendChild(box); }
+  requestAnimationFrame(()=>{
+    const r=el.getBoundingClientRect(), pad=6;
+    Object.assign(hole.style,{left:(r.left-pad)+'px', top:(r.top-pad)+'px', width:(r.width+pad*2)+'px', height:(r.height+pad*2)+'px'});
+    box.innerHTML=`<b>👻 Gino ti fa vedere · ${tourI+1} di ${TOUR.length}</b><p>${st.t}</p><div class="row"><button class="btn small ghost" id="tSkip">Salta il giro</button><button class="btn small primary" id="tNext">${tourI===TOUR.length-1?'Ho capito':'Avanti'}</button></div>`;
+    const bw=Math.min(340, innerWidth-24), below=r.bottom+14+170<innerHeight;
+    box.style.left=Math.max(12, Math.min(innerWidth-bw-12, r.left))+'px';
+    box.style.top=(below ? r.bottom+14 : Math.max(12, r.top-14-box.offsetHeight))+'px';
+    $('#tNext').onclick=()=>{ tourI++; showTour(); }; $('#tSkip').onclick=endTour; $('#tNext').focus();
+  });
+}
+$('#tourBtn').onclick=startTour;
+document.addEventListener('keydown', e=>{ if (tourI>=0 && e.key==='Escape') endTour(); });
+window.addEventListener('resize', ()=>{ if (tourI>=0) showTour(); });
 
 /* coriandoli */
 function confetti(){
