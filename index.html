@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acchiappaspettri</title>
+<meta name="description" content="Acchiappaspettri: grafici rapidi di spettri e cromatogrammi (FTIR, Raman, UV-Vis, HPLC) da file di testo: PDF di consultazione e immagini PNG a 600 dpi.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#f3f6fb; --panel:#ffffff; --ink:#1c2230; --muted:#5f6b7d; --line:#dfe4ec;
+  --accent:#2563c9; --accent-soft:#e8f0fd; --ok:#1b7f4b; --danger:#b3261e; --sun:#ffc84a;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Nunito","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+button,select,input,textarea{font:inherit;color:inherit}
+header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.bar{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+.brand svg{width:30px;height:30px}
+.brand small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.steps{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.step{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600}
+.step b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--line);color:var(--ink);font-size:12px}
+.step.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.step.on b{background:var(--accent);color:#fff}
+.step.done b{background:var(--ok);color:#fff}
+.step:disabled{opacity:.45;cursor:not-allowed}
+main{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+.view{display:none}.view.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+h2{font-size:20px;margin:0 0 4px}
+h3{font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+p.hint{color:var(--muted);margin:0 0 14px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:transform .08s}
+.btn:hover{border-color:#b9c3d3}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.big{padding:13px 22px;font-size:16px;border-radius:14px}
+.btn.small{padding:5px 11px;font-size:13px;border-radius:9px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+
+/* --- omino --- */
+.hero{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:center}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.buddy{position:relative;display:flex;flex-direction:column;align-items:center}
+.buddy svg{width:180px;height:auto;overflow:visible}
+.bubble{position:relative;background:#fff;border:2px solid var(--ink);border-radius:18px;padding:10px 14px;font-weight:700;font-size:15px;max-width:250px;text-align:center;margin-bottom:12px;box-shadow:3px 3px 0 var(--ink)}
+.bubble::after{content:"";position:absolute;bottom:-11px;left:50%;margin-left:-8px;width:14px;height:14px;background:#fff;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
+.arm{transform-origin:118px 118px;animation:wave 1.6s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:rotate(0)}15%{transform:rotate(-24deg)}30%{transform:rotate(8deg)}45%{transform:rotate(-20deg)}60%{transform:rotate(4deg)}}
+.blink{animation:blink 4s infinite;transform-origin:center 74px}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.bub{animation:rise 2.4s infinite ease-in}
+.bub.b2{animation-delay:.8s}.bub.b3{animation-delay:1.6s}
+@keyframes rise{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+.buddy.happy svg{animation:hop .5s ease 3}
+.gino{position:absolute;right:-6px;top:78px;width:58px;animation:float 3.2s ease-in-out infinite;cursor:pointer}
+.gino svg{width:58px !important}
+.gino b{display:block;text-align:center;font-size:11px;font-weight:800;color:var(--muted);margin-top:-2px}
+@keyframes float{0%,100%{transform:translate(0,0) rotate(-4deg)}50%{transform:translate(-6px,-12px) rotate(5deg)}}
+.buddy.happy .gino{animation:caught .9s ease}
+@keyframes caught{30%{transform:translate(-40px,30px) scale(.6) rotate(-20deg);opacity:.6}100%{transform:none;opacity:1}}
+@keyframes hop{50%{transform:translateY(-14px)}}
+.mini{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.mini svg{width:62px;height:auto;flex:none}
+.mini .bubble{margin:0;max-width:none;text-align:left;font-size:14px}
+.mini .bubble::after{bottom:auto;top:50%;left:-9px;margin:-7px 0 0;transform:rotate(135deg)}
+
+.drop{border:3px dashed #b9c6db;border-radius:22px;padding:46px 20px;text-align:center;background:#fbfcff;transition:.15s;cursor:pointer}
+.drop:hover{border-color:#8fa7cf}
+.drop.over{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.01)}
+.drop .big{font-size:21px;font-weight:800;margin:10px 0 4px}
+.drop .ico{font-size:44px}
+.formats{color:var(--muted);font-size:13px;margin-top:14px}
+.loaded{margin-top:18px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;display:flex;gap:10px;align-items:center}
+.tile .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:var(--line);white-space:nowrap}
+.b-ftir{background:#e3ecfb;color:#1f4f9a}.b-raman{background:#fbe6e4;color:#8f2019}.b-uv{background:#eee6fa;color:#55308f}
+.b-hplc{background:#e1f3e9;color:#155e39}.b-gen{background:#eceef2;color:#333}
+
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr) 290px;gap:14px;align-items:start}
+@media (max-width:1150px){.layout{grid-template-columns:1fr}}
+.files{max-height:78vh;overflow:auto;padding:10px}
+.files input[type=search]{width:100%;border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:8px;background:#fafbfd}
+.fitem{display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.fitem:hover{background:#f3f6fb}
+.fitem.sel{background:var(--accent-soft);border-color:#c5d6f3}
+.fitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.fitem .nm small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.fitem.off .nm{opacity:.45;text-decoration:line-through}
+.fitem .ed{color:#d9741c;font-size:12px}
+.preview canvas{width:100%;display:block;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:crosshair}
+.readout{font:12.5px ui-monospace,Consolas,monospace;color:var(--muted);min-height:18px;margin-top:6px}
+.tip{font-size:13px;color:var(--muted);margin:2px 0 0}
+.editgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;margin-top:14px}
+@media (max-width:700px){.editgrid{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:2px 3px 2px 4px;font-size:12.5px;background:#fff}
+.chip.man{border-color:#f0b37a;background:#fff6ec}
+.chip.lab{border-color:#9cc3a8;background:#eef8f1}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--muted);line-height:1;padding:2px 5px;border-radius:99px}
+.chip button.t{color:var(--ink);font-weight:600}
+.chip button.t:hover{background:#eef2f8}
+.chip button.x:hover{color:var(--danger)}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label,.lbl{font-size:12.5px;color:var(--muted);font-weight:700}
+.field select,.field input[type=number],.field input[type=text],.field textarea{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff;width:100%}
+.field textarea{resize:vertical;min-height:38px}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;gap:8px;align-items:center;margin-bottom:9px;font-size:14px}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+details.sec{border-top:1px solid var(--line);padding:11px 0}
+details.sec summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.sec summary::-webkit-details-marker{display:none}
+details.sec summary::after{content:"＋";color:var(--muted);font-weight:400}
+details.sec[open] summary::after{content:"－"}
+details.sec .in{padding-top:12px}
+.seg{display:inline-flex;align-self:flex-start;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;padding:7px 14px;cursor:pointer;border-right:1px solid var(--line);font-weight:600}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#fff}
+.xr{display:flex;gap:6px;align-items:center}
+.xr input{width:90px !important}
+.export-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.export-grid{grid-template-columns:1fr}}
+.layoutpick{display:flex;gap:8px;flex-wrap:wrap}
+.lp{border:2px solid var(--line);border-radius:12px;padding:7px;cursor:pointer;background:#fff;text-align:center;font-size:12px;color:var(--muted);font-weight:700}
+.lp.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.lp .pg{display:grid;gap:2px;background:#fff;border:1px solid #c9d1de;padding:3px;margin:0 auto 4px}
+.lp .pg i{background:#c9d6ec;display:block;border-radius:1px}
+.dlbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+@media (max-width:560px){.dlbtns{grid-template-columns:1fr}}
+.dl{border:2px solid var(--line);border-radius:16px;background:#fff;padding:16px 10px;cursor:pointer;text-align:center;font-weight:800;transition:.12s}
+.dl span{display:block;font-size:30px;margin-bottom:4px}
+.dl small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
+.dl:hover{border-color:var(--accent);transform:translateY(-2px)}
+.dl:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.dl.main{border-color:var(--accent);background:var(--accent-soft)}
+.progress{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:14px;display:none}
+.progress div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#5a9bff);transition:width .15s}
+.status{margin-top:8px;color:var(--muted);font-size:13.5px;min-height:20px}
+.summary{margin:0;padding-left:18px}
+.summary li{margin-bottom:4px}
+.notice{padding:10px 12px;border-radius:12px;background:#fff7e6;border:1px solid #f1d39b;color:#6b4500;font-size:13px;margin-top:12px;display:none}
+.empty{color:var(--muted);text-align:center;padding:30px}
+.kbd{font-size:11.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:#fafbfc}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:12px}
+/* cosa puoi fare */
+.cando{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px}
+.cando .ttl{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px;margin-right:6px;white-space:nowrap}
+.cando .it{display:inline-block;background:#f5f8fd;border:1px solid #e3eaf6;border-radius:12px;padding:6px 11px;font-size:13.5px}
+.cando .it b{font-weight:700}
+.howto{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+@media (max-width:820px){.howto{grid-template-columns:1fr}}
+.how{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfcff;position:relative}
+.how .n{position:absolute;top:-12px;left:14px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.how h4{margin:6px 0 6px;font-size:15px}
+.how ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px}
+.how li{margin-bottom:2px}
+dialog{border:0;border-radius:18px;padding:0;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(20,30,50,.25)}
+dialog::backdrop{background:rgba(20,30,50,.35)}
+.dlg{padding:20px 22px}
+.dlg h2{margin:0 0 4px}
+.dlg .opts{display:flex;flex-direction:column;gap:6px;margin:14px 0}
+.dlg .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer}
+.dlg .opt:hover{background:#f5f8fd}
+.dlg .opt input{margin-top:3px;accent-color:var(--accent)}
+.dlg .opt small{display:block;color:var(--muted)}
+.dlg .opt.sug{border-color:#f3d48a;background:#fffaf0}
+.dlg .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.dlg .note{font-size:12.5px;color:var(--muted);background:#f5f8fd;border-radius:10px;padding:8px 10px}
+.allrows{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.allrow{display:grid;grid-template-columns:24px 70px minmax(0,1fr);gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
+.allrow:last-child{border-bottom:0}
+.allrow select{border:1px solid var(--line);border-radius:9px;padding:5px 8px;width:100%;background:#fff}
+.chip .bulb{font-size:11px;margin-left:-2px}
+.libitem{display:flex;gap:6px;align-items:center;font-size:13px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.libitem span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libform{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.libform input,.libform select{border:1px solid var(--line);border-radius:9px;padding:6px 8px;width:100%;background:#fff;min-width:0}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 15a10 10 0 0 1 20 0v13l-3.3-2.4L19.3 28 16 25.6 12.7 28l-3.4-2.4L6 28z" fill="#fff" stroke="#1c2230" stroke-width="2" stroke-linejoin="round"/><circle cx="12.3" cy="13.5" r="1.7" fill="#1c2230"/><circle cx="19.7" cy="13.5" r="1.7" fill="#1c2230"/><path d="M8.5 21.5h3l1.5-3.5 2 6 2-8.5 2 6h4.5" fill="none" stroke="#2563c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>Acchiappaspettri<small>c'è uno spettro nel tuo file? lo acchiappo io 👻</small></div>
+    </div>
+    <nav class="steps">
+      <button class="step on" data-go="1"><b>1</b>Carica</button>
+      <button class="step" data-go="2" disabled><b>2</b>Controlla</button>
+      <button class="step" data-go="3" disabled><b>3</b>Scarica</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- STEP 1 -->
+<section class="view on" id="v1">
+  <div class="card">
+    <div class="hero">
+      <div class="buddy" id="buddy">
+        <div class="bubble" id="hello">Ciao! 👋 Dammi i tuoi spettri, ci penso io ai grafici.</div>
+        <div class="gino" id="gino" title="Ciao, sono Gino!"><svg viewBox="0 0 32 34" aria-hidden="true"><path d="M6 15a10 10 0 0 1 20 0v14l-3.3-2.4L19.3 29 16 26.6 12.7 29l-3.4-2.4L6 29z" fill="#fff" stroke="#1c2230" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12.3" cy="14" r="1.6" fill="#1c2230"/><circle cx="19.7" cy="14" r="1.6" fill="#1c2230"/><ellipse cx="16" cy="18.5" rx="1.6" ry="2" fill="#1c2230"/><path d="M8.5 23h3l1.5-3 2 5 2-7 2 5h4.5" fill="none" stroke="#2563c9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Gino</b></div>
+        <svg viewBox="0 0 160 200" aria-hidden="true">
+          <ellipse cx="80" cy="192" rx="46" ry="6" fill="#1c2230" opacity=".12"/>
+          <!-- gambe -->
+          <rect x="62" y="160" width="12" height="28" rx="5" fill="#3a4a66"/><rect x="86" y="160" width="12" height="28" rx="5" fill="#3a4a66"/>
+          <ellipse cx="66" cy="188" rx="11" ry="5" fill="#1c2230"/><ellipse cx="94" cy="188" rx="11" ry="5" fill="#1c2230"/>
+          <!-- camice -->
+          <path d="M46 112c0-10 15-18 34-18s34 8 34 18v50c0 4-3 6-6 6H52c-3 0-6-2-6-6z" fill="#fff" stroke="#1c2230" stroke-width="3"/>
+          <path d="M80 96v70" stroke="#1c2230" stroke-width="2"/>
+          <path d="M68 96l12 16 12-16" fill="#cfe0fb" stroke="#1c2230" stroke-width="2.5" stroke-linejoin="round"/>
+          <rect x="88" y="124" width="14" height="10" rx="2" fill="none" stroke="#1c2230" stroke-width="2"/>
+          <path d="M92 124v-6M96 124v-4" stroke="#2563c9" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- braccio sinistro con beuta -->
+          <path d="M48 116c-8 10-12 22-10 32" stroke="#1c2230" stroke-width="13" stroke-linecap="round" fill="none"/>
+          <path d="M48 116c-8 10-12 22-10 32" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <g transform="translate(22 132)">
+            <path d="M10 0h10M12 0v10L3 26a3 3 0 0 0 2.6 4.5h18.8A3 3 0 0 0 27 26l-9-16V0" fill="#fff" stroke="#1c2230" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M6.5 20h17l3 6a2 2 0 0 1-1.8 3H5.3a2 2 0 0 1-1.8-3z" fill="#4cc38a"/>
+            <circle class="bub" cx="13" cy="16" r="2" fill="#4cc38a"/><circle class="bub b2" cx="17" cy="14" r="1.6" fill="#4cc38a"/><circle class="bub b3" cx="15" cy="12" r="1.3" fill="#4cc38a"/>
+          </g>
+          <circle cx="40" cy="150" r="6" fill="#ffd2ad" stroke="#1c2230" stroke-width="2.5"/>
+          <!-- braccio che saluta -->
+          <g class="arm">
+            <path d="M112 116c10-6 16-22 16-38" stroke="#1c2230" stroke-width="13" stroke-linecap="round" fill="none"/>
+            <path d="M112 116c10-6 16-22 16-38" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <circle cx="128" cy="72" r="8" fill="#ffd2ad" stroke="#1c2230" stroke-width="2.5"/>
+            <path d="M122 66l-2-6M127 64l0-7M132 66l2-6" stroke="#1c2230" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+          <!-- testa -->
+          <circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/>
+          <path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/>
+          <g class="blink">
+            <circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/>
+            <circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/>
+            <circle cx="70" cy="70" r="3.2" fill="#1c2230"/><circle cx="92" cy="70" r="3.2" fill="#1c2230"/>
+          </g>
+          <path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/>
+          <path d="M70 84q10 9 20 0" stroke="#1c2230" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <circle cx="60" cy="82" r="4" fill="#ff9d8a" opacity=".6"/><circle cx="100" cy="82" r="4" fill="#ff9d8a" opacity=".6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Carica file">
+          <div class="ico">📂</div>
+          <div class="big">Trascina qui file o cartelle</div>
+          <div style="color:var(--muted);margin-bottom:16px">oppure</div>
+          <div class="row" style="justify-content:center">
+            <button class="btn primary big" id="pickFiles">Scegli file</button>
+            <button class="btn big" id="pickFolder">Scegli cartella</button>
+          </div>
+          <div class="formats">.txt · .asc · .csv · .dat · .dpt · .prn · .xy — FTIR, Raman, UV-Vis, HPLC<br>I dati restano sul tuo computer, niente viene inviato in rete 🔒</div>
+          <input type="file" id="inFiles" multiple hidden>
+          <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
+        </div>
+      </div>
+    </div>
+    <div class="notice" id="skipNote"></div>
+    <div class="loaded" id="loaded"></div>
+    <div class="howto" id="howto">
+      <div class="how"><div class="n">1</div><h4>📂 Carica</h4><ul>
+        <li>file singoli, tanti file o una cartella intera</li>
+        <li>riconosco da solo lo strumento: FTIR, Raman, UV-Vis, HPLC</li>
+        <li>formati di testo: .txt .asc .csv .dat…</li></ul></div>
+      <div class="how"><div class="n">2</div><h4>🔍 Controlla</h4><ul>
+        <li>guardi ogni grafico in anteprima</li>
+        <li>cambi nome e aggiungi una descrizione</li>
+        <li>aggiungi e togli picchi, e ti suggerisco il loro nome (lo metto solo se approvi)</li>
+        <li>converti %T ↔ assorbanza, linea di base, smoothing, zoom sull'asse X</li></ul></div>
+      <div class="how"><div class="n">3</div><h4>⬇️ Scarica</h4><ul>
+        <li>PDF con più grafici per pagina, per consultare al volo</li>
+        <li>cartella di immagini PNG a 600 dpi, pronte per tesi e articoli</li>
+        <li>in italiano o in inglese, con elenco picchi per Excel</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 2 -->
+<section class="view" id="v2">
+  <div class="cando"><span class="ttl">🧰 Qui puoi:</span>
+    <span class="it">✏️ <b>rinominare</b> e <b>descrivere</b> lo spettro</span>
+    <span class="it">👆 <b>aggiungere</b> o <b>togliere</b> picchi col clic</span>
+    <span class="it">💡 accettare i <b>nomi suggeriti</b> per i picchi, o scriverli tu</span>
+    <span class="it">🎚️ scegliere <b>quanti picchi</b> trovare</span>
+    <span class="it">🧪 <b>convertire</b>, correggere la <b>linea di base</b>, fare <b>smoothing</b></span>
+    <span class="it">📏 <b>ingrandire</b> una zona dell'asse X</span>
+    <span class="it">☑️ <b>escludere</b> i file che non servono</span>
+  </div>
+  <div class="layout">
+    <div class="card files">
+      <div class="row" style="padding:2px 2px 8px">
+        <h3 style="margin:0">File (<span id="nFiles">0</span>)</h3>
+        <span class="spacer"></span>
+        <button class="btn small ghost" id="allOn" title="Seleziona o deseleziona tutti">Tutti</button>
+        <button class="btn small ghost" id="addMore" title="Aggiungi altri file">+ Aggiungi</button>
+      </div>
+      <input type="search" id="filter" placeholder="🔎 Cerca un file…">
+      <div id="flist"></div>
+    </div>
+
+    <div class="card preview">
+      <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="71" cy="69" r="3.2" fill="#1c2230"/><circle cx="93" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M70 84q10 9 20 0" stroke="#1c2230" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+        <div class="bubble" id="tip2">Tocca il grafico per aggiungere un picco, tocca un picco per toglierlo. Facile!</div></div>
+      <div class="row" style="margin-bottom:8px">
+        <h2 id="pvTitle" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">—</h2>
+        <span class="spacer"></span>
+        <button class="btn small" id="prevF" title="File precedente (←)">◀</button>
+        <button class="btn small" id="nextF" title="File successivo (→)">▶</button>
+      </div>
+      <canvas id="pv" width="1200" height="740"></canvas>
+      <div class="readout" id="readout">&nbsp;</div>
+
+      <div class="editgrid">
+        <div class="field" style="margin:0"><label for="fTitle">Nome sul grafico</label><input type="text" id="fTitle" placeholder="nome del file"></div>
+        <div class="field" style="margin:0"><label for="fDesc">Descrizione <span style="font-weight:400">(facoltativa, va sotto il titolo)</span></label><input type="text" id="fDesc" placeholder="es. campione A, polvere, 32 scansioni"></div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="row"><span class="lbl">Picchi</span><small style="color:var(--muted)">clic su un numero per dargli un nome · 💡 = ho un suggerimento</small><span class="spacer"></span><button class="btn small" id="suggestAll">💡 Suggerisci nomi</button><button class="btn small ghost" id="resetPeaks">↺ Picchi automatici</button></div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <details class="sec" style="margin-top:12px">
+        <summary>Più opzioni per questo file</summary>
+        <div class="in">
+          <div class="row" style="align-items:flex-start;gap:18px">
+            <div class="field" style="min-width:200px;margin:0">
+              <label for="fInstr">Strumento</label>
+              <select id="fInstr"></select>
+              <small id="fReason" style="color:var(--muted)"></small>
+            </div>
+            <div class="field" style="margin:0">
+              <label>Intervallo asse X <span style="font-weight:400" id="xrUnit"></span></label>
+              <div class="xr"><input type="number" id="xrA" step="any" placeholder="da"> – <input type="number" id="xrB" step="any" placeholder="a"><button class="btn small" id="xrAll" title="Mostra tutto">Tutto</button></div>
+              <button class="btn small ghost" id="xrApply" style="align-self:flex-start;margin-top:4px">Applica a tutti i file di questo strumento</button>
+            </div>
+            <div class="field" style="margin:0">
+              <label>Nell'output</label>
+              <label class="check" style="margin:4px 0 0"><input type="checkbox" id="fInclude"> includi</label>
+              <button class="btn small ghost" id="resetFile" style="align-self:flex-start">Annulla tutte le modifiche</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card" id="settingsPanel">
+      <h3>Per tutti i grafici</h3>
+      <div class="field"><label>Lingua dei grafici</label>
+        <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div></div>
+      <label class="check"><input type="checkbox" data-k="showPeaks"> Trova i picchi in automatico</label>
+      <div class="field"><label>Quanti picchi? <span id="sensV" style="font-weight:400"></span></label>
+        <input type="range" min="1" max="30" step="0.5" data-k="sens" style="direction:rtl">
+        <div class="row" style="font-size:12px;color:var(--muted)"><span>pochi, solo i grandi</span><span class="spacer"></span><span>tanti, anche i piccoli</span></div></div>
+
+      <details class="sec">
+        <summary>Elaborazione dati</summary>
+        <div class="in" id="procBox"></div>
+      </details>
+      <details class="sec">
+        <summary>Picchi, opzioni avanzate</summary>
+        <div class="in">
+          <div class="field"><label>Massimo picchi per grafico</label><input type="number" min="0" max="60" data-k="maxPeaks"></div>
+          <label class="check"><input type="checkbox" data-k="peakLabels"> Scrivi il valore sui picchi</label>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>📚 La mia libreria di nomi</summary>
+        <div class="in">
+          <p class="hint" style="font-size:13px;margin-bottom:8px">Aggiungi bande o composti tuoi (es. «glucosio» a 3,2–3,4 min in HPLC). Li proporrò come suggerimenti, insieme a quelli già inclusi per FTIR, Raman e UV-Vis.</p>
+          <div id="libList"></div>
+          <div class="libform">
+            <select id="libInstr"></select>
+            <input type="text" id="libName" placeholder="nome">
+            <input type="number" id="libA" step="any" placeholder="da">
+            <input type="number" id="libB" step="any" placeholder="a">
+          </div>
+          <button class="btn small" id="libAdd" style="margin-top:8px">+ Aggiungi alla libreria</button>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>Aspetto</summary>
+        <div class="in">
+          <div class="field"><label>Colore della linea</label>
+            <select data-k="colorMode"><option value="instr">Uno per strumento</option><option value="single">Scelgo io</option><option value="black">Nero</option></select></div>
+          <div class="field" id="colorRow"><label>Colore</label><input type="color" data-k="color" style="width:60px;height:32px;border:1px solid var(--line);border-radius:8px"></div>
+          <div class="field"><label>Spessore linea</label><select data-k="lineW"><option value="0.15">Sottile</option><option value="0.25">Normale</option><option value="0.4">Spessa</option></select></div>
+          <label class="check"><input type="checkbox" data-k="grid"> Griglia</label>
+          <label class="check"><input type="checkbox" data-k="showInstr"> Nome strumento in alto a destra</label>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="btn" data-go="1">← Indietro</button><span class="spacer"></span><button class="btn primary big" data-go="3">Tutto ok, avanti →</button></div>
+</section>
+
+<!-- STEP 3 -->
+<section class="view" id="v3">
+  <div class="cando"><span class="ttl">🧰 Qui puoi:</span>
+    <span class="it">🌍 scegliere la <b>lingua</b> dei grafici</span>
+    <span class="it">🗂️ decidere <b>quanti grafici per pagina</b></span>
+    <span class="it">📄 scaricare il <b>PDF</b></span>
+    <span class="it">🖼️ scaricare le <b>immagini PNG</b> a 600 dpi</span>
+    <span class="it">📊 aggiungere <b>confronti</b> sovrapposti ed <b>elenco picchi</b></span>
+    <span class="it">💾 <b>salvare le impostazioni</b> per la prossima volta</span>
+  </div>
+  <div class="export-grid">
+    <div class="card">
+      <div class="mini"><svg viewBox="40 30 90 80" aria-hidden="true"><circle cx="80" cy="66" r="30" fill="#ffd2ad" stroke="#1c2230" stroke-width="3"/><path d="M52 58c2-18 16-26 28-26s27 8 28 26c-6-8-16-12-28-12s-22 4-28 12z" fill="#3a2a1e"/><circle cx="69" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="91" cy="69" r="9" fill="#fff" stroke="#1c2230" stroke-width="2.5"/><circle cx="69" cy="69" r="3.2" fill="#1c2230"/><circle cx="91" cy="69" r="3.2" fill="#1c2230"/><path d="M78 69h4" stroke="#1c2230" stroke-width="2.5"/><path d="M68 82q12 14 24 0z" fill="#fff" stroke="#1c2230" stroke-width="3" stroke-linejoin="round"/></svg>
+        <div class="bubble" id="tip3">Quasi fatto! Scegli lingua e impaginazione, poi premi un pulsante.</div></div>
+
+      <div class="field"><label>Lingua dei grafici</label>
+        <div class="seg langSeg"><button data-v="it">🇮🇹 Italiano</button><button data-v="en">🇬🇧 English</button></div></div>
+      <div class="field"><label>Grafici per pagina nel PDF</label><div class="layoutpick" id="lpick"></div></div>
+
+      <div class="dlbtns">
+        <button class="dl main" id="doBoth"><span>🎁</span>Tutto<small>PDF + immagini</small></button>
+        <button class="dl" id="doPdf"><span>📄</span>Solo PDF<small>per consultare</small></button>
+        <button class="dl" id="doZip"><span>🖼️</span>Solo immagini<small>PNG ad alta risoluzione</small></button>
+      </div>
+      <div class="progress" id="prog"><div></div></div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="card">
+      <h3>Cosa riceverai</h3>
+      <ul class="summary" id="sumList"></ul>
+
+      <details class="sec" style="margin-top:12px">
+        <summary>Più opzioni per il PDF</summary>
+        <div class="in">
+          <div class="field"><label>Orientamento A4</label>
+            <div class="seg" id="orientSeg"><button data-v="landscape">Orizzontale</button><button data-v="portrait">Verticale</button></div></div>
+          <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Grafici"></div>
+          <div class="field"><label>Ordine dei grafici</label>
+            <select data-k="order"><option value="instr">Per strumento, poi per nome</option><option value="name">Per nome</option><option value="load">Come li ho caricati</option></select></div>
+          <label class="check"><input type="checkbox" data-k="summary"> Pagina iniziale con l'elenco dei campioni e dei picchi</label>
+          <div class="field"><label>Pagine di confronto (spettri sovrapposti)</label>
+            <select data-k="overlay"><option value="none">No</option><option value="start">Sì, all'inizio</option><option value="end">Sì, alla fine</option></select>
+            <small style="color:var(--muted)">Un grafico per strumento con tutti i suoi spettri insieme.</small></div>
+          <div class="field" id="ovModeRow"><label>Come sovrapporli</label>
+            <select data-k="ovMode"><option value="stack">Sfalsati uno sopra l'altro (normalizzati)</option><option value="over">Sovrapposti nella stessa scala</option></select></div>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>Più opzioni per le immagini</summary>
+        <div class="in">
+          <div class="row">
+            <div class="field" style="flex:1"><label>Larghezza (cm)</label><input type="number" min="4" max="40" step="0.5" data-k="pngW"></div>
+            <div class="field" style="flex:1"><label>Altezza (cm)</label><input type="number" min="3" max="30" step="0.5" data-k="pngH"></div>
+            <div class="field" style="flex:1"><label>dpi</label><select data-k="pngDpi"><option value="300">300</option><option value="600">600</option></select></div>
+          </div>
+          <small id="pxInfo" style="color:var(--muted)"></small>
+          <label class="check" style="margin-top:10px"><input type="checkbox" data-k="csvPeaks"> Elenco dei picchi (CSV per Excel)</label>
+          <label class="check"><input type="checkbox" data-k="csvData"> Dati elaborati (un CSV per spettro, come nel grafico)</label>
+          <label class="check"><input type="checkbox" data-k="keepFolders"> Mantieni le sottocartelle</label>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>Impostazioni salvate</summary>
+        <div class="in">
+          <p class="hint" style="margin-bottom:10px">Le ultime impostazioni restano ricordate su questo computer, insieme ai nomi, alle descrizioni e ai picchi di ogni file. Puoi anche salvarle con un nome (es. «FTIR saliva») o passarle a un collega.</p>
+          <div class="row">
+            <select id="presetSel" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff"></select>
+            <button class="btn small" id="presetLoad">Usa</button>
+            <button class="btn small" id="presetDel">Elimina</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="presetName" placeholder="Nome, es. «Raman pigmenti»" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px">
+            <button class="btn small" id="presetSave">Salva</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn small ghost" id="presetExport">Esporta .json</button>
+            <button class="btn small ghost" id="presetImport">Importa .json</button>
+            <button class="btn small ghost" id="presetReset">Ripristina predefinite</button>
+            <input type="file" id="presetFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="btn" data-go="2">← Torna ai grafici</button></div>
+</section>
+</main>
+<dialog id="dlgLabel"><form method="dialog" class="dlg" id="dlForm">
+  <h2>Picco a <span id="dlNum"></span></h2>
+  <div style="color:var(--muted);font-size:13.5px">Che nome vuoi mostrare sul grafico?</div>
+  <div class="opts" id="dlOpts"></div>
+  <label class="check" id="dlSaveRow" style="display:none"><input type="checkbox" id="dlSave"> Ricordalo nella mia libreria per i prossimi spettri</label>
+  <div class="note">💡 I suggerimenti vengono da tabelle di letteratura e sono indicativi: verificali sempre con quello che sai del campione.</div>
+  <div class="actions"><button class="btn" value="cancel" type="button" id="dlCancel">Annulla</button><button class="btn primary" value="ok" id="dlOk">Applica</button></div>
+</form></dialog>
+<dialog id="dlgAll"><form method="dialog" class="dlg">
+  <h2>💡 Nomi suggeriti</h2>
+  <div style="color:var(--muted);font-size:13.5px;margin-bottom:10px">Spunta quelli che vuoi mettere sul grafico. Quelli non spuntati restano solo con il numero.</div>
+  <div class="row" style="margin-bottom:8px"><button class="btn small ghost" type="button" id="daToggle">Seleziona / deseleziona tutti</button></div>
+  <div class="allrows" id="daRows"></div>
+  <label class="check" style="margin-top:10px"><input type="checkbox" id="daOthers"> Applica le stesse scelte anche agli altri file <span id="daInstr"></span> con picchi nella stessa posizione</label>
+  <div class="note">I suggerimenti sono indicativi: controllali sempre con il contesto del campione.</div>
+  <div class="actions"><button class="btn" type="button" id="daCancel">Annulla</button><button class="btn primary" type="button" id="daOk">Applica i selezionati</button></div>
+</form></dialog>
+<footer>Acchiappaspettri · tutto avviene nel tuo browser, nessun dato lascia il tuo computer 👻</footer>
+
+<script>
+/*CORE-START*/
+const INSTR = {
+  ftir:  {xPdf:'cm-1', invertX:true,  colore:'#1f5fbf', conv:['orig','A','T']},
+  raman: {xPdf:'cm-1', invertX:false, colore:'#c0392b', conv:['orig','norm']},
+  uv:    {xPdf:'nm',   invertX:false, colore:'#6a3fb5', conv:['orig','A','T']},
+  hplc:  {xPdf:'min',  invertX:false, colore:'#1b7f4b', conv:['orig','norm']},
+  gen:   {xPdf:'',     invertX:false, colore:'#333333', conv:['orig','norm']}
+};
+const L10N = {
+  it:{ x:{ftir:"Numero d'onda (cm⁻¹)", raman:'Raman shift (cm⁻¹)', uv:"Lunghezza d'onda (nm)", hplc:'Tempo di ritenzione (min)', gen:'X'},
+       y:{T:'Trasmittanza (%)', A:'Assorbanza', I:'Intensità (conteggi)', mAU:'Segnale (mAU)', N:'Intensità normalizzata', S:'Intensità normalizzata (sfalsata)', '':'Y'},
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generico'},
+       dec:',', title:'Grafici', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
+       cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
+       csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo'], man:'manuale', auto:'automatico',
+       locale:'it-IT', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
+  en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', hplc:'Retention time (min)', gen:'X'},
+       y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', '':'Y'},
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generic'},
+       dec:'.', title:'Plots', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
+       cols:['#','Sample','Instrument','X range','Peaks'], fileLbl:'file',
+       csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type'], man:'manual', auto:'automatic',
+       locale:'en-GB', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
+};
+let LANG = 'it';
+const T_ = () => L10N[LANG] || L10N.it;
+const NOME_IT = L10N.it.nome;
+/* Database di bande/composti: [id, da, a, nome IT, nome EN, gruppo] — valori indicativi da tabelle di letteratura */
+const BANDS = {
+  ftir: [
+    ['f_ohf',3580,3700,'ν O–H libero (es. argille)','free ν O–H (e.g. clays)'],
+    ['f_oh',3200,3550,'ν O–H (legato a idrogeno)','ν O–H (H-bonded)'],
+    ['f_amA',3270,3320,'Ammide A (ν N–H)','Amide A (ν N–H)','prot'],
+    ['f_nh',3300,3500,'ν N–H (ammine/ammidi)','ν N–H (amines/amides)'],
+    ['f_char',3000,3100,'ν =C–H (aromatico/alchene)','ν =C–H (aromatic/alkene)'],
+    ['f_ch3a',2950,2975,'νas CH₃','νas CH₃','alk'],
+    ['f_ch2a',2915,2935,'νas CH₂','νas CH₂','alk'],
+    ['f_ch3s',2865,2885,'νs CH₃','νs CH₃','alk'],
+    ['f_ch2s',2845,2860,'νs CH₂','νs CH₂','alk'],
+    ['f_co2',2330,2365,'CO₂ atmosferica','atmospheric CO₂'],
+    ['f_cn',2210,2260,'ν C≡N (nitrile)','ν C≡N (nitrile)'],
+    ['f_dia',1900,2300,'zona del diamante ATR (possibile artefatto)','diamond ATR region (possible artefact)'],
+    ['f_est',1735,1750,'ν C=O (estere)','ν C=O (ester)'],
+    ['f_ald',1720,1740,'ν C=O (aldeide)','ν C=O (aldehyde)'],
+    ['f_acid',1700,1725,'ν C=O (acido carbossilico / chetone)','ν C=O (carboxylic acid / ketone)'],
+    ['f_amI',1620,1690,'Ammide I (ν C=O)','Amide I (ν C=O)','prot'],
+    ['f_h2o',1630,1650,'δ H–O–H (acqua)','δ H–O–H (water)'],
+    ['f_cooa',1550,1610,'νas COO⁻ (carbossilato)','νas COO⁻ (carboxylate)','coo'],
+    ['f_ar1',1585,1610,'ν C=C anello aromatico','aromatic ring ν C=C','ar'],
+    ['f_amII',1510,1570,'Ammide II (δ N–H + ν C–N)','Amide II (δ N–H + ν C–N)','prot'],
+    ['f_ar2',1490,1510,'ν C=C anello aromatico','aromatic ring ν C=C','ar'],
+    ['f_ch2b',1440,1470,'δ CH₂ / δas CH₃','δ CH₂ / δas CH₃','alk'],
+    ['f_carb3',1400,1450,'ν₃ CO₃²⁻ (carbonato)','ν₃ CO₃²⁻ (carbonate)','carb'],
+    ['f_coos',1390,1420,'νs COO⁻ (carbossilato)','νs COO⁻ (carboxylate)','coo'],
+    ['f_ch3b',1370,1385,'δs CH₃','δs CH₃','alk'],
+    ['f_amIII',1230,1300,'Ammide III','Amide III','prot'],
+    ['f_po2a',1220,1250,'νas PO₂⁻ (fosfodiesteri)','νas PO₂⁻ (phosphodiesters)','po2'],
+    ['f_coe',1150,1260,'ν C–O (esteri, acidi)','ν C–O (esters, acids)'],
+    ['f_so4',1080,1150,'ν₃ SO₄²⁻ (solfati, gesso)','ν₃ SO₄²⁻ (sulfates, gypsum)'],
+    ['f_co',1000,1150,'ν C–O / C–O–C (alcoli, eteri, carboidrati)','ν C–O / C–O–C (alcohols, ethers, carbohydrates)'],
+    ['f_po2s',1075,1090,'νs PO₂⁻ (fosfodiesteri)','νs PO₂⁻ (phosphodiesters)','po2'],
+    ['f_sio',1000,1100,'ν Si–O–Si (silicati)','ν Si–O–Si (silicates)'],
+    ['f_po4',1020,1060,'ν₃ PO₄³⁻ (fosfati, idrossiapatite)','ν₃ PO₄³⁻ (phosphates, hydroxyapatite)','po4'],
+    ['f_carb2',860,880,'ν₂ CO₃²⁻ (carbonato)','ν₂ CO₃²⁻ (carbonate)','carb'],
+    ['f_oop',650,1000,'δ =C–H fuori dal piano','=C–H out-of-plane bending'],
+    ['f_carb4',705,715,'ν₄ CO₃²⁻ (calcite)','ν₄ CO₃²⁻ (calcite)','carb'],
+    ['f_po4b',560,610,'ν₄ PO₄³⁻ (fosfati)','ν₄ PO₄³⁻ (phosphates)','po4']
+  ],
+  raman: [
+    ['r_char',3040,3080,'ν =C–H aromatico','aromatic ν =C–H'],
+    ['r_ch',2840,3000,'ν C–H (CH₂/CH₃)','ν C–H (CH₂/CH₃)'],
+    ['r_co',1725,1750,'ν C=O (esteri, lipidi)','ν C=O (esters, lipids)'],
+    ['r_amI',1640,1680,'Ammide I','Amide I','prot'],
+    ['r_ccl',1650,1670,'ν C=C (lipidi insaturi)','ν C=C (unsaturated lipids)'],
+    ['r_phe2',1600,1610,'Fenilalanina / tirosina (anello)','Phenylalanine / tyrosine (ring)','prot'],
+    ['r_G',1570,1600,'banda G (carbonio grafitico)','G band (graphitic carbon)','carbon'],
+    ['r_car1',1500,1530,'ν₁ C=C carotenoidi','carotenoids ν₁ C=C','carot'],
+    ['r_ch2',1435,1460,'δ CH₂ / CH₃','δ CH₂ / CH₃'],
+    ['r_D',1330,1365,'banda D (carbonio disordinato)','D band (disordered carbon)','carbon'],
+    ['r_amIII',1230,1300,'Ammide III','Amide III','prot'],
+    ['r_car2',1145,1165,'ν₂ C–C carotenoidi','carotenoids ν₂ C–C','carot'],
+    ['r_calc',1083,1090,'ν₁ CO₃²⁻ calcite','ν₁ CO₃²⁻ calcite','calc'],
+    ['r_cer',1048,1055,'ν₁ CO₃²⁻ biacca (cerussite)','ν₁ CO₃²⁻ lead white (cerussite)'],
+    ['r_anh',1014,1020,'ν₁ SO₄²⁻ anidrite','ν₁ SO₄²⁻ anhydrite'],
+    ['r_car3',1004,1012,'ν₃ CH₃ rocking carotenoidi','carotenoids ν₃ CH₃ rocking','carot'],
+    ['r_gyp',1005,1010,'ν₁ SO₄²⁻ gesso','ν₁ SO₄²⁻ gypsum'],
+    ['r_phe',999,1006,'Fenilalanina (respiro dell\'anello)','Phenylalanine (ring breathing)','prot'],
+    ['r_bar',985,990,'ν₁ SO₄²⁻ barite','ν₁ SO₄²⁻ barite'],
+    ['r_hap',955,965,'ν₁ PO₄³⁻ idrossiapatite','ν₁ PO₄³⁻ hydroxyapatite'],
+    ['r_calc4',708,715,'ν₄ CO₃²⁻ calcite','ν₄ CO₃²⁻ calcite','calc'],
+    ['r_rut2',605,615,'rutilo (TiO₂)','rutile (TiO₂)','rut'],
+    ['r_laz',542,552,'lazurite (blu oltremare)','lazurite (ultramarine blue)'],
+    ['r_si',515,525,'silicio cristallino','crystalline silicon'],
+    ['r_qz',460,468,'quarzo','quartz'],
+    ['r_rut1',440,450,'rutilo (TiO₂)','rutile (TiO₂)','rut'],
+    ['r_hem3',405,415,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
+    ['r_cin2',340,348,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin'],
+    ['r_hem2',288,298,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
+    ['r_calc1',278,285,'calcite (reticolo)','calcite (lattice)','calc'],
+    ['r_cin1',250,256,'cinabro / vermiglione (HgS)','cinnabar / vermilion (HgS)','cin'],
+    ['r_hem1',222,230,'ematite (α-Fe₂O₃)','hematite (α-Fe₂O₃)','hem'],
+    ['r_anat',140,148,'anatasio (TiO₂)','anatase (TiO₂)']
+  ],
+  uv: [
+    ['u_dna',255,265,'acidi nucleici (~260 nm)','nucleic acids (~260 nm)'],
+    ['u_prot',275,285,'proteine, Trp/Tyr (~280 nm)','proteins, Trp/Tyr (~280 nm)'],
+    ['u_nadh',335,345,'NADH (~340 nm)','NADH (~340 nm)'],
+    ['u_ag',390,420,'plasmone di nanoparticelle d\'argento','silver nanoparticle plasmon'],
+    ['u_soret',405,420,'banda di Soret (porfirine / eme)','Soret band (porphyrins / heme)'],
+    ['u_chl2',425,435,'clorofilla a (Soret)','chlorophyll a (Soret)','chl'],
+    ['u_au',510,540,'plasmone di nanoparticelle d\'oro','gold nanoparticle plasmon'],
+    ['u_chl1',660,670,'clorofilla a (banda Q)','chlorophyll a (Q band)','chl']
+  ]
+};
+const LS_LIB='spectraplot.lib.v1';
+let LIB = (()=>{ try{ return JSON.parse(localStorage.getItem(LS_LIB))||[]; }catch(e){ return []; } })();
+function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }catch(e){} }
+const SNAP_TOL = {ftir:3, raman:3, uv:2, hplc:0, gen:0};
+function dbEntries(instr){
+  const own = LIB.filter(e=>e.i===instr).map(e=>({id:e.id, lo:Math.min(e.a,e.b), hi:Math.max(e.a,e.b), it:e.n, en:e.n, g:null, mine:true}));
+  const db = (BANDS[instr]||[]).map(e=>({id:e[0], lo:Math.min(e[1],e[2]), hi:Math.max(e[1],e[2]), it:e[3], en:e[4], g:e[5]||null, mine:false}));
+  return own.concat(db);
+}
+function entryById(id){
+  for (const k in BANDS){ const e=BANDS[k].find(b=>b[0]===id); if (e) return {it:e[3], en:e[4]}; }
+  const m=LIB.find(e=>e.id===id); return m ? {it:m.n, en:m.n} : null;
+}
+function suggest(instr, x, others){
+  const tol=SNAP_TOL[instr]||0, all=dbEntries(instr);
+  const hit=(e,v)=> v>=e.lo-tol && v<=e.hi+tol;
+  return all.filter(e=>hit(e,x)).map(e=>{
+    const c=(e.lo+e.hi)/2, w=e.hi-e.lo;
+    let score = Math.abs(x-c)/(w/2+tol+1e-9) + w/400;
+    if (e.g && (others||[]).some(o=>Math.abs(o-x)>1e-6 && all.some(f=>f.g===e.g && f.id!==e.id && hit(f,o)))) score -= 0.8;
+    if (e.mine) score -= 0.3;
+    return {id:e.id, it:e.it, en:e.en, score, mine:e.mine, coherent: score<0};
+  }).sort((a,b)=>a.score-b.score).slice(0,4);
+}
+const CONV_LABEL = {orig:'Asse Y: dati originali', A:'Asse Y: assorbanza', T:'Asse Y: trasmittanza (%)', norm:'Asse Y: normalizzato 0–1'};
+
+function decodeBuffer(buf){
+  const u = new Uint8Array(buf);
+  if (u[0]===0xFF && u[1]===0xFE) return new TextDecoder('utf-16le').decode(u.subarray(2));
+  if (u[0]===0xFE && u[1]===0xFF) return new TextDecoder('utf-16be').decode(u.subarray(2));
+  let zeros=0; const n=Math.min(u.length,400); for(let i=1;i<n;i+=2) if(u[i]===0) zeros++;
+  if (n>20 && zeros > n/4) return new TextDecoder('utf-16le').decode(u);
+  let t = new TextDecoder('utf-8').decode(u);
+  if (t.charCodeAt(0)===0xFEFF) t = t.slice(1);
+  if (t.includes('�')) t = new TextDecoder('windows-1252').decode(u);
+  return t;
+}
+function toNum(s){
+  s = s.trim().replace(/^"|"$/g,'').replace(/,$/,'');
+  if (s==='') return NaN;
+  if (/^[-+]?\d+,\d+([eE][-+]?\d+)?$/.test(s)) s = s.replace(',', '.');
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return NaN;
+  return Number(s);
+}
+function parseLine(l){
+  let t;
+  if (l.includes('\t')) t = l.split('\t');
+  else if (l.includes(';')) t = l.split(';');
+  else if (/\s/.test(l)) t = l.split(/\s+/);
+  else if (l.includes(',')) t = l.split(',');
+  else return null;
+  t = t.map(s=>s.trim()).filter(s=>s!=='');
+  if (t.length<2) return null;
+  const a = toNum(t[0]), b = toNum(t[1]);
+  if (!isFinite(a) || !isFinite(b)) return null;
+  return [a,b];
+}
+function parseText(text){
+  const lines = text.split(/\r\n|\n|\r/);
+  const meta = [];
+  let start = 0, pe = false, peX = '', peY = '';
+  const first = (lines[0]||'').trim();
+  const iData = lines.findIndex(l=>l.trim()==='#DATA');
+  if (/^PE IR/i.test(first) || (iData>=0 && lines.some(l=>l.trim()==='#GR'))){
+    pe = true;
+    const gi = lines.findIndex(l=>l.trim()==='#GR');
+    if (gi>=0){ peX=(lines[gi+1]||'').trim(); peY=(lines[gi+2]||'').trim(); }
+    start = iData>=0 ? iData+1 : 0;
+    for (let i=0;i<start;i++) meta.push(lines[i]);
+  }
+  const xs=[], ys=[];
+  for (let i=start;i<lines.length;i++){
+    const l = lines[i].trim(); if (!l) continue;
+    const p = parseLine(l);
+    if (p){ xs.push(p[0]); ys.push(p[1]); }
+    else if (xs.length < 3) { if (xs.length){ xs.length=0; ys.length=0; } meta.push(l); }
+  }
+  const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
+  const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
+  idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
+  return {xs:X, ys:Y, meta, pe, peX, peY};
+}
+function stats(xs,ys){
+  let ymin=Infinity,ymax=-Infinity;
+  for (let i=0;i<ys.length;i++){ if(ys[i]<ymin)ymin=ys[i]; if(ys[i]>ymax)ymax=ys[i]; }
+  const n=xs.length, steps=[];
+  for (let i=1;i<Math.min(n,2000);i++) steps.push(xs[i]-xs[i-1]);
+  steps.sort((a,b)=>a-b);
+  return {n, xmin:xs[0], xmax:xs[n-1], ymin, ymax, step: steps.length? steps[steps.length>>1] : 0};
+}
+function detectInstrument(p, name){
+  const head = (p.meta.join(' ')+' '+name).toLowerCase();
+  const s = stats(p.xs,p.ys);
+  if (p.pe) return {instr:'ftir', reason:'formato PerkinElmer (PE IR)'};
+  if (/\bopus\b|bruker|nicolet|omnic|\bftir\b|\batr\b|wavenumbers?/.test(head)) return {instr:'ftir', reason:'intestazione FTIR'};
+  if (/raman|labspec|renishaw|horiba|\bwire\b/.test(head)) return {instr:'raman', reason:'intestazione Raman'};
+  if (/dad\d|vwd\d|fld\d|\.dx_|chemstation|openlab|empower|chromatogram|retention/.test(head)) return {instr:'hplc', reason:'nome/intestazione HPLC (DAD/VWD)'};
+  if (/cary|uv-?vis|lambda \d|\bjasco\b|wavelength/.test(head)) return {instr:'uv', reason:'intestazione UV-Vis'};
+  if (s.n<5) return {instr:'gen', reason:'dati insufficienti'};
+  if (s.xmin>-1 && s.xmin<5 && s.xmax<=600 && s.step>0 && s.step<0.2 && s.n>200) return {instr:'hplc', reason:'asse X in minuti'};
+  if (s.xmin>=150 && s.xmax<=1200 && s.ymax<=110 && s.ymin>=-5) return {instr:'uv', reason:'intervallo 150–1200 nm'};
+  if (s.xmax>=1500 && s.xmax<=8000 && s.ymax<=120 && s.ymin>=-10) return {instr:'ftir', reason:'intervallo IR e valori %T/A'};
+  if (s.xmin>=-200 && s.xmax<=5000 && s.ymax>120) return {instr:'raman', reason:'shift cm⁻¹ e conteggi'};
+  return {instr:'gen', reason:'formato non riconosciuto'};
+}
+function yKindFor(instr, p){
+  if (instr==='ftir' || instr==='uv'){
+    if (p.peY){ if (/T/i.test(p.peY)) return 'T'; if (/A/i.test(p.peY)) return 'A'; }
+    let ymax=-Infinity; for (const v of p.ys) if (v>ymax) ymax=v;
+    return ymax>5 ? 'T' : 'A';
+  }
+  if (instr==='raman') return 'I';
+  if (instr==='hplc') return 'mAU';
+  return '';
+}
+function transformY(ys, kind, conv){
+  const n=ys.length, out=new Float64Array(n);
+  if (conv==='A' && kind==='T'){ for(let i=0;i<n;i++) out[i]=2-Math.log10(Math.max(ys[i],1e-4)); return {ys:out, kind:'A'}; }
+  if (conv==='T' && kind==='A'){ for(let i=0;i<n;i++) out[i]=100*Math.pow(10,-ys[i]); return {ys:out, kind:'T'}; }
+  if (conv==='norm'){
+    let mn=Infinity,mx=-Infinity; for(const v of ys){ if(v<mn)mn=v; if(v>mx)mx=v; }
+    const r=(mx-mn)||1; for(let i=0;i<n;i++) out[i]=(ys[i]-mn)/r; return {ys:out, kind:'N'};
+  }
+  return {ys, kind};
+}
+// Savitzky–Golay, polinomio di 2° grado
+function sgSmooth(ys, win){
+  const n=ys.length; if (!win || win<5 || n<win+2) return ys;
+  const m=(win-1)>>1, den=(2*m+3)*(2*m+1)*(2*m-1), c=[];
+  for (let i=-m;i<=m;i++) c.push(3*(3*m*m+3*m-1-5*i*i)/den);
+  const out=Float64Array.from(ys);
+  for (let i=m;i<n-m;i++){ let s=0; for (let j=-m;j<=m;j++) s+=c[j+m]*ys[i+j]; out[i]=s; }
+  return out;
+}
+// linea di base: inviluppo convesso inferiore (rubber band) o retta tra gli estremi
+function baselineOf(xs, ys, method, upper){
+  const n=ys.length, y = upper ? Array.from(ys, v=>-v) : ys, b=new Float64Array(n);
+  if (method==='linear'){
+    const k=Math.max(1,Math.round(n*0.01)); let a=0,c=0;
+    for(let i=0;i<k;i++){ a+=y[i]; c+=y[n-1-i]; } a/=k; c/=k;
+    const x0=xs[0], x1=xs[n-1];
+    for(let i=0;i<n;i++) b[i]=a+(c-a)*(xs[i]-x0)/((x1-x0)||1);
+  } else {
+    const h=[];
+    for (let i=0;i<n;i++){
+      while (h.length>=2){ const p=h[h.length-2], q=h[h.length-1];
+        const cross=(xs[q]-xs[p])*(y[i]-y[p])-(y[q]-y[p])*(xs[i]-xs[p]);
+        if (cross<=0) h.pop(); else break; }
+      h.push(i);
+    }
+    for (let s=0;s<h.length-1;s++){ const p=h[s], q=h[s+1];
+      for (let i=p;i<=q;i++) b[i]=y[p]+(y[q]-y[p])*(xs[i]-xs[p])/((xs[q]-xs[p])||1); }
+  }
+  if (upper) for (let i=0;i<n;i++) b[i]=-b[i];
+  return b;
+}
+function smoothMA(ys, w){
+  const n=ys.length; if (w<1) return ys;
+  const ps=new Float64Array(n+1); for(let i=0;i<n;i++) ps[i+1]=ps[i]+ys[i];
+  const out=new Float64Array(n);
+  for(let i=0;i<n;i++){ const a=Math.max(0,i-w), b=Math.min(n-1,i+w); out[i]=(ps[b+1]-ps[a])/(b-a+1); }
+  return out;
+}
+function findPeaks(xs, ys, dir, sens, maxN){
+  const n=ys.length; if (n<7 || maxN<=0) return [];
+  const w = Math.max(1, Math.round(n/500));
+  const sm = smoothMA(ys, w);
+  const s = new Float64Array(n); let mn=Infinity,mx=-Infinity;
+  for (let i=0;i<n;i++){ s[i]=sm[i]*dir; if(s[i]<mn)mn=s[i]; if(s[i]>mx)mx=s[i]; }
+  const thr = (sens/100)*(mx-mn);
+  const cand=[];
+  for (let i=1;i<n-1;i++){
+    if (!(s[i]>s[i-1] && s[i]>=s[i+1])) continue;
+    let lmin=s[i], j=i-1; while (j>=0 && s[j]<=s[i]){ if(s[j]<lmin) lmin=s[j]; j--; }
+    let rmin=s[i]; j=i+1; while (j<n && s[j]<=s[i]){ if(s[j]<rmin) rmin=s[j]; j++; }
+    const prom = s[i]-Math.max(lmin,rmin);
+    if (prom>=thr) cand.push({i,prom});
+  }
+  cand.sort((a,b)=>b.prom-a.prom);
+  const minDist = (xs[n-1]-xs[0])*0.006, sel=[];
+  for (const c of cand){
+    if (sel.length>=maxN) break;
+    if (sel.some(o=>Math.abs(xs[o.i]-xs[c.i])<minDist)) continue;
+    sel.push(c);
+  }
+  return sel.map(c=>{
+    let best=c.i;
+    for (let k=Math.max(0,c.i-w); k<=Math.min(n-1,c.i+w); k++) if (ys[k]*dir > ys[best]*dir) best=k;
+    return {x:xs[best], y:ys[best], prom:c.prom};
+  }).sort((a,b)=>a.x-b.x);
+}
+function snapPeak(xs, ys, dir, x0, halfWidth){
+  let best=-1;
+  for (let i=0;i<xs.length;i++){ if (Math.abs(xs[i]-x0)>halfWidth) continue; if (best<0 || ys[i]*dir > ys[best]*dir) best=i; }
+  if (best<0){ let d=Infinity; for(let i=0;i<xs.length;i++){ const dd=Math.abs(xs[i]-x0); if(dd<d){d=dd;best=i;} } }
+  return {x:xs[best], y:ys[best]};
+}
+function nearestIdx(xs, x){
+  let lo=0, hi=xs.length-1;
+  while (hi-lo>1){ const m=(lo+hi)>>1; if (xs[m]<=x) lo=m; else hi=m; }
+  return Math.abs(xs[lo]-x)<=Math.abs(xs[hi]-x)?lo:hi;
+}
+function interpY(xs, ys, x){
+  let lo=0, hi=xs.length-1;
+  if (x<=xs[0]) return ys[0]; if (x>=xs[hi]) return ys[hi];
+  while (hi-lo>1){ const m=(lo+hi)>>1; if (xs[m]<=x) lo=m; else hi=m; }
+  const t=(x-xs[lo])/((xs[hi]-xs[lo])||1); return ys[lo]+t*(ys[hi]-ys[lo]);
+}
+function fmtPeak(instr, x){
+  if (instr==='hplc') return x.toFixed(2).replace('.',T_().dec);
+  if (instr==='gen') return Number(x.toPrecision(4)).toString().replace('.',T_().dec);
+  return String(Math.round(x));
+}
+function niceTicks(min, max, count){
+  const span = max-min || 1;
+  const raw = span/Math.max(1,count);
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw/mag;
+  const step = (norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const start = Math.ceil(min/step)*step;
+  const ticks=[]; for (let v=start; v<=max+step*1e-6; v+=step) ticks.push(Math.abs(v)<step*1e-9?0:v);
+  const dec = Math.max(0, -Math.floor(Math.log10(step)+1e-9));
+  return {ticks, dec: Math.min(dec,6)};
+}
+function fmtTick(v, dec){
+  const sep = T_().dec;
+  if (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) return v.toExponential(1).replace('.',sep);
+  return v.toFixed(dec).replace('.',sep);
+}
+/*CORE-END*/
+
+/* ---------------- DISEGNO ---------------- */
+const PALETTE=['#1f5fbf','#d1495b','#2a9d5c','#e69a1d','#7b4fc9','#17a2b8','#8c564b','#e377c2','#5c6b7a','#a3a01d'];
+function drawPlot(ctx, W, H, k, d, S){
+  ctx.save();
+  ctx.setTransform(k,0,0,k,0,0);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const fpt = d.fontPt || 8, f = fpt*0.3528;
+  const font = (sz, w) => `${w||''} ${sz}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  const series=d.series;
+  let ymin=Infinity, ymax=-Infinity, xmin=Infinity, xmax=-Infinity;
+  for (const s of series){ const n=s.xs.length; if(!n) continue;
+    if (s.xs[0]<xmin) xmin=s.xs[0]; if (s.xs[n-1]>xmax) xmax=s.xs[n-1];
+    for (let i=0;i<n;i++){ const v=s.ys[i]; if(v<ymin)ymin=v; if(v>ymax)ymax=v; } }
+  if (!isFinite(ymin)){ ymin=0; ymax=1; xmin=0; xmax=1; }
+  if (ymax===ymin){ ymax+=1; ymin-=1; }
+  const hasPk = S.showPeaks && d.peaks && d.peaks.length;
+  const span=ymax-ymin, room = hasPk ? (S.peakLabels ? (d.peaks.some(p=>p.label.length>5)?0.30:0.20) : 0.08) : 0.04;
+  const legRoom = d.legend ? 0.12 : 0;
+  if (d.dir>0){ ymax+=span*(room+legRoom); ymin-=span*0.04; } else { ymin-=span*room; ymax+=span*(0.04+legRoom); }
+
+  ctx.font = font(f*0.85);
+  const yt = niceTicks(ymin, ymax, Math.max(3, Math.round(H/14)));
+  const ylabW = d.hideYTicks ? 0 : Math.max(...yt.ticks.map(v=>ctx.measureText(fmtTick(v,yt.dec)).width), f);
+  const hasDesc = !!d.desc;
+  const L = ylabW + f*2.6, R = f*1.4, T = f*2.7 + (hasDesc? f*1.15:0), B = f*3.3;
+  const px0=L, py0=T, pw=W-L-R, ph=H-T-B;
+  const X = x => d.invertX ? px0 + (xmax-x)/((xmax-xmin)||1)*pw : px0 + (x-xmin)/((xmax-xmin)||1)*pw;
+  const Y = y => py0 + (ymax-y)/((ymax-ymin)||1)*ph;
+  const fit = (txt, maxW) => { if (ctx.measureText(txt).width<=maxW) return txt; while (txt.length>3 && ctx.measureText(txt+'…').width>maxW) txt=txt.slice(0,-1); return txt+'…'; };
+
+  // titolo + descrizione
+  const sub = S.showInstr ? d.instrName : '';
+  ctx.font = font(f*0.82); const subW = sub ? ctx.measureText(sub).width + f : 0;
+  ctx.fillStyle='#111'; ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  ctx.font = font(f*1.08, '600');
+  const tY = f*1.6;
+  ctx.fillText(fit(d.title, W - L*0.4 - subW - f), L*0.4, tY);
+  if (sub){ ctx.font=font(f*0.82); ctx.fillStyle='#666'; ctx.textAlign='right'; ctx.fillText(sub, W-R, tY); }
+  if (hasDesc){ ctx.font=font(f*0.85,'italic'); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.fillText(fit(d.desc, W - L*0.4 - R), L*0.4, tY + f*1.15); }
+
+  // griglia e tick
+  const xt = niceTicks(Math.min(xmin,xmax), Math.max(xmin,xmax), Math.max(3, Math.round(W/18)));
+  ctx.lineWidth = 0.12;
+  if (S.grid){
+    ctx.strokeStyle='#e4e7ec'; ctx.beginPath();
+    for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,py0); ctx.lineTo(x,py0+ph); }
+    if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(px0,y); ctx.lineTo(px0+pw,y); }
+    ctx.stroke();
+  }
+  ctx.strokeStyle='#222'; ctx.lineWidth=0.18; ctx.strokeRect(px0,py0,pw,ph);
+  ctx.fillStyle='#222'; ctx.font=font(f*0.85);
+  ctx.beginPath(); ctx.textAlign='center'; ctx.textBaseline='top';
+  for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,py0+ph); ctx.lineTo(x,py0+ph+f*0.35); ctx.fillText(fmtTick(v,xt.dec), x, py0+ph+f*0.5); }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(px0,y); ctx.lineTo(px0-f*0.35,y); ctx.fillText(fmtTick(v,yt.dec), px0-f*0.55, y); }
+  ctx.stroke();
+  ctx.font=font(f*0.92); ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText(d.xLabel, px0+pw/2, H-f*0.35);
+  ctx.save(); ctx.translate(f*1.15, py0+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(d.yLabel,0,0); ctx.restore();
+
+  // tracce (decimate per colonna di pixel)
+  ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
+  const cols = Math.max(50, Math.round(pw*k));
+  for (const s of series){
+    const xs=s.xs, ys=s.ys, n=xs.length; if(!n) continue;
+    ctx.strokeStyle=s.color; ctx.lineWidth=S.lineW; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.beginPath();
+    if (n > cols*3){
+      let lastCol=-1, cmin=0, cmax=0, cfirst=0, clast=0, started=false;
+      const flush=(c)=>{ const x=px0+(c+0.5)/cols*pw;
+        if(!started){ ctx.moveTo(x,Y(cfirst)); started=true; } else ctx.lineTo(x,Y(cfirst));
+        ctx.lineTo(x,Y(cmin)); ctx.lineTo(x,Y(cmax)); ctx.lineTo(x,Y(clast)); };
+      for (let t=0;t<n;t++){
+        const i = d.invertX ? n-1-t : t;
+        const c=Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)));
+        if (c!==lastCol){ if(lastCol>=0) flush(lastCol); lastCol=c; cmin=cmax=cfirst=clast=ys[i]; }
+        else { if(ys[i]<cmin)cmin=ys[i]; if(ys[i]>cmax)cmax=ys[i]; clast=ys[i]; }
+      }
+      if (lastCol>=0) flush(lastCol);
+    } else {
+      for (let i=0;i<n;i++){ const x=X(xs[i]), y=Y(ys[i]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // legenda
+  if (d.legend){
+    ctx.font=font(f*0.75); const lh=f*1.05, maxItems=Math.max(1,Math.floor((ph*0.9)/lh)-1);
+    let items=series.map(s=>({name:s.name,color:s.color}));
+    if (items.length>maxItems){ const extra=items.length-maxItems+1; items=items.slice(0,maxItems-1); items.push({name:`+${extra} ${T_().more}`, color:null}); }
+    const tw=Math.min(pw*0.45, Math.max(...items.map(i=>ctx.measureText(i.name).width))+f*2.4);
+    const lx=px0+pw-tw-f*0.4, ly=py0+f*0.4, lhh=items.length*lh+f*0.5;
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='#ccc'; ctx.lineWidth=0.12; ctx.fillRect(lx,ly,tw,lhh); ctx.strokeRect(lx,ly,tw,lhh);
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    items.forEach((it,i)=>{ const y=ly+f*0.25+lh*(i+0.5);
+      if (it.color){ ctx.strokeStyle=it.color; ctx.lineWidth=Math.max(S.lineW,0.35); ctx.beginPath(); ctx.moveTo(lx+f*0.4,y); ctx.lineTo(lx+f*1.5,y); ctx.stroke(); }
+      ctx.fillStyle='#222'; ctx.fillText(fit(it.name, tw-f*2.1), lx+f*1.8, y); });
+  }
+
+  // picchi
+  const hits=[];
+  if (hasPk){
+    ctx.font=font(f*0.74); ctx.lineWidth=0.12;
+    const vis = d.peaks.map(p=>({p, x:X(p.x), y:Y(p.y)})).filter(o=>o.x>=px0-0.5 && o.x<=px0+pw+0.5).sort((a,b)=>a.x-b.x);
+    const gap = f*0.9;
+    vis.forEach((o,i)=>{ o.lx = i ? Math.max(o.x, vis[i-1].lx+gap) : o.x; });
+    for (let i=vis.length-1;i>=0;i--){ const lim = i<vis.length-1 ? vis[i+1].lx-gap : px0+pw-f*0.3; if (vis[i].lx>lim) vis[i].lx=Math.max(lim, px0+f*0.3); }
+    for (const o of vis){
+      const p=o.p, x=o.x, y=o.y, lx=o.lx;
+      const g = f*0.45, len=f*0.9, s=d.dir>0?-1:1;
+      const hl = d.highlightManual && (p.manual || p.custom);
+      ctx.strokeStyle = hl ? (p.manual?'#d9741c':'#2a8a52') : '#444';
+      ctx.beginPath(); ctx.moveTo(x, y+s*g); ctx.lineTo(x, y+s*(g+len*0.45)); ctx.lineTo(lx, y+s*(g+len)); ctx.stroke();
+      if (S.peakLabels){
+        ctx.save(); ctx.translate(lx, y+s*(g+len+f*0.25)); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = d.dir>0 ? 'left':'right'; ctx.textBaseline='middle';
+        ctx.fillStyle = hl ? (p.manual?'#b35a0c':'#1f6b3e') : '#222';
+        ctx.fillText(p.label,0,0); ctx.restore();
+      }
+      hits.push({x,y,peak:p});
+    }
+  }
+  ctx.restore();
+  return {px0,py0,pw,ph,xmin,xmax,ymin,ymax,invertX:d.invertX,hits};
+}
+
+/* ---------------- STATO E IMPOSTAZIONI ---------------- */
+const DEFAULTS = {
+  lang:'it', perPage:4, orient:'landscape', order:'instr', summary:true, docTitle:'',
+  overlay:'none', ovMode:'stack',
+  pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
+  lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
+  showPeaks:true, sens:5, maxPeaks:12, peakLabels:true,
+  conv:{ftir:'orig', raman:'orig', uv:'orig', hplc:'orig', gen:'orig'},
+  smooth:{ftir:0, raman:0, uv:0, hplc:0, gen:0},
+  base:{ftir:'none', raman:'none', uv:'none', hplc:'none', gen:'none'}
+};
+const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
+const OBJ_KEYS=['conv','smooth','base'];
+const clone = o => JSON.parse(JSON.stringify(o));
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function merge(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici') r.docTitle=''; return r; }
+let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang;
+function saveS(){ LANG = S.lang; lsSet(LS_KEY, S); }
+
+const files = []; let cur = -1; let uid = 0;
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv)$/i;
+const dispTitle = f => (f.title && f.title.trim()) || f.name;
+
+/* memoria per file (nome, descrizione, picchi, intervallo…) */
+function fkey(f){ return LS_FILE + f.path + '|' + f.xs.length; }
+function persist(f){
+  const o={title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined};
+  const empty = !o.title && !o.desc && !o.xr && !Object.keys(o.labels).length && !o.removed.length && !o.added.length && o.include && !o.instr;
+  if (empty) lsDel(fkey(f)); else lsSet(fkey(f), o);
+}
+function isEdited(f){ return !!(f.title || f.desc || f.xr || Object.keys(f.labels).length || f.removed.length || f.added.length || f.instr!==f.autoInstr); }
+
+function procKey(f){ const i=f.instr; return [i,S.conv[i],S.smooth[i],S.base[i],f.kind,f.xr?f.xr.join(','):''].join('|'); }
+function processed(f){
+  const key=procKey(f); if (f._pk===key) return f._pd;
+  const i=f.instr; let conv=S.conv[i]; if (!INSTR[i].conv.includes(conv)) conv='orig';
+  const t=transformY(f.ys, f.kind, conv==='norm'?'orig':conv);
+  let y=t.ys, kind=t.kind, xs=f.xs;
+  if (f.xr){
+    const a=Math.min(f.xr[0],f.xr[1]), b=Math.max(f.xr[0],f.xr[1]);
+    let lo=0; while (lo<xs.length && xs[lo]<a) lo++;
+    let hi=xs.length-1; while (hi>=0 && xs[hi]>b) hi--;
+    if (hi-lo>=4){ xs=xs.subarray(lo,hi+1); y=y.subarray(lo,hi+1); }
+  }
+  const sw=+S.smooth[i]||0; if (sw) y=sgSmooth(y, sw);
+  const bm=S.base[i]||'none';
+  if (bm!=='none'){
+    const upper = kind==='T', bl=baselineOf(xs,y,bm,upper), o=new Float64Array(y.length);
+    for (let k=0;k<y.length;k++) o[k] = upper ? y[k]/(bl[k]||1)*100 : y[k]-bl[k];
+    y=o;
+  }
+  if (conv==='norm'){ y=transformY(y,kind,'norm').ys; kind='N'; }
+  f._pk=key; f._pd={xs, ys:y, kind, dir: kind==='T'?-1:1};
+  return f._pd;
+}
+const lblKey = x => x.toFixed(4);
+function viewOf(f){
+  const instr=f.instr, prof=INSTR[instr], P=processed(f), L=T_();
+  const key=procKey(f)+'|'+S.sens+'|'+S.maxPeaks;
+  if (f._autoKey!==key){ f._auto=findPeaks(P.xs, P.ys, P.dir, S.sens, S.maxPeaks); f._autoKey=key; }
+  const range=(P.xs[P.xs.length-1]-P.xs[0])||1, tol=range*0.004;
+  const inR = x => x>=P.xs[0] && x<=P.xs[P.xs.length-1];
+  const peaks=[];
+  for (const p of f._auto) if (!f.removed.some(r=>Math.abs(r-p.x)<=tol)) peaks.push({x:p.x, y:p.y, manual:false});
+  for (const x of f.added) if (inR(x)) peaks.push({x, y:interpY(P.xs,P.ys,x), manual:true});
+  const xsAll = peaks.map(p=>p.x);
+  peaks.sort((a,b)=>a.x-b.x).forEach(p=>{
+    const raw=f.labels[lblKey(p.x)];
+    let name='';
+    if (raw && raw[0]==='@'){ const e=entryById(raw.slice(1)); name = e ? (LANG==='en'?e.en:e.it) : ''; }
+    else if (raw) name=raw;
+    p.num=fmtPeak(instr,p.x); p.custom=!!name; p.name=name;
+    p.label = !name ? p.num : (name.includes(p.num) ? name : p.num+' '+name);
+    p.sugg = name ? [] : suggest(instr, p.x, xsAll);
+  });
+  const color = S.colorMode==='instr' ? prof.colore : S.colorMode==='black' ? '#111' : S.color;
+  return {title:dispTitle(f), desc:(f.desc||'').trim(), instrName:L.nome[instr], series:[{xs:P.xs, ys:P.ys, color, name:dispTitle(f)}],
+          xs:P.xs, ys:P.ys, kind:P.kind, dir:P.dir, invertX:prof.invertX, xLabel:L.x[instr], yLabel:L.y[P.kind]||'Y', peaks, instr};
+}
+function overlayGroups(){
+  const g={}; included().forEach(f=>(g[f.instr]=g[f.instr]||[]).push(f));
+  return Object.entries(g).filter(([,v])=>v.length>=2);
+}
+function overlayView(instr, list){
+  const L=T_(), prof=INSTR[instr], stack=S.ovMode==='stack';
+  const procs=list.map(f=>processed(f));
+  const dir = procs[0].dir, n=list.length;
+  const series=list.map((f,i)=>{
+    const P=procs[i]; let ys=P.ys;
+    if (stack){
+      let mn=Infinity,mx=-Infinity; for(const v of ys){ if(v<mn)mn=v; if(v>mx)mx=v; }
+      const r=(mx-mn)||1, off=(n-1-i)*1.1, o=new Float64Array(ys.length);
+      for (let k=0;k<ys.length;k++) o[k]=(ys[k]-mn)/r+off;
+      ys=o;
+    }
+    return {xs:P.xs, ys, color:PALETTE[i%PALETTE.length], name:dispTitle(f)};
+  });
+  return {title:`${L.compare} ${L.nome[instr]} (${n} ${L.spectra})`, desc:'', instrName:L.nome[instr], series, dir, invertX:prof.invertX,
+          xLabel:L.x[instr], yLabel: stack ? L.y.S : (L.y[procs[0].kind]||'Y'), peaks:[], legend:true, hideYTicks:stack, instr};
+}
+
+/* ---------------- CARICAMENTO ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function addEntries(entries){
+  let skipped=[], errors=[], unreadable=[], dup=0, added=0;
+  try{
+    for (const {file, path, err} of entries){
+      if (err || !file){ unreadable.push(path); continue; }
+      if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
+      if (files.some(f=>f.path===path && f.size===file.size)){ dup++; continue; }
+      let buf;
+      try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); continue; }
+      try{
+        const p = parseText(decodeBuffer(buf));
+        if (p.xs.length<5) { errors.push(path); continue; }
+        const det = detectInstrument(p, file.name);
+        const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, ys:p.ys, meta:p.meta, peY:p.peY,
+                   instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
+        f._p = {peY:p.peY, ys:p.ys};
+        const saved = lsGet(fkey(f));
+        if (saved){
+          Object.assign(f, {title:saved.title||'', desc:saved.desc||'', xr:saved.xr||null, labels:saved.labels||{}, removed:saved.removed||[], added:saved.added||[], include:saved.include!==false});
+          if (saved.instr && INSTR[saved.instr]) f.instr=saved.instr;
+        }
+        f.kind = yKindFor(f.instr, f._p);
+        files.push(f); added++;
+      }catch(e){ console.error(e); errors.push(path); }
+    }
+  }catch(e){ console.error(e); }
+  const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
+  const note=$('#skipNote'), msgs=[];
+  if (skipped.length) msgs.push(`🙈 Ho saltato ${skipped.length===1?'un file che non è':skipped.length+' file che non sono'} di testo: ${list(skipped)}.`);
+  if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato due colonne di numeri: ${list(errors)}. Se è un formato particolare mandamelo e lo aggiungo.`);
+  if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
+  if (dup) msgs.push(`👯 ${dup} file ${dup===1?'era':'erano'} già caricat${dup===1?'o':'i'}.`);
+  note.style.display = msgs.length?'block':'none'; note.innerHTML = msgs.join('<br>');
+  if (files.length && cur<0) cur=0;
+  if (added){
+    const counts={}; files.forEach(f=>counts[f.instr]=(counts[f.instr]||0)+1);
+    const parts=Object.entries(counts).map(([k,v])=>`${v} ${NOME_IT[k]}`);
+    say('#hello', files.length===1 ? `Preso! Gino ha fiutato uno spettro ${parts[0].replace(/^1 /,'')}. 👻 Premi «Vediamo i grafici».` : `Acchiappati ${files.length} spettri! 👻 Gino è contentissimo: ${parts.join(', ')}. 🎉`);
+    happy();
+  } else if (dup && !skipped.length && !errors.length && !unreadable.length){
+    say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
+  } else if (!entries.length){
+    say('#hello', 'Mmm, non mi è arrivato nessun file. 🤔 Riprova o usa «Scegli file».');
+  } else {
+    say('#hello', 'Ops, con questo non ci riesco… 😕 Guarda il messaggio qui sotto.');
+  }
+  try{ refreshAll(); }catch(e){ console.error(e); }
+  if (added && curView===2) renderPreview();
+}
+async function entriesFromDrop(dt, fallback){
+  const roots = [...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
+  if (!roots.length || roots.some(r=>!r)) return fallback;
+  const out=[];
+  async function walk(e, base){
+    if (e.isFile){
+      try{ const f = await new Promise((res,rej)=>e.file(res,rej)); out.push({file:f, path:base+f.name}); }
+      catch(err){ const fb=fallback.find(x=>x.file && x.file.name===e.name); out.push(fb || {file:null, path:base+e.name, err:true}); }
+    } else if (e.isDirectory){
+      const rd = e.createReader(); let batch;
+      do { batch = await new Promise((res,rej)=>rd.readEntries(res,rej)); for (const c of batch) await walk(c, base+e.name+'/'); } while (batch.length);
+    }
+  }
+  for (const r of roots) await walk(r,'');
+  return out;
+}
+const drop=$('#drop');
+let dragDepth=0;
+document.addEventListener('dragenter', e=>{ e.preventDefault(); dragDepth++; drop.classList.add('over'); if($('#v1').classList.contains('on')) say('#hello','Lascialo qui, lo acchiappo al volo! 🙌'); });
+document.addEventListener('dragover', e=>e.preventDefault());
+document.addEventListener('dragleave', e=>{ e.preventDefault(); if(--dragDepth<=0){ dragDepth=0; drop.classList.remove('over'); } });
+document.addEventListener('drop', async e=>{
+  e.preventDefault(); dragDepth=0; drop.classList.remove('over');
+  const dt=e.dataTransfer; if (!dt) return;
+  const fallback=[...(dt.files||[])].map(f=>({file:f, path:f.name}));   // da leggere subito, prima di qualsiasi await
+  if (!fallback.length && !(dt.items && dt.items.length)) return;
+  say('#hello','Lo sto acchiappando… 👻🧐');
+  let entries;
+  try{ entries = await entriesFromDrop(dt, fallback); }catch(err){ console.error(err); entries = fallback; }
+  await addEntries(entries);
+});
+drop.addEventListener('click', e=>{ if (e.target===drop || e.target.classList.contains('big') || e.target.classList.contains('ico')) $('#inFiles').click(); });
+$('#pickFiles').onclick=e=>{ e.stopPropagation(); $('#inFiles').click(); };
+$('#pickFolder').onclick=e=>{ e.stopPropagation(); $('#inFolder').click(); };
+$('#addMore').onclick=()=>$('#inFiles').click();
+$('#inFiles').onchange=async e=>{ await addEntries([...e.target.files].map(f=>({file:f,path:f.name}))); e.target.value=''; };
+$('#inFolder').onchange=async e=>{ await addEntries([...e.target.files].map(f=>({file:f,path:f.webkitRelativePath||f.name}))); e.target.value=''; };
+
+/* ---------------- OMINO ---------------- */
+function say(sel, txt){ const b=$(sel); if (b) b.textContent=txt; }
+function happy(){ const b=$('#buddy'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); }
+const GREET = ['Ciao! 👋 Io e Gino 👻 acchiappiamo i tuoi spettri e li trasformiamo in grafici.',
+  'C\'è uno spettro nel tuo computer? 👻 Chiama l\'Acchiappaspettri!',
+  'Ti presento Gino 👻, il nostro spettro di fiducia. Dacci i tuoi file!',
+  'Buongiorno, scienziato! ☕ Quali spettri acchiappiamo oggi?',
+  'Ehilà! 👋 Trascina qui i file: FTIR, Raman, UV-Vis, HPLC… li prendo tutti!',
+  'Niente paura, gli spettri li acchiappo io. 👻🔬'];
+say('#hello', GREET[Math.floor(Math.random()*GREET.length)]);
+const TIPS2 = ['Tocca il grafico per aggiungere un picco, tocca un picco per toglierlo. Facile!',
+  'Puoi dare un nome più chiaro allo spettro e aggiungere una descrizione qui sotto. ✍️',
+  'Clic sul numero di un picco per scriverci l\'assegnazione, es. «C=O stretch». 🧪',
+  'Vedi un 💡 sui picchi? Ho un nome da suggerirti: lo metto sul grafico solo se lo approvi. 🏷️',
+  'Usa le frecce ← → per passare da un file all\'altro. ⌨️',
+  'Troppi picchi? Sposta il cursore «Quanti picchi?» a destra. 🎚️'];
+let tipI=0;
+const GINO = ['Buuuh! 👻 …scherzo, sono Gino.','Gino dice: «io sono uno spettro, ma tu hai degli spettri da graficare?» 👻',
+  'Gino è un fantasma IR: si vede solo tra 4000 e 400 cm⁻¹. 👻','Gino sta cercando il suo picco preferito… è a 1647! 👻',
+  'Non solleticare Gino, ha una banda molto sensibile! 😂','Gino non ha la linea di base: fluttua. 👻'];
+$('#gino').addEventListener('click', ()=>{ say('#hello', GINO[Math.floor(Math.random()*GINO.length)]); happy(); });
+
+/* ---------------- NAVIGAZIONE ---------------- */
+let curView=1;
+function go(n){
+  if (n>1 && !files.length) return;
+  curView=n;
+  $$('.view').forEach((v,i)=>v.classList.toggle('on', i===n-1));
+  $$('.step').forEach(b=>{ const s=+b.dataset.go; b.classList.toggle('on', s===n); b.classList.toggle('done', s<n); });
+  if (n===2){ say('#tip2', TIPS2[tipI++ % TIPS2.length]); renderPreview(); }
+  if (n===3){ say('#tip3', 'Quasi fatto! Scegli lingua e impaginazione, poi premi un pulsante. 👇'); renderSummary(); }
+  window.scrollTo({top:0});
+}
+$$('[data-go]').forEach(b=>b.addEventListener('click', ()=>go(+b.dataset.go)));
+function refreshAll(){
+  $$('.step').forEach(b=>{ if(+b.dataset.go>1) b.disabled=!files.length; });
+  renderLoaded(); renderList(); renderProc(); renderPreview(); renderSummary();
+}
+function renderLoaded(){
+  const box=$('#loaded');
+  $('#howto').style.display = files.length ? 'none' : '';
+  if (!files.length){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="row" style="margin-bottom:12px"><h2 style="margin:0">${files.length} file pronti</h2>
+    <span class="spacer"></span><button class="btn small ghost" id="clearAll">Ricomincia da capo</button>
+    <button class="btn primary big" id="toStep2">Vediamo i grafici →</button></div>
+    <div class="tiles">${files.slice(0,60).map(f=>`<div class="tile" title="${esc(f.path)}"><span class="nm">${esc(dispTitle(f))}</span><span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`).join('')}</div>
+    ${files.length>60?`<p class="hint" style="margin-top:8px">… e altri ${files.length-60}</p>`:''}`;
+  $('#toStep2').onclick=()=>go(2);
+  $('#clearAll').onclick=()=>{ files.length=0; cur=-1; say('#hello','Tutti gli spettri liberati! ✨ Carica quello che vuoi.'); refreshAll(); go(1); };
+}
+function renderList(){
+  const q=($('#filter').value||'').toLowerCase();
+  $('#nFiles').textContent=files.length;
+  $('#flist').innerHTML = files.map((f,i)=>({f,i})).filter(o=>!q || (o.f.path+' '+dispTitle(o.f)).toLowerCase().includes(q)).map(({f,i})=>`<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'}" data-i="${i}">
+     <input type="checkbox" ${f.include?'checked':''} data-inc="${i}" title="Includi nell'output">
+     <div class="nm" title="${esc(f.path)}">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.path.includes('/')?f.path.slice(0,f.path.lastIndexOf('/')):(f.desc||'')))}</small></div>
+     ${isEdited(f)?'<span class="ed" title="Modificato">✎</span>':''}
+     <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`).join('') || '<div class="empty">Nessun file</div>';
+  $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if(e.target.dataset.inc!==undefined) return; cur=+el.dataset.i; renderList(); renderPreview(); }));
+  $$('#flist [data-inc]').forEach(el=>el.addEventListener('change', ()=>{ const f=files[+el.dataset.inc]; f.include=el.checked; persist(f); renderList(); renderPreview(); renderSummary(); }));
+}
+$('#filter').addEventListener('input', renderList);
+$('#allOn').onclick=()=>{ const all=files.every(f=>f.include); files.forEach(f=>{f.include=!all; persist(f);}); renderList(); renderPreview(); renderSummary(); };
+
+/* ---------------- ANTEPRIMA ---------------- */
+const pv=$('#pv'); let geo=null, pvView=null;
+const PV_W=160, PV_H=100;
+function renderPreview(){
+  const f=files[cur];
+  if (!f){ $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
+  const cssW = pv.clientWidth || 800, dpr = window.devicePixelRatio||1;
+  pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssW*PV_H/PV_W*dpr);
+  const d = viewOf(f); d.fontPt = 9; d.highlightManual = true; pvView=d;
+  geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S);
+  $('#pvTitle').textContent=dispTitle(f); $('#pvTitle').title=f.path;
+  if (document.activeElement!==$('#fTitle')) $('#fTitle').value=f.title||'';
+  $('#fTitle').placeholder=f.name;
+  if (document.activeElement!==$('#fDesc')) $('#fDesc').value=f.desc||'';
+  const sel=$('#fInstr');
+  sel.innerHTML = Object.keys(INSTR).map(k=>`<option value="${k}" ${k===f.instr?'selected':''}>${NOME_IT[k]}${k===f.autoInstr?' (rilevato)':''}</option>`).join('');
+  $('#fReason').textContent = f.instr===f.autoInstr ? 'Riconosciuto da: '+f.reason : 'Scelto a mano (avevo pensato: '+NOME_IT[f.autoInstr]+')';
+  $('#fInclude').checked = f.include;
+  $('#xrUnit').textContent = INSTR[f.instr].xPdf ? '('+INSTR[f.instr].xPdf+')' : '';
+  if (xrShownFor!==f.id || xrForce){
+    xrShownFor=f.id; xrForce=false;
+    $('#xrA').value = f.xr ? Math.min(...f.xr) : ''; $('#xrB').value = f.xr ? Math.max(...f.xr) : '';
+    $('#xrA').placeholder = 'da '+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = 'a '+(+f.xs[f.xs.length-1].toPrecision(5));
+  }
+  const nSug = d.peaks.filter(p=>p.sugg.length).length;
+  $('#suggestAll').disabled = !S.showPeaks || !nSug;
+  $('#suggestAll').textContent = nSug ? `💡 Suggerisci nomi (${nSug})` : '💡 Nessun suggerimento';
+  $('#chips').innerHTML = (S.showPeaks ? d.peaks.map(p=>`<span class="chip ${p.manual?'man':''} ${p.custom?'lab':''}" title="${p.manual?'Aggiunto da te':'Trovato in automatico'}${p.custom?' · '+esc(p.name):(p.sugg.length?' · suggerimento: '+esc(LANG==='en'?p.sugg[0].en:p.sugg[0].it):'')}"><button class="t" data-x="${p.x}" title="Dai un nome a questo picco">${esc(p.custom? p.num+' · '+p.name : p.num)}${!p.custom&&p.sugg.length?' <span class="bulb">💡</span>':''}</button><button class="x" data-x="${p.x}" data-m="${p.manual?1:0}" title="Rimuovi">×</button></span>`).join('') : '')
+     || `<span style="color:var(--muted);font-size:13px">${S.showPeaks?'Nessun picco: tocca il grafico per aggiungerne uno 👆':'Ricerca automatica dei picchi spenta (la riaccendi a destra)'}</span>`;
+  $$('#chips button.x').forEach(b=>b.onclick=()=>removePeak(f, +b.dataset.x, b.dataset.m==='1'));
+  $$('#chips button.t').forEach(b=>b.onclick=()=>editLabel(f, +b.dataset.x));
+}
+let xrShownFor=null, xrForce=false;
+function changed(f){ persist(f); renderPreview(); renderSummary(); renderList(); }
+function removePeak(f, x, manual){
+  if (manual) f.added = f.added.filter(a=>a!==x); else f.removed.push(x);
+  delete f.labels[lblKey(x)]; changed(f);
+}
+let dlState=null;
+function editLabel(f, x){
+  const d=viewOf(f), p=d.peaks.find(q=>Math.abs(q.x-x)<1e-9); if(!p) return;
+  const raw=f.labels[lblKey(x)]||'', num=p.num, L=LANG;
+  const sug = suggest(f.instr, x, d.peaks.map(q=>q.x));
+  $('#dlNum').textContent = num+' '+(INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
+  const free = raw && raw[0]!=='@' ? raw : '';
+  let html = sug.map((g,i)=>`<label class="opt sug"><input type="radio" name="dl" value="@${g.id}" ${raw==='@'+g.id||(!raw&&i===0&&false)?'checked':''}><div><b>${esc(L==='en'?g.en:g.it)}</b>${g.coherent?' <span class="badge" style="background:#e1f3e9;color:#155e39">coerente con altri picchi</span>':''}${g.mine?' <span class="badge">la mia libreria</span>':''}<small>${L==='en'?esc(g.it):esc(g.en)}</small></div></label>`).join('');
+  if (!sug.length) html += `<div class="note" style="margin-bottom:4px">Per questa posizione non ho suggerimenti${f.instr==='hplc'?' (per l\'HPLC puoi crearti la tua libreria di tempi di ritenzione)':''}.</div>`;
+  html += `<label class="opt"><input type="radio" name="dl" value="" ${!raw?'checked':''}><div><b>Solo il numero</b><small>sul grafico resta «${esc(num)}»</small></div></label>`;
+  html += `<label class="opt"><input type="radio" name="dl" value="free" ${free?'checked':''}><div style="flex:1"><b>Scrivo io</b><input type="text" id="dlFree" value="${esc(free)}" placeholder="es. C=O amide I, glucosio…" style="margin-top:6px;width:100%;border:1px solid var(--line);border-radius:9px;padding:6px 8px"></div></label>`;
+  $('#dlOpts').innerHTML = html;
+  const syncSave=()=>{ const v=(document.querySelector('#dlOpts input[name=dl]:checked')||{}).value; $('#dlSaveRow').style.display = v==='free' ? 'flex':'none'; };
+  $$('#dlOpts input[name=dl]').forEach(r=>r.onchange=syncSave);
+  $('#dlFree').addEventListener('focus', ()=>{ document.querySelector('#dlOpts input[value=free]').checked=true; syncSave(); });
+  $('#dlSave').checked = f.instr==='hplc';
+  syncSave();
+  dlState={f,x};
+  $('#dlgLabel').showModal();
+}
+$('#dlCancel').onclick=()=>$('#dlgLabel').close();
+$('#dlForm').addEventListener('submit', e=>{
+  e.preventDefault(); if(!dlState) return;
+  const {f,x}=dlState, k=lblKey(x);
+  const v=(document.querySelector('#dlOpts input[name=dl]:checked')||{}).value||'';
+  if (v==='free'){
+    const t=$('#dlFree').value.trim();
+    if (!t || t===fmtPeak(f.instr,x)) delete f.labels[k];
+    else {
+      f.labels[k]=t;
+      if ($('#dlSave').checked){
+        const w = f.instr==='hplc' ? Math.max(0.05, (f.xs[f.xs.length-1]-f.xs[0])*0.003) : (SNAP_TOL[f.instr]||2)*2;
+        const id='c'+Date.now().toString(36);
+        LIB.push({id, i:f.instr, a:+(x-w).toPrecision(6), b:+(x+w).toPrecision(6), n:t}); saveLib(); renderLib();
+        f.labels[k]='@'+id;
+      }
+    }
+  } else if (v) f.labels[k]=v; else delete f.labels[k];
+  $('#dlgLabel').close(); changed(f);
+});
+/* revisione di tutti i suggerimenti */
+let daState=null;
+$('#suggestAll').onclick=()=>{
+  const f=files[cur]; if(!f) return; const d=viewOf(f), L=LANG;
+  const rows=d.peaks.filter(p=>p.sugg.length);
+  $('#daInstr').textContent = NOME_IT[f.instr];
+  $('#daRows').innerHTML = rows.map((p,i)=>`<div class="allrow"><input type="checkbox" data-i="${i}" checked><b>${esc(p.num)}</b>
+     <select data-i="${i}">${p.sugg.map(g=>`<option value="${g.id}">${esc(L==='en'?g.en:g.it)}${g.coherent?' ✓':''}${g.mine?' (mia)':''}</option>`).join('')}</select></div>`).join('');
+  $('#daOthers').checked=false;
+  daState={f, rows};
+  $('#dlgAll').showModal();
+};
+$('#daToggle').onclick=()=>{ const cbs=$$('#daRows input[type=checkbox]'); const all=cbs.every(c=>c.checked); cbs.forEach(c=>c.checked=!all); };
+$('#daCancel').onclick=()=>$('#dlgAll').close();
+$('#daOk').onclick=()=>{
+  if(!daState) return; const {f,rows}=daState; const chosen=[];
+  $$('#daRows .allrow').forEach(r=>{ const cb=r.querySelector('input'), sel=r.querySelector('select'), p=rows[+cb.dataset.i];
+    if (cb.checked){ f.labels[lblKey(p.x)]='@'+sel.value; chosen.push({x:p.x, id:sel.value}); } });
+  let nOther=0;
+  if ($('#daOthers').checked && chosen.length){
+    const tol=Math.max(SNAP_TOL[f.instr]||0, 1e-6)+1;
+    files.forEach(g=>{ if(g===f || g.instr!==f.instr) return; const gv=viewOf(g); let ch=false;
+      gv.peaks.forEach(q=>{ if (q.custom) return; const c=chosen.find(o=>Math.abs(o.x-q.x)<=tol); if (c && q.sugg.some(s=>s.id===c.id)){ g.labels[lblKey(q.x)]='@'+c.id; ch=true; } });
+      if (ch){ persist(g); nOther++; } });
+  }
+  $('#dlgAll').close(); changed(f);
+  say('#tip2', chosen.length ? `Fatto! ${chosen.length} nom${chosen.length===1?'e':'i'} sul grafico${nOther?` e su altri ${nOther} file`:''}. 🏷️` : 'Ok, lascio solo i numeri. 👍');
+};
+/* libreria personale */
+function renderLib(){
+  $('#libInstr').innerHTML = Object.keys(INSTR).filter(k=>k!=='gen').map(k=>`<option value="${k}" ${files[cur]&&files[cur].instr===k?'selected':''}>${NOME_IT[k]}</option>`).join('');
+  $('#libList').innerHTML = LIB.length ? LIB.map(e=>`<div class="libitem"><span class="badge b-${e.i}">${esc(NOME_IT[e.i].split(' ')[0])}</span><span title="${esc(e.n)}"><b>${esc(e.n)}</b> · ${String(Math.min(e.a,e.b)).replace('.',',')}–${String(Math.max(e.a,e.b)).replace('.',',')}</span><button class="btn small ghost" data-del="${e.id}" title="Elimina">×</button></div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">Ancora vuota.</div>';
+  $$('#libList [data-del]').forEach(b=>b.onclick=()=>{ LIB=LIB.filter(e=>e.id!==b.dataset.del); saveLib(); renderLib(); resetCaches(); renderPreview(); });
+}
+$('#libAdd').onclick=()=>{
+  const n=$('#libName').value.trim(), a=parseFloat($('#libA').value), b=parseFloat($('#libB').value);
+  if (!n || !isFinite(a)){ (n?$('#libA'):$('#libName')).focus(); return; }
+  LIB.push({id:'c'+Date.now().toString(36), i:$('#libInstr').value, a, b:isFinite(b)?b:a, n}); saveLib();
+  $('#libName').value=''; $('#libA').value=''; $('#libB').value=''; renderLib(); renderPreview();
+  say('#tip2', `«${n}» aggiunto alla tua libreria! 📚`);
+};
+function mmPos(e){ const r=pv.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*PV_W, (e.clientY-r.top)/r.height*PV_H]; }
+function xAt(mx){ const t=(mx-geo.px0)/geo.pw; return geo.invertX ? geo.xmax - t*(geo.xmax-geo.xmin) : geo.xmin + t*(geo.xmax-geo.xmin); }
+pv.addEventListener('click', e=>{
+  const f=files[cur]; if(!f || !geo) return;
+  if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
+  const [mx,my]=mmPos(e);
+  const hit = geo.hits.find(h=>Math.abs(h.x-mx)<1.6 && Math.abs(h.y-my)<14);
+  if (hit){ removePeak(f, hit.peak.x, hit.peak.manual); return; }
+  if (mx<geo.px0 || mx>geo.px0+geo.pw || my<geo.py0 || my>geo.py0+geo.ph) return;
+  const P=processed(f); const sp = snapPeak(P.xs, P.ys, P.dir, xAt(mx), (geo.xmax-geo.xmin)*0.008);
+  f.removed = f.removed.filter(r=>Math.abs(r-sp.x)>(geo.xmax-geo.xmin)*0.004);
+  if (!pvView.peaks.some(p=>Math.abs(p.x-sp.x)<1e-9)) f.added.push(sp.x);
+  changed(f);
+});
+pv.addEventListener('mousemove', e=>{
+  if(!geo || !pvView) return; const [mx,my]=mmPos(e);
+  const onPk = geo.hits.some(h=>Math.abs(h.x-mx)<1.6 && Math.abs(h.y-my)<14);
+  pv.style.cursor = onPk ? 'pointer' : 'crosshair';
+  if (mx<geo.px0 || mx>geo.px0+geo.pw){ $('#readout').innerHTML='&nbsp;'; return; }
+  const xs=pvView.xs, ys=pvView.ys, i=nearestIdx(xs, xAt(mx)), dec=T_().dec;
+  const unit=INSTR[pvView.instr].xPdf.replace('cm-1','cm⁻¹');
+  $('#readout').textContent = `x = ${(+xs[i].toPrecision(6)).toString().replace('.',dec)} ${unit}   ·   y = ${(+ys[i].toPrecision(5)).toString().replace('.',dec)}${onPk?'   ·   clic per togliere il picco':''}`;
+});
+pv.addEventListener('mouseleave', ()=>$('#readout').innerHTML='&nbsp;');
+$('#fTitle').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.title=e.target.value; changed(f); });
+$('#fDesc').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.desc=e.target.value; changed(f); });
+$('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
+$('#fInclude').onchange=e=>{ const f=files[cur]; f.include=e.target.checked; persist(f); renderList(); renderSummary(); };
+$('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; f.removed=[]; f.added=[]; f.labels={}; changed(f); };
+$('#resetFile').onclick=()=>{ const f=files[cur]; if(!f) return; if(!confirm('Annullare nome, descrizione, picchi e intervallo di questo file?')) return;
+  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr}); f.kind=yKindFor(f.instr,f._p); f._pk=null; xrForce=true; changed(f); };
+function readXR(){ const a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value); return (isFinite(a)&&isFinite(b)&&a!==b)?[Math.min(a,b),Math.max(a,b)]:null; }
+['#xrA','#xrB'].forEach(s=>$(s).addEventListener('change', ()=>{ const f=files[cur]; if(!f) return;
+  let a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value);
+  if (!isFinite(a)) a=f.xs[0]; if (!isFinite(b)) b=f.xs[f.xs.length-1];
+  f.xr = (a===f.xs[0] && b===f.xs[f.xs.length-1]) || a===b ? null : [Math.min(a,b),Math.max(a,b)]; changed(f); }));
+$('#xrAll').onclick=()=>{ const f=files[cur]; if(!f) return; f.xr=null; xrForce=true; changed(f); };
+$('#xrApply').onclick=()=>{ const f=files[cur]; if(!f) return; let n=0; files.forEach(g=>{ if(g.instr===f.instr){ g.xr=f.xr?f.xr.slice():null; persist(g); n++; } });
+  say('#tip2', `Fatto! Stesso intervallo su ${n} file ${NOME_IT[f.instr]}. 📏`); renderPreview(); renderSummary(); renderList(); };
+$('#prevF').onclick=()=>{ if(cur>0){cur--; renderList(); renderPreview();} };
+$('#nextF').onclick=()=>{ if(cur<files.length-1){cur++; renderList(); renderPreview();} };
+document.addEventListener('keydown', e=>{
+  if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key==='ArrowLeft') $('#prevF').click(); if (e.key==='ArrowRight') $('#nextF').click();
+});
+window.addEventListener('resize', ()=>{ if(curView===2) renderPreview(); });
+
+/* ---------------- CONTROLLI IMPOSTAZIONI ---------------- */
+function renderProc(){
+  const present = new Set(files.map(f=>f.instr));
+  const keys = Object.keys(INSTR).filter(k=>present.has(k));
+  $('#procBox').innerHTML = (keys.length? keys : ['ftir']).map(k=>`<div style="margin-bottom:12px"><div class="badge b-${k}" style="margin-bottom:6px">${NOME_IT[k]}</div>
+    <div class="field" style="margin-bottom:6px"><select data-p="conv" data-i="${k}">${INSTR[k].conv.map(c=>`<option value="${c}" ${S.conv[k]===c?'selected':''}>${CONV_LABEL[c]}</option>`).join('')}</select></div>
+    <div class="field" style="margin-bottom:6px"><select data-p="base" data-i="${k}">
+      ${[['none','Linea di base: nessuna'],['rubber','Linea di base: automatica'],['linear','Linea di base: lineare']].map(([v,t])=>`<option value="${v}" ${S.base[k]===v?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="field" style="margin-bottom:0"><select data-p="smooth" data-i="${k}">
+      ${[[0,'Smoothing: no'],[7,'Smoothing: leggero'],[15,'Smoothing: medio'],[31,'Smoothing: forte']].map(([v,t])=>`<option value="${v}" ${+S.smooth[k]===v?'selected':''}>${t}</option>`).join('')}</select></div></div>`).join('')
+    + `<small style="color:var(--muted)">Linea di base automatica = «rubber band» (inviluppo convesso), ottima per la fluorescenza nel Raman. Assorbanza: A = 2 − log₁₀(%T). Smoothing Savitzky–Golay. I file originali non vengono mai modificati.</small>`;
+  $$('#procBox [data-p]').forEach(s=>s.onchange=()=>{ const p=s.dataset.p; S[p][s.dataset.i] = p==='smooth'? +s.value : s.value; saveS(); renderPreview(); renderSummary(); });
+}
+function syncControls(){
+  $$('[data-k]').forEach(el=>{ const v=S[el.dataset.k]; if (el.type==='checkbox') el.checked=!!v; else el.value=v; });
+  $('#sensV').textContent = S.sens<=3?'(tanti)':S.sens<=7?'(normale)':S.sens<=15?'(pochi)':'(solo i più grandi)';
+  $('#colorRow').style.display = S.colorMode==='single'?'flex':'none';
+  $('#ovModeRow').style.display = S.overlay==='none'?'none':'flex';
+  $$('#orientSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.orient));
+  $$('.langSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.lang));
+  $('#docTitle').placeholder = L10N[S.lang].title;
+  renderLayoutPick(); renderProc(); pxInfo();
+}
+$$('[data-k]').forEach(el=>{
+  const ev = (el.type==='range'||el.type==='text'||el.type==='color') ? 'input' : 'change';
+  el.addEventListener(ev, ()=>{
+    const k=el.dataset.k; let v = el.type==='checkbox' ? el.checked : el.value;
+    if (typeof DEFAULTS[k]==='number'){ v=parseFloat(v); if(!isFinite(v)) return; }
+    S[k]=v; saveS();
+    if (['sens','colorMode','overlay','pngW','pngH','pngDpi'].includes(k)) syncControls();
+    renderPreview(); renderSummary();
+  });
+});
+$$('#orientSeg button').forEach(b=>b.onclick=()=>{ S.orient=b.dataset.v; saveS(); syncControls(); renderSummary(); });
+$$('.langSeg button').forEach(b=>b.onclick=()=>{ S.lang=b.dataset.v; saveS(); syncControls(); renderPreview(); renderSummary();
+  say(curView===3?'#tip3':'#tip2', S.lang==='en' ? 'Plots in English, coming right up! 🇬🇧' : 'Grafici in italiano, perfetto! 🇮🇹'); });
+function gridFor(nPer, orient){ const L = orient==='landscape'; return ({1:[1,1], 2:L?[2,1]:[1,2], 4:[2,2], 6:L?[3,2]:[2,3], 9:[3,3]})[nPer] || [2,2]; }
+function renderLayoutPick(){
+  const L=S.orient==='landscape', pw=L?40:28, ph=L?28:40;
+  $('#lpick').innerHTML=[1,2,4,6,9].map(n=>{ const [c,r]=gridFor(n,S.orient);
+    return `<div class="lp ${S.perPage===n?'on':''}" data-n="${n}"><div class="pg" style="width:${pw}px;height:${ph}px;grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr)">${'<i></i>'.repeat(n)}</div>${n}</div>`;}).join('');
+  $$('#lpick .lp').forEach(el=>el.onclick=()=>{ S.perPage=+el.dataset.n; saveS(); renderLayoutPick(); renderSummary(); });
+}
+function pxInfo(){ const w=Math.round(S.pngW/2.54*S.pngDpi), h=Math.round(S.pngH/2.54*S.pngDpi); $('#pxInfo').textContent = `Ogni immagine: ${w} × ${h} px (${S.pngW} × ${S.pngH} cm a ${S.pngDpi} dpi).`; }
+
+/* ---------------- PRESET ---------------- */
+function presets(){ return lsGet(LS_PRESETS) || {}; }
+function renderPresets(){ const names=Object.keys(presets()).sort();
+  $('#presetSel').innerHTML = names.length ? names.map(n=>`<option>${esc(n)}</option>`).join('') : '<option value="">(ancora nessuna)</option>'; }
+function resetCaches(){ files.forEach(f=>{f._autoKey=null; f._pk=null;}); }
+$('#presetSave').onclick=()=>{ const n=$('#presetName').value.trim(); if(!n){ $('#presetName').focus(); return; }
+  const p=presets(); p[n]=clone(S); lsSet(LS_PRESETS,p); $('#presetName').value=''; renderPresets(); $('#presetSel').value=n; say('#tip3','Salvate come «'+n+'». 💾'); };
+$('#presetLoad').onclick=()=>{ const n=$('#presetSel').value; const p=presets(); if(!p[n]) return; S=merge(DEFAULTS,p[n]); saveS(); syncControls(); resetCaches(); renderPreview(); renderSummary(); say('#tip3','Impostazioni «'+n+'» caricate. 👍'); };
+$('#presetDel').onclick=()=>{ const n=$('#presetSel').value; const p=presets(); if(!p[n]) return; if(!confirm('Eliminare «'+n+'»?')) return; delete p[n]; lsSet(LS_PRESETS,p); renderPresets(); };
+$('#presetReset').onclick=()=>{ S=clone(DEFAULTS); saveS(); syncControls(); resetCaches(); renderPreview(); renderSummary(); say('#tip3','Tutto come appena installato. ✨'); };
+$('#presetExport').onclick=()=>download(new Blob([JSON.stringify({attuali:S, salvate:presets(), libreria:LIB},null,2)],{type:'application/json'}),'acchiappaspettri_impostazioni.json');
+$('#presetImport').onclick=()=>$('#presetFile').click();
+$('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  try{ const o=JSON.parse(await f.text()); const p=presets(); Object.assign(p, o.salvate||{}); lsSet(LS_PRESETS,p);
+    if (Array.isArray(o.libreria)){ const ids=new Set(LIB.map(e=>e.id)); o.libreria.forEach(e=>{ if(e&&e.id&&!ids.has(e.id)&&INSTR[e.i]) LIB.push(e); }); saveLib(); renderLib(); }
+    if (o.attuali){ S=merge(DEFAULTS,o.attuali); saveS(); syncControls(); resetCaches(); renderPreview(); }
+    renderPresets(); say('#tip3','Impostazioni importate! 📥'); }catch(err){ say('#tip3','Mmm, quel file non lo capisco. 🤷'); }
+  e.target.value=''; };
+
+/* ---------------- RIEPILOGO ---------------- */
+function included(){
+  const list = files.filter(f=>f.include), ord=Object.keys(INSTR), cmp=(a,b)=>dispTitle(a).localeCompare(dispTitle(b),'it',{numeric:true});
+  if (S.order==='name') list.sort(cmp);
+  else if (S.order==='instr') list.sort((a,b)=>ord.indexOf(a.instr)-ord.indexOf(b.instr) || cmp(a,b));
+  return list;
+}
+function renderSummary(){
+  const inc=included(), ov = S.overlay!=='none' ? overlayGroups().length : 0;
+  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov;
+  const [c,r]=gridFor(S.perPage,S.orient);
+  $('#sumList').innerHTML = inc.length ? `
+    <li><b>${inc.length}</b> grafici${inc.length<files.length?` (su ${files.length} file)`:''}, in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>
+    <li>📄 PDF A4 ${S.orient==='landscape'?'orizzontale':'verticale'}, ${S.perPage} per pagina → circa <b>${pages}</b> pagin${pages===1?'a':'e'}${S.summary?', con elenco campioni':''}${ov?`, ${ov} confront${ov===1?'o':'i'}`:''}</li>
+    <li>🖼️ ${inc.length+ (ov) } immagini PNG ${S.pngW}×${S.pngH} cm a ${S.pngDpi} dpi${S.csvPeaks?' + elenco picchi':''}${S.csvData?' + dati elaborati':''}</li>
+    ${S.overlay!=='none' && !ov ? '<li>ℹ️ Nessun confronto: servono almeno 2 spettri dello stesso strumento</li>' : ''}
+    <li>🔎 Picchi: ${S.showPeaks?'sì':'no'}${files.some(isEdited)?` · ✎ ${files.filter(isEdited).length} file modificati da te`:''}</li>`
+    : '<li>Nessun file selezionato 🙃</li>';
+  ['#doPdf','#doZip','#doBoth'].forEach(s=>$(s).disabled=!inc.length);
+}
+
+/* ---------------- EXPORT ---------------- */
+function progress(fr){ const p=$('#prog'); p.style.display = fr==null?'none':'block'; p.firstElementChild.style.width=((fr||0)*100)+'%'; }
+function status(t){ $('#status').textContent=t; }
+const tick = () => new Promise(r=>setTimeout(r,0));
+function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`; }
+function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 4000); }
+function safeName(s){ return s.replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|]+/g,'_').trim() || 'grafico'; }
+function pdfText(s){ return String(s).replace(/⁻¹/g,'-1').replace(/[^\x20-\x7E -ÿ–—…·]/g,'?'); }
+function renderCanvas(view, wmm, hmm, dpi, fontPt){
+  const k=dpi/25.4, c=document.createElement('canvas');
+  c.width=Math.round(wmm*k); c.height=Math.round(hmm*k);
+  view.fontPt=fontPt; view.highlightManual=false;
+  drawPlot(c.getContext('2d'), wmm, hmm, k, view, S);
+  return c;
+}
+
+async function buildPdf(){
+  const { jsPDF } = window.jspdf, Lx=T_();
+  const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10, G=5;
+  const doc = new jsPDF({orientation:S.orient, unit:'mm', format:'a4', compress:true});
+  const inc=included(), [cols,rows]=gridFor(S.perPage,S.orient);
+  const cw=(PW-2*M-(cols-1)*G)/cols, ch=(PH-2*M-8-(rows-1)*G)/rows;
+  const fontPt = Math.max(5.5, Math.min(9, ch/11));
+  const title = S.docTitle || Lx.title, date=new Date().toLocaleString(Lx.locale);
+  const groups = S.overlay!=='none' ? overlayGroups() : [];
+  let pageNo=0, first=true;
+  const newPage=()=>{ if(!first) doc.addPage(); first=false; };
+  const footers=[]; const footer=()=>{ pageNo++; footers.push(pageNo); };
+
+  // pagina riepilogo
+  if (S.summary){
+    const X=[M, M+8, M+(L?118:86), M+(L?150:116), M+(L?186:146)], wName=X[2]-X[1]-3, wPk=PW-M-X[4];
+    const head=()=>{ newPage();
+      doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text(pdfText(title), M, M+6);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
+      doc.text(pdfText(`${inc.length} ${Lx.plots} · ${Lx.gen} ${date}`), M, M+12); doc.setTextColor(0);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      Lx.cols.forEach((h,i)=>doc.text(pdfText(h), X[i], M+22));
+      doc.setDrawColor(200); doc.line(M, M+23.5, PW-M, M+23.5); return M+28; };
+    let y=head();
+    inc.forEach((f,j)=>{
+      const v=viewOf(f);
+      const nameL=doc.setFont('helvetica','bold').setFontSize(8.5).splitTextToSize(pdfText(dispTitle(f)), wName).slice(0,2);
+      const sub=[f.desc, f.title?`${Lx.fileLbl}: ${f.path}`:''].filter(Boolean).join(' · ');
+      const subL=sub? doc.setFont('helvetica','normal').setFontSize(7.5).splitTextToSize(pdfText(sub), wName).slice(0,2) : [];
+      const pkTxt = S.showPeaks ? v.peaks.map(p=>p.custom? `${p.num} (${p.name})` : p.num).join(', ') : '';
+      const pkL = pkTxt ? doc.setFontSize(7.5).splitTextToSize(pdfText(pkTxt), wPk).slice(0,3) : [];
+      const h = Math.max(nameL.length*3.6 + subL.length*3.2, pkL.length*3.2, 3.6) + 2.4;
+      if (y+h > PH-M-8){ footer(); y=head(); }
+      doc.setFont('helvetica','normal').setFontSize(8.5).setTextColor(0);
+      doc.text(String(j+1), X[0], y);
+      doc.setFont('helvetica','bold'); doc.text(nameL, X[1], y);
+      if (subL.length){ doc.setFont('helvetica','italic').setFontSize(7.5).setTextColor(100); doc.text(subL, X[1], y+nameL.length*3.6); doc.setTextColor(0); }
+      doc.setFont('helvetica','normal').setFontSize(8.5);
+      doc.text(pdfText(Lx.nome[f.instr]), X[2], y);
+      const P=processed(f);
+      doc.text(pdfText(`${fmtTick(P.xs[0],0)}–${fmtTick(P.xs[P.xs.length-1],0)} ${INSTR[f.instr].xPdf}`), X[3], y);
+      if (pkL.length){ doc.setFontSize(7.5); doc.text(pkL, X[4], y); }
+      doc.setDrawColor(235); doc.line(M, y+h-3, PW-M, y+h-3);
+      y+=h;
+    });
+    footer();
+  }
+  // confronti
+  const addOverlays=async ()=>{
+    for (const [instr, list] of groups){
+      newPage();
+      const w=PW-2*M, h=Math.min(PH-2*M-8, w*0.62);
+      const c=renderCanvas(overlayView(instr,list), w, h, 220, 10);
+      doc.addImage(c.toDataURL('image/png'),'PNG', M, M, w, h, undefined, 'FAST');
+      footer(); await tick();
+    }
+  };
+  if (S.overlay==='start') await addOverlays();
+  for (let i=0;i<inc.length;i++){
+    const slot=i%S.perPage;
+    if (slot===0) newPage();
+    const c=slot%cols, r=Math.floor(slot/cols), x=M+c*(cw+G), y=M+r*(ch+G);
+    const cv=renderCanvas(viewOf(inc[i]), cw, ch, 220, fontPt);
+    doc.addImage(cv.toDataURL('image/png'), 'PNG', x, y, cw, ch, undefined, 'FAST');
+    doc.setDrawColor(225); doc.rect(x, y, cw, ch);
+    if (slot===S.perPage-1 || i===inc.length-1) footer();
+    progress((i+1)/inc.length); status(`📄 Disegno il grafico ${i+1} di ${inc.length}…`); if (i%2===0) await tick();
+  }
+  if (S.overlay==='end') await addOverlays();
+  const total=doc.getNumberOfPages();
+  for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text(pdfText(title)+'  ·  '+date+'  ·  Acchiappaspettri', M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
+  return doc.output('blob');
+}
+
+const CRC_T=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC_T[(c^u[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+async function pngWithDpi(canvas, dpi){
+  const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
+  const src = new Uint8Array(await blob.arrayBuffer()), dv = new DataView(src.buffer);
+  const parts=[src.subarray(0,8)]; let pos=8;
+  while (pos<src.length){
+    const len=dv.getUint32(pos), type=String.fromCharCode(...src.subarray(pos+4,pos+8));
+    const chunk=src.subarray(pos, pos+12+len); pos+=12+len;
+    if (type==='pHYs') continue;
+    parts.push(chunk);
+    if (type==='IHDR'){
+      const ppm=Math.round(dpi/0.0254), c=new Uint8Array(21), v=new DataView(c.buffer);
+      v.setUint32(0,9); c.set([0x70,0x48,0x59,0x73],4); v.setUint32(8,ppm); v.setUint32(12,ppm); c[16]=1;
+      v.setUint32(17, crc32(c.subarray(4,17))); parts.push(c);
+    }
+  }
+  return new Blob(parts, {type:'image/png'});
+}
+function csvCell(c, sep){ c=String(c); return (c.includes(sep)||/["\n]/.test(c)) ? '"'+c.replace(/"/g,'""')+'"' : c; }
+async function buildZip(){
+  const Lx=T_(), zip=new JSZip(), root=Lx.zip+'_'+stamp(), folder=zip.folder(root);
+  const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
+  const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
+  const rows=[Lx.csv.slice()];
+  const uniq=(dir,base,ext)=>{ let name=dir+base+ext, n=2; while (used.has(name)) name=dir+base+'_'+(n++)+ext; used.add(name); return name; };
+  const groups = S.overlay!=='none' ? overlayGroups() : [];
+  const total=inc.length+groups.length;
+  for (let i=0;i<inc.length;i++){
+    const f=inc[i], view=viewOf(f);
+    const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt);
+    const dir = S.keepFolders && f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')+1) : '';
+    const base = f.title && f.title.trim() ? f.title.trim().replace(/[\\/:*?"<>|]+/g,'_') : safeName(f.name);
+    folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi));
+    canvas.width=canvas.height=0;
+    if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], INSTR[f.instr].xPdf,
+      String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto]);
+    if (S.csvData){
+      const P=processed(f), lines=[[Lx.x[f.instr].replace('⁻¹','-1'), Lx.y[P.kind]||'Y'].map(c=>csvCell(c,csep)).join(csep)];
+      for (let k=0;k<P.xs.length;k++) lines.push(String(+P.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+P.ys[k].toPrecision(8)).replace('.',dsep));
+      folder.file(uniq(Lx.dataDir+'/'+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
+    }
+    progress((i+1)/total*0.9); status(`🖼️ Immagine ${i+1} di ${inc.length}…`); await tick();
+  }
+  for (const [instr, list] of groups){
+    const c=renderCanvas(overlayView(instr,list), wmm, hmm, S.pngDpi, fontPt);
+    folder.file(uniq('', `${Lx.ovName}_${instr}`, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; await tick();
+  }
+  if (S.csvPeaks) folder.file(Lx.csvName, '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
+  status('🗜️ Impacchetto lo ZIP…');
+  return await zip.generateAsync({type:'blob', compression:'STORE'}, m=>progress(0.9+m.percent/1000));
+}
+async function runExport(what){
+  if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
+  const btns=['#doPdf','#doZip','#doBoth'].map(s=>$(s)); btns.forEach(b=>b.disabled=true);
+  say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
+  try{
+    const base=safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp();
+    if (what!=='zip'){ progress(0); download(await buildPdf(), base+'.pdf'); }
+    if (what!=='pdf'){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
+    status('✅ Fatto! Trovi tutto nella cartella Download.');
+    say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
+    confetti();
+  }catch(e){ console.error(e); status('😬 Qualcosa è andato storto: '+e.message); say('#tip3','Ops… riproviamo? 🙈'); }
+  progress(null); btns.forEach(b=>b.disabled=false);
+}
+$('#doPdf').onclick=()=>runExport('pdf');
+$('#doZip').onclick=()=>runExport('zip');
+$('#doBoth').onclick=()=>runExport('both');
+
+/* coriandoli */
+function confetti(){
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c=$('#confetti'), ctx=c.getContext('2d'); c.width=innerWidth; c.height=innerHeight;
+  const cols=['#2563c9','#4cc38a','#ffc84a','#ff7a7a','#9b6cf0'];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2+(Math.random()-.5)*200, y:innerHeight*0.35, vx:(Math.random()-.5)*14, vy:-Math.random()*13-4, r:Math.random()*6+3, c:cols[Math.random()*5|0], a:Math.random()*6, va:(Math.random()-.5)*.4}));
+  let t=0; (function frame(){ ctx.clearRect(0,0,c.width,c.height);
+    ps.forEach(p=>{ p.vy+=0.35; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.a+=p.va; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/3,p.r,p.r*0.66); ctx.restore(); });
+    if (++t<130) requestAnimationFrame(frame); else ctx.clearRect(0,0,c.width,c.height); })();
+}
+
+/* avvio */
+syncControls(); renderPresets(); renderLib(); refreshAll();
+</script>
+</body>
+</html>
