@@ -57,6 +57,24 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
   - a CSV of processed data for each spectrum.
 - **Saved settings**: named profiles that can be exported or imported as `.json` and shared with colleagues.
 
+## Automatic peak detection: how it works and how it was validated
+
+How it works:
+1. The noise is estimated robustly, from the median absolute deviation of the second differences.
+2. The width of the clearest peaks is measured, and Savitzky–Golay smoothing is set to about 0.6 × the width of the narrowest one. This way narrow peaks are not flattened.
+3. For every local maximum the prominence is calculated, meaning how much it stands out from its surroundings, which makes it independent of the baseline. A peak is kept if its prominence is at least 8 × the noise and at least the chosen sensitivity percentage of the most prominent peak.
+4. The position is refined with a parabolic fit. The spectrum edges, where smoothing cannot work, are excluded.
+
+Validation (`node test/peak-benchmark.js`): 200 synthetic spectra per technique and per slider setting, with known peaks. The cases cover FTIR in absorbance and %T, Raman with strong fluorescence, HPLC with peaks ranging from 1 to 100, and UV-Vis, with random noise, baselines, widths and overlaps. A peak *must* be found if it stands out at least 6 × the noise and at least max(3 %, 1.3 × sensitivity) of the most prominent peak.
+
+| Sensitivity | Peaks found | Reported peaks that are real | Perfect spectra |
+|---|---|---|---|
+| 3 | 100 % | 99.8–100 % | 799/800 |
+| 5 (default) | 100 % | 100 % | 800/800 |
+| 10 | 100 % | 100 % | 800/800 |
+
+Median position error is under 1 % of the peak width. Limits: shoulders with no local maximum, and peaks merged with a neighbour, cannot be told apart by this method. You can add them by clicking on the plot.
+
 ## Publishing on GitHub Pages
 
 1. Create the `acchiappaspettri` repository on GitHub.
