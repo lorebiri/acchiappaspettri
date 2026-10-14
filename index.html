@@ -236,6 +236,8 @@ body.busy, body.busy *{cursor:progress !important}
 .opt-l{font-weight:400;color:var(--muted);font-size:12.5px}
 .slider{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);max-width:560px}
 .slider input{flex:1;accent-color:var(--accent)}
+.signote{margin-top:10px;background:#fff8e6;border:1px solid #f1d39b;color:#5c4300;border-radius:12px;padding:10px 12px;font-size:13.5px;max-width:80ch}
+.signote b{color:#3d2c00}
 .pkcount{font-size:13.5px;margin-top:4px;font-weight:700;color:var(--ink)}
 .pills{display:flex;gap:6px;flex-wrap:wrap}
 .pill{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
@@ -443,6 +445,7 @@ body.busy, body.busy *{cursor:progress !important}
         <div class="phead"><b>I picchi di questo spettro</b><span class="scope s-one">solo questo spettro</span></div>
         <p class="why">Clic sul grafico per aggiungere un picco, clic su un picco o sulla × per toglierlo. Clic sul numero per dargli un nome. Il 💡 indica che ho un nome da suggerirti: lo metto sul grafico solo se lo approvi.</p>
         <div class="chips" id="chips"></div>
+        <div class="signote" id="sugNote" hidden></div>
         <div class="row" style="margin-top:10px">
           <button class="btn small" id="suggestAll">💡 Suggerisci nomi</button>
           <button class="btn small ghost" id="resetPeaks">↺ Torna ai picchi automatici</button>
@@ -1619,6 +1622,17 @@ function renderPreview(){
     $('#xrA').placeholder = 'da '+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = 'a '+(+f.xs[f.xs.length-1].toPrecision(5));
   }
   const nSug = d.peaks.filter(p=>p.sugg.length).length;
+  const nLab = d.peaks.filter(p=>p.custom).length, note=$('#sugNote');
+  let msg='';
+  if (S.showPeaks && d.peaks.length && !nSug && nLab<d.peaks.length){
+    const st=f.sample||S.sample, mine=LIB.filter(e=>e.i===f.instr).length;
+    if (f.instr==='hplc') msg = `<b>Perché non ci sono nomi?</b> Nell'HPLC il tempo di ritenzione dipende dal metodo (colonna, eluente, gradiente, flusso), quindi non esiste un database valido per tutti. Puoi insegnarmeli tu: clic su un picco → «Scrivo io» → scrivi il composto e spunta <b>«Ricordalo nella mia libreria»</b>. Dalla volta dopo li riconosco da solo sugli altri cromatogrammi.${mine?` Nella tua libreria ci sono ${mine} tempi HPLC, ma nessuno cade vicino a questi picchi.`:''}`;
+    else if (f.instr==='gen') msg = `<b>Strumento non riconosciuto</b>, quindi non so che nomi proporre. Sceglilo in «Zona e strumento» e i suggerimenti compariranno.`;
+    else if (st!=='all') msg = `Nessun nome nel database per questi picchi con il tipo «${SAMPLE_TYPES[st]}». <button class="linkbtn" id="trySampleAll">Prova con «Tutti i tipi»</button> oppure scrivi tu il nome con un clic sul picco.`;
+    else msg = `Per queste posizioni non ho nomi nel database. Clic su un picco per scriverne uno; con «Ricordalo nella mia libreria» lo riconoscerò anche in futuro.`;
+  }
+  note.hidden=!msg; note.innerHTML=msg;
+  const tsa=$('#trySampleAll'); if (tsa) tsa.onclick=()=>{ if (f.sample) { f.sample=null; persist(f); } S.sample='all'; saveS(); renderSamplePills(); renderPreview(); };
   $('#pkCount').textContent = S.showPeaks ? `Su questo spettro ne vedo ${d.peaks.length}${d.peaks.some(p=>p.manual)?' (contando quelli aggiunti da te)':''}.` : 'Ricerca automatica spenta: i picchi li aggiungi tu col clic.';
   if ($('.panel[data-panel="proc"]').classList.contains('on')) renderProc();
   $('#suggestAll').disabled = !S.showPeaks || !nSug;
