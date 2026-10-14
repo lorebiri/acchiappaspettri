@@ -75,6 +75,48 @@ Validation (`node test/peak-benchmark.js`): 200 synthetic spectra per technique 
 
 Median position error is under 1 % of the peak width. Limits: shoulders with no local maximum, and peaks merged with a neighbour, cannot be told apart by this method. You can add them by clicking on the plot.
 
+## Overlaying spectra (comparisons)
+
+At the top of step 2 you choose between **«Un grafico alla volta»** (one plot at a time) and **«Confronta grafici»** (compare plots).
+
+In **Confronta grafici** mode:
+- **Choosing spectra:** in the list on the left you tick the spectra to overlay. Only spectra from the same instrument can be combined, so the others are greyed out. The first tick creates the comparison automatically, and the «Uno per ogni strumento» button creates one comparison per instrument in a single click.
+- **Named comparisons:** you can make as many as you like, each with a name that becomes the plot title. You switch between them with the chips at the top or the ◀ ▶ arrows.
+- **Overlay mode:** three options.
+  - *Stessa scala* (same scale): real intensities.
+  - *Sfalsati* (offset): each spectrum normalised and stacked one above the other, with adjustable spacing.
+  - *Normalizzati* (normalised): all between 0 and 1, on top of each other.
+- **Mixed units:** if %T and absorbance spectra are mixed, in the normalised modes the peaks are all turned the same way. In «Stessa scala» a warning is shown.
+- **Reading the plot:** zoom, pan and the large plot work as in the single view. Moving the mouse over the plot tells you which spectrum is closest. Comparisons are remembered on that computer.
+
+In step 3:
+- **PDF:** comparison pages go at the start or at the end, or can be left out.
+- **PNG:** comparisons also come out as images, in the `confronto/` subfolder of the ZIP.
+- **Excluding one:** to leave a single comparison out of the output, untick «Mettilo anche nel PDF e nelle immagini» («also put it in the PDF and images»).
+
+## Peak area (for quick comparison, not validated quantitation)
+
+The **📐 Area dei picchi** option, in the Picchi tab, shows area and area % for every peak. When it is on, it also shades the integrated zones on the plots and adds area, area % and integration limits to the CSV peak list.
+
+How it is calculated:
+- **Limits:** set automatically where the signal returns to its own baseline, or at the valley shared with a neighbouring peak, up to a maximum of 6 FWHM per side.
+- **Baseline:** a straight line between the limits (valley to valley). If that line would cut through the signal, it follows the signal from below instead.
+- **Integration:** trapezoidal, on the data.
+- **%T spectra:** the area is calculated in absorbance.
+
+Validation (`node test/area-benchmark.js`, about 750 peaks of known area per case):
+
+| Case | Median error | 90 % of peaks within |
+|---|---|---|
+| Gaussian, sloped baseline, 0.5 % noise | −0.1 % | ±2.6 % |
+| Gaussian, 2 % noise | +1.4 % | ±8 % |
+| Gaussian, curved baseline | +1.7 % | ±14 % |
+| Close Gaussians (≥ 2 FWHM) | −0.3 % | ±3 % |
+| Pseudo-Voigt | −13 % | ±20 % |
+| Lorentzian (long tails) | −19 % | ±27 % |
+
+As in the software on the instruments, peaks with long tails are underestimated because the part of the tail beyond the limits is lost. Strongly overlapping peaks are split at the valley. For official results use the instrument software.
+
 ## Publishing on GitHub Pages
 
 1. Create the `acchiappaspettri` repository on GitHub.

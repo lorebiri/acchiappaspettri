@@ -16,6 +16,7 @@
   --radius:16px;
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Nunito","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 button,select,input,textarea{font:inherit;color:inherit}
 header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
@@ -238,6 +239,12 @@ body.busy, body.busy *{cursor:progress !important}
 .slider input{flex:1;accent-color:var(--accent)}
 .signote{margin-top:10px;background:#fff8e6;border:1px solid #f1d39b;color:#5c4300;border-radius:12px;padding:10px 12px;font-size:13.5px;max-width:80ch}
 .signote b{color:#3d2c00}
+.areawrap{max-width:100%;overflow-x:auto;margin-top:6px}
+.areatab{border-collapse:collapse;font-size:13.5px;min-width:420px}
+.areatab th,.areatab td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.areatab th{color:var(--muted);font-weight:700;font-size:12.5px}
+.areatab td:first-child,.areatab th:first-child{text-align:left}
+.areatab .bar{display:inline-block;height:8px;border-radius:4px;background:var(--accent);opacity:.55;vertical-align:middle;margin-right:6px}
 .pkcount{font-size:13.5px;margin-top:4px;font-weight:700;color:var(--ink)}
 .pills{display:flex;gap:6px;flex-wrap:wrap}
 .pill{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
@@ -277,6 +284,23 @@ body.busy, body.busy *{cursor:progress !important}
 .tourbox{position:fixed;z-index:81;background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:18px;padding:14px 16px;max-width:340px}
 .tourbox p{margin:6px 0 12px;font-size:14.5px}
 .tourbox .row{justify-content:flex-end}
+/* ---- confronti ---- */
+.viewbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.viewbar .seg button{padding:8px 14px}
+.cmpbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:#f5f8fd;border:1px solid #e3eaf6;border-radius:14px}
+.cmpbar[hidden]{display:none}
+.cmpchip{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
+.cmpchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cmpchip small{font-weight:600;opacity:.75;margin-left:4px}
+#cmpPanel{display:none;padding-top:14px}
+.cmpmode #cmpPanel{display:block}
+.cmpmode .tabs,.cmpmode .panel{display:none !important}
+.legendlist{display:flex;flex-direction:column;gap:4px}
+.legendlist div{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.legendlist i{width:22px;height:4px;border-radius:2px;flex:none}
+.fitem .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.fitem.na{opacity:.45}
+.listhint b{color:var(--ink)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 </style>
 </head>
@@ -374,11 +398,13 @@ body.busy, body.busy *{cursor:progress !important}
         <li>guardi ogni grafico in anteprima</li>
         <li>cambi nome e aggiungi una descrizione</li>
         <li>aggiungi e togli picchi, e ti suggerisco il loro nome (lo metto solo se approvi)</li>
-        <li>converti %T ↔ assorbanza, linea di base, smoothing, zoom sull'asse X</li></ul></div>
+        <li>converti %T ↔ assorbanza, linea di base, smoothing, zoom sull'asse X</li>
+        <li>sovrapponi più spettri per confrontarli</li></ul></div>
       <div class="how"><div class="n">3</div><h4>⬇️ Scarica</h4><ul>
         <li>PDF con più grafici per pagina, per consultare al volo</li>
         <li>cartella di immagini PNG a 600 dpi, pronte per tesi e articoli</li>
-        <li>in italiano o in inglese, con elenco picchi per Excel</li></ul></div>
+        <li>in italiano o in inglese, con elenco picchi per Excel</li>
+        <li>anche le pagine con gli spettri sovrapposti</li></ul></div>
     </div>
   </div>
 </section>
@@ -398,11 +424,21 @@ body.busy, body.busy *{cursor:progress !important}
         <button class="btn small ghost" id="addMore" title="Aggiungi altri file">+ Aggiungi</button>
       </div>
       <input type="search" id="filter" placeholder="🔎 Cerca uno spettro…">
-      <div class="listhint">La spunta decide cosa finisce nel PDF e nelle immagini. <button class="linkbtn" id="allOn">Tutti / nessuno</button></div>
+      <div class="listhint" id="listHint">La spunta decide cosa finisce nel PDF e nelle immagini. <button class="linkbtn" id="allOn">Tutti / nessuno</button></div>
       <div id="flist"></div>
     </div>
 
     <div class="card preview" id="workCard">
+      <div class="viewbar">
+        <div class="seg" id="viewSeg"><button data-v="one">👁 Un grafico alla volta</button><button data-v="cmp">🔀 Confronta grafici</button></div>
+        <span class="opt-l" id="viewHint">Sistema ogni spettro: nome, picchi, ritocchi.</span>
+      </div>
+      <div class="cmpbar" id="cmpBar" hidden>
+        <b style="font-size:14px">I tuoi confronti:</b>
+        <div class="pills" id="cmpChips"></div>
+        <button class="btn small" id="cmpNew">＋ Nuovo confronto</button>
+        <button class="btn small ghost" id="cmpAuto" title="Crea un confronto con tutti gli spettri di ogni strumento">Uno per ogni strumento</button>
+      </div>
       <div class="row" style="margin-bottom:8px">
         <h2 id="pvTitle" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">—</h2>
         <span class="spacer"></span>
@@ -420,6 +456,27 @@ body.busy, body.busy *{cursor:progress !important}
         <button class="btn small primary" id="closeBig">✕ Chiudi</button>
       </div>
       <div class="readout" id="readout">Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom</div>
+
+      <div id="cmpPanel">
+        <div class="signote" id="cmpEmpty" hidden></div>
+        <div id="cmpEdit">
+          <div class="phead"><b>Questo confronto</b><span class="scope s-one">solo questo confronto</span></div>
+          <div class="editgrid">
+            <div class="field"><label for="cmpName">Nome (diventa il titolo del grafico)</label><input type="text" id="cmpName" maxlength="120"></div>
+            <div class="field"><label>Spettri sovrapposti</label><div class="legendlist" id="cmpMembers"></div></div>
+          </div>
+          <div class="cgroup" style="margin-top:6px"><b>Come sovrapporli</b>
+            <p class="why">Scegli in base a cosa vuoi confrontare: la forma delle bande, le intensità vere o le posizioni dei picchi.</p>
+            <div class="choices" id="cmpModes"></div>
+            <div class="signote" id="cmpMix" hidden></div></div>
+          <div class="cgroup" id="cmpGapRow"><b>Distanza tra gli spettri</b>
+            <div class="slider"><span>vicini</span><input type="range" id="cmpGap" min="0.3" max="2" step="0.05" aria-label="Distanza"><span>lontani</span></div></div>
+          <div class="row">
+            <label class="check" style="margin:0"><input type="checkbox" id="cmpOut"> Mettilo anche nel PDF e nelle immagini</label>
+            <span class="spacer"></span><button class="btn small ghost" id="cmpDel">🗑 Elimina questo confronto</button>
+          </div>
+        </div>
+      </div>
 
       <div class="tabs" id="tabs" role="tablist">
         <button class="tab on" data-tab="name" role="tab">✏️ Nome</button>
@@ -464,6 +521,14 @@ body.busy, body.busy *{cursor:progress !important}
         <p class="why">Serve a suggerirti i nomi giusti dei picchi. Per un solo spettro diverso vai in «Zona e strumento».</p>
         <div class="pills" id="samplePills"></div>
 
+        <div class="phead" style="margin-top:20px"><b>📐 Area dei picchi</b><span class="scope s-all">tutti i grafici</span></div>
+        <p class="why">Un'area indicativa per confrontare i picchi a colpo d'occhio, non per quantificare. Limiti automatici dove il segnale torna al fondo o a una valle col picco vicino, linea di base retta tra i due limiti.</p>
+        <label class="check"><input type="checkbox" data-k="showArea"> Calcola l'area di ogni picco</label>
+        <div id="areaBox" hidden>
+          <label class="check"><input type="checkbox" data-k="shadeArea"> Colora sul grafico le zone integrate</label>
+          <div class="areawrap"><table class="areatab" id="areaTable"></table></div>
+          <p class="why" style="margin-top:8px">Nell'elenco dei picchi per Excel trovi anche area, area % e limiti. Sui picchi con code lunghe (tipici del Raman) l'area risulta più bassa del vero del 15–20%, come nei software degli strumenti. Se lo spettro è in trasmittanza, l'area è calcolata in assorbanza.</p>
+        </div>
         <details class="sec">
           <summary>📚 La mia libreria di nomi</summary>
           <div class="in">
@@ -553,16 +618,15 @@ body.busy, body.busy *{cursor:progress !important}
         <div class="field"><label>Grafici per pagina</label><div class="layoutpick" id="lpick"></div></div>
         <div class="field"><label>Foglio A4</label><div class="seg" id="orientSeg"><button data-v="landscape">Orizzontale</button><button data-v="portrait">Verticale</button></div></div>
         <label class="check"><input type="checkbox" data-k="summary"> Prima pagina con l'elenco dei campioni e dei picchi</label>
+        <div class="field cmpOutRow"><label>Pagine con i confronti (<span class="cmpCount">0</span>)</label>
+          <select data-k="cmpPdf"><option value="start">All'inizio, prima dei singoli grafici</option><option value="end">Alla fine</option><option value="none">Non metterli</option></select></div>
+        <div class="signote cmpNone" hidden>Non hai ancora creato confronti. Se vuoi sovrapporre più spettri, vai al passo 2 e scegli <button class="linkbtn goCmp">🔀 Confronta grafici</button>.</div>
         <details class="sec">
           <summary>Altre opzioni del PDF</summary>
           <div class="in">
             <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Grafici"></div>
             <div class="field"><label>Ordine dei grafici</label>
               <select data-k="order"><option value="instr">Per strumento, poi per nome</option><option value="name">Per nome</option><option value="load">Come li ho caricati</option></select></div>
-            <div class="field"><label>Pagine di confronto, con gli spettri dello stesso strumento sovrapposti</label>
-              <select data-k="overlay"><option value="none">No</option><option value="start">Sì, all'inizio</option><option value="end">Sì, alla fine</option></select></div>
-            <div class="field" id="ovModeRow"><label>Come sovrapporli</label>
-              <select data-k="ovMode"><option value="stack">Uno sopra l'altro, sfalsati</option><option value="over">Tutti nella stessa scala</option></select></div>
           </div>
         </details>
       </div>
@@ -577,6 +641,7 @@ body.busy, body.busy *{cursor:progress !important}
         </div>
         <small id="pxInfo" class="opt-l"></small>
         <label class="check" style="margin-top:8px"><input type="checkbox" data-k="keepFolders"> Mantieni le sottocartelle che hai caricato</label>
+        <label class="check cmpOutRow"><input type="checkbox" data-k="cmpPng"><span>Un'immagine anche per ogni confronto (<span class="cmpCount">0</span>)</span></label>
       </div>
     </div>
     <div class="outcard" data-out="csvPeaks">
@@ -654,14 +719,14 @@ const L10N = {
        nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generico'},
        dec:',', title:'Grafici', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
        cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
-       csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo'], man:'manuale', auto:'automatico',
+       csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
        locale:'it-IT', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
   en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', hplc:'Retention time (min)', gen:'X'},
        y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', '':'Y'},
        nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generic'},
        dec:'.', title:'Plots', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
        cols:['#','Sample','Instrument','X range','Peaks'], fileLbl:'file',
-       csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type'], man:'manual', auto:'automatic',
+       csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type'], csvArea:['Area','Area unit','Area %','Integration start','Integration end'], man:'manual', auto:'automatic',
        locale:'en-GB', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
 };
 let LANG = 'it';
@@ -876,7 +941,7 @@ const BANDS = {
   ]
 };
 const LS_LIB='spectraplot.lib.v1';
-let LIB = (()=>{ try{ return JSON.parse(localStorage.getItem(LS_LIB))||[]; }catch(e){ return []; } })();
+let LIB = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_LIB)); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; }catch(e){ return []; } })();
 function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }catch(e){} }
 const SNAP_TOL = {ftir:3, raman:3, uv:2, hplc:0, gen:0};
 function dbEntries(instr){
@@ -1106,6 +1171,67 @@ function findPeaks(xs, ys, dir, sens, maxN){
     return {x, y: interpY(xs, ys, x), prom: c.prom};
   }).sort((a,b)=>a.x-b.x);
 }
+/* Area dei picchi (consultazione, non quantificazione validata):
+   limiti automatici dove il segnale torna alla propria linea di base o a una valle col picco vicino (max 6 FWHM per lato),
+   linea di base retta tra i due limiti («valle-valle»), integrazione trapezoidale sui dati. ys devono avere i picchi verso l'alto. */
+function peakAreas(xs, ys, pks){
+  const n=ys.length; if (n<9 || !pks.length) return [];
+  // smoothing adattivo come nella ricerca picchi, così il rumore non spezza i picchi
+  const sigRaw=noiseSigma(ys), sm1=sgSmooth(ys,5);
+  const strong=peakCandidates(sm1).filter(c=>c.prom > 10*sigRaw*sgNoiseGain(2)).sort((a,b)=>b.prom-a.prom).slice(0,8);
+  const wch = strong.length ? Math.min(...strong.map(c=>halfWidthPts(sm1,c))) : Math.round(n/200);
+  const m = Math.max(2, Math.min(Math.round(0.6*wch/2), Math.round(n/40)));
+  const sm=sgSmooth(ys, 2*m+1), sig=Math.max(sigRaw*sgNoiseGain(m), 1e-15), tol=3*sig;
+  const order = pks.map((x,k)=>({k, i:nearestIdx(xs,x)})).sort((a,b)=>a.i-b.i);
+  const out=new Array(pks.length);
+  order.forEach((o,r)=>{
+    const leftStop = r>0 ? order[r-1].i : 0, rightStop = r<order.length-1 ? order[r+1].i : n-1;
+    // apice: massimo locale vicino al picco indicato (senza scavalcare i vicini)
+    let i=o.i; const span=Math.max(2*m, 3);
+    for (let k=Math.max(leftStop+1, o.i-span); k<=Math.min(rightStop-1, o.i+span); k++) if (sm[k]>sm[i]) i=k;
+    let lmin=sm[i], j=i-1; while (j>=leftStop && sm[j]<=sm[i]+tol){ if(sm[j]<lmin) lmin=sm[j]; j--; }
+    let rmin=sm[i]; j=i+1; while (j<=rightStop && sm[j]<=sm[i]+tol){ if(sm[j]<rmin) rmin=sm[j]; j++; }
+    const prom = Math.max(sm[i]-Math.max(lmin,rmin), sig);
+    const half = sm[i]-prom/2; let a=i, b=i;
+    while (a>leftStop && sm[a]>half) a--; while (b<rightStop && sm[b]>half) b++;
+    const w = Math.max(2, b-a), rise = Math.max(3*sig, 0.03*prom);
+    const walk=(step, stop, floor)=>{
+      const lim = step<0 ? Math.max(stop, i-6*w, 0) : Math.min(stop, i+6*w, n-1);
+      let jj=i, best=i, bv=sm[i];
+      while (step<0 ? jj>lim : jj<lim){
+        jj+=step;
+        if (sm[jj]<bv){ bv=sm[jj]; best=jj; }
+        if (sm[jj] > bv + rise) break;
+        if (sm[jj] <= floor){ best=jj; break; }
+      }
+      return best;
+    };
+    const L = Math.min(o.i, walk(-1, leftStop, lmin + Math.max(0.01*prom, sig)));
+    const R = Math.max(o.i, walk(+1, rightStop, rmin + Math.max(0.01*prom, sig)));
+    // livello della linea di base ai limiti: media dei dati appena fuori dal picco (non il punto più basso, che col rumore la abbassa)
+    const hw=Math.max(m, Math.round(w/3));
+    const avg=(lo,hi)=>{ lo=Math.max(0,lo); hi=Math.min(n-1,hi); let t=0,c=0; for(let k=lo;k<=hi;k++){t+=ys[k];c++;} return c?t/c:0; };
+    const y0 = L>leftStop ? Math.min(sm[L]+tol, avg(Math.max(leftStop, L-hw), L)) : sm[L];
+    const y1 = R<rightStop ? Math.min(sm[R]+tol, avg(R, Math.min(rightStop, R+hw))) : sm[R];
+    // linea di base = inviluppo inferiore tra i due limiti: retta valle-valle, che però non può passare sopra al segnale
+    const val=k=> k===L? y0 : k===R? y1 : sm[k];
+    let pen=false; for (let k=L+1;k<R;k++){ const ln=y0+(y1-y0)*(xs[k]-xs[L])/((xs[R]-xs[L])||1); if (sm[k] < ln-tol){ pen=true; break; } }
+    const hull=[];
+    if (!pen) hull.push(L,R); else for (let k=L;k<=R;k++){
+      while (hull.length>=2){ const p1=hull[hull.length-2], p2=hull[hull.length-1];
+        if ((xs[p2]-xs[p1])*(val(k)-val(p1)) - (val(p2)-val(p1))*(xs[k]-xs[p1]) <= 0) hull.pop(); else break; }
+      hull.push(k);
+    }
+    const base=new Float64Array(R-L+1);
+    for (let h=0;h<hull.length-1;h++){ const p1=hull[h], p2=hull[h+1], v1=val(p1), v2=val(p2);
+      for (let k=p1;k<=p2;k++) base[k-L]=v1+(v2-v1)*(xs[k]-xs[p1])/((xs[p2]-xs[p1])||1); }
+    let A=0;
+    for (let k=L;k<R;k++) A += 0.5*((ys[k]-base[k-L])+(ys[k+1]-base[k+1-L]))*(xs[k+1]-xs[k]);
+    const x0=xs[L], x1=xs[R];
+    out[o.k]={ia:L, ib:R, xa:x0, xb:x1, area:Math.max(0,A), base0:y0, base1:y1, hull:hull.map(k=>[k,val(k)])};
+  });
+  return out;
+}
 function snapPeak(xs, ys, dir, x0, halfWidth){
   let best=-1;
   for (let i=0;i<xs.length;i++){ if (Math.abs(xs[i]-x0)>halfWidth) continue; if (best<0 || ys[i]*dir > ys[best]*dir) best=i; }
@@ -1163,7 +1289,7 @@ function drawPlot(ctx, W, H, k, d, S){
   if (ymax===ymin){ ymax+=1; ymin-=1; }
   const hasPk = S.showPeaks && d.peaks && d.peaks.length;
   const span=ymax-ymin, room = hasPk ? (S.peakLabels ? (d.peaks.some(p=>p.label.length>5)?0.30:0.20) : 0.08) : 0.04;
-  const legRoom = d.legend ? 0.12 : 0;
+  const legRoom = d.legend ? Math.min(0.7, 0.08 + 0.075*series.length) : 0;
   if (d.dir>0){ ymax+=span*(room+legRoom); ymin-=span*0.04; } else { ymin-=span*room; ymax+=span*(0.04+legRoom); }
 
   ctx.font = font(f*0.85);
@@ -1205,6 +1331,25 @@ function drawPlot(ctx, W, H, k, d, S){
   ctx.font=font(f*0.92); ctx.textAlign='center'; ctx.textBaseline='bottom';
   ctx.fillText(d.xLabel, px0+pw/2, H-f*0.35);
   ctx.save(); ctx.translate(f*1.15, py0+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(d.yLabel,0,0); ctx.restore();
+
+  // zone integrate (area dei picchi)
+  if (S.showArea && S.shadeArea && hasPk && d.series.length===1){
+    const sx=d.series[0].xs, sy=d.series[0].ys;
+    ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
+    d.peaks.forEach((p,k)=>{ if (p.ia==null || p.ib<=p.ia || !p.hullD) return;
+      const ia=Math.max(0,p.ia), ib=Math.min(sx.length-1,p.ib), hull=p.hullD;
+      ctx.beginPath(); ctx.moveTo(X(sx[ia]),Y(sy[ia]));
+      const stepN=Math.max(1, Math.floor((ib-ia)/400));
+      for (let i=ia;i<=ib;i+=stepN) ctx.lineTo(X(sx[i]),Y(sy[i]));
+      ctx.lineTo(X(sx[ib]),Y(sy[ib]));
+      for (let h=hull.length-1;h>=0;h--) ctx.lineTo(X(sx[hull[h][0]]),Y(hull[h][1]));
+      ctx.closePath();
+      ctx.fillStyle = k%2 ? 'rgba(230,154,29,.24)' : 'rgba(37,99,201,.18)'; ctx.fill();
+      ctx.strokeStyle='rgba(60,60,60,.6)'; ctx.lineWidth=0.12; ctx.setLineDash([0.8,0.6]);
+      ctx.beginPath(); hull.forEach(([i,v],h)=>{ const X0=X(sx[i]), Y0=Y(v); if(h) ctx.lineTo(X0,Y0); else ctx.moveTo(X0,Y0); }); ctx.stroke(); ctx.setLineDash([]);
+    });
+    ctx.restore();
+  }
 
   // tracce (decimate per colonna di pixel)
   ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
@@ -1276,10 +1421,10 @@ function drawPlot(ctx, W, H, k, d, S){
 /* ---------------- STATO E IMPOSTAZIONI ---------------- */
 const DEFAULTS = {
   lang:'it', perPage:4, orient:'landscape', order:'instr', summary:true, docTitle:'',
-  overlay:'none', ovMode:'stack',
+  cmpPdf:'start', cmpPng:true,
   outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
-  showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all',
+  showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   conv:{ftir:'orig', raman:'orig', uv:'orig', hplc:'orig', gen:'orig'},
   smooth:{ftir:0, raman:0, uv:0, hplc:0, gen:0},
   base:{ftir:'none', raman:'none', uv:'none', hplc:'none', gen:'none'}
@@ -1290,7 +1435,25 @@ const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function merge(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici') r.docTitle=''; return r; }
+function merge(base, o){ const r=mergeRaw(base,o); return sanitizeS(r); }
+function mergeRaw(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici') r.docTitle=''; return r; }
+function sanitizeS(r){
+  const D=DEFAULTS, oneOf=(k,arr)=>{ if(!arr.includes(r[k])) r[k]=D[k]; }, num=(k,lo,hi)=>{ const v=+r[k]; r[k]= isFinite(v) ? Math.min(hi,Math.max(lo,v)) : D[k]; }, bool=k=>{ r[k]=typeof r[k]==='boolean'? r[k] : D[k]; };
+  oneOf('lang',['it','en']); oneOf('orient',['landscape','portrait']); oneOf('order',['instr','name','load']); oneOf('cmpPdf',['none','start','end']);
+  oneOf('colorMode',['instr','single','black']); r.perPage=+r.perPage; oneOf('perPage',[1,2,4,6,9]);
+  r.lineW=+r.lineW; oneOf('lineW',[0.15,0.25,0.4]); r.pngDpi=+r.pngDpi; oneOf('pngDpi',[300,600]);
+  num('pngW',4,40); num('pngH',3,30); num('sens',1,30); num('maxPeaks',0,60);
+  if (typeof r.color!=='string' || !/^#[0-9a-f]{6}$/i.test(r.color)) r.color=D.color;
+  if (!SAMPLE_TYPES[r.sample]) r.sample='all';
+  if (typeof r.docTitle!=='string') r.docTitle=''; r.docTitle=r.docTitle.slice(0,120);
+  ['summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  for (const k of Object.keys(INSTR)){
+    if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
+    if (!['none','rubber','linear'].includes(r.base[k])) r.base[k]='none';
+    if (![0,7,15,31].includes(+r.smooth[k])) r.smooth[k]=0; else r.smooth[k]=+r.smooth[k];
+  }
+  return r;
+}
 let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
@@ -1350,31 +1513,65 @@ function viewOf(f){
     p.label = !name ? p.num : (name.includes(p.num) ? name : p.num+' '+name);
     p.sugg = name ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample);
   });
+  let areaUnit='';
+  if (S.showArea && peaks.length){
+    const akey=procKey(f)+'|'+peaks.map(p=>p.x.toFixed(6)).join(',');
+    if (f._areaKey!==akey){
+      const yA = P.kind==='T' ? Float64Array.from(P.ys, v=>2-Math.log10(Math.max(v,1e-4))) : (P.dir<0 ? Float64Array.from(P.ys, v=>-v) : P.ys);
+      f._areas = peakAreas(P.xs, yA, peaks.map(p=>p.x)); f._areaKey=akey;
+    }
+    const tot = f._areas.reduce((t,a)=>t+(a?a.area:0),0)||1;
+    peaks.forEach((p,k)=>{ const a=f._areas[k]; if (a){ p.area=a.area; p.areaPct=100*a.area/tot; p.xa=a.xa; p.xb=a.xb; p.ia=a.ia; p.ib=a.ib;
+      p.hullD=a.hull.map(([i,v])=>[i, P.kind==='T' ? Math.pow(10,2-v) : (P.dir<0 ? -v : v)]); } });
+    const yu = P.kind==='T' ? 'A' : ({A:'A', I:'conteggi', mAU:'mAU', N:'u.n.'}[P.kind]||'u');
+    const xu = (INSTR[instr].xPdf||'x').replace('cm-1','cm⁻¹');
+    areaUnit = `${yu} × ${xu}`;
+  }
   const color = S.colorMode==='instr' ? prof.colore : S.colorMode==='black' ? '#111' : S.color;
-  return {title:dispTitle(f), desc:(f.desc||'').trim(), instrName:L.nome[instr], series:[{xs:P.xs, ys:P.ys, color, name:dispTitle(f)}],
+  return {areaUnit, title:dispTitle(f), desc:(f.desc||'').trim(), instrName:L.nome[instr], series:[{xs:P.xs, ys:P.ys, color, name:dispTitle(f)}],
           xs:P.xs, ys:P.ys, kind:P.kind, dir:P.dir, invertX:prof.invertX, xLabel:L.x[instr], yLabel:L.y[P.kind]||'Y', peaks, instr};
 }
-function overlayGroups(){
-  const g={}; included().forEach(f=>(g[f.instr]=g[f.instr]||[]).push(f));
-  return Object.entries(g).filter(([,v])=>v.length>=2);
+/* ---------------- CONFRONTI (spettri sovrapposti) ---------------- */
+const LS_CMP='acch.cmp.v1';
+let viewMode='one', curCmpId=null;
+let COMPS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
+  id:c.id.slice(0,40), name:(/^(Confronto |Nuovo confronto$)/.test(String(c.name||'')) ? '' : String(c.name||'')).slice(0,120), instr:INSTR[c.instr]?c.instr:null, mode:['stack','over','norm'].includes(c.mode)?c.mode:'stack',
+  gap:isFinite(+c.gap)?Math.min(2,Math.max(0.3,+c.gap)):1.1, out:c.out!==false, keys:c.keys.filter(k=>typeof k==='string').slice(0,60) })) : []; }catch(e){ return []; } })();
+function saveCmps(){ lsSet(LS_CMP, COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys}))); }
+function cmpAutoName(c, L){
+  L=L||L10N.it; const same=COMPS.filter(x=>x.instr===c.instr && !x.name), k=same.indexOf(c);
+  return c.instr ? `${L.compare} ${L.nome[c.instr]}${same.length>1 && k>=0 ? ' '+(k+1) : ''}` : (L===L10N.en ? 'New comparison' : 'Nuovo confronto');
 }
-function overlayView(instr, list){
-  const L=T_(), prof=INSTR[instr], stack=S.ovMode==='stack';
+function cmpTitle(c, L){ return c.name || cmpAutoName(c, L); }
+function members(c){ return c ? c.keys.map(k=>files.find(f=>fkey(f)===k)).filter(Boolean) : []; }
+function visibleCmps(){ return COMPS.filter(c=>members(c).length || c.id===curCmpId); }
+function curCmp(){ return COMPS.find(c=>c.id===curCmpId) || null; }
+function newCmp(instr, list){
+  const nSame=COMPS.filter(c=>c.instr===instr).length+1;
+  const c={id:'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name:'',
+           instr, mode:'stack', gap:1.1, out:true, keys:(list||[]).map(fkey)};
+  COMPS.push(c); curCmpId=c.id; saveCmps(); return c;
+}
+function outComparisons(){ return COMPS.filter(c=>c.out).map(c=>({c, list:members(c)})).filter(o=>o.list.length>=2); }
+function overlayView(instr, list, mode, gap, title){
+  const L=T_(), prof=INSTR[instr]; mode=mode||'stack'; gap=gap||1.1;
   const procs=list.map(f=>processed(f));
-  const dir = procs[0].dir, n=list.length;
+  const dir = procs[0].dir, n=list.length, normd = mode!=='over';
   const series=list.map((f,i)=>{
     const P=procs[i]; let ys=P.ys;
-    if (stack){
+    if (normd){
       let mn=Infinity,mx=-Infinity; for(const v of ys){ if(v<mn)mn=v; if(v>mx)mx=v; }
-      const r=(mx-mn)||1, off=(n-1-i)*1.1, o=new Float64Array(ys.length);
-      for (let k=0;k<ys.length;k++) o[k]=(ys[k]-mn)/r+off;
+      const r=(mx-mn)||1, off= mode==='stack' ? (n-1-i)*gap : 0, o=new Float64Array(ys.length), flip = P.dir!==dir;
+      for (let k=0;k<ys.length;k++) o[k]=(flip ? (mx-ys[k]) : (ys[k]-mn))/r+off;   // picchi tutti dallo stesso verso del primo spettro
       ys=o;
     }
     return {xs:P.xs, ys, color:PALETTE[i%PALETTE.length], name:dispTitle(f)};
   });
-  return {title:`${L.compare} ${L.nome[instr]} (${n} ${L.spectra})`, desc:'', instrName:L.nome[instr], series, dir, invertX:prof.invertX,
-          xLabel:L.x[instr], yLabel: stack ? L.y.S : (L.y[procs[0].kind]||'Y'), peaks:[], legend:true, hideYTicks:stack, instr};
+  return {title: title || `${L.compare} ${L.nome[instr]} (${n} ${L.spectra})`, desc:'', instrName:L.nome[instr], series, dir, invertX:prof.invertX,
+          xLabel:L.x[instr], yLabel: mode==='stack' ? L.y.S : mode==='norm' ? L.y.N : (L.y[procs[0].kind]||'Y'), peaks:[], legend:true, hideYTicks:mode==='stack', instr,
+          xs:series[0].xs, ys:series[0].ys};
 }
+function cmpViewOf(c){ const list=members(c); if (!list.length) return null; if (!c.instr) c.instr=list[0].instr; return overlayView(c.instr, list, c.mode, c.gap, cmpTitle(c, T_())); }
 
 /* ---------------- CARICAMENTO ---------------- */
 const $ = s => document.querySelector(s);
@@ -1549,7 +1746,7 @@ function go(n){
 $$('[data-go]').forEach(b=>b.addEventListener('click', ()=>go(+b.dataset.go)));
 function refreshAll(){
   $$('.step').forEach(b=>{ if(+b.dataset.go>1) b.disabled=!files.length; });
-  renderLoaded(); renderList(); renderProc(); renderPreview(); renderSummary();
+  renderLoaded(); renderList(); renderProc(); renderPreview(); renderSummary(); renderCmpBar(); renderCmpOut();
 }
 function renderLoaded(){
   const box=$('#loaded');
@@ -1566,21 +1763,48 @@ function renderLoaded(){
   $('#toStep2').onclick=()=>go(2);
   $$('#loaded [data-st]').forEach(b=>b.onclick=()=>{ S.sample=b.dataset.st; saveS(); syncControls(); renderLoaded(); renderPreview();
     say('#hello', S.sample==='all' ? 'Ok, ti propongo nomi di ogni tipo. 👍' : `Perfetto, userò i nomi per ${SAMPLE_TYPES[S.sample].replace(/^\S+ /,'').toLowerCase()}. 👻`); });
-  $('#clearAll').onclick=()=>{ files.length=0; cur=-1; say('#hello','Tutti gli spettri liberati! ✨ Carica quello che vuoi.'); refreshAll(); go(1); };
+  $('#clearAll').onclick=()=>{ files.length=0; cur=-1; curCmpId=null; say('#hello','Tutti gli spettri liberati! ✨ Carica quello che vuoi.'); refreshAll(); go(1); };
 }
 function renderList(){
   const q=($('#filter').value||'').toLowerCase();
   $('#nFiles').textContent=files.length;
-  $('#flist').innerHTML = files.map((f,i)=>({f,i})).filter(o=>!q || (o.f.path+' '+dispTitle(o.f)).toLowerCase().includes(q)).map(({f,i})=>`<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'}" data-i="${i}">
+  const cm = viewMode==='cmp', c=curCmp(), mem=cm? members(c):[], cinstr = c ? (c.instr || (mem[0]&&mem[0].instr)) : null;
+  $('#listHint').innerHTML = cm
+    ? (c ? `Spunta gli spettri da <b>sovrapporre</b> in «${esc(cmpTitle(c))}». Si possono unire solo spettri dello stesso strumento.` : `Spunta due o più spettri dello stesso strumento: creo il confronto per te.`)
+    : `La spunta decide cosa finisce nel PDF e nelle immagini. <button class="linkbtn" id="allOn">Tutti / nessuno</button>`;
+  const ao=$('#allOn'); if (ao) ao.onclick=()=>{ const all=files.every(f=>f.include); files.forEach(f=>{f.include=!all; persist(f);}); renderList(); renderPreview(); renderSummary(); };
+  $('#flist').innerHTML = files.map((f,i)=>({f,i})).filter(o=>!q || (o.f.path+' '+dispTitle(o.f)).toLowerCase().includes(q)).map(({f,i})=>{
+     if (cm){
+       const idx=mem.indexOf(f), inC=idx>=0, na = cinstr && f.instr!==cinstr && mem.length;
+       return `<div class="fitem ${inC?'sel':''} ${na?'na':''}" data-i="${i}" title="${na?'Strumento diverso da quello del confronto':esc(f.path)}">
+         <input type="checkbox" ${inC?'checked':''} ${na?'disabled':''} data-cm="${i}" aria-label="Sovrapponi">
+         ${inC?`<span class="dot" style="background:${PALETTE[idx%PALETTE.length]}"></span>`:''}
+         <div class="nm">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.desc||''))}</small></div>
+         <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`;
+     }
+     return `<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'}" data-i="${i}">
      <input type="checkbox" ${f.include?'checked':''} data-inc="${i}" title="Includi nell'output">
      <div class="nm" title="${esc(f.path)}">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.path.includes('/')?f.path.slice(0,f.path.lastIndexOf('/')):(f.desc||'')))}</small></div>
      ${isEdited(f)?'<span class="ed" title="Modificato">✎</span>':''}
-     <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`).join('') || '<div class="empty">Nessun file</div>';
+     <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`; }).join('') || '<div class="empty">Nessun file</div>';
+  if (cm){
+    $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if (e.target.dataset.cm!==undefined) return; const cb=el.querySelector('input'); if (!cb.disabled){ cb.checked=!cb.checked; cb.dispatchEvent(new Event('change')); } }));
+    $$('#flist [data-cm]').forEach(el=>el.addEventListener('change', ()=>toggleMember(files[+el.dataset.cm], el.checked)));
+    return;
+  }
   $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if(e.target.dataset.inc!==undefined) return; cur=+el.dataset.i; renderList(); renderPreview(); }));
   $$('#flist [data-inc]').forEach(el=>el.addEventListener('change', ()=>{ const f=files[+el.dataset.inc]; f.include=el.checked; persist(f); renderList(); renderPreview(); renderSummary(); }));
 }
+function toggleMember(f, on){
+  let c=curCmp();
+  if (on && !c) c=newCmp(f.instr, []);
+  if (!c) return;
+  const k=fkey(f);
+  if (on){ if (!c.instr || !members(c).length) c.instr=f.instr; if (f.instr!==c.instr) return; if (!c.keys.includes(k)) c.keys.push(k); }
+  else c.keys=c.keys.filter(x=>x!==k);
+  c._zoom=null; saveCmps(); renderCmp(); renderSummary();
+}
 $('#filter').addEventListener('input', renderList);
-$('#allOn').onclick=()=>{ const all=files.every(f=>f.include); files.forEach(f=>{f.include=!all; persist(f);}); renderList(); renderPreview(); renderSummary(); };
 
 /* ---------------- ANTEPRIMA ---------------- */
 const pv=$('#pv'); let geo=null, pvView=null;
@@ -1593,15 +1817,103 @@ function zoomSlice(d, z){
   const sx=xs.subarray(lo,hi+1), sy=d.ys.subarray(lo,hi+1);
   return Object.assign({}, d, {xs:sx, ys:sy, series:[Object.assign({}, d.series[0], {xs:sx, ys:sy})]});
 }
-function renderPreview(){
-  const f=files[cur];
-  if (!f){ $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
+function sizeCanvas(){
   const big=$('.preview').classList.contains('big');
   const cssW = pv.clientWidth || 800, dpr = window.devicePixelRatio||1;
   const cssH = big ? (pv.clientHeight || cssW*0.5) : cssW*100/160;
   if (!big) pv.style.height='';
-  PV_W = cssW/5; PV_H = cssH/5;
-  pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssH*dpr);
+  PV_W = cssW/5; PV_H = cssH/5; pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssH*dpr);
+  return big;
+}
+function zoomSliceMulti(d, z){
+  if (!z) return d;
+  const series=d.series.map(sr=>{ const xs=sr.xs; let lo=0, hi=xs.length-1; while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--;
+    return hi-lo<3 ? sr : Object.assign({}, sr, {xs:xs.subarray(lo,hi+1), ys:sr.ys.subarray(lo,hi+1)}); });
+  return Object.assign({}, d, {series, xs:series[0].xs, ys:series[0].ys});
+}
+function renderCompare(){
+  const c=curCmp(), big=sizeCanvas(), ctx=pv.getContext('2d');
+  const v = c ? cmpViewOf(c) : null;
+  $('#cmpEdit').hidden = !c;
+  const note=$('#cmpEmpty'), n=members(c).length;
+  note.hidden = n>=2; note.innerHTML = !c ? '<b>Nessun confronto ancora.</b> Spunta nella lista a sinistra due o più spettri dello stesso strumento, oppure premi «Uno per ogni strumento».'
+    : n===0 ? '<b>Confronto vuoto.</b> Spunta nella lista a sinistra gli spettri da sovrapporre.' : '<b>Manca ancora uno spettro.</b> Spuntane almeno un altro dello stesso strumento per sovrapporli.';
+  if (!v){
+    geo=null; pvView=null; ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
+    ctx.fillStyle='#8a94a6'; ctx.font=`${Math.round(15*(window.devicePixelRatio||1))}px Nunito, sans-serif`; ctx.textAlign='center';
+    ctx.fillText('Spunta gli spettri da sovrapporre nella lista a sinistra 👈', pv.width/2, pv.height/2);
+    $('#pvTitle').textContent = c ? cmpTitle(c) : 'Confronta grafici';
+  } else {
+    v.fontPt = big ? 10 : 9;
+    const d = zoomSliceMulti(v, c._zoom); pvView=d;
+    $('.preview').classList.toggle('zoomed', !!c._zoom);
+    geo = drawPlot(ctx, PV_W, PV_H, pv.width/PV_W, d, S);
+    $('#pvTitle').textContent=cmpTitle(c, T_());
+  }
+  if (c){
+    if (document.activeElement!==$('#cmpName')) $('#cmpName').value=c.name;
+    $('#cmpName').placeholder = cmpAutoName(c) + ' (nome automatico, segue la lingua dei grafici)';
+    const mem=members(c);
+    $('#cmpMembers').innerHTML = mem.length ? mem.map((f,i)=>`<div><i style="background:${PALETTE[i%PALETTE.length]}"></i>${esc(dispTitle(f))}${f.include?'':' <span class="opt-l">(escluso dai grafici singoli, ma resta in questo confronto)</span>'}</div>`).join('') : '<div class="opt-l">nessuno</div>';
+    const M=[['over','Stessa scala','intensità vere, una sopra l\'altra','<svg viewBox="0 0 48 30"><path d="M2 24 L14 22 L18 6 L22 22 L46 20" stroke="#1f5fbf" stroke-width="1.8" fill="none"/><path d="M2 26 L14 25 L18 15 L22 25 L46 24" stroke="#d1495b" stroke-width="1.8" fill="none"/></svg>'],
+             ['stack','Sfalsati','uno sopra l\'altro, ognuno alla stessa altezza','<svg viewBox="0 0 48 30"><path d="M2 11 L14 10 L18 2 L22 10 L46 9" stroke="#1f5fbf" stroke-width="1.8" fill="none"/><path d="M2 27 L14 26 L18 17 L22 26 L46 25" stroke="#d1495b" stroke-width="1.8" fill="none"/></svg>'],
+             ['norm','Normalizzati','tutti tra 0 e 1, uno sull\'altro','<svg viewBox="0 0 48 30"><path d="M2 26 L14 25 L18 4 L22 25 L46 24" stroke="#1f5fbf" stroke-width="1.8" fill="none"/><path d="M2 26 L14 25 L19 4 L23 25 L46 25" stroke="#d1495b" stroke-width="1.8" fill="none" stroke-dasharray="3 1.5"/></svg>']];
+    $('#cmpModes').innerHTML = M.map(([k,t,sub,ico])=>choiceBtn(`data-mode="${k}"`, c.mode===k, ico, t, sub)).join('');
+    $$('#cmpModes [data-mode]').forEach(b=>b.onclick=()=>{ c.mode=b.dataset.mode; saveCmps(); renderCompare(); });
+    $('#cmpGapRow').hidden = c.mode!=='stack'; $('#cmpGap').value=c.gap; $('#cmpOut').checked=c.out;
+    const kinds=[...new Set(mem.map(f=>processed(f).kind))];
+    const mixNote = kinds.length>1 ? (c.mode==='over'
+      ? `⚠️ Questi spettri hanno unità diverse (${kinds.map(k=>({T:'%T',A:'assorbanza',I:'conteggi',mAU:'mAU',N:'normalizzata'}[k]||k)).join(', ')}): nella stessa scala non sono confrontabili. Usa «Sfalsati» o «Normalizzati», oppure converti l'asse Y in «Ritocca lo spettro».`
+      : `ℹ️ Gli spettri hanno unità diverse (%T e assorbanza): li ho girati tutti con i picchi nello stesso verso del primo.`) : '';
+    $('#cmpMix').hidden=!mixNote; $('#cmpMix').innerHTML=mixNote;
+  }
+}
+function renderCmp(){ renderCmpBar(); renderList(); renderPreview(); renderCmpOut(); }
+function renderCmpBar(){
+  const vis=visibleCmps();
+  $('#cmpChips').innerHTML = vis.map(c=>`<button class="cmpchip ${c.id===curCmpId?'on':''}" data-cid="${esc(c.id)}">${esc(cmpTitle(c))}<small>(${members(c).length})</small></button>`).join('') || '<span class="opt-l">nessuno</span>';
+  $$('#cmpChips [data-cid]').forEach(b=>b.onclick=()=>{ curCmpId=b.dataset.cid; renderCmp(); });
+}
+function renderCmpOut(){
+  const n=outComparisons().length;
+  $$('.cmpCount').forEach(e=>e.textContent=n);
+  $$('.cmpOutRow').forEach(e=>e.hidden=!n);
+  $$('.cmpNone').forEach(e=>e.hidden=!!n);
+}
+function setView(m){
+  viewMode=m;
+  $$('#viewSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===m));
+  $('#workCard').classList.toggle('cmpmode', m==='cmp');
+  $('#cmpBar').hidden = m!=='cmp';
+  $('#viewHint').textContent = m==='cmp' ? 'Sovrapponi più spettri dello stesso strumento per confrontarli.' : 'Sistema ogni spettro: nome, picchi, ritocchi.';
+  $('#readout').textContent = m==='cmp' ? 'Muovi il mouse sul grafico per sapere quale spettro è quale · rotellina: zoom' : 'Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom';
+  if (m==='cmp' && !curCmp()){ const v=visibleCmps(); curCmpId = v.length ? v[v.length-1].id : null; }
+  renderCmp();
+  if (m==='cmp') say('#tip2', curCmp() ? 'Ecco il confronto! Spunta o togli spettri a sinistra, scegli come sovrapporli qui sotto. 🔀' : 'Spunta a sinistra gli spettri da sovrapporre: ci penso io a metterli insieme. 🔀');
+}
+$$('#viewSeg button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+$('#cmpNew').onclick=()=>{ newCmp(null, []); renderCmp(); say('#tip2','Nuovo confronto creato: ora spunta gli spettri a sinistra. ✨'); };
+$('#cmpAuto').onclick=()=>{
+  const g={}; included().forEach(f=>(g[f.instr]=g[f.instr]||[]).push(f)); let made=0;
+  for (const [instr,list] of Object.entries(g)){ if (list.length<2) continue;
+    const keys=list.map(fkey).sort().join('|');
+    if (COMPS.some(c=>c.instr===instr && c.keys.slice().sort().join('|')===keys)) continue;
+    newCmp(instr, list); made++; }
+  renderCmp(); renderSummary();
+  say('#tip2', made ? `Fatto! ${made} confront${made===1?'o':'i'}, uno per strumento. 🔀` : 'Non c\'era niente di nuovo da confrontare: servono almeno 2 spettri dello stesso strumento. 🤔');
+};
+$('#cmpName').addEventListener('input', e=>{ const c=curCmp(); if(!c) return; c.name=e.target.value.trim().slice(0,120); saveCmps(); renderCmpBar(); renderPreview(); renderList(); });
+$('#cmpGap').addEventListener('input', e=>{ const c=curCmp(); if(!c) return; c.gap=+e.target.value; saveCmps(); renderPreview(); });
+$('#cmpOut').addEventListener('change', e=>{ const c=curCmp(); if(!c) return; c.out=e.target.checked; saveCmps(); renderCmpOut(); renderSummary(); });
+$('#cmpDel').onclick=()=>{ const c=curCmp(); if(!c) return; if(!confirm(`Eliminare il confronto «${cmpTitle(c)}»? Gli spettri restano.`)) return;
+  COMPS=COMPS.filter(x=>x!==c); const v=visibleCmps(); curCmpId=v.length?v[v.length-1].id:null; saveCmps(); renderCmp(); renderSummary(); };
+$$('.goCmp').forEach(b=>b.onclick=()=>{ go(2); setView('cmp'); });
+
+function renderPreview(){
+  if (viewMode==='cmp') return renderCompare();
+  const f=files[cur];
+  if (!f){ $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
+  const big=sizeCanvas();
   const full = viewOf(f); full.fontPt = big ? 10 : 9; full.highlightManual = true;
   const d = zoomSlice(full, f._zoom); pvView=d;
   $('.preview').classList.toggle('zoomed', !!f._zoom);
@@ -1620,6 +1932,16 @@ function renderPreview(){
     xrShownFor=f.id; xrForce=false;
     $('#xrA').value = f.xr ? Math.min(...f.xr) : ''; $('#xrB').value = f.xr ? Math.max(...f.xr) : '';
     $('#xrA').placeholder = 'da '+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = 'a '+(+f.xs[f.xs.length-1].toPrecision(5));
+  }
+  $('#areaBox').hidden = !S.showArea;
+  if (S.showArea){
+    const amax = Math.max(0, ...d.peaks.map(p=>p.area||0));
+    const fmtA = v => (v <= amax*1e-4) ? '≈ 0' : (v>=1e4||v<1e-3) ? v.toExponential(3).replace('.',T_().dec) : (+v.toPrecision(4)).toString().replace('.',T_().dec);
+    const maxPct = Math.max(1, ...d.peaks.map(p=>p.areaPct||0));
+    $('#areaTable').innerHTML = d.peaks.length && S.showPeaks
+      ? `<thead><tr><th>Picco</th><th>Da – a</th><th>Area (${esc(d.areaUnit)})</th><th>Area %</th></tr></thead><tbody>${
+        d.peaks.map(p=>`<tr><td>${esc(p.custom? p.num+' · '+p.name : p.num)}</td><td>${p.xa!=null? fmtPeak(f.instr,Math.min(p.xa,p.xb))+' – '+fmtPeak(f.instr,Math.max(p.xa,p.xb)) : '—'}</td><td>${p.area!=null? fmtA(p.area):'—'}</td><td><span class="bar" style="width:${Math.round((p.areaPct||0)/maxPct*60)}px"></span>${p.areaPct!=null? p.areaPct.toFixed(1).replace('.',T_().dec):'—'}</td></tr>`).join('')}</tbody>`
+      : '<tbody><tr><td>Nessun picco su cui calcolare l\'area.</td></tr></tbody>';
   }
   const nSug = d.peaks.filter(p=>p.sugg.length).length;
   const nLab = d.peaks.filter(p=>p.custom).length, note=$('#sugNote');
@@ -1735,8 +2057,9 @@ $('#libAdd').onclick=()=>{
 function mmPos(e){ const r=pv.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*PV_W, (e.clientY-r.top)/r.height*PV_H]; }
 function xAt(mx){ const t=(mx-geo.px0)/geo.pw; return geo.invertX ? geo.xmax - t*(geo.xmax-geo.xmin) : geo.xmin + t*(geo.xmax-geo.xmin); }
 pv.addEventListener('click', e=>{
-  const f=files[cur]; if(!f || !geo) return;
   if (drag && drag.moved){ drag=null; return; } drag=null;
+  if (viewMode==='cmp') return;
+  const f=files[cur]; if(!f || !geo) return;
   if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
   const [mx,my]=mmPos(e);
   const hit = geo.hits.find(h=>Math.abs(h.x-mx)<1.6 && Math.abs(h.y-my)<14);
@@ -1749,6 +2072,15 @@ pv.addEventListener('click', e=>{
 });
 pv.addEventListener('mousemove', e=>{
   if(!geo || !pvView) return; const [mx,my]=mmPos(e);
+  if (viewMode==='cmp'){
+    pv.style.cursor='crosshair';
+    if (mx<geo.px0 || mx>geo.px0+geo.pw || my<geo.py0 || my>geo.py0+geo.ph){ $('#readout').innerHTML='&nbsp;'; return; }
+    const xv=xAt(mx), yv=geo.ymax-(my-geo.py0)/geo.ph*(geo.ymax-geo.ymin); let best=null, bd=Infinity;
+    pvView.series.forEach(sr=>{ if (xv<sr.xs[0]||xv>sr.xs[sr.xs.length-1]) return; const d=Math.abs(interpY(sr.xs,sr.ys,xv)-yv); if(d<bd){bd=d;best=sr;} });
+    const unit=INSTR[pvView.instr].xPdf.replace('cm-1','cm⁻¹');
+    $('#readout').innerHTML = `x = ${(+xv.toPrecision(6)).toString().replace('.',T_().dec)} ${unit}${best?`   ·   più vicino: <b style="color:${best.color}">${esc(best.name)}</b>`:''}`;
+    return;
+  }
   const onPk = geo.hits.some(h=>Math.abs(h.x-mx)<1.6 && Math.abs(h.y-my)<14);
   pv.style.cursor = onPk ? 'pointer' : 'crosshair';
   if (mx<geo.px0 || mx>geo.px0+geo.pw){ $('#readout').innerHTML='&nbsp;'; return; }
@@ -1758,50 +2090,56 @@ pv.addEventListener('mousemove', e=>{
 });
 pv.addEventListener('mouseleave', ()=>{ $('#readout').innerHTML='&nbsp;'; });
 function fullRange(f){ const P=processed(f); return [P.xs[0], P.xs[P.xs.length-1]]; }
-function setZoom(f, a, b){
-  const [fa,fb]=fullRange(f), W=fb-fa, minW=W/300;
+function zTarget(){
+  if (viewMode==='cmp'){ const c=curCmp(), l=members(c); if (!c||!l.length) return null;
+    let a=Infinity,b=-Infinity; l.forEach(f=>{ const r=fullRange(f); a=Math.min(a,r[0]); b=Math.max(b,r[1]); });
+    return {o:c, range:[a,b], inv:INSTR[l[0].instr].invertX}; }
+  const f=files[cur]; return f ? {o:f, range:fullRange(f), inv:INSTR[f.instr].invertX} : null;
+}
+function setZoom(t, a, b){
+  const [fa,fb]=t.range, W=fb-fa, minW=W/300;
   if (b-a<minW){ const c=(a+b)/2; a=c-minW/2; b=c+minW/2; }
-  if (b-a>=W*0.995){ f._zoom=null; } else {
+  if (b-a>=W*0.995){ t.o._zoom=null; } else {
     if (a<fa){ b+=fa-a; a=fa; } if (b>fb){ a-=b-fb; b=fb; }
-    f._zoom=[Math.max(fa,a), Math.min(fb,b)];
+    t.o._zoom=[Math.max(fa,a), Math.min(fb,b)];
   }
   renderPreview();
 }
 function zoomBy(k, xc){
-  const f=files[cur]; if(!f) return; const [fa,fb]=fullRange(f); const [a,b]=f._zoom||[fa,fb];
+  const t=zTarget(); if(!t) return; const [fa,fb]=t.range; const [a,b]=t.o._zoom||[fa,fb];
   if (xc==null) xc=(a+b)/2;
-  setZoom(f, xc-(xc-a)*k, xc+(b-xc)*k);
+  setZoom(t, xc-(xc-a)*k, xc+(b-xc)*k);
 }
 pv.addEventListener('wheel', e=>{
-  if (!geo || !files[cur]) return; e.preventDefault();
+  if (!geo || !zTarget()) return; e.preventDefault();
   const [mx]=mmPos(e); const xc = xAt(Math.min(Math.max(mx,geo.px0),geo.px0+geo.pw));
   zoomBy(e.deltaY>0 ? 1.25 : 0.8, xc);
 }, {passive:false});
 let drag=null;
-pv.addEventListener('mousedown', e=>{ const f=files[cur]; if(!f||!geo||e.button!==0) return; drag={x0:e.clientX, z:(f._zoom||fullRange(f)).slice(), moved:false, pw:geo.pw}; });
+pv.addEventListener('mousedown', e=>{ const t=zTarget(); if(!t||!geo||e.button!==0) return; drag={x0:e.clientX, z:(t.o._zoom||t.range).slice(), moved:false, pw:geo.pw}; });
 window.addEventListener('mousemove', e=>{
-  if (!drag || !(e.buttons&1)) return; const f=files[cur]; if(!f) return;
-  const dxPx=e.clientX-drag.x0; if (Math.abs(dxPx)>4) drag.moved=true; if (!drag.moved || !f._zoom) return;
+  if (!drag || !(e.buttons&1)) return; const t=zTarget(); if(!t) return;
+  const dxPx=e.clientX-drag.x0; if (Math.abs(dxPx)>4) drag.moved=true; if (!drag.moved || !t.o._zoom) return;
   const r=pv.getBoundingClientRect(), dxMM=dxPx/r.width*PV_W, W=drag.z[1]-drag.z[0];
-  let shift = dxMM/drag.pw*W * (INSTR[f.instr].invertX ? 1 : -1);
-  const [fa,fb]=fullRange(f); shift=Math.max(fa-drag.z[0], Math.min(fb-drag.z[1], shift));
-  f._zoom=[drag.z[0]+shift, drag.z[1]+shift]; pv.style.cursor='grabbing'; renderPreview();
+  let shift = dxMM/drag.pw*W * (t.inv ? 1 : -1);
+  const [fa,fb]=t.range; shift=Math.max(fa-drag.z[0], Math.min(fb-drag.z[1], shift));
+  t.o._zoom=[drag.z[0]+shift, drag.z[1]+shift]; pv.style.cursor='grabbing'; renderPreview();
 });
 window.addEventListener('mouseup', ()=>{ if (drag && !drag.moved) drag=null; else if (drag) setTimeout(()=>{ drag=null; },0); });
 $('#zIn').onclick=()=>zoomBy(0.6);
 $('#zOut').onclick=()=>zoomBy(1.6);
-$('#zReset').onclick=()=>{ const f=files[cur]; if(f){ f._zoom=null; renderPreview(); } };
+$('#zReset').onclick=()=>{ const t=zTarget(); if(t){ t.o._zoom=null; renderPreview(); } };
 function setBig(on){
   $('.preview').classList.toggle('big', on); document.body.classList.toggle('bigmode', on);
   $('#bigBtn').textContent = on ? '⛶ Grafico normale' : '⛶ Grafico grande';
   requestAnimationFrame(renderPreview);
-  if (on) say('#tip2','Ecco il grafico in grande! Rotellina per zoomare, clic per i picchi. Esc per uscire. 🔍');
+  if (on) say('#tip2', viewMode==='cmp' ? 'Ecco il confronto in grande! Rotellina per zoomare, trascina per spostarti. Esc per uscire. 🔍' : 'Ecco il grafico in grande! Rotellina per zoomare, clic per i picchi. Esc per uscire. 🔍');
 }
 $('#bigBtn').onclick=()=>setBig(!$('.preview').classList.contains('big'));
 $('#closeBig').onclick=()=>setBig(false);
 $('#fTitle').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.title=e.target.value; changed(f); });
 $('#fDesc').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.desc=e.target.value; changed(f); });
-$('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
+$('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; COMPS.forEach(c=>{ if (c.instr && c.instr!==f.instr) c.keys=c.keys.filter(k=>k!==fkey(f)); }); saveCmps(); f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
 $('#fSample').onchange=e=>{ const f=files[cur]; f.sample=e.target.value||null; changed(f); };
 $('#fInclude').onchange=e=>{ const f=files[cur]; f.include=e.target.checked; persist(f); renderList(); renderSummary(); };
 $('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; f.removed=[]; f.added=[]; f.labels={}; changed(f); };
@@ -1815,8 +2153,8 @@ function readXR(){ const a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').v
 $('#xrAll').onclick=()=>{ const f=files[cur]; if(!f) return; f.xr=null; xrForce=true; changed(f); };
 $('#xrApply').onclick=()=>{ const f=files[cur]; if(!f) return; let n=0; files.forEach(g=>{ if(g.instr===f.instr){ g.xr=f.xr?f.xr.slice():null; persist(g); n++; } });
   say('#tip2', `Fatto! Stesso intervallo su ${n} file ${NOME_IT[f.instr]}. 📏`); renderPreview(); renderSummary(); renderList(); };
-$('#prevF').onclick=()=>{ if(cur>0){cur--; renderList(); renderPreview();} };
-$('#nextF').onclick=()=>{ if(cur<files.length-1){cur++; renderList(); renderPreview();} };
+$('#prevF').onclick=()=>{ if (viewMode==='cmp'){ const v=visibleCmps(), i=v.findIndex(c=>c.id===curCmpId); if (i>0){ curCmpId=v[i-1].id; renderCmp(); } return; } if(cur>0){cur--; renderList(); renderPreview();} };
+$('#nextF').onclick=()=>{ if (viewMode==='cmp'){ const v=visibleCmps(), i=v.findIndex(c=>c.id===curCmpId); if (i<v.length-1){ curCmpId=v[i+1].id; renderCmp(); } return; } if(cur<files.length-1){cur++; renderList(); renderPreview();} };
 document.addEventListener('keydown', e=>{
   if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key==='ArrowLeft') $('#prevF').click(); if (e.key==='ArrowRight') $('#nextF').click();
@@ -1883,7 +2221,7 @@ function renderSamplePills(){
 }
 function syncControls(){
   $$('[data-k]').forEach(el=>{ const v=S[el.dataset.k]; if (el.type==='checkbox') el.checked=!!v; else el.value=v; });
-  $('#ovModeRow').style.display = S.overlay==='none'?'none':'flex';
+  renderCmpOut();
   $$('#orientSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.orient));
   $$('.langSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.lang));
   $$('.outcard').forEach(c=>c.classList.toggle('on', !!S[c.dataset.out]));
@@ -1896,6 +2234,7 @@ $$('[data-k]').forEach(el=>{
     const k=el.dataset.k; let v = el.type==='checkbox' ? el.checked : el.value;
     if (typeof DEFAULTS[k]==='number'){ v=parseFloat(v); if(!isFinite(v)) return; }
     S[k]=v; saveS();
+    if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
     if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','csvPeaks','csvData','color'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
@@ -1933,7 +2272,7 @@ $('#presetExport').onclick=()=>download(new Blob([JSON.stringify({attuali:S, sal
 $('#presetImport').onclick=()=>$('#presetFile').click();
 $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ const o=JSON.parse(await f.text()); const p=presets(); Object.assign(p, o.salvate||{}); lsSet(LS_PRESETS,p);
-    if (Array.isArray(o.libreria)){ const ids=new Set(LIB.map(e=>e.id)); o.libreria.forEach(e=>{ if(e&&e.id&&!ids.has(e.id)&&INSTR[e.i]) LIB.push(e); }); saveLib(); renderLib(); }
+    if (Array.isArray(o.libreria)){ const ids=new Set(LIB.map(e=>e.id)); o.libreria.forEach(e=>{ if(e&&typeof e.id==='string'&&!ids.has(e.id)&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) LIB.push({id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}); }); saveLib(); renderLib(); }
     if (o.attuali){ S=merge(DEFAULTS,o.attuali); saveS(); syncControls(); resetCaches(); renderPreview(); }
     renderPresets(); say('#tip3','Impostazioni importate! 📥'); }catch(err){ say('#tip3','Mmm, quel file non lo capisco. 🤷'); }
   e.target.value=''; };
@@ -1946,10 +2285,11 @@ function included(){
   return list;
 }
 function renderSummary(){
-  const inc=included(), ov = S.overlay!=='none' ? overlayGroups().length : 0;
+  const inc=included(), ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0;
   const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov;
   const zipParts=[];
-  if (S.outPng) zipParts.push(`${inc.length+ov} immagin${inc.length+ov===1?'e':'i'} PNG`);
+  const ovPng = (S.outPng && S.cmpPng) ? ovAll : 0;
+  if (S.outPng) zipParts.push(`${inc.length+ovPng} immagin${inc.length+ovPng===1?'e':'i'} PNG${ovPng?` (di cui ${ovPng} di confronto)`:''}`);
   if (S.csvPeaks) zipParts.push('elenco dei picchi');
   if (S.csvData) zipParts.push('dati elaborati');
   const items=[];
@@ -1958,7 +2298,8 @@ function renderSummary(){
     items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>`);
     if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 ${S.orient==='landscape'?'orizzontale':'verticale'}, ${S.perPage} grafic${S.perPage===1?'o':'i'} per pagina, circa ${pages} pagin${pages===1?'a':'e'}${ov?`, ${ov} pagin${ov===1?'a':'e'} di confronto`:''}</li>`);
     if (zipParts.length) items.push(`<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
-    if (S.overlay!=='none' && !ov) items.push('<li>ℹ️ Niente pagine di confronto: servono almeno 2 spettri dello stesso strumento.</li>');
+    const halfCmp = COMPS.filter(c=>c.out && members(c).length===1).length;
+    if (halfCmp) items.push(`<li>ℹ️ ${halfCmp} confront${halfCmp===1?'o ha':'i hanno'} un solo spettro e non ${halfCmp===1?'verrà stampato':'verranno stampati'}: servono almeno 2 spettri.</li>`);
   }
   $('#sumList').innerHTML = items.join('');
   const what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null].filter(Boolean);
@@ -1991,7 +2332,7 @@ async function buildPdf(){
   const cw=(PW-2*M-(cols-1)*G)/cols, ch=(PH-2*M-8-(rows-1)*G)/rows;
   const fontPt = Math.max(5.5, Math.min(9, ch/11));
   const title = S.docTitle || Lx.title, date=new Date().toLocaleString(Lx.locale);
-  const groups = S.overlay!=='none' ? overlayGroups() : [];
+  const groups = S.cmpPdf!=='none' ? outComparisons() : [];
   let pageNo=0, first=true;
   const newPage=()=>{ if(!first) doc.addPage(); first=false; };
   const footers=[]; const footer=()=>{ pageNo++; footers.push(pageNo); };
@@ -2012,7 +2353,7 @@ async function buildPdf(){
       const nameL=doc.setFont('helvetica','bold').setFontSize(8.5).splitTextToSize(pdfText(dispTitle(f)), wName).slice(0,2);
       const sub=[f.desc, f.title?`${Lx.fileLbl}: ${f.path}`:''].filter(Boolean).join(' · ');
       const subL=sub? doc.setFont('helvetica','normal').setFontSize(7.5).splitTextToSize(pdfText(sub), wName).slice(0,2) : [];
-      const pkTxt = S.showPeaks ? v.peaks.map(p=>p.custom? `${p.num} (${p.name})` : p.num).join(', ') : '';
+      const pkTxt = S.showPeaks ? v.peaks.map(p=>(p.custom? `${p.num} (${p.name})` : p.num) + (S.showArea && p.areaPct!=null ? ` [${p.areaPct.toFixed(1).replace('.',Lx.dec)}%]` : '')).join(', ') : '';
       const pkL = pkTxt ? doc.setFontSize(7.5).splitTextToSize(pdfText(pkTxt), wPk).slice(0,3) : [];
       const h = Math.max(nameL.length*3.6 + subL.length*3.2, pkL.length*3.2, 3.6) + 2.4;
       if (y+h > PH-M-8){ footer(); y=head(); }
@@ -2032,15 +2373,15 @@ async function buildPdf(){
   }
   // confronti
   const addOverlays=async ()=>{
-    for (const [instr, list] of groups){
+    for (const {c:cmp} of groups){
       newPage();
       const w=PW-2*M, h=Math.min(PH-2*M-8, w*0.62);
-      const c=renderCanvas(overlayView(instr,list), w, h, 220, 10);
+      const c=renderCanvas(cmpViewOf(cmp), w, h, 220, 10);
       doc.addImage(c.toDataURL('image/png'),'PNG', M, M, w, h, undefined, 'FAST');
       footer(); await tick();
     }
   };
-  if (S.overlay==='start') await addOverlays();
+  if (S.cmpPdf==='start') await addOverlays();
   for (let i=0;i<inc.length;i++){
     const slot=i%S.perPage;
     if (slot===0) newPage();
@@ -2051,7 +2392,7 @@ async function buildPdf(){
     if (slot===S.perPage-1 || i===inc.length-1) footer();
     progress((i+1)/inc.length); status(`📄 Disegno il grafico ${i+1} di ${inc.length}…`); if (i%2===0) await tick();
   }
-  if (S.overlay==='end') await addOverlays();
+  if (S.cmpPdf==='end') await addOverlays();
   const total=doc.getNumberOfPages();
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text(pdfText(title)+'  ·  '+date+'  ·  Acchiappaspettri', M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
@@ -2082,9 +2423,9 @@ async function buildZip(){
   const Lx=T_(), zip=new JSZip(), root=Lx.zip+'_'+stamp(), folder=zip.folder(root);
   const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
   const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
-  const rows=[Lx.csv.slice()];
+  const rows=[S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()];
   const uniq=(dir,base,ext)=>{ let name=dir+base+ext, n=2; while (used.has(name)) name=dir+base+'_'+(n++)+ext; used.add(name); return name; };
-  const groups = S.overlay!=='none' ? overlayGroups() : [];
+  const groups = (S.outPng && S.cmpPng) ? outComparisons() : [];
   const total=inc.length+groups.length;
   for (let i=0;i<inc.length;i++){
     const f=inc[i], view=viewOf(f);
@@ -2092,7 +2433,9 @@ async function buildZip(){
     const base = f.title && f.title.trim() ? f.title.trim().replace(/[\\/:*?"<>|]+/g,'_') : safeName(f.name);
     if (S.outPng){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], INSTR[f.instr].xPdf,
-      String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto]);
+      String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto]
+      .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
+        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []));
     if (S.csvData){
       const P=processed(f), lines=[[Lx.x[f.instr].replace('⁻¹','-1'), Lx.y[P.kind]||'Y'].map(c=>csvCell(c,csep)).join(csep)];
       for (let k=0;k<P.xs.length;k++) lines.push(String(+P.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+P.ys[k].toPrecision(8)).replace('.',dsep));
@@ -2100,9 +2443,9 @@ async function buildZip(){
     }
     progress((i+1)/total*0.9); status(`🗜️ Preparo lo ZIP: spettro ${i+1} di ${inc.length}…`); await tick();
   }
-  for (const [instr, list] of (S.outPng?groups:[])){
-    const c=renderCanvas(overlayView(instr,list), wmm, hmm, S.pngDpi, fontPt);
-    folder.file(uniq('', `${Lx.ovName}_${instr}`, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; await tick();
+  for (const {c:cmp} of groups){
+    const c=renderCanvas(cmpViewOf(cmp), wmm, hmm, S.pngDpi, fontPt);
+    folder.file(uniq(Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; await tick();
   }
   if (S.csvPeaks) folder.file(Lx.csvName, '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   status('🗜️ Impacchetto lo ZIP…');
@@ -2128,13 +2471,14 @@ $('#doDl').onclick=()=>runExport();
 const TOUR=[
   {sel:'#filesCard', t:'Qui ci sono i tuoi spettri. Clicca un nome per vederlo; la spunta decide se finisce nel PDF e nelle immagini.'},
   {sel:'#pv', t:'Questo è il grafico. Clic per aggiungere un picco, clic su un picco per toglierlo, rotellina per zoomare.'},
+  {sel:'#viewSeg', t:'Con «Confronta grafici» sovrapponi più spettri dello stesso strumento, li vedi subito qui e puoi metterli anche nel PDF e nelle immagini.'},
   {sel:'.pvtools', t:'Con «Grafico grande» lo vedi a tutto schermo: comodo per mettere i picchi con precisione.'},
   {sel:'#tabs', t:'Gli strumenti sono divisi per cosa vuoi fare: nome, picchi, ritocchi, zona da stampare, aspetto.'},
   {sel:'.panel.on .scope', t:'Questa etichetta ti dice a chi si applica: verde = solo questo spettro, blu = tutti dello stesso strumento, gialla = tutti i grafici.'},
   {sel:'#toV3', t:'Quando sei contento, vai a scaricare PDF e immagini. Buon lavoro! 👻'}
 ];
 let tourI=-1;
-function startTour(){ tourI=0; showTour(); }
+function startTour(){ if (viewMode!=='one') setView('one'); tourI=0; showTour(); }
 function endTour(){ tourI=-1; $('#tourHole')?.remove(); $('#tourBox')?.remove(); lsSet('acch.tourDone', true); }
 function showTour(){
   const st=TOUR[tourI]; if(!st){ endTour(); return; }
@@ -2143,7 +2487,9 @@ function showTour(){
   let hole=$('#tourHole'), box=$('#tourBox');
   if(!hole){ hole=document.createElement('div'); hole.id='tourHole'; hole.className='tourhole'; document.body.appendChild(hole); }
   if(!box){ box=document.createElement('div'); box.id='tourBox'; box.className='tourbox'; box.setAttribute('role','dialog'); document.body.appendChild(box); }
+  const myStep=tourI;
   requestAnimationFrame(()=>{
+    if (tourI!==myStep || !box.isConnected || !hole.isConnected) return;   // giro chiuso o avanzato nel frattempo
     const r=el.getBoundingClientRect(), pad=6;
     Object.assign(hole.style,{left:(r.left-pad)+'px', top:(r.top-pad)+'px', width:(r.width+pad*2)+'px', height:(r.height+pad*2)+'px'});
     box.innerHTML=`<b>👻 Gino ti fa vedere · ${tourI+1} di ${TOUR.length}</b><p>${st.t}</p><div class="row"><button class="btn small ghost" id="tSkip">Salta il giro</button><button class="btn small primary" id="tNext">${tourI===TOUR.length-1?'Ho capito':'Avanti'}</button></div>`;
@@ -2169,7 +2515,7 @@ function confetti(){
 }
 
 /* avvio */
-syncControls(); renderPresets(); renderLib(); refreshAll();
+syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 </body>
 </html>
