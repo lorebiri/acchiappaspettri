@@ -94,7 +94,7 @@ p.hint{color:var(--muted);margin:0 0 14px}
 .tile .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600}
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:var(--line);white-space:nowrap}
 .b-ftir{background:#e3ecfb;color:#1f4f9a}.b-raman{background:#fbe6e4;color:#8f2019}.b-uv{background:#eee6fa;color:#55308f}
-.b-hplc{background:#e1f3e9;color:#155e39}.b-gen{background:#eceef2;color:#333}
+.b-hplc{background:#e1f3e9;color:#155e39}.b-xrf{background:#fdecd8;color:#8a4a0c}.b-gen{background:#eceef2;color:#333}
 
 .layout{display:grid;grid-template-columns:270px minmax(0,1fr) 290px;gap:14px;align-items:start}
 @media (max-width:1150px){.layout{grid-template-columns:1fr}}
@@ -112,6 +112,10 @@ p.hint{color:var(--muted);margin:0 0 14px}
 .pvtools .hint2{font-size:12.5px;color:var(--muted);margin-left:4px}
 .zoomtag{display:none;background:#fff6ec;border:1px solid #f0b37a;color:#8a4a0c;border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}
 .preview.zoomed .zoomtag{display:inline-block}
+#lassoBtn.on{background:#fff6ec;border-color:#f0b37a;color:#8a4a0c}
+.preview.lasso #pv{cursor:crosshair;touch-action:none}
+.insetbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border:1px dashed #9aa3b2;border-radius:10px;background:#f7f9fc;font-size:13px}
+.insetbar span{flex:1 1 220px;color:var(--muted)}
 #closeBig{display:none}
 .preview.big{position:fixed;inset:10px;z-index:45;overflow:auto;box-shadow:0 20px 70px rgba(20,30,50,.35)}
 .preview.big canvas{height:calc(100vh - 250px);min-height:300px}
@@ -389,7 +393,7 @@ body.busy, body.busy *{cursor:progress !important}
             <button class="btn primary big" id="pickFiles">Scegli file</button>
             <button class="btn big" id="pickFolder">Scegli cartella</button>
           </div>
-          <div class="formats">.txt · .asc · .csv · .dat · .dpt · .prn · .xy — FTIR, Raman, UV-Vis, HPLC<br>I dati restano sul tuo computer, niente viene inviato in rete 🔒</div>
+          <div class="formats">.txt · .asc · .csv · .dat · .dpt · .prn · .xy · .mca · .spt · .spe — FTIR, Raman, UV-Vis, HPLC, XRF<br>I dati restano sul tuo computer, niente viene inviato in rete 🔒</div>
           <input type="file" id="inFiles" multiple hidden>
           <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
         </div>
@@ -400,13 +404,13 @@ body.busy, body.busy *{cursor:progress !important}
     <div class="howto" id="howto">
       <div class="how"><div class="n">1</div><h4>📂 Carica</h4><ul>
         <li>file singoli, tanti file o una cartella intera</li>
-        <li>riconosco da solo lo strumento: FTIR, Raman, UV-Vis, HPLC</li>
+        <li>riconosco da solo lo strumento: FTIR, Raman, UV-Vis, HPLC, XRF</li>
         <li>formati di testo: .txt .asc .csv .dat…</li></ul></div>
       <div class="how"><div class="n">2</div><h4>🔍 Controlla</h4><ul>
         <li>guardi ogni grafico in anteprima</li>
         <li>cambi nome e aggiungi una descrizione</li>
         <li>aggiungi e togli picchi, e ti suggerisco il loro nome (lo metto solo se approvi)</li>
-        <li>converti %T ↔ assorbanza, linea di base, smoothing, zoom sull'asse X</li>
+        <li>converti %T ↔ assorbanza, linea di base, smoothing, zoom; disegna a mano libera una zona da ingrandire e mettila nel grafico come riquadro</li>
         <li>sovrapponi più spettri per confrontarli</li></ul></div>
       <div class="how"><div class="n">3</div><h4>⬇️ Scarica</h4><ul>
         <li>PDF con più grafici per pagina, per consultare al volo</li>
@@ -459,11 +463,17 @@ body.busy, body.busy *{cursor:progress !important}
         <button class="btn small" id="zIn" title="Ingrandisci (rotellina del mouse)">🔍＋</button>
         <button class="btn small" id="zOut" title="Rimpicciolisci">🔍－</button>
         <button class="btn small" id="zReset" title="Mostra tutto (tasto 0)">↺ Tutto</button>
+        <button class="btn small" id="lassoBtn" title="Disegna col mouse una forma libera intorno alla zona da ingrandire (tasto L)">✏️ Ingrandisci una zona</button>
         <span class="zoomtag" id="zoomTag">zoom attivo, solo in anteprima</span>
         <span class="spacer"></span>
         <button class="btn small primary" id="closeBig">✕ Chiudi</button>
       </div>
-      <div class="readout" id="readout">Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom</div>
+      <div class="insetbar" id="insetBar" hidden>
+        <span id="insetMsg"></span>
+        <button class="btn small primary" id="insetPin" title="Il riquadro ingrandito compare nel grafico, nel PDF e nelle immagini PNG">📌 Metti l'ingrandimento nel grafico</button>
+        <button class="btn small" id="insetDel">🗑️ Togli il riquadro</button>
+      </div>
+      <div class="readout" id="readout">Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom · ✏️ ingrandisci una zona a mano libera</div>
 
       <div id="cmpPanel">
         <div class="signote" id="cmpEmpty" hidden></div>
@@ -554,7 +564,7 @@ body.busy, body.busy *{cursor:progress !important}
         <details class="sec">
           <summary>Altre opzioni sui picchi</summary>
           <div class="in">
-            <div class="field" style="max-width:240px"><label>Massimo di picchi per grafico</label><input type="number" min="0" max="60" data-k="maxPeaks"></div>
+            <div class="field" style="max-width:320px"><label>Massimo di picchi per grafico</label><input type="number" min="0" max="60" data-k="maxPeaks"><small class="opt-l">per l'XRF, che ha molte righe, ne mostro fino a 1,7 volte tanti</small></div>
             <label class="check"><input type="checkbox" data-k="peakLabels"> Scrivi il valore accanto a ogni picco</label>
           </div>
         </details>
@@ -570,10 +580,21 @@ body.busy, body.busy *{cursor:progress !important}
       <!-- ZONA E STRUMENTO -->
       <div class="panel" data-panel="zone">
         <div class="phead"><b>Quale parte dello spettro stampare</b><span class="scope s-one">solo questo spettro</span></div>
-        <p class="why">Per esempio solo l'impronta digitale 1800–600 cm⁻¹. Lascia vuoto per stampare tutto. Lo zoom con la rotellina invece vale solo per l'anteprima.</p>
+        <p class="why">Per esempio solo l'impronta digitale 1800–600 cm⁻¹. Lascia vuoto per stampare tutto. Lo zoom con la rotellina invece vale solo per l'anteprima; per mostrare un dettaglio anche nel PDF usa «✏️ Ingrandisci una zona» sotto il grafico.</p>
         <div class="xr"><input type="number" id="xrA" step="any" placeholder="da" aria-label="da"> – <input type="number" id="xrB" step="any" placeholder="a" aria-label="a"> <span id="xrUnit" class="opt-l"></span>
           <button class="btn small" id="xrAll">Tutto lo spettro</button></div>
         <button class="btn small ghost" id="xrApply" style="margin-top:6px">Usa questa zona per tutti gli spettri di questo strumento</button>
+
+        <div id="xrfBox" hidden>
+          <div class="phead" style="margin-top:20px"><b>Calibrazione in energia (XRF)</b><span class="scope s-one">solo questo spettro</span></div>
+          <p class="why" id="xrfInfo"></p>
+          <div class="row">
+            <button class="btn small" id="xrfAlign">🎯 Allinea sulle righe note</button>
+            <button class="btn small ghost" id="xrfAlignAll">Allinea tutti gli spettri XRF</button>
+            <button class="btn small ghost" id="xrfReset">↺ Usa la calibrazione del file</button>
+          </div>
+          <div class="signote" id="xrfMsg" hidden></div>
+        </div>
 
         <div class="phead" style="margin-top:20px"><b>Strumento e tipo di campione</b><span class="scope s-one">solo questo spettro</span></div>
         <div class="row" style="align-items:flex-start;gap:16px">
@@ -632,7 +653,7 @@ body.busy, body.busy *{cursor:progress !important}
         <details class="sec">
           <summary>Altre opzioni del PDF</summary>
           <div class="in">
-            <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Grafici"></div>
+            <div class="field"><label>Titolo del documento</label><input type="text" data-k="docTitle" id="docTitle" placeholder="Report spettri"></div>
             <div class="field"><label>Ordine dei grafici</label>
               <select data-k="order"><option value="instr">Per strumento, poi per nome</option><option value="name">Per nome</option><option value="load">Come li ho caricati</option></select></div>
           </div>
@@ -722,20 +743,23 @@ const INSTR = {
   raman: {xPdf:'cm-1', invertX:false, colore:'#c0392b', conv:['orig','norm']},
   uv:    {xPdf:'nm',   invertX:false, colore:'#6a3fb5', conv:['orig','A','T']},
   hplc:  {xPdf:'min',  invertX:false, colore:'#1b7f4b', conv:['orig','norm']},
+  xrf:   {xPdf:'keV',  invertX:false, colore:'#b5651d', conv:['orig','norm']},
   gen:   {xPdf:'',     invertX:false, colore:'#333333', conv:['orig','norm']}
 };
 const L10N = {
-  it:{ x:{ftir:"Numero d'onda (cm⁻¹)", raman:'Raman shift (cm⁻¹)', uv:"Lunghezza d'onda (nm)", hplc:'Tempo di ritenzione (min)', gen:'X'},
+  it:{ x:{ftir:"Numero d'onda (cm⁻¹)", raman:'Raman shift (cm⁻¹)', uv:"Lunghezza d'onda (nm)", hplc:'Tempo di ritenzione (min)', xrf:'Energia (keV)', gen:'X'},
        y:{T:'Trasmittanza (%)', A:'Assorbanza', I:'Intensità (conteggi)', mAU:'Segnale (mAU)', N:'Intensità normalizzata', S:'Intensità normalizzata (sfalsata)', '':'Y'},
-       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generico'},
-       dec:',', title:'Grafici', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', xrf:'XRF', gen:'Generico'},
+       chan:'Canale', cnt:'conteggi', net:'conteggi netti', nu:'u.n.', logS:'scala log',
+       dec:',', title:'Report spettri', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
        cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
        csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
        locale:'it-IT', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
-  en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', hplc:'Retention time (min)', gen:'X'},
+  en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', hplc:'Retention time (min)', xrf:'Energy (keV)', gen:'X'},
        y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', '':'Y'},
-       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', gen:'Generic'},
-       dec:'.', title:'Plots', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', hplc:'HPLC', xrf:'XRF', gen:'Generic'},
+       chan:'Channel', cnt:'counts', net:'net counts', nu:'n.u.', logS:'log scale',
+       dec:'.', title:'Spectra report', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
        cols:['#','Sample','Instrument','X range','Peaks'], fileLbl:'file',
        csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type'], csvArea:['Area','Area unit','Area %','Integration start','Integration end'], man:'manual', auto:'automatic',
        locale:'en-GB', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
@@ -951,33 +975,119 @@ const BANDS = {
     ['u_au',510,540,'plasmone di nanoparticelle d\'oro','gold nanoparticle plasmon',null,'mat']
   ]
 };
+/* XRF: righe di emissione (keV, tabelle X-ray Data Booklet). Gruppo = elemento, per la coerenza Kα↔Kβ, Lα↔Lβ. */
+const XRF_LINES = {
+  Na:[['Kα',1.041]], Mg:[['Kα',1.254]], Al:[['Kα',1.487]], Si:[['Kα',1.740]], P:[['Kα',2.013]],
+  S:[['Kα',2.307],['Kβ',2.464]], Cl:[['Kα',2.622],['Kβ',2.816]], Ar:[['Kα',2.957],['Kβ',3.190]], K:[['Kα',3.314],['Kβ',3.590]],
+  Ca:[['Kα',3.692],['Kβ',4.013]], Ti:[['Kα',4.511],['Kβ',4.932]], V:[['Kα',4.952],['Kβ',5.427]], Cr:[['Kα',5.415],['Kβ',5.947]],
+  Mn:[['Kα',5.899],['Kβ',6.490]], Fe:[['Kα',6.404],['Kβ',7.058]], Co:[['Kα',6.930],['Kβ',7.649]], Ni:[['Kα',7.478],['Kβ',8.265]],
+  Cu:[['Kα',8.047],['Kβ',8.905],['Lα',0.930]], Zn:[['Kα',8.639],['Kβ',9.572],['Lα',1.012]], Ga:[['Kα',9.252],['Kβ',10.264]], Ge:[['Kα',9.886],['Kβ',10.982]],
+  As:[['Kα',10.544],['Kβ',11.726],['Lα',1.282]], Se:[['Kα',11.222],['Kβ',12.496]], Br:[['Kα',11.924],['Kβ',13.291]], Rb:[['Kα',13.395],['Kβ',14.961]],
+  Sr:[['Kα',14.165],['Kβ',15.835],['Lα',1.806]], Y:[['Kα',14.958],['Kβ',16.738]], Zr:[['Kα',15.775],['Kβ',17.668],['Lα',2.042]], Nb:[['Kα',16.615],['Kβ',18.623],['Lα',2.166]],
+  Mo:[['Kα',17.479],['Kβ',19.608],['Lα',2.293]], Ru:[['Kα',19.279],['Kβ',21.657],['Lα',2.558]], Rh:[['Kα',20.216],['Kβ',22.724],['Lα',2.697],['Lβ',2.834]],
+  Pd:[['Kα',21.177],['Kβ',23.819],['Lα',2.838],['Lβ',2.990]], Ag:[['Kα',22.163],['Kβ',24.942],['Kβ₂',25.456],['Lα',2.984],['Lβ',3.151]],
+  Cd:[['Kα',23.174],['Kβ',26.096],['Lα',3.134],['Lβ',3.317]], In:[['Kα',24.210],['Lα',3.287]], Sn:[['Kα',25.271],['Kβ',28.486],['Lα',3.444],['Lβ',3.663]],
+  Sb:[['Kα',26.359],['Kβ',29.726],['Lα',3.605],['Lβ',3.843]], Te:[['Lα',3.769]], I:[['Kα',28.612],['Lα',3.938]], Cs:[['Lα',4.286]],
+  Ba:[['Kα',32.194],['Kβ',36.378],['Lα',4.466],['Lβ',4.828]], La:[['Lα',4.651]], Ce:[['Lα',4.840]], Nd:[['Lα',5.230]],
+  Hf:[['Lα',7.899]], Ta:[['Lα',8.146],['Lβ',9.343]], W:[['Lα',8.398],['Lβ',9.672],['Lγ',11.286],['Mα',1.775]], Re:[['Lα',8.652]], Os:[['Lα',8.911]],
+  Ir:[['Lα',9.175],['Lβ',10.708]], Pt:[['Lα',9.442],['Lβ',11.071],['Lγ',12.942],['Mα',2.051]], Au:[['Lα',9.713],['Lβ',11.443],['Lγ',13.381],['Mα',2.123]],
+  Hg:[['Lα',9.989],['Lβ',11.823],['Lγ',13.830],['Mα',2.195]], Tl:[['Lα',10.268]],
+  Pb:[['Lα',10.551],['Lβ',12.614],['Lγ',14.765],['Lγ₂',15.100],['Lℓ',9.185],['Lη',11.349],['Mα',2.342]],
+  Bi:[['Lα',10.839],['Lβ',13.024],['Mα',2.423]], Th:[['Lα',12.968]], U:[['Lα',13.615],['Lβ',17.220],['Mα',3.171]]
+};
+/* materiali tipici dei beni culturali per elemento (compaiono con il tipo di campione «Beni culturali») */
+const XRF_CULT = {
+  Pb:['biacca, minio, giallo di piombo-stagno','lead white, red lead, lead-tin yellow'], Hg:['cinabro / vermiglione','cinnabar / vermilion'],
+  As:['orpimento, realgar, verde smeraldo','orpiment, realgar, emerald green'], Cu:['azzurrite, malachite, verderame, bronzi','azurite, malachite, verdigris, bronzes'],
+  Fe:['ocre e terre, blu di Prussia','ochres and earths, Prussian blue'], Ca:['gesso, calcite, bianco d\'ossa','gypsum, calcite, bone white'],
+  Ti:['bianco di titanio (dal 1920)','titanium white (post-1920)'], Zn:['bianco di zinco, ottoni','zinc white, brasses'], Ba:['bianco fisso, barite','blanc fixe, barite'],
+  Co:['blu cobalto, smaltino','cobalt blue, smalt'], Cr:['verde ossido di cromo, giallo di cromo','chromium oxide green, chrome yellow'],
+  Sn:['giallo di piombo-stagno, bronzi','lead-tin yellow, bronzes'], Sb:['giallo di Napoli','Naples yellow'], Au:['doratura, foglia d\'oro','gilding, gold leaf'],
+  Ag:['argento, foglia d\'argento','silver, silver leaf'], Mn:['terre d\'ombra','umbers'], K:['smaltino, terre verdi','smalt, green earths'],
+  Sr:['traccia di calcite/gesso, giallo di stronzio','trace in calcite/gypsum, strontium yellow'], Cd:['giallo/rosso di cadmio (dal 1840)','cadmium yellow/red (post-1840)'],
+  Se:['rosso di cadmio','cadmium red'], S:['solfati, cinabro, oltremare','sulfates, cinnabar, ultramarine'], Cl:['cloruri, sali di alterazione','chlorides, alteration salts'],
+  Si:['silicati, terre, vetro','silicates, earths, glass'], Al:['argille, lacche','clays, lake pigments'], Ni:['leghe metalliche','metal alloys'], Zr:['opacizzanti moderni','modern opacifiers']
+};
+/* anodi dei tubi più comuni: righe del tubo diffuse dal campione (Rayleigh) e picco Compton */
+const XRF_TUBES = {
+  Rh:{Kα:20.216, Kβ:22.724, C:[18.7,19.5]}, Ag:{Kα:22.163, Kβ:24.942, C:[20.4,21.3]}, Mo:{Kα:17.479, Kβ:19.608, C:[16.4,16.9]},
+  Pd:{Kα:21.177, Kβ:23.819, C:[19.6,20.3]}, W:{Lα:8.398, Lβ:9.672, Lγ:11.286}
+};
+const xrfId = l => l.replace('α','a').replace('β₂','b2').replace('β','b').replace('γ₂','g2').replace('γ','g').replace('ℓ','l').replace('η','n');
+BANDS.xrf = (()=>{
+  const out=[];
+  for (const [el, lines] of Object.entries(XRF_LINES)){
+    const hint=XRF_CULT[el];
+    for (const [ln,E] of lines){
+      const id=`x_${el}_${xrfId(ln)}`, nm=`${el} ${ln}`;
+      if (el==='Ar'){ out.push([id,E,E,`${nm} · argon dell'aria`,`${nm} · argon in air`,'x'+el,null,null]); continue; }
+      const rare=/^(Hf|Os|Re|Ta|Ir|Tl|Th|Cs|La|Ce|Nd|Te|Ga|Ge|Nb|Ru|In|Y|U)$/.test(el);
+      out.push([id,E,E,nm,nm,'x'+el,null,Object.assign(hint?{hasCult:true}:{}, rare?{rare:true}:{})]);
+      if (hint) out.push([id+'_c',E,E,`${nm} · ${hint[0]}`,`${nm} · ${hint[1]}`,'x'+el,'cult',{cultOnly:true}]);
+    }
+  }
+  for (const [an,t] of Object.entries(XRF_TUBES)){
+    for (const ln of ['Kα','Kβ','Lα','Lβ','Lγ']) if (t[ln]) out.push([`xt_${an}_${xrfId(ln)}`,t[ln],t[ln],`${an} ${ln} · riga del tubo (anodo ${an})`,`${an} ${ln} · tube line (${an} anode)`,'xt'+an,null,{tube:an}]);
+    if (t.C) out.push([`xt_${an}_C`,t.C[0],t.C[1],`picco Compton del tubo (anodo ${an})`,`Compton peak of the tube (${an} anode)`,'xt'+an,null,{tube:an}]);
+  }
+  return out;
+})();
 const LS_LIB='spectraplot.lib.v1';
 let LIB = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_LIB)); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; }catch(e){ return []; } })();
 function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }catch(e){} }
-const SNAP_TOL = {ftir:3, raman:3, uv:2, hplc:0, gen:0};
+const SNAP_TOL = {ftir:3, raman:3, uv:2, hplc:0, xrf:0.06, gen:0};
+/* tolleranza per riconoscere una riga: nell'XRF cresce con l'energia (risoluzione del rivelatore e piccoli errori di calibrazione) */
+function tolFor(instr, v){ return instr==='xrf' ? 0.07+0.006*Math.abs(v) : (SNAP_TOL[instr]||0); }
 function dbEntries(instr){
   const own = LIB.filter(e=>e.i===instr).map(e=>({id:e.id, lo:Math.min(e.a,e.b), hi:Math.max(e.a,e.b), it:e.n, en:e.n, g:null, mine:true}));
-  const db = (BANDS[instr]||[]).map(e=>({id:e[0], lo:Math.min(e[1],e[2]), hi:Math.max(e[1],e[2]), it:e[3], en:e[4], g:e[5]||null, tags:e[6]?e[6].split(','):null, mine:false}));
+  const db = (BANDS[instr]||[]).map(e=>{ const x=e[7]||{}; return {id:e[0], lo:Math.min(e[1],e[2]), hi:Math.max(e[1],e[2]), it:e[3], en:e[4], g:e[5]||null, tags:e[6]?e[6].split(','):null, mine:false,
+    cultOnly:!!x.cultOnly, hasCult:!!x.hasCult, tube:x.tube||null, rare:!!x.rare}; });
   return own.concat(db);
 }
+/* picchi «artefatto» dell'XRF calcolati dai picchi più forti: fuga del Si (−1,74 keV) e picchi somma */
+function xrfArtName(id){
+  const m=/^(esc|sum):([\d.]+)(?::([\d.]+))?$/.exec(id); if (!m) return null;
+  const a=+m[2], b=m[3]!=null?+m[3]:null, fi=v=>v.toFixed(2).replace('.',','), fe=v=>v.toFixed(2);
+  if (m[1]==='esc') return {it:`picco di fuga del Si (da ${fi(a)} keV)`, en:`Si escape peak (from ${fe(a)} keV)`};
+  return b==null||Math.abs(a-b)<1e-6 ? {it:`picco somma (2 × ${fi(a)} keV)`, en:`sum peak (2 × ${fe(a)} keV)`}
+                                     : {it:`picco somma (${fi(a)} + ${fi(b)} keV)`, en:`sum peak (${fe(a)} + ${fe(b)} keV)`};
+}
+function xrfArtifacts(x, ctx){
+  const out=[], t=tolFor('xrf',x), st=(ctx.strong||[]).filter(s=>Math.abs(s.x-x)>1e-6), weak=s=> ctx.y==null || !(s.y>0) || ctx.y < 0.25*s.y;
+  for (const s of st){
+    if (!weak(s)) continue;
+    const e=s.x-1.740; if (e>1 && Math.abs(x-e)<=t){ const id='esc:'+s.x.toFixed(3); out.push(Object.assign({id, score:Math.abs(x-e)/t+0.2, coherent:false}, xrfArtName(id))); }
+    const d=2*s.x; if (Math.abs(x-d)<=1.5*t){ const id='sum:'+s.x.toFixed(3); out.push(Object.assign({id, score:Math.abs(x-d)/(1.5*t)+0.3, coherent:false}, xrfArtName(id))); }
+  }
+  if (st.length>=2 && weak(st[0]) && weak(st[1])){ const d=st[0].x+st[1].x; if (Math.abs(x-d)<=1.5*t){ const id=`sum:${Math.min(st[0].x,st[1].x).toFixed(3)}:${Math.max(st[0].x,st[1].x).toFixed(3)}`; out.push(Object.assign({id, score:Math.abs(x-d)/(1.5*t)+0.3, coherent:false}, xrfArtName(id))); } }
+  return out;
+}
 function entryById(id){
+  const art=xrfArtName(id); if (art) return art;
   for (const k in BANDS){ const e=BANDS[k].find(b=>b[0]===id); if (e) return {it:e[3], en:e[4]}; }
   const m=LIB.find(e=>e.id===id); return m ? {it:m.n, en:m.n} : null;
 }
 let SAMPLE='all';
-function suggest(instr, x, others, sample){
-  const st = sample || SAMPLE;
-  const tol=SNAP_TOL[instr]||0, all=dbEntries(instr).filter(e=>st==='all' || !e.tags || e.tags.includes(st));
-  const hit=(e,v)=> v>=e.lo-tol && v<=e.hi+tol;
-  return all.filter(e=>hit(e,x)).map(e=>{
+function suggest(instr, x, others, sample, ctx){
+  const st = sample || SAMPLE; ctx = ctx || {};
+  if (ctx.uncal) return [];
+  const tube = ctx.tube || null, tol = tolFor(instr, x);
+  const all=dbEntries(instr).filter(e=>(st==='all' || !e.tags || e.tags.includes(st)) && !(e.cultOnly && st!=='cult') && !(e.hasCult && st==='cult') && !(e.tube && tube && e.tube!==tube));
+  const hit=(e,v)=>{ const t=tolFor(instr,v); return v>=e.lo-t && v<=e.hi+t; };
+  const res = all.filter(e=>hit(e,x)).map(e=>{
     const c=(e.lo+e.hi)/2, w=e.hi-e.lo;
     let score = Math.abs(x-c)/(w/2+tol+1e-9) + w/400;
-    if (e.g && (others||[]).some(o=>Math.abs(o-x)>1e-6 && all.some(f=>f.g===e.g && f.id!==e.id && hit(f,o)))) score -= 0.8;
+    const coh = !!(e.g && (others||[]).some(o=>Math.abs(o-x)>1e-6 && all.some(f=>f.g===e.g && f.id!==e.id && Math.abs(f.lo-e.lo)>1e-6 && hit(f,o))));
+    if (coh) score -= 0.8;
     if (e.mine) score -= 0.3;
+    if (e.tube && tube) score -= 0.3;
+    if (e.rare) score += 0.4;
     if (st!=='all' && e.tags && e.tags.includes(st)) score -= 0.25;
     if (st==='all' && e.tags) score += 0.35;
-    return {id:e.id, it:e.it, en:e.en, score, mine:e.mine, coherent: score<0};
-  }).sort((a,b)=>a.score-b.score).slice(0,4);
+    return {id:e.id, it:e.it, en:e.en, score, mine:e.mine, coherent: coh};
+  });
+  if (instr==='xrf' && ctx.strong) res.push(...xrfArtifacts(x, ctx));
+  return res.sort((a,b)=>a.score-b.score).slice(0,4);
 }
 const CONV_LABEL = {orig:'Asse Y: dati originali', A:'Asse Y: assorbanza', T:'Asse Y: trasmittanza (%)', norm:'Asse Y: normalizzato 0–1'};
 
@@ -1012,7 +1122,108 @@ function parseLine(l){
   if (!isFinite(a) || !isFinite(b)) return null;
   return [a,b];
 }
+/* ---- XRF: spettri a una colonna (conteggi per canale) con calibrazione in energia ----
+   formati: Amptek .mca (<<DATA>>), .mca con intestazione «# Calibration1: canale keV», LIDAQ .spt ([DATA]/[CALIBRATION]),
+   Maestro/Ortec .spe ($DATA:/$ENER_FIT:), e in generale ≥ 256 righe con un solo numero dopo un'intestazione. */
+function parseXRF(text){
+  const lines=text.split(/\r\n|\n|\r/), one=/^[-+]?\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?$/;
+  const amptek=/<<\s*DATA\s*>>/i.test(text), spt=/^\s*\[DATA\]\s*$/mi.test(text), spe=/^\s*\$DATA:\s*$/m.test(text);
+  const hashMca=/^#\s*(MCA Channels|Calibration\d|Tube Anode)\b/mi.test(text);
+  const meta=[], counts=[], cal=[]; let poly=null, fmt='', start=0, sec='';
+  const pair=l=>{ const t=l.trim().split(/[\s;\t]+/).map(toNum); return t.length>=2 && isFinite(t[0]) && isFinite(t[1]) ? [t[0],t[1]] : null; };
+  if (amptek){
+    fmt='Amptek MCA';
+    for (const raw of lines){ const l=raw.trim(); if (!l) continue;
+      const m=/^<<\s*(.+?)\s*>>$/.exec(l); if (m){ sec=m[1].toUpperCase(); continue; }
+      if (sec==='DATA'){ if (one.test(l)) counts.push(toNum(l)); }
+      else if (sec==='CALIBRATION'){ const q=pair(l); if (q) cal.push(q); else meta.push(l); }
+      else if (meta.length<200) meta.push(l);
+    }
+  } else if (spt){
+    fmt='LIDAQ (.spt)';
+    for (const raw of lines){ const l=raw.trim(); if (!l) continue;
+      const m=/^\[(.+)\]$/.exec(l); if (m){ sec=m[1].toUpperCase(); if (meta.length<200) meta.push(l); continue; }
+      if (sec==='DATA'){ if (one.test(l)) counts.push(toNum(l)); }
+      else if (sec==='CALIBRATION'){
+        const c=/^Coefficients\s*=\s*(.+)$/i.exec(l); if (c){ const v=c[1].trim().split(/\s+/).map(toNum); if (v.every(isFinite)) poly=v; continue; }
+        const q=pair(l); if (q) cal.push(q); else meta.push(l);
+      } else if (meta.length<200) meta.push(l);
+    }
+  } else if (spe){
+    fmt='Maestro (.spe)'; let first=true;
+    for (const raw of lines){ const l=raw.trim(); if (!l) continue;
+      if (/^\$[A-Z_]+:$/.test(l)){ sec=l.slice(1,-1); first=true; if (meta.length<200) meta.push(l); continue; }
+      if (sec==='DATA'){ if (first){ first=false; const q=pair(l); if (q){ start=q[0]; continue; } } if (one.test(l)) counts.push(toNum(l)); }
+      else if (sec==='ENER_FIT'){ const v=l.split(/\s+/).map(toNum); if (v.length>=2 && v.every(isFinite)) poly=v; }
+      else if (sec==='MCA_CAL'){ const v=l.split(/\s+/).map(toNum).filter(isFinite); if (v.length>=2 && !first) poly=v; first=false; }
+      else if (meta.length<200) meta.push(l);
+    }
+  } else {
+    for (const raw of lines){ const l=raw.trim(); if (!l) continue;
+      if (one.test(l)){ counts.push(toNum(l)); continue; }
+      if (counts.length) { if (meta.length<200) meta.push(l); continue; }
+      if (/[\d.,]+\s*[\t;, ]\s*[-+]?\d/.test(l) && !/^[#;!*%]/.test(l) && !/[a-z]{2}/i.test(l.replace(/[eE][-+]?\d/g,''))) return null;  // tabella a 2 colonne: non è un MCA
+      const c=/^#?\s*Calibration\d*\s*[:=]\s*([-+\d.,]+)\s+([-+\d.,]+)/i.exec(l); if (c){ const a=toNum(c[1]), b=toNum(c[2]); if (isFinite(a)&&isFinite(b)) cal.push([a,b]); }
+      meta.push(l);
+    }
+    if (!hashMca && counts.length<256) return null;
+    if (counts.length<16) return null;
+    fmt = hashMca ? 'MCA (.mca)' : 'MCA (una colonna)';
+  }
+  if (counts.length<16 || !counts.every(isFinite)) return null;
+  // calibrazione canale → energia
+  let A=null, B=null, C2=0;
+  if (poly && poly.slice(0,3).some(v=>v!==0)){ A=poly[0]||0; B=poly[1]||0; C2=poly[2]||0; }
+  else {
+    const pts=cal.filter(q=>q[1]>0 && q[0]>=0);
+    if (pts.length>=2){ const n=pts.length, mx=pts.reduce((t,q)=>t+q[0],0)/n, my=pts.reduce((t,q)=>t+q[1],0)/n;
+      let sxx=0, sxy=0; for (const q of pts){ sxx+=(q[0]-mx)**2; sxy+=(q[0]-mx)*(q[1]-my); } if (sxx>0){ B=sxy/sxx; A=my-B*mx; } }
+    else if (pts.length===1 && pts[0][0]>0){ A=0; B=pts[0][1]/pts[0][0]; }
+  }
+  const calibrated = A!==null && (B>0 || C2>0);
+  const E = ch => calibrated ? A+B*ch+C2*ch*ch : ch;
+  let scale=1; if (calibrated && E(start+counts.length-1)>200) scale=0.001;   // energie in eV → keV
+  let lo=0, hi=counts.length-1; while (lo<hi && counts[lo]===0) lo++; while (hi>lo && counts[hi]===0) hi--;
+  const xs=[], ys=[];
+  for (let i=lo;i<=hi;i++){ const x=E(start+i)*scale; if (calibrated && x<0) continue; xs.push(x); ys.push(counts[i]); }
+  const hv = re => { for (const l of meta){ const m=re.exec(l); if (m) return m[1].trim(); } return ''; };
+  const info = { fmt, calibrated, cal: calibrated ? {a:A*scale, b:B*scale, c:C2*scale} : null,
+    tube: hv(/Tube Anode\s*[:=]\s*([A-Z][a-z]?)\b/i) || hv(/\bAnode\s*[:=]\s*([A-Z][a-z]?)\b/i),
+    kv: hv(/Tube Voltage\s*[:=]\s*([\d.,]+)/i) || hv(/\bHV\s*[:=]\s*([\d.,]+)/i), ua: hv(/Tube Current\s*[:=]\s*([\d.,]+)/i),
+    live: hv(/Live time\s*[:=]\s*([\d.,]+)/i), liveMs: /Live Time\s*=\s*[\d.,]+\s*msec/i.test(meta.join('\n')) };
+  if (info.tube && !XRF_TUBES[info.tube] && !XRF_LINES[info.tube]) info.tube='';
+  return {xs:Float64Array.from(xs), ys:Float64Array.from(ys), meta:meta.concat(['XRF '+fmt]), pe:false, peX:'', peY:'', xrf:info};
+}
+/* allineamento della scala in energia sulle righe note (Kα/Kβ/Lα/Lβ): fit lineare robusto E_vera = a + b·E_file */
+function xrfMajorLines(tube){
+  const out=[]; for (const [el,lines] of Object.entries(XRF_LINES)) for (const [ln,E] of lines) if (/^(Kα|Kβ|Lα|Lβ)$/.test(ln) && E>=2) out.push({E, name:`${el} ${ln}`});
+  if (tube && XRF_TUBES[tube]) for (const ln of ['Kα','Kβ']) if (XRF_TUBES[tube][ln]) out.push({E:XRF_TUBES[tube][ln], name:`${tube} ${ln} (tubo)`});
+  return out;
+}
+function xrfAlignFit(peaks, tube){
+  const all=xrfMajorLines(tube), hiE=all.filter(l=>l.E>=5);
+  const match=(lines, minX)=>{ const ps=[];
+    for (const p of peaks.filter(q=>q.x>=minX).sort((a,b)=>(b.w||0)-(a.w||0)).slice(0,8)){
+      let best=null, bd=0.2; for (const l of lines){ const d=Math.abs(l.E-p.x); if (d<bd){ bd=d; best=l; } }
+      if (best && !ps.some(q=>Math.abs(q.E-best.E)<1e-6)) ps.push({x:p.x, E:best.E, name:best.name, w:Math.sqrt(Math.max(p.w||1,1))});
+    } return ps; };
+  let pairs=match(hiE, 4.8); if (pairs.length<2) pairs=match(all, 0);
+  const fit=ps=>{ const W=ps.reduce((t,q)=>t+q.w,0), mx=ps.reduce((t,q)=>t+q.w*q.x,0)/W, mE=ps.reduce((t,q)=>t+q.w*q.E,0)/W;
+    const spread=Math.max(...ps.map(q=>q.x))-Math.min(...ps.map(q=>q.x));
+    if (ps.length<3 || spread<3) return {a:mE-mx, b:1};
+    let sxx=0, sxy=0; for (const q of ps){ sxx+=q.w*(q.x-mx)**2; sxy+=q.w*(q.x-mx)*(q.E-mE); }
+    const b=sxy/sxx; return (b>0.97 && b<1.03) ? {a:mE-b*mx, b} : {a:mE-mx, b:1}; };
+  while (pairs.length>=2){
+    const f=fit(pairs), res=pairs.map(q=>q.E-(f.a+f.b*q.x)), worst=res.reduce((k,r,i)=>Math.abs(r)>Math.abs(res[k])?i:k,0);
+    if (Math.abs(res[worst])>0.03 && pairs.length>2){ pairs.splice(worst,1); continue; }
+    const rms=Math.sqrt(res.reduce((t,r)=>t+r*r,0)/res.length);
+    if (rms>0.03) return null;
+    return {a:f.a, b:f.b, rms, pairs};
+  }
+  return null;
+}
 function parseText(text){
+  const xr = parseXRF(text); if (xr) return xr;
   const lines = text.split(/\r\n|\n|\r/);
   const meta = [];
   let start = 0, pe = false, peX = '', peY = '';
@@ -1061,6 +1272,8 @@ function detectInstrument(p, name){
   const head = (p.meta.join(' ')+' '+name).toLowerCase();
   const s = stats(p.xs,p.ys);
   if (p.pe) return {instr:'ftir', reason:'formato PerkinElmer (PE IR)'};
+  if (p.xrf){ const x=p.xrf; return {instr:'xrf', reason:`spettro XRF, formato ${x.fmt}`+(x.tube?` · anodo ${x.tube}${x.kv?`, ${x.kv} kV`:''}`:'')+(x.calibrated?'':' · senza calibrazione in energia')}; }
+  if (/\bxrf\b|fluorescen|tube anode|\bkev\b|lidaq|amptek|pmca|artax|tracer/.test(head)) return {instr:'xrf', reason:'intestazione XRF (energia in keV)'};
   const H=headerInfo(p.meta), who=(H.inst||H.origin||'').replace(/\s+/g,' ').slice(0,40), by = who ? ` · ${who}` : '';
   const ty=H.type.toLowerCase(), xu=H.xu.toLowerCase();
   if (/infrared|\bir\b/.test(ty)) return {instr:'ftir', reason:'intestazione: spettro IR'+by};
@@ -1075,6 +1288,7 @@ function detectInstrument(p, name){
   if (/dad\d|vwd\d|fld\d|\.dx_|chemstation|openlab|empower|chromatogram|retention/.test(head)) return {instr:'hplc', reason:'nome/intestazione HPLC (DAD/VWD)'};
   if (/cary|uv-?vis|lambda \d|\bjasco\b|wavelength/.test(head)) return {instr:'uv', reason:'intestazione UV-Vis'};
   if (s.n<5) return {instr:'gen', reason:'dati insufficienti'};
+  if (s.n>500 && s.xmin>-1 && s.xmax>=10 && s.xmax<=100 && s.step>0.003 && s.step<0.06 && p.ys.every(v=>v>=0 && Math.abs(v-Math.round(v))<1e-9)) return {instr:'xrf', reason:'conteggi interi su un asse 0–100 keV'};
   if (s.xmin>-1 && s.xmin<5 && s.xmax<=600 && s.step>0 && s.step<0.2 && s.n>200) return {instr:'hplc', reason:'asse X in minuti'};
   if (s.xmin>=150 && s.xmax<=1200 && s.ymax<=110 && s.ymin>=-5) return {instr:'uv', reason:'intervallo 150–1200 nm'};
   if (s.xmax>=1500 && s.xmax<=8000 && s.ymax<=120 && s.ymin>=-10) return {instr:'ftir', reason:'intervallo IR e valori %T/A'};
@@ -1092,6 +1306,7 @@ function yKindFor(instr, p){
   }
   if (instr==='raman') return 'I';
   if (instr==='hplc') return 'mAU';
+  if (instr==='xrf') return 'I';
   return '';
 }
 function transformY(ys, kind, conv){
@@ -1260,8 +1475,9 @@ function interpY(xs, ys, x){
   while (hi-lo>1){ const m=(lo+hi)>>1; if (xs[m]<=x) lo=m; else hi=m; }
   const t=(x-xs[lo])/((xs[hi]-xs[lo])||1); return ys[lo]+t*(ys[hi]-ys[lo]);
 }
-function fmtPeak(instr, x){
-  if (instr==='hplc') return x.toFixed(2).replace('.',T_().dec);
+function fmtPeak(instr, x, uncal){
+  if (uncal) return String(Math.round(x));
+  if (instr==='hplc' || instr==='xrf') return x.toFixed(2).replace('.',T_().dec);
   if (instr==='gen') return Number(x.toPrecision(4)).toString().replace('.',T_().dec);
   return String(Math.round(x));
 }
@@ -1278,13 +1494,26 @@ function niceTicks(min, max, count){
 }
 function fmtTick(v, dec){
   const sep = T_().dec;
-  if (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) return v.toExponential(1).replace('.',sep);
+  if (Math.abs(v)>=1e7 || (Math.abs(v)>=1e5 && v%1!==0) || (Math.abs(v)<1e-3 && v!==0)) return v.toExponential(1).replace('.',sep);
   return v.toFixed(dec).replace('.',sep);
 }
 /*CORE-END*/
 
 /* ---------------- DISEGNO ---------------- */
 const PALETTE=['#1f5fbf','#d1495b','#2a9d5c','#e69a1d','#7b4fc9','#17a2b8','#8c564b','#e377c2','#5c6b7a','#a3a01d'];
+/* Impaginazione senza sovrapposizioni: etichette dei picchi, legenda e riquadro ingrandito vengono
+   sistemati in modo che non si tocchino tra loro, non escano dal riquadro e non coprano la curva.
+   Se manca spazio si allarga il margine sopra (o sotto) i dati e si riprova; in ultima istanza
+   un'etichetta viene accorciata o lasciata come solo segno. */
+function rectsHit(a, b, pad){ pad=pad||0; return a.x < b.x+b.w+pad && b.x < a.x+a.w+pad && a.y < b.y+b.h+pad && b.y < a.y+a.h+pad; }
+function packCols(want, gap, lo, hi){   // posizioni orizzontali delle etichette: distanza minima «gap», dentro [lo,hi]
+  const cl=[];   // gruppi di etichette attaccate: ogni gruppo si centra sui suoi picchi
+  const fix=c=>{ let sum=0; for (let j=0;j<c.n;j++) sum+=want[c.i0+j]-j*gap; c.s=Math.min(Math.max(sum/c.n, lo), Math.max(lo, hi-(c.n-1)*gap)); };
+  want.forEach((w,i)=>{ const c={i0:i, n:1}; fix(c); cl.push(c);
+    while (cl.length>1){ const a=cl[cl.length-2], b=cl[cl.length-1]; if (a.s+a.n*gap <= b.s+1e-9) break;
+      a.n+=b.n; fix(a); cl.pop(); } });
+  const out=new Array(want.length); cl.forEach(c=>{ for (let j=0;j<c.n;j++) out[c.i0+j]=c.s+j*gap; }); return out;
+}
 function drawPlot(ctx, W, H, k, d, S){
   ctx.save();
   ctx.setTransform(k,0,0,k,0,0);
@@ -1292,26 +1521,170 @@ function drawPlot(ctx, W, H, k, d, S){
   const fpt = d.fontPt || 8, f = fpt*0.3528;
   const font = (sz, w) => `${w||''} ${sz}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const series=d.series;
-  let ymin=Infinity, ymax=-Infinity, xmin=Infinity, xmax=-Infinity;
+  let dmin=Infinity, dmax=-Infinity, xmin=Infinity, xmax=-Infinity, mp=Infinity;
   for (const s of series){ const n=s.xs.length; if(!n) continue;
     if (s.xs[0]<xmin) xmin=s.xs[0]; if (s.xs[n-1]>xmax) xmax=s.xs[n-1];
-    for (let i=0;i<n;i++){ const v=s.ys[i]; if(v<ymin)ymin=v; if(v>ymax)ymax=v; } }
-  if (!isFinite(ymin)){ ymin=0; ymax=1; xmin=0; xmax=1; }
-  if (ymax===ymin){ ymax+=1; ymin-=1; }
-  const hasPk = S.showPeaks && d.peaks && d.peaks.length;
-  const span=ymax-ymin, room = hasPk ? (S.peakLabels ? (d.peaks.some(p=>p.label.length>5)?0.30:0.20) : 0.08) : 0.04;
-  const legRoom = d.legend ? Math.min(0.7, 0.08 + 0.075*series.length) : 0;
-  if (d.dir>0){ ymax+=span*(room+legRoom); ymin-=span*0.04; } else { ymin-=span*room; ymax+=span*(0.04+legRoom); }
-
-  ctx.font = font(f*0.85);
-  const yt = niceTicks(ymin, ymax, Math.max(3, Math.round(H/14)));
-  const ylabW = d.hideYTicks ? 0 : Math.max(...yt.ticks.map(v=>ctx.measureText(fmtTick(v,yt.dec)).width), f);
+    for (let i=0;i<n;i++){ const v=s.ys[i]; if(v<dmin)dmin=v; if(v>dmax)dmax=v; if (v>0 && v<mp) mp=v; } }
+  if (!isFinite(dmin)){ dmin=0; dmax=1; xmin=0; xmax=1; }
+  if (dmax===dmin){ dmax+=1; dmin-=1; }
+  if (xmax===xmin){ xmax+=1; xmin-=1; }
+  const fixedY = Array.isArray(d.yRange) && isFinite(d.yRange[0]) && isFinite(d.yRange[1]) && d.yRange[1]>d.yRange[0];
+  const logY = !!d.logY && d.dir>0 && (fixedY ? d.yRange[1]>0 : dmax>0);
+  if (!isFinite(mp)) mp=1;
+  let u0, u1;   // estremi dei dati nell'unità dell'asse (log10 se scala logaritmica)
+  if (logY){
+    u1=Math.log10(dmax); u0=Math.log10(Math.max(mp, dmax*1e-6, 0.5)); if (u1-u0<1) u0=u1-1;
+    if (fixedY){ u1=Math.log10(d.yRange[1]); u0=Math.log10(Math.max(d.yRange[0], Math.pow(10,u1-8), mp*0.5)); }
+  } else if (fixedY){ u0=d.yRange[0]; u1=d.yRange[1]; } else { u0=dmin; u1=dmax; }
+  const U = logY ? (y => Math.log10(Math.max(y, 1e-300))) : (y => y);
+  const hasPk = !!(S.showPeaks && d.peaks && d.peaks.length);
+  const up = d.dir>0;
+  let topR = fixedY ? 0 : (up && hasPk ? 0.06 : 0.04), botR = fixedY ? 0 : (!up && hasPk ? 0.06 : 0.04);
   const hasDesc = !!d.desc;
-  const L = ylabW + f*2.6, R = f*1.4, T = f*2.7 + (hasDesc? f*1.15:0), B = f*3.3;
-  const px0=L, py0=T, pw=W-L-R, ph=H-T-B;
-  const X = x => d.invertX ? px0 + (xmax-x)/((xmax-xmin)||1)*pw : px0 + (x-xmin)/((xmax-xmin)||1)*pw;
-  const Y = y => py0 + (ymax-y)/((ymax-ymin)||1)*ph;
-  const fit = (txt, maxW) => { if (ctx.measureText(txt).width<=maxW) return txt; while (txt.length>3 && ctx.measureText(txt+'…').width>maxW) txt=txt.slice(0,-1); return txt+'…'; };
+  const inset = d.inset && Array.isArray(d.inset.x) ? d.inset : null;
+
+  // dimensioni fisse di etichette e legenda
+  const fl0 = f*0.74;
+  let leg=null;
+  if (d.legend){
+    ctx.font=font(f*0.75); const lh=f*1.05;
+    let items=series.map(s=>({name:s.name,color:s.color}));
+    leg={items, lh};
+  }
+
+  let G, lab, legBox, insBox, side=null;
+  const topR0=topR, botR0=botR, MAXR=0.9;   // i dati occupano sempre almeno metà dell'altezza: oltre, le etichette si accorciano
+  for (let attempt=0; attempt<2; attempt++){
+  topR=topR0; botR=botR0;
+  for (let iter=0; iter<12; iter++){
+    const sp=(u1-u0)||1, lo=u0-sp*botR, hi=u1+sp*topR;
+    ctx.font = font(f*0.85);
+    const yt = logY ? logTicks(lo, hi) : niceTicks(lo, hi, Math.max(3, Math.round(H/14)));
+    const fy = logY ? fmtLogTick : fmtTick;
+    const ylabW = d.hideYTicks ? 0 : Math.max(...yt.ticks.map(v=>ctx.measureText(fy(v,yt.dec)).width), f);
+    const L = ylabW + f*2.6, R = f*1.4 + (side ? side.w + f*0.9 : 0), T = f*2.7 + (hasDesc? f*1.15:0), B = f*3.3;
+    const px0=L, py0=T, pw=W-L-R, ph=H-T-B;
+    const X = x => d.invertX ? px0 + (xmax-x)/(xmax-xmin)*pw : px0 + (x-xmin)/(xmax-xmin)*pw;
+    const Y = y => py0 + (hi-U(y))/((hi-lo)||1)*ph;
+    G={lo,hi,yt,px0,py0,pw,ph,X,Y,fy};
+
+    // inviluppo della curva per colonne: dove la traccia occupa spazio
+    const nc=Math.max(60, Math.min(2400, Math.round(pw*Math.min(k,8)))), eT=new Float64Array(nc).fill(Infinity), eB=new Float64Array(nc).fill(-Infinity);
+    const colOf = x => Math.min(nc-1, Math.max(0, Math.floor((x-px0)/pw*nc)));
+    for (const s of series){ const xs=s.xs, ys=s.ys; let pc=-1, pyv=0;
+      for (let i=0;i<xs.length;i++){ const x=X(xs[i]); if (x<px0-1e-6 || x>px0+pw+1e-6){ pc=-1; continue; }
+        const y=Math.min(py0+ph, Math.max(py0, Y(ys[i]))), c=colOf(x);
+        const a=pc<0?c:Math.min(c,pc), b=pc<0?c:Math.max(c,pc), ya=pc<0?y:Math.min(y,pyv), yb=pc<0?y:Math.max(y,pyv);
+        for (let q=a;q<=b;q++){ if (ya<eT[q]) eT[q]=ya; if (yb>eB[q]) eB[q]=yb; }
+        pc=c; pyv=y; } }
+    const envQ = (x0, x1) => { let t=Infinity, b=-Infinity; for (let q=colOf(x0); q<=colOf(x1); q++){ if (eT[q]<t) t=eT[q]; if (eB[q]>b) b=eB[q]; } return [t,b]; };
+    G.envQ=envQ;
+    const frame={x:px0, y:py0, w:pw, h:ph}, pad=f*0.3;
+    let region=null;   // zona ingrandita: le etichette ci passano sopra, non attraverso
+    if (inset){ const rx=[X(inset.x[0]), X(inset.x[1])].sort((a,b)=>a-b), ry=[Y(inset.y[0]), Y(inset.y[1])].map(v=>Math.min(py0+ph, Math.max(py0, isFinite(v)?v:py0+ph))).sort((a,b)=>a-b);
+      region={x:rx[0], y:ry[0], w:rx[1]-rx[0], h:ry[1]-ry[0]}; }
+    let defTop=0, defBot=0;
+
+    // --- etichette dei picchi
+    lab=[];
+    if (hasPk){
+      const vis = d.peaks.map(p=>({p, x:X(p.x), y:Y(p.y)})).filter(o=>o.x>=px0-0.5 && o.x<=px0+pw+0.5 && o.y>=py0-0.5 && o.y<=py0+ph+0.5).sort((a,b)=>a.x-b.x);
+      let fl=fl0, gap=fl*1.15;
+      const room = pw - f*0.6;
+      if (vis.length*gap > room) { fl=Math.max(f*0.5, room/(vis.length*1.15)); gap=fl*1.15; }
+      const cap=Math.max(1, Math.floor(room/gap)+1);
+      let keep=vis;
+      if (vis.length>cap){   // troppi picchi per scriverli tutti: tengo i più importanti, gli altri restano un segno
+        const prio=o=>(o.p.custom?1e9:0)+(up ? (py0+ph-o.y) : (o.y-py0));
+        const best=new Set(vis.slice().sort((a,b)=>prio(b)-prio(a)).slice(0,cap)); keep=vis.filter(o=>best.has(o));
+        vis.forEach(o=>{ if(!best.has(o)) o.noText=true; });
+      }
+      const cols=packCols(keep.map(o=>o.x), gap, px0+gap/2, px0+pw-gap/2);
+      keep.forEach((o,i)=>{ o.lx=cols[i]; });
+      ctx.font=font(fl);
+      const g=f*0.45, len=f*0.9, th=fl*1.0;
+      for (const o of vis){
+        o.g=g; o.len=len; o.fl=fl; o.th=th;
+        if (o.noText || !S.peakLabels){ o.lx=o.x; o.text=''; o.tw=0; }
+        else { o.text=o.p.label; o.tw=ctx.measureText(o.text).width; }
+        const half=(o.noText||!S.peakLabels) ? f*0.15 : th/2+f*0.12;
+        let [eTop,eBot]=envQ(o.lx-half, o.lx+half);
+        if (region && o.lx+half>=region.x && o.lx-half<=region.x+region.w){ eTop=Math.min(eTop, region.y); eBot=Math.max(eBot, region.y+region.h); }
+        o.base = up ? Math.min(eTop - f*0.35, o.y - g - len) : Math.max(eBot + f*0.35, o.y + g + len);
+      }
+      // i tratti obliqui delle linee guida non devono passare sopra le etichette vicine
+      for (const o of vis){ if (!o.text) continue;
+        for (const q of vis){ if (q===o) continue; const a=Math.min(q.x,q.lx)-o.th/2, b=Math.max(q.x,q.lx)+o.th/2;
+          if (o.lx>=a && o.lx<=b){ const yl = up ? q.y-q.g-q.len : q.y+q.g+q.len; o.base = up ? Math.min(o.base, yl - f*0.25) : Math.max(o.base, yl + f*0.25); } } }
+      for (const o of vis){
+        if (!o.text) continue;
+        const avail = up ? (o.base - f*0.2) - (py0 + pad) : (py0 + ph - pad) - (o.base + f*0.2);
+        const def = o.tw - avail;
+        if (def>0){ if (up) defTop=Math.max(defTop, def); else defBot=Math.max(defBot, def); }
+        o.avail=avail;
+      }
+      lab=vis;
+    }
+    const labRects = () => lab.filter(o=>o.text).map(o=>{ const len=Math.min(o.tw, Math.max(0,o.avail));
+      return up ? {x:o.lx-o.th/2, y:o.base-f*0.2-len, w:o.th, h:len+f*0.2} : {x:o.lx-o.th/2, y:o.base, w:o.th, h:len+f*0.2}; });
+
+    // spazio libero: niente curva, niente etichette, niente altri riquadri
+    const blockers=[];
+    const freeDef = (bx) => {   // quanto andrebbe abbassata la curva perché il riquadro sia libero (0 = libero)
+      let dd=0; const [t,b]=envQ(bx.x-pad, bx.x+bx.w+pad);
+      const top=bx.y-pad, bot=bx.y+bx.h+pad;
+      if (!(b<top || t>bot)) dd=Math.max(dd, bot-t);
+      for (const r of labRects().concat(blockers)) if (rectsHit(bx, r, pad)) dd=Math.max(dd, bot-r.y);
+      return dd;
+    };
+    const place = (w, h, cands) => { let best=null;
+      for (const [nm,bx] of cands){ const dd=freeDef(bx); if (dd<=0) return {box:bx, def:0, nm}; if (!best || dd<best.def) best={box:bx, def:dd, nm}; }
+      return best; };
+    const corners = (w,h) => [
+      ['tr',{x:px0+pw-w-pad, y:py0+pad, w, h}], ['tl',{x:px0+pad, y:py0+pad, w, h}], ['tc',{x:px0+(pw-w)/2, y:py0+pad, w, h}],
+      ['br',{x:px0+pw-w-pad, y:py0+ph-h-pad, w, h}], ['bl',{x:px0+pad, y:py0+ph-h-pad, w, h}],
+      // poi tutte le posizioni lungo il bordo alto e quello basso
+      ...Array.from({length:15}, (_,i)=>['t'+i,{x:px0+pad+(pw-w-2*pad)*(i+1)/16, y:py0+pad, w, h}]),
+      ...Array.from({length:15}, (_,i)=>['b'+i,{x:px0+pad+(pw-w-2*pad)*(i+1)/16, y:py0+ph-h-pad, w, h}]) ];
+
+    // --- legenda
+    legBox=null;
+    if (leg){
+      ctx.font=font(f*0.75);
+      const maxItems=Math.max(1,Math.floor((ph*0.85)/leg.lh)-1);
+      let items=leg.items;
+      if (items.length>maxItems){ const extra=items.length-maxItems+1; items=items.slice(0,maxItems-1); items.push({name:`+${extra} ${T_().more}`, color:null}); }
+      const tw=Math.min(pw*0.45, Math.max(...items.map(i=>ctx.measureText(i.name).width))+f*2.4), th=items.length*leg.lh+f*0.5;
+      const r = side && side.leg ? {box:{x:px0+pw+f*0.9, y:py0, w:Math.min(tw, side.w), h:th}, def:0} : place(tw, th, corners(tw,th));
+      legBox=Object.assign({items, tw}, r.box); legBox.ok = r.def<=0;
+      if (!legBox.ok) defTop=Math.max(defTop, r.def);
+      blockers.push(legBox);
+    }
+    // --- riquadro ingrandito
+    insBox=null;
+    if (inset){
+      const w0=Math.max(pw*0.36, Math.min(pw*0.46, f*48)), h0=Math.max(ph*0.36, Math.min(ph*0.5, f*30));
+      blockers.push(region);   // il riquadro non deve coprire la zona che ingrandisce
+      let r=null;
+      if (side && side.ins){ const y=py0 + (side.leg && legBox ? legBox.h + f*0.8 : 0); r={box:{x:px0+pw+f*0.9, y, w:side.w, h:Math.max(f*8, Math.min(py0+ph-y, side.w*0.8))}, def:0}; }
+      else for (const sc of [1, 0.82, 0.68]){ const q=place(w0*sc, h0*sc, corners(w0*sc, h0*sc)); if (!r || q.def<r.def) r=q; if (q.def<=0) break; }
+      insBox=Object.assign({}, r.box); insBox.ok=r.def<=0;
+      if (!insBox.ok) defTop=Math.max(defTop, r.def);
+    }
+
+    if (fixedY || (defTop<=0.02 && defBot<=0.02) || topR+botR>=MAXR-1e-6) break;
+    const tot=1+topR+botR;
+    if (defTop>0.02) topR = Math.min(MAXR-botR, topR + defTop*tot*tot/(ph*(1+botR))*1.05 + 0.01);
+    if (defBot>0.02) botR = Math.min(MAXR-topR, botR + defBot*tot*tot/(ph*(1+topR))*1.05 + 0.01);
+  }
+  // non c'è posto dentro il grafico: legenda e/o riquadro vanno a destra, fuori dall'area dei dati
+  const legBad = legBox && !legBox.ok, insBad = insBox && !insBox.ok;
+  if (attempt===0 && (legBad || insBad)){
+    side={leg:legBad, ins:insBad, w:Math.max(legBad ? legBox.tw : 0, insBad ? Math.min(W*0.3, f*50) : 0)}; continue; }
+  break;
+  }
+  const {lo,hi,yt,px0,py0,pw,ph,X,Y,fy}=G;
+  const fit = (txt, maxW) => { if (ctx.measureText(txt).width<=maxW) return txt; while (txt.length>1 && ctx.measureText(txt+'…').width>maxW) txt=txt.slice(0,-1); return txt.length>1 ? txt+'…' : ''; };
 
   // titolo + descrizione
   const sub = S.showInstr ? d.instrName : '';
@@ -1319,17 +1692,18 @@ function drawPlot(ctx, W, H, k, d, S){
   ctx.fillStyle='#111'; ctx.textBaseline='alphabetic'; ctx.textAlign='left';
   ctx.font = font(f*1.08, '600');
   const tY = f*1.6;
-  ctx.fillText(fit(d.title, W - L*0.4 - subW - f), L*0.4, tY);
-  if (sub){ ctx.font=font(f*0.82); ctx.fillStyle='#666'; ctx.textAlign='right'; ctx.fillText(sub, W-R, tY); }
-  if (hasDesc){ ctx.font=font(f*0.85,'italic'); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.fillText(fit(d.desc, W - L*0.4 - R), L*0.4, tY + f*1.15); }
+  ctx.fillText(fit(d.title, W - px0*0.4 - subW - f), px0*0.4, tY);
+  if (sub){ ctx.font=font(f*0.82); ctx.fillStyle='#666'; ctx.textAlign='right'; ctx.fillText(sub, W-f*1.4, tY); }
+  if (hasDesc){ ctx.font=font(f*0.85,'italic'); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.fillText(fit(d.desc, W - px0*0.4 - f*1.4), px0*0.4, tY + f*1.15); }
 
   // griglia e tick
   const xt = niceTicks(Math.min(xmin,xmax), Math.max(xmin,xmax), Math.max(3, Math.round(W/18)));
+  const yTickY = v => py0 + (hi-(logY?Math.log10(v):v))/((hi-lo)||1)*ph;
   ctx.lineWidth = 0.12;
   if (S.grid){
     ctx.strokeStyle='#e4e7ec'; ctx.beginPath();
     for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,py0); ctx.lineTo(x,py0+ph); }
-    if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(px0,y); ctx.lineTo(px0+pw,y); }
+    if (!d.hideYTicks) for (const v of yt.ticks){ const y=yTickY(v); ctx.moveTo(px0,y); ctx.lineTo(px0+pw,y); }
     ctx.stroke();
   }
   ctx.strokeStyle='#222'; ctx.lineWidth=0.18; ctx.strokeRect(px0,py0,pw,ph);
@@ -1337,96 +1711,172 @@ function drawPlot(ctx, W, H, k, d, S){
   ctx.beginPath(); ctx.textAlign='center'; ctx.textBaseline='top';
   for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,py0+ph); ctx.lineTo(x,py0+ph+f*0.35); ctx.fillText(fmtTick(v,xt.dec), x, py0+ph+f*0.5); }
   ctx.textAlign='right'; ctx.textBaseline='middle';
-  if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(px0,y); ctx.lineTo(px0-f*0.35,y); ctx.fillText(fmtTick(v,yt.dec), px0-f*0.55, y); }
+  if (!d.hideYTicks) for (const v of yt.ticks){ const y=yTickY(v); ctx.moveTo(px0,y); ctx.lineTo(px0-f*0.35,y); ctx.fillText(fy(v,yt.dec), px0-f*0.55, y); }
   ctx.stroke();
   ctx.font=font(f*0.92); ctx.textAlign='center'; ctx.textBaseline='bottom';
   ctx.fillText(d.xLabel, px0+pw/2, H-f*0.35);
-  ctx.save(); ctx.translate(f*1.15, py0+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(d.yLabel,0,0); ctx.restore();
+  ctx.save(); ctx.translate(f*1.15, py0+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(fit(d.yLabel, ph+f*2), 0, 0); ctx.restore();
 
   // zone integrate (area dei picchi)
   if (S.showArea && S.shadeArea && hasPk && d.series.length===1){
     const sx=d.series[0].xs, sy=d.series[0].ys;
     ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
-    d.peaks.forEach((p,k)=>{ if (p.ia==null || p.ib<=p.ia || !p.hullD) return;
-      const ia=Math.max(0,p.ia), ib=Math.min(sx.length-1,p.ib), hull=p.hullD;
+    const off=d.idxOff||0, n=sx.length, ok=i=>i>=0 && i<n;   // con lo zoom gli indici partono da «off»
+    d.peaks.forEach((p,kk)=>{ if (p.ia==null || p.ib<=p.ia || !p.hullD) return;
+      const ia=Math.max(0,p.ia-off), ib=Math.min(n-1,p.ib-off), hull=p.hullD.map(([i,v])=>[i-off,v]).filter(([i])=>ok(i));
+      if (ib<=ia || hull.length<2) return;
       ctx.beginPath(); ctx.moveTo(X(sx[ia]),Y(sy[ia]));
       const stepN=Math.max(1, Math.floor((ib-ia)/400));
       for (let i=ia;i<=ib;i+=stepN) ctx.lineTo(X(sx[i]),Y(sy[i]));
       ctx.lineTo(X(sx[ib]),Y(sy[ib]));
       for (let h=hull.length-1;h>=0;h--) ctx.lineTo(X(sx[hull[h][0]]),Y(hull[h][1]));
       ctx.closePath();
-      ctx.fillStyle = k%2 ? 'rgba(230,154,29,.24)' : 'rgba(37,99,201,.18)'; ctx.fill();
+      ctx.fillStyle = kk%2 ? 'rgba(230,154,29,.24)' : 'rgba(37,99,201,.18)'; ctx.fill();
       ctx.strokeStyle='rgba(60,60,60,.6)'; ctx.lineWidth=0.12; ctx.setLineDash([0.8,0.6]);
       ctx.beginPath(); hull.forEach(([i,v],h)=>{ const X0=X(sx[i]), Y0=Y(v); if(h) ctx.lineTo(X0,Y0); else ctx.moveTo(X0,Y0); }); ctx.stroke(); ctx.setLineDash([]);
     });
     ctx.restore();
   }
 
-  // tracce (decimate per colonna di pixel)
+  // tracce
   ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
-  const cols = Math.max(50, Math.round(pw*k));
-  for (const s of series){
-    const xs=s.xs, ys=s.ys, n=xs.length; if(!n) continue;
-    ctx.strokeStyle=s.color; ctx.lineWidth=S.lineW; ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.beginPath();
-    if (n > cols*3){
-      let lastCol=-1, cmin=0, cmax=0, cfirst=0, clast=0, started=false;
-      const flush=(c)=>{ const x=px0+(c+0.5)/cols*pw;
-        if(!started){ ctx.moveTo(x,Y(cfirst)); started=true; } else ctx.lineTo(x,Y(cfirst));
-        ctx.lineTo(x,Y(cmin)); ctx.lineTo(x,Y(cmax)); ctx.lineTo(x,Y(clast)); };
-      for (let t=0;t<n;t++){
-        const i = d.invertX ? n-1-t : t;
-        const c=Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)));
-        if (c!==lastCol){ if(lastCol>=0) flush(lastCol); lastCol=c; cmin=cmax=cfirst=clast=ys[i]; }
-        else { if(ys[i]<cmin)cmin=ys[i]; if(ys[i]>cmax)cmax=ys[i]; clast=ys[i]; }
-      }
-      if (lastCol>=0) flush(lastCol);
-    } else {
-      for (let i=0;i<n;i++){ const x=X(xs[i]), y=Y(ys[i]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
-    }
-    ctx.stroke();
+  for (const s of series) traceLine(ctx, s, X, Y, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, S.lineW);
+  // contorno della zona ingrandita (forma libera disegnata dall'utente)
+  if (insBox){
+    ctx.strokeStyle='#4b5563'; ctx.lineWidth=0.16; ctx.setLineDash([0.9,0.6]); ctx.beginPath();
+    const shp = inset.shape && inset.shape.length>2 ? inset.shape : [[inset.x[0],inset.y[0]],[inset.x[1],inset.y[0]],[inset.x[1],inset.y[1]],[inset.x[0],inset.y[1]]];
+    shp.forEach(([x,y],i)=>{ const X0=X(x), Y0=Y(Math.max(y, logY?1e-300:-Infinity)); if(i) ctx.lineTo(X0,Y0); else ctx.moveTo(X0,Y0); }); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
   }
   ctx.restore();
 
   // legenda
-  if (d.legend){
-    ctx.font=font(f*0.75); const lh=f*1.05, maxItems=Math.max(1,Math.floor((ph*0.9)/lh)-1);
-    let items=series.map(s=>({name:s.name,color:s.color}));
-    if (items.length>maxItems){ const extra=items.length-maxItems+1; items=items.slice(0,maxItems-1); items.push({name:`+${extra} ${T_().more}`, color:null}); }
-    const tw=Math.min(pw*0.45, Math.max(...items.map(i=>ctx.measureText(i.name).width))+f*2.4);
-    const lx=px0+pw-tw-f*0.4, ly=py0+f*0.4, lhh=items.length*lh+f*0.5;
-    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='#ccc'; ctx.lineWidth=0.12; ctx.fillRect(lx,ly,tw,lhh); ctx.strokeRect(lx,ly,tw,lhh);
+  if (legBox){
+    ctx.font=font(f*0.75); const lh=leg.lh, {x:lx, y:ly, w:tw, h:lhh, items}=legBox;
+    ctx.fillStyle='rgba(255,255,255,.94)'; ctx.strokeStyle='#ccc'; ctx.lineWidth=0.12; ctx.fillRect(lx,ly,tw,lhh); ctx.strokeRect(lx,ly,tw,lhh);
     ctx.textAlign='left'; ctx.textBaseline='middle';
     items.forEach((it,i)=>{ const y=ly+f*0.25+lh*(i+0.5);
       if (it.color){ ctx.strokeStyle=it.color; ctx.lineWidth=Math.max(S.lineW,0.35); ctx.beginPath(); ctx.moveTo(lx+f*0.4,y); ctx.lineTo(lx+f*1.5,y); ctx.stroke(); }
       ctx.fillStyle='#222'; ctx.fillText(fit(it.name, tw-f*2.1), lx+f*1.8, y); });
   }
+  // riquadro ingrandito
+  if (insBox) drawInset(ctx, insBox, d, S, f, font, k, logY, Y, X);
 
   // picchi
   const hits=[];
+  const blocked = [legBox, insBox].filter(Boolean);
   if (hasPk){
-    ctx.font=font(f*0.74); ctx.lineWidth=0.12;
-    const vis = d.peaks.map(p=>({p, x:X(p.x), y:Y(p.y)})).filter(o=>o.x>=px0-0.5 && o.x<=px0+pw+0.5).sort((a,b)=>a.x-b.x);
-    const gap = f*0.9;
-    vis.forEach((o,i)=>{ o.lx = i ? Math.max(o.x, vis[i-1].lx+gap) : o.x; });
-    for (let i=vis.length-1;i>=0;i--){ const lim = i<vis.length-1 ? vis[i+1].lx-gap : px0+pw-f*0.3; if (vis[i].lx>lim) vis[i].lx=Math.max(lim, px0+f*0.3); }
-    for (const o of vis){
-      const p=o.p, x=o.x, y=o.y, lx=o.lx;
-      const g = f*0.45, len=f*0.9, s=d.dir>0?-1:1;
+    ctx.lineWidth=0.12;
+    for (const o of lab){
+      const p=o.p, x=o.x, y=o.y, s=up?-1:1, g=o.g, len=o.len;
       const hl = d.highlightManual && (p.manual || p.custom);
       ctx.strokeStyle = hl ? (p.manual?'#d9741c':'#2a8a52') : '#444';
-      ctx.beginPath(); ctx.moveTo(x, y+s*g); ctx.lineTo(x, y+s*(g+len*0.45)); ctx.lineTo(lx, y+s*(g+len)); ctx.stroke();
-      if (S.peakLabels){
-        ctx.save(); ctx.translate(lx, y+s*(g+len+f*0.25)); ctx.rotate(-Math.PI/2);
-        ctx.textAlign = d.dir>0 ? 'left':'right'; ctx.textBaseline='middle';
+      let text=o.text;
+      if (text){
+        ctx.font=font(o.fl);
+        let room=Math.max(0, o.avail);
+        // mai sopra legenda o riquadro: se li toccherebbe, l'etichetta si ferma prima
+        for (const b of blocked){ if (o.lx+o.th/2 < b.x-f*0.2 || o.lx-o.th/2 > b.x+b.w+f*0.2) continue;
+          if (b.y < o.base+f*0.3 && b.y+b.h > o.base-f*0.3){ room=0; continue; }   // il riquadro copre l'attacco dell'etichetta
+          if (up && b.y+b.h <= o.base) room=Math.min(room, (o.base - f*0.2) - (b.y+b.h+f*0.3));
+          if (!up && b.y >= o.base) room=Math.min(room, (b.y-f*0.3) - (o.base+f*0.2)); }
+        room=Math.max(0, room) + f*0.12;   // piccola tolleranza: resta comunque dentro il margine interno
+        if (o.tw > room){ const t2=fit(p.label, room); text = t2 && t2.startsWith(p.num) ? t2 : (ctx.measureText(p.num).width<=room ? p.num : ''); }
+      }
+      ctx.beginPath();
+      if (text){
+        const yA=y+s*g, yB=y+s*(g+len*0.4), yC=y+s*(g+len);
+        ctx.moveTo(x, yA); ctx.lineTo(x, yB); ctx.lineTo(o.lx, yC); ctx.lineTo(o.lx, o.base);
+      } else { ctx.moveTo(x, y+s*g); ctx.lineTo(x, y+s*(g+len*0.6)); }
+      ctx.stroke();
+      o.drawn=text; o.tw=text?ctx.measureText(text).width:0;
+      if (text){
+        ctx.save(); ctx.translate(o.lx, o.base + s*f*0.2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = up ? 'left':'right'; ctx.textBaseline='middle';
         ctx.fillStyle = hl ? (p.manual?'#b35a0c':'#1f6b3e') : '#222';
-        ctx.fillText(p.label,0,0); ctx.restore();
+        ctx.fillText(text,0,0); ctx.restore();
       }
       hits.push({x,y,peak:p});
     }
   }
   ctx.restore();
-  return {px0,py0,pw,ph,xmin,xmax,ymin,ymax,invertX:d.invertX,hits};
+  const ymin = logY ? Math.pow(10,lo) : lo, ymax = logY ? Math.pow(10,hi) : hi;
+  return {px0,py0,pw,ph,xmin,xmax,ymin,ymax,invertX:d.invertX,hits,logY,lmin:lo,lmax:hi,inset:insBox,legend:legBox,
+          labels:lab.map(o=>({x:o.x, y:o.y, lx:o.lx, base:o.base, tw:o.tw, th:o.th||0, text:o.drawn||'', up}))};
+}
+function traceLine(ctx, s, X, Y, px0, pw, cols, invertX, lineW){   // traccia decimata per colonna di pixel (min/max)
+  const xs=s.xs, ys=s.ys, n=xs.length; if(!n) return;
+  ctx.strokeStyle=s.color; ctx.lineWidth=lineW; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  if (n > cols*3){
+    let lastCol=-1, cmin=0, cmax=0, cfirst=0, clast=0, started=false;
+    const flush=(c)=>{ const x=px0+(c+0.5)/cols*pw;
+      if(!started){ ctx.moveTo(x,Y(cfirst)); started=true; } else ctx.lineTo(x,Y(cfirst));
+      ctx.lineTo(x,Y(cmin)); ctx.lineTo(x,Y(cmax)); ctx.lineTo(x,Y(clast)); };
+    for (let t=0;t<n;t++){
+      const i = invertX ? n-1-t : t;
+      const c=Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)));
+      if (c!==lastCol){ if(lastCol>=0) flush(lastCol); lastCol=c; cmin=cmax=cfirst=clast=ys[i]; }
+      else { if(ys[i]<cmin)cmin=ys[i]; if(ys[i]>cmax)cmax=ys[i]; clast=ys[i]; }
+    }
+    if (lastCol>=0) flush(lastCol);
+  } else {
+    for (let i=0;i<n;i++){ const x=X(xs[i]), y=Y(ys[i]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  }
+  ctx.stroke();
+}
+function insetYRange(d, a, b){   // intervallo Y automatico della zona [a,b]
+  let mn=Infinity, mx=-Infinity, mpos=Infinity;
+  for (const s of d.series) for (let i=0;i<s.xs.length;i++){ const x=s.xs[i]; if (x<a||x>b) continue; const v=s.ys[i]; if(v<mn)mn=v; if(v>mx)mx=v; if (v>0&&v<mpos) mpos=v; }
+  if (!isFinite(mn)) return null; return [mn, mx, mpos];
+}
+function drawInset(ctx, box, d, S, f, font, k, logY){
+  const a=Math.min(d.inset.x[0], d.inset.x[1]), b=Math.max(d.inset.x[0], d.inset.x[1]);
+  let y0=Math.min(d.inset.y[0], d.inset.y[1]), y1=Math.max(d.inset.y[0], d.inset.y[1]);
+  if (d.inset.auto || !(y1>y0)){ const r=insetYRange(d,a,b); if (r){ const sp=(r[1]-r[0])||Math.abs(r[1])||1; y0=r[0]-sp*0.06; y1=r[1]+sp*0.1; if (logY){ y0=Math.max(r[2]||1, r[0])*0.8; y1=r[1]*1.4; } } }
+  if (logY){ if (y1<=0) y1=1; if (y0<=0) y0=y1/1e3; }
+  const fs=f*0.62;
+  ctx.save();
+  ctx.font=font(fs);
+  const U = logY ? (v=>Math.log10(Math.max(v,1e-300))) : (v=>v);
+  const lo=U(y0), hi=U(y1);
+  const yt = logY ? logTicks(lo,hi) : niceTicks(y0, y1, 3);
+  const xt = niceTicks(a, b, 3);
+  const fy = logY ? fmtLogTick : fmtTick;
+  const ylw = d.hideYTicks ? 0 : Math.max(...yt.ticks.map(v=>ctx.measureText(fy(v,yt.dec)).width), fs);
+  const ix=box.x+ylw+fs*1.1, iy=box.y+fs*0.6, iw=box.w-(ylw+fs*1.1)-fs*0.6, ih=box.h-fs*2.4-fs*0.6;
+  ctx.fillStyle='#fff'; ctx.fillRect(box.x, box.y, box.w, box.h);
+  ctx.strokeStyle='#4b5563'; ctx.lineWidth=0.16; ctx.setLineDash([0.9,0.6]); ctx.strokeRect(box.x, box.y, box.w, box.h); ctx.setLineDash([]);
+  const X = x => d.invertX ? ix + (b-x)/((b-a)||1)*iw : ix + (x-a)/((b-a)||1)*iw;
+  const Y = y => iy + (hi-U(y))/((hi-lo)||1)*ih;
+  if (S.grid){ ctx.strokeStyle='#eef0f3'; ctx.lineWidth=0.1; ctx.beginPath();
+    for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,iy); ctx.lineTo(x,iy+ih); }
+    if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(ix,y); ctx.lineTo(ix+iw,y); } ctx.stroke(); }
+  ctx.save(); ctx.beginPath(); ctx.rect(ix,iy,iw,ih); ctx.clip();
+  for (const s of d.series){ let lo2=0, hi2=s.xs.length-1; while (lo2<hi2 && s.xs[lo2]<a) lo2++; while (hi2>lo2 && s.xs[hi2]>b) hi2--;
+    lo2=Math.max(0,lo2-1); hi2=Math.min(s.xs.length-1, hi2+1);
+    traceLine(ctx, {xs:s.xs.subarray(lo2,hi2+1), ys:s.ys.subarray(lo2,hi2+1), color:s.color}, X, Y, ix, iw, Math.max(40, Math.round(iw*k)), d.invertX, S.lineW); }
+  if (S.showPeaks && d.peaks){ ctx.strokeStyle='#444'; ctx.lineWidth=0.12; ctx.beginPath(); const up=d.dir>0;
+    for (const p of d.peaks){ if (p.x<a||p.x>b) continue; const x=X(p.x), y=Y(p.y); if (y<iy||y>iy+ih) continue; const s=up?-1:1; ctx.moveTo(x, y+s*f*0.35); ctx.lineTo(x, y+s*f*1.0); }
+    ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle='#222'; ctx.lineWidth=0.14; ctx.strokeRect(ix,iy,iw,ih);
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.textAlign='center'; ctx.textBaseline='top';
+  for (const v of xt.ticks){ const x=X(v); if (x<ix-0.01||x>ix+iw+0.01) continue; ctx.moveTo(x,iy+ih); ctx.lineTo(x,iy+ih+fs*0.3); ctx.fillText(fmtTick(v,xt.dec), x, iy+ih+fs*0.4); }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); if (y<iy-0.01||y>iy+ih+0.01) continue; ctx.moveTo(ix,y); ctx.lineTo(ix-fs*0.3,y); ctx.fillText(fy(v,yt.dec), ix-fs*0.45, y); }
+  ctx.stroke();
+  ctx.restore();
+}
+function fmtLogTick(v, dec){   // asse logaritmico: 10³, 10⁴… invece di 1,0e+4
+  const k=Math.round(Math.log10(v)), m=v/Math.pow(10,k);
+  if (Math.abs(k)<=3 && v>=0.01) return fmtTick(v, dec);
+  const sup=String(k).replace(/[-0-9]/g, c=>'⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)]);
+  return (Math.abs(m-1)<1e-6 ? '' : (+m.toFixed(1)).toString().replace('.',T_().dec)+'·')+'10'+sup;
+}
+function logTicks(lmin, lmax){
+  const ticks=[], k0=Math.ceil(lmin-1e-9), k1=Math.floor(lmax+1e-9), few = k1-k0 < 2;
+  for (let k=k0-1;k<=k1;k++) for (const m of (few?[1,2,5]:[1])){ const v=m*Math.pow(10,k), l=Math.log10(v); if (l>=lmin-1e-9 && l<=lmax+1e-9) ticks.push(v); }
+  return {ticks, dec: Math.max(0, -k0)};
 }
 
 /* ---------------- STATO E IMPOSTAZIONI ---------------- */
@@ -1436,18 +1886,19 @@ const DEFAULTS = {
   outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
-  conv:{ftir:'orig', raman:'orig', uv:'orig', hplc:'orig', gen:'orig'},
-  smooth:{ftir:0, raman:0, uv:0, hplc:0, gen:0},
-  base:{ftir:'none', raman:'none', uv:'none', hplc:'none', gen:'none'}
+  conv:{ftir:'orig', raman:'orig', uv:'orig', hplc:'orig', xrf:'orig', gen:'orig'},
+  smooth:{ftir:0, raman:0, uv:0, hplc:0, xrf:0, gen:0},
+  base:{ftir:'none', raman:'none', uv:'none', hplc:'none', xrf:'none', gen:'none'},
+  logY:{ftir:false, raman:false, uv:false, hplc:false, xrf:true, gen:false}
 };
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
-const OBJ_KEYS=['conv','smooth','base'];
+const OBJ_KEYS=['conv','smooth','base','logY'];
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 function merge(base, o){ const r=mergeRaw(base,o); return sanitizeS(r); }
-function mergeRaw(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici') r.docTitle=''; return r; }
+function mergeRaw(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici'||r.docTitle==='Report spettri') r.docTitle=''; return r; }
 function sanitizeS(r){
   const D=DEFAULTS, oneOf=(k,arr)=>{ if(!arr.includes(r[k])) r[k]=D[k]; }, num=(k,lo,hi)=>{ const v=+r[k]; r[k]= isFinite(v) ? Math.min(hi,Math.max(lo,v)) : D[k]; }, bool=k=>{ r[k]=typeof r[k]==='boolean'? r[k] : D[k]; };
   oneOf('lang',['it','en']); oneOf('orient',['landscape','portrait']); oneOf('order',['instr','name','load']); oneOf('cmpPdf',['none','start','end']);
@@ -1462,6 +1913,7 @@ function sanitizeS(r){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear'].includes(r.base[k])) r.base[k]='none';
     if (![0,7,15,31].includes(+r.smooth[k])) r.smooth[k]=0; else r.smooth[k]=+r.smooth[k];
+    if (typeof r.logY[k]!=='boolean') r.logY[k]=D.logY[k];
   }
   return r;
 }
@@ -1469,19 +1921,41 @@ let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
-const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv)$/i;
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|mca|spt|spe)$/i;
 const dispTitle = f => (f.title && f.title.trim()) || f.name;
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
 function fkey(f){ return LS_FILE + f.path + '|' + f.xs.length; }
 function persist(f){
-  const o={title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined};
-  const empty = !o.title && !o.desc && !o.xr && !Object.keys(o.labels).length && !o.removed.length && !o.added.length && o.include && !o.instr && !o.sample;
+  const o={title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined, ecal:f.ecal||undefined, inset:f.inset||undefined};
+  const empty = !o.title && !o.desc && !o.xr && !Object.keys(o.labels).length && !o.removed.length && !o.added.length && o.include && !o.instr && !o.sample && !o.ecal && !o.inset;
   if (empty) lsDel(fkey(f)); else lsSet(fkey(f), o);
 }
-function isEdited(f){ return !!(f.title || f.desc || f.xr || Object.keys(f.labels).length || f.removed.length || f.added.length || f.instr!==f.autoInstr || f.sample); }
+function isEdited(f){ return !!(f.title || f.desc || f.xr || Object.keys(f.labels).length || f.removed.length || f.added.length || f.instr!==f.autoInstr || f.sample || f.ecal || f.inset); }
+/* riquadro ingrandito: zona scelta a mano libera, salvata in coordinate dei dati */
+function cleanInset(v){
+  if (!v || typeof v!=='object') return null;
+  const two=a=>Array.isArray(a) && a.length===2 && a.every(n=>typeof n==='number' && isFinite(n)) && a[0]!==a[1];
+  if (!two(v.x) || !two(v.y)) return null;
+  const shape = Array.isArray(v.shape) ? v.shape.filter(p=>Array.isArray(p) && p.length===2 && p.every(n=>typeof n==='number' && isFinite(n))).slice(0,160) : [];
+  return {x:[Math.min(...v.x),Math.max(...v.x)], y:[Math.min(...v.y),Math.max(...v.y)], shape, yk:String(v.yk||'').slice(0,200)};
+}
+function insetKeyFile(f){ return [S.conv[f.instr], S.base[f.instr], f.kind, !!S.logY[f.instr]].join('|'); }
+function insetKeyCmp(c){ const m=members(c); return [c.mode, c.gap, ...m.map(f=>S.conv[f.instr]+'/'+S.base[f.instr]+'/'+f.kind), !!S.logY[c.instr]].join('|'); }
+function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {auto: o.inset.yk!==key}) : null; }
+/* allineamento in energia (XRF): x_nuovo = a + b·x_file; picchi ed etichette vengono spostati di conseguenza */
+function setEcal(f, ec){
+  const old=f.ecal||{a:0,b:1}, nw=ec||{a:0,b:1};
+  const T = x => nw.a + nw.b*((x-old.a)/old.b);
+  f.added=f.added.map(T); f.removed=f.removed.map(T);
+  const nl={}; for (const [k,v] of Object.entries(f.labels)) nl[lblKey(T(+k))]=v; f.labels=nl;
+  if (f.xr) f.xr=f.xr.map(T);
+  if (f.inset){ f.inset.x=f.inset.x.map(T); f.inset.shape=f.inset.shape.map(([x,y])=>[T(x),y]); }
+  f.ecal=ec||null; f.xs=f.ecal ? Float64Array.from(f.xs0, x=>nw.a+nw.b*x) : f.xs0;
+  f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f._zoom=null; f._yzoom=null;
+}
 
-function procKey(f){ const i=f.instr; return [i,S.conv[i],S.smooth[i],S.base[i],f.kind,f.xr?f.xr.join(','):''].join('|'); }
+function procKey(f){ const i=f.instr; return [i,S.conv[i],S.smooth[i],S.base[i],f.kind,f.xr?f.xr.join(','):'',f._xv||0].join('|'); }
 function processed(f){
   const key=procKey(f); if (f._pk===key) return f._pd;
   const i=f.instr; let conv=S.conv[i]; if (!INSTR[i].conv.includes(conv)) conv='orig';
@@ -1508,21 +1982,27 @@ const lblKey = x => x.toFixed(4);
 function viewOf(f){
   const instr=f.instr, prof=INSTR[instr], P=processed(f), L=T_();
   const key=procKey(f)+'|'+S.sens+'|'+S.maxPeaks;
-  if (f._autoKey!==key){ f._auto=findPeaks(P.xs, P.ys, P.dir, S.sens, S.maxPeaks); f._autoKey=key; }
+  if (f._autoKey!==key){
+    if (instr==='xrf' && P.kind==='I'){   // conteggi: ricerca sulla radice (Anscombe), così il rumore di Poisson è uguale ovunque e si vedono anche le tracce
+      const yA=Float64Array.from(P.ys, v=>2*Math.sqrt(Math.max(v,0)+0.375));
+      f._auto=findPeaks(P.xs, yA, 1, S.sens, Math.round(S.maxPeaks*1.7)).map(q=>({x:q.x, y:interpY(P.xs,P.ys,q.x), prom:q.prom}));
+    } else f._auto=findPeaks(P.xs, P.ys, P.dir, S.sens, S.maxPeaks);
+    f._autoKey=key;
+  }
   const range=(P.xs[P.xs.length-1]-P.xs[0])||1, tol=range*0.004;
   const inR = x => x>=P.xs[0] && x<=P.xs[P.xs.length-1];
   const peaks=[];
   for (const p of f._auto) if (!f.removed.some(r=>Math.abs(r-p.x)<=tol)) peaks.push({x:p.x, y:p.y, manual:false});
   for (const x of f.added) if (inR(x)) peaks.push({x, y:interpY(P.xs,P.ys,x), manual:true});
-  const xsAll = peaks.map(p=>p.x);
+  const xsAll = peaks.map(p=>p.x), sctx = sugCtx(f, peaks);
   peaks.sort((a,b)=>a.x-b.x).forEach(p=>{
     const raw=f.labels[lblKey(p.x)];
     let name='';
     if (raw && raw[0]==='@'){ const e=entryById(raw.slice(1)); name = e ? (LANG==='en'?e.en:e.it) : ''; }
     else if (raw) name=raw;
-    p.num=fmtPeak(instr,p.x); p.custom=!!name; p.name=name;
+    p.num=fmtPeak(instr,p.x,f.uncal); p.custom=!!name; p.name=name;
     p.label = !name ? p.num : (name.includes(p.num) ? name : p.num+' '+name);
-    p.sugg = name ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample);
+    p.sugg = name ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample, Object.assign({y:p.y}, sctx));
   });
   let areaUnit='';
   if (S.showArea && peaks.length){
@@ -1532,23 +2012,29 @@ function viewOf(f){
       f._areas = peakAreas(P.xs, yA, peaks.map(p=>p.x)); f._areaKey=akey;
     }
     const tot = f._areas.reduce((t,a)=>t+(a?a.area:0),0)||1;
-    peaks.forEach((p,k)=>{ const a=f._areas[k]; if (a){ p.area=a.area; p.areaPct=100*a.area/tot; p.xa=a.xa; p.xb=a.xb; p.ia=a.ia; p.ib=a.ib;
+    const netK = instr==='xrf' && P.kind==='I' ? 1/Math.max(1e-12, Math.abs((P.xs[P.xs.length-1]-P.xs[0])/(P.xs.length-1))) : 1;   // XRF: area in conteggi netti
+    peaks.forEach((p,k)=>{ const a=f._areas[k]; if (a){ p.area=a.area*netK; p.areaPct=100*a.area/tot; p.xa=a.xa; p.xb=a.xb; p.ia=a.ia; p.ib=a.ib;
       p.hullD=a.hull.map(([i,v])=>[i, P.kind==='T' ? Math.pow(10,2-v) : (P.dir<0 ? -v : v)]); } });
-    const yu = P.kind==='T' ? 'A' : ({A:'A', I:'conteggi', mAU:'mAU', N:'u.n.'}[P.kind]||'u');
+    const yu = P.kind==='T' ? 'A' : ({A:'A', I:L.cnt, mAU:'mAU', N:L.nu}[P.kind]||'u');
     const xu = (INSTR[instr].xPdf||'x').replace('cm-1','cm⁻¹');
-    areaUnit = `${yu} × ${xu}`;
+    areaUnit = instr==='xrf' && P.kind==='I' ? L.net : `${yu} × ${xu}`;
   }
   const color = S.colorMode==='instr' ? prof.colore : S.colorMode==='black' ? '#111' : S.color;
   return {areaUnit, title:dispTitle(f), desc:(f.desc||'').trim(), instrName:L.nome[instr], series:[{xs:P.xs, ys:P.ys, color, name:dispTitle(f)}],
-          xs:P.xs, ys:P.ys, kind:P.kind, dir:P.dir, invertX:prof.invertX, xLabel:L.x[instr], yLabel:L.y[P.kind]||'Y', peaks, instr};
+          xs:P.xs, ys:P.ys, kind:P.kind, dir:P.dir, invertX:prof.invertX, xLabel: f.uncal ? L.chan : L.x[instr],
+          yLabel:(L.y[P.kind]||'Y')+(S.logY[instr] && P.kind!=='N' && P.dir>0 ? ` · ${L.logS}` : ''), logY: !!S.logY[instr] && P.kind!=='N', peaks, instr, inset: insetFor(f, insetKeyFile(f))};
+}
+function sugCtx(f, peaks){
+  return {tube:f.tube||'', uncal:!!f.uncal,
+          strong: f.instr==='xrf' ? peaks.slice().sort((a,b)=>b.y-a.y).slice(0,3).map(p=>({x:p.x, y:p.y})) : null};
 }
 /* ---------------- CONFRONTI (spettri sovrapposti) ---------------- */
 const LS_CMP='acch.cmp.v1';
 let viewMode='one', curCmpId=null;
 let COMPS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
   id:c.id.slice(0,40), name:(/^(Confronto |Nuovo confronto$)/.test(String(c.name||'')) ? '' : String(c.name||'')).slice(0,120), instr:INSTR[c.instr]?c.instr:null, mode:['stack','over','norm'].includes(c.mode)?c.mode:'stack',
-  gap:isFinite(+c.gap)?Math.min(2,Math.max(0.3,+c.gap)):1.1, out:c.out!==false, keys:c.keys.filter(k=>typeof k==='string').slice(0,60) })) : []; }catch(e){ return []; } })();
-function saveCmps(){ lsSet(LS_CMP, COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys}))); }
+  gap:isFinite(+c.gap)?Math.min(2,Math.max(0.3,+c.gap)):1.1, out:c.out!==false, keys:c.keys.filter(k=>typeof k==='string').slice(0,60), inset:cleanInset(c.inset) })) : []; }catch(e){ return []; } })();
+function saveCmps(){ lsSet(LS_CMP, COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined}))); }
 function cmpAutoName(c, L){
   L=L||L10N.it; const same=COMPS.filter(x=>x.instr===c.instr && !x.name), k=same.indexOf(c);
   return c.instr ? `${L.compare} ${L.nome[c.instr]}${same.length>1 && k>=0 ? ' '+(k+1) : ''}` : (L===L10N.en ? 'New comparison' : 'Nuovo confronto');
@@ -1579,10 +2065,12 @@ function overlayView(instr, list, mode, gap, title){
     return {xs:P.xs, ys, color:PALETTE[i%PALETTE.length], name:dispTitle(f)};
   });
   return {title: title || `${L.compare} ${L.nome[instr]} (${n} ${L.spectra})`, desc:'', instrName:L.nome[instr], series, dir, invertX:prof.invertX,
-          xLabel:L.x[instr], yLabel: mode==='stack' ? L.y.S : mode==='norm' ? L.y.N : (L.y[procs[0].kind]||'Y'), peaks:[], legend:true, hideYTicks:mode==='stack', instr,
+          xLabel:L.x[instr], yLabel: mode==='stack' ? L.y.S : mode==='norm' ? L.y.N : (L.y[procs[0].kind]||'Y')+(S.logY[instr] && dir>0 ? ` · ${L.logS}` : ''), peaks:[], legend:true, hideYTicks:mode==='stack', instr,
+          logY: mode==='over' && !!S.logY[instr],
           xs:series[0].xs, ys:series[0].ys};
 }
-function cmpViewOf(c){ const list=members(c); if (!list.length) return null; if (!c.instr) c.instr=list[0].instr; return overlayView(c.instr, list, c.mode, c.gap, cmpTitle(c, T_())); }
+function cmpViewOf(c){ const list=members(c); if (!list.length) return null; if (!c.instr) c.instr=list[0].instr;
+  const v=overlayView(c.instr, list, c.mode, c.gap, cmpTitle(c, T_())); v.inset=insetFor(c, insetKeyCmp(c)); return v; }
 
 /* ---------------- CARICAMENTO ---------------- */
 const $ = s => document.querySelector(s);
@@ -1617,13 +2105,16 @@ async function addEntries(entries){
         const p = parseText(decodeBuffer(buf));
         if (p.xs.length<5) { errors.push(path); continue; }
         const det = detectInstrument(p, file.name);
-        const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, ys:p.ys, meta:p.meta, peY:p.peY,
+        const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
+                   tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta};
         const saved = lsGet(fkey(f));
         if (saved){
           Object.assign(f, {title:saved.title||'', desc:saved.desc||'', xr:saved.xr||null, labels:saved.labels||{}, removed:saved.removed||[], added:saved.added||[], include:saved.include!==false, sample:SAMPLE_TYPES[saved.sample]?saved.sample:null});
           if (saved.instr && INSTR[saved.instr]) f.instr=saved.instr;
+          f.inset = cleanInset(saved.inset);
+          if (saved.ecal && isFinite(+saved.ecal.a) && isFinite(+saved.ecal.b) && +saved.ecal.b>0.9 && +saved.ecal.b<1.1){ f.ecal={a:+saved.ecal.a, b:+saved.ecal.b}; f.xs=Float64Array.from(f.xs0, x=>f.ecal.a+f.ecal.b*x); }
         }
         f.kind = yKindFor(f.instr, f._p);
         files.push(f); added++;
@@ -1826,7 +2317,7 @@ function zoomSlice(d, z){
   while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--;
   if (hi-lo<3) return d;
   const sx=xs.subarray(lo,hi+1), sy=d.ys.subarray(lo,hi+1);
-  return Object.assign({}, d, {xs:sx, ys:sy, series:[Object.assign({}, d.series[0], {xs:sx, ys:sy})]});
+  return Object.assign({}, d, {xs:sx, ys:sy, idxOff:lo, series:[Object.assign({}, d.series[0], {xs:sx, ys:sy})]});
 }
 function sizeCanvas(){
   const big=$('.preview').classList.contains('big');
@@ -1842,6 +2333,15 @@ function zoomSliceMulti(d, z){
     return hi-lo<3 ? sr : Object.assign({}, sr, {xs:xs.subarray(lo,hi+1), ys:sr.ys.subarray(lo,hi+1)}); });
   return Object.assign({}, d, {series, xs:series[0].xs, ys:series[0].ys});
 }
+function zoomView(full, o, multi){   // vista d'anteprima: zoom su X (rotellina) e, dopo una selezione a mano libera, anche su Y
+  const zx = o._zoom, zy = o._yzoom;
+  let d = zx ? (multi ? zoomSliceMulti(full, zx) : zoomSlice(full, zx)) : full;
+  if (zy) d = Object.assign({}, d, {yRange: zy.slice()});
+  if (zx || zy) d = Object.assign({}, d, {inset:null});   // durante lo zoom il riquadro non serve
+  $('.preview').classList.toggle('zoomed', !!(zx||zy));
+  renderInsetBar(o);
+  return d;
+}
 function renderCompare(){
   const c=curCmp(), big=sizeCanvas(), ctx=pv.getContext('2d');
   const v = c ? cmpViewOf(c) : null;
@@ -1850,14 +2350,13 @@ function renderCompare(){
   note.hidden = n>=2; note.innerHTML = !c ? '<b>Nessun confronto ancora.</b> Spunta nella lista a sinistra due o più spettri dello stesso strumento, oppure premi «Uno per ogni strumento».'
     : n===0 ? '<b>Confronto vuoto.</b> Spunta nella lista a sinistra gli spettri da sovrapporre.' : '<b>Manca ancora uno spettro.</b> Spuntane almeno un altro dello stesso strumento per sovrapporli.';
   if (!v){
-    geo=null; pvView=null; ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
+    geo=null; pvView=null; renderInsetBar(null); $('.preview').classList.remove('zoomed'); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
     ctx.fillStyle='#8a94a6'; ctx.font=`${Math.round(15*(window.devicePixelRatio||1))}px Nunito, sans-serif`; ctx.textAlign='center';
     ctx.fillText('Spunta gli spettri da sovrapporre nella lista a sinistra 👈', pv.width/2, pv.height/2);
     $('#pvTitle').textContent = c ? cmpTitle(c) : 'Confronta grafici';
   } else {
     v.fontPt = big ? 10 : 9;
-    const d = zoomSliceMulti(v, c._zoom); pvView=d;
-    $('.preview').classList.toggle('zoomed', !!c._zoom);
+    const d = zoomView(v, c, true); pvView=d;
     geo = drawPlot(ctx, PV_W, PV_H, pv.width/PV_W, d, S);
     $('#pvTitle').textContent=cmpTitle(c, T_());
   }
@@ -1891,13 +2390,14 @@ function renderCmpOut(){
   $$('.cmpOutRow').forEach(e=>e.hidden=!n);
   $$('.cmpNone').forEach(e=>e.hidden=!!n);
 }
+function readoutHint(){ return viewMode==='cmp' ? 'Muovi il mouse sul grafico per sapere quale spettro è quale · rotellina: zoom · ✏️ ingrandisci una zona a mano libera' : 'Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom · ✏️ ingrandisci una zona a mano libera'; }
 function setView(m){
   viewMode=m;
   $$('#viewSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===m));
   $('#workCard').classList.toggle('cmpmode', m==='cmp');
   $('#cmpBar').hidden = m!=='cmp';
   $('#viewHint').textContent = m==='cmp' ? 'Sovrapponi più spettri dello stesso strumento per confrontarli.' : 'Sistema ogni spettro: nome, picchi, ritocchi.';
-  $('#readout').textContent = m==='cmp' ? 'Muovi il mouse sul grafico per sapere quale spettro è quale · rotellina: zoom' : 'Clic sul grafico: aggiungi un picco · clic su un picco: lo togli · rotellina: zoom';
+  $('#readout').textContent = readoutHint();
   if (m==='cmp' && !curCmp()){ const v=visibleCmps(); curCmpId = v.length ? v[v.length-1].id : null; }
   renderCmp();
   if (m==='cmp') say('#tip2', curCmp() ? 'Ecco il confronto! Spunta o togli spettri a sinistra, scegli come sovrapporli qui sotto. 🔀' : 'Spunta a sinistra gli spettri da sovrapporre: ci penso io a metterli insieme. 🔀');
@@ -1923,11 +2423,10 @@ $$('.goCmp').forEach(b=>b.onclick=()=>{ go(2); setView('cmp'); });
 function renderPreview(){
   if (viewMode==='cmp') return renderCompare();
   const f=files[cur];
-  if (!f){ $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
+  if (!f){ renderInsetBar(null); $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); $('#chips').innerHTML=''; return; }
   const big=sizeCanvas();
   const full = viewOf(f); full.fontPt = big ? 10 : 9; full.highlightManual = true;
-  const d = zoomSlice(full, f._zoom); pvView=d;
-  $('.preview').classList.toggle('zoomed', !!f._zoom);
+  const d = zoomView(full, f, false); pvView=d;
   geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S);
   $('#pvTitle').textContent=dispTitle(f); $('#pvTitle').title=f.path;
   if (document.activeElement!==$('#fTitle')) $('#fTitle').value=f.title||'';
@@ -1938,7 +2437,8 @@ function renderPreview(){
   $('#fReason').textContent = f.instr===f.autoInstr ? 'Riconosciuto da: '+f.reason : 'Scelto a mano (avevo pensato: '+NOME_IT[f.autoInstr]+')';
   $('#fInclude').checked = f.include;
   $('#fSample').innerHTML = `<option value="">come per tutti (${SAMPLE_TYPES[S.sample]})</option>` + Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${f.sample===k?'selected':''}>${v}</option>`).join('');
-  $('#xrUnit').textContent = INSTR[f.instr].xPdf ? '('+INSTR[f.instr].xPdf+')' : '';
+  $('#xrUnit').textContent = f.uncal ? '(canali)' : INSTR[f.instr].xPdf ? '('+INSTR[f.instr].xPdf+')' : '';
+  renderXrfBox(f);
   if (xrShownFor!==f.id || xrForce){
     xrShownFor=f.id; xrForce=false;
     $('#xrA').value = f.xr ? Math.min(...f.xr) : ''; $('#xrB').value = f.xr ? Math.max(...f.xr) : '';
@@ -1959,7 +2459,8 @@ function renderPreview(){
   let msg='';
   if (S.showPeaks && d.peaks.length && !nSug && nLab<d.peaks.length){
     const st=f.sample||S.sample, mine=LIB.filter(e=>e.i===f.instr).length;
-    if (f.instr==='hplc') msg = `<b>Perché non ci sono nomi?</b> Nell'HPLC il tempo di ritenzione dipende dal metodo (colonna, eluente, gradiente, flusso), quindi non esiste un database valido per tutti. Puoi insegnarmeli tu: clic su un picco → «Scrivo io» → scrivi il composto e spunta <b>«Ricordalo nella mia libreria»</b>. Dalla volta dopo li riconosco da solo sugli altri cromatogrammi.${mine?` Nella tua libreria ci sono ${mine} tempi HPLC, ma nessuno cade vicino a questi picchi.`:''}`;
+    if (f.instr==='xrf' && f.uncal) msg = `<b>Perché non ci sono nomi?</b> Questo file XRF non contiene la calibrazione in energia, quindi l'asse X è in canali e non so a quali elementi corrispondono i picchi. Esporta lo spettro con la calibrazione dal software dello strumento.`;
+    else if (f.instr==='hplc') msg = `<b>Perché non ci sono nomi?</b> Nell'HPLC il tempo di ritenzione dipende dal metodo (colonna, eluente, gradiente, flusso), quindi non esiste un database valido per tutti. Puoi insegnarmeli tu: clic su un picco → «Scrivo io» → scrivi il composto e spunta <b>«Ricordalo nella mia libreria»</b>. Dalla volta dopo li riconosco da solo sugli altri cromatogrammi.${mine?` Nella tua libreria ci sono ${mine} tempi HPLC, ma nessuno cade vicino a questi picchi.`:''}`;
     else if (f.instr==='gen') msg = `<b>Strumento non riconosciuto</b>, quindi non so che nomi proporre. Sceglilo in «Zona e strumento» e i suggerimenti compariranno.`;
     else if (st!=='all') msg = `Nessun nome nel database per questi picchi con il tipo «${SAMPLE_TYPES[st]}». <button class="linkbtn" id="trySampleAll">Prova con «Tutti i tipi»</button> oppure scrivi tu il nome con un clic sul picco.`;
     else msg = `Per queste posizioni non ho nomi nel database. Clic su un picco per scriverne uno; con «Ricordalo nella mia libreria» lo riconoscerò anche in futuro.`;
@@ -1976,19 +2477,56 @@ function renderPreview(){
   $$('#chips button.t').forEach(b=>b.onclick=()=>editLabel(f, +b.dataset.x));
 }
 let xrShownFor=null, xrForce=false;
+function fmtE(v, d){ return (+v).toFixed(d==null?3:d).replace('.',','); }
+function renderXrfBox(f){
+  const box=$('#xrfBox'); box.hidden = f.instr!=='xrf' || !f.xrf;
+  if (box.hidden) return;
+  const x=f.xrf, info=[];
+  info.push(`File ${esc(x.fmt)}.`);
+  if (x.tube) info.push(`Tubo con anodo ${esc(x.tube)}${x.kv?`, ${esc(x.kv)} kV`:''}${x.ua?`, ${esc(x.ua)} µA`:''}: le sue righe diffuse e il picco Compton li riconosco come «riga del tubo».`);
+  if (f.uncal){ info.push('Il file non contiene la calibrazione in energia: l\'asse X è in canali e non posso suggerire gli elementi.'); }
+  else {
+    const c=x.cal; info.push(`Calibrazione del file: E = ${fmtE(c.a,4)} + ${fmtE(c.b,6)} × canale (keV).`);
+    info.push(f.ecal ? `<b>Allineata sulle righe note:</b> spostamento di ${fmtE(f.ecal.a+f.ecal.b*8-8,3)} keV a 8 keV.` : 'Se Cu, Fe, Pb… non cadono esattamente sulle loro energie, «Allinea sulle righe note» corregge la scala usando i picchi più forti.');
+  }
+  $('#xrfInfo').innerHTML = info.join(' ');
+  $('#xrfAlign').disabled = f.uncal; $('#xrfAlignAll').disabled = f.uncal; $('#xrfReset').hidden = !f.ecal;
+}
+function alignXrf(f){
+  if (f.instr!=='xrf' || f.uncal) return null;
+  if (f.ecal) setEcal(f, null);
+  viewOf(f);
+  const fit = xrfAlignFit(f._auto.map(q=>({x:q.x, w:q.prom||1})), f.tube);
+  if (!fit) return null;
+  if (Math.abs(fit.a + (fit.b-1)*8) < 0.003 && Math.abs(fit.b-1)<0.001) return {fit, nochange:true};
+  setEcal(f, {a:fit.a, b:fit.b}); persist(f);
+  return {fit};
+}
 function changed(f){ persist(f); renderPreview(); renderSummary(); renderList(); }
 function removePeak(f, x, manual){
   if (manual) f.added = f.added.filter(a=>a!==x); else f.removed.push(x);
   delete f.labels[lblKey(x)]; changed(f);
 }
 let dlState=null;
+/* XRF: per ogni elemento candidato mostra le sue altre righe e se nello spettro c'è un picco lì (✓) */
+function xrfCrossCheck(sug, peaks, x){
+  const els=[...new Set(sug.map(g=>(/^x_([A-Z][a-z]?)_/.exec(g.id)||[])[1]).filter(Boolean))];
+  if (els.length<1) return '';
+  const rows=els.map(el=>{
+    const others=(XRF_LINES[el]||[]).filter(([ln,E])=>Math.abs(E-x)>tolFor('xrf',x) && E>=1);
+    if (!others.length) return '';
+    return `<div><b>${el}</b>: ${others.map(([ln,E])=>{ const ok=peaks.some(q=>Math.abs(q.x-E)<=tolFor('xrf',E)); return `${ln} ${E.toFixed(2).replace('.',',')}${ok?' ✓':''}`; }).join(' · ')}</div>`;
+  }).filter(Boolean);
+  return rows.length ? `<div class="note" style="margin-bottom:6px">🔎 <b>Per distinguere elementi con righe vicine</b>, guarda le altre righe di ciascuno (✓ = c'è un picco lì):${rows.join('')}</div>` : '';
+}
 function editLabel(f, x){
   const d=viewOf(f), p=d.peaks.find(q=>Math.abs(q.x-x)<1e-9); if(!p) return;
   const raw=f.labels[lblKey(x)]||'', num=p.num, L=LANG;
-  const sug = suggest(f.instr, x, d.peaks.map(q=>q.x), f.sample||S.sample);
+  const sug = suggest(f.instr, x, d.peaks.map(q=>q.x), f.sample||S.sample, Object.assign({y:p.y}, sugCtx(f, d.peaks)));
   $('#dlNum').textContent = num+' '+(INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
   const free = raw && raw[0]!=='@' ? raw : '';
   let html = sug.map((g,i)=>`<label class="opt sug"><input type="radio" name="dl" value="@${g.id}" ${raw==='@'+g.id||(!raw&&i===0&&false)?'checked':''}><div><b>${esc(L==='en'?g.en:g.it)}</b>${g.coherent?' <span class="badge" style="background:#e1f3e9;color:#155e39">coerente con altri picchi</span>':''}${g.mine?' <span class="badge">la mia libreria</span>':''}<small>${L==='en'?esc(g.it):esc(g.en)}</small></div></label>`).join('');
+  if (f.instr==='xrf') html += xrfCrossCheck(sug, d.peaks, x);
   if (!sug.length) html += `<div class="note" style="margin-bottom:4px">Per questa posizione non ho suggerimenti${f.instr==='hplc'?' (per l\'HPLC puoi crearti la tua libreria di tempi di ritenzione)':''}.</div>`;
   html += `<label class="opt"><input type="radio" name="dl" value="" ${!raw?'checked':''}><div><b>Solo il numero</b><small>sul grafico resta «${esc(num)}»</small></div></label>`;
   html += `<label class="opt"><input type="radio" name="dl" value="free" ${free?'checked':''}><div style="flex:1"><b>Scrivo io</b><input type="text" id="dlFree" value="${esc(free)}" placeholder="es. C=O amide I, glucosio…" style="margin-top:6px;width:100%;border:1px solid var(--line);border-radius:9px;padding:6px 8px"></div></label>`;
@@ -2012,7 +2550,7 @@ $('#dlForm').addEventListener('submit', e=>{
     else {
       f.labels[k]=t;
       if ($('#dlSave').checked){
-        const w = f.instr==='hplc' ? Math.max(0.05, (f.xs[f.xs.length-1]-f.xs[0])*0.003) : (SNAP_TOL[f.instr]||2)*2;
+        const w = f.instr==='hplc' ? Math.max(0.05, (f.xs[f.xs.length-1]-f.xs[0])*0.003) : f.instr==='xrf' ? 0.08 : (SNAP_TOL[f.instr]||2)*2;
         const id='c'+Date.now().toString(36);
         LIB.push({id, i:f.instr, a:+(x-w).toPrecision(6), b:+(x+w).toPrecision(6), n:t}); saveLib(); renderLib();
         f.labels[k]='@'+id;
@@ -2043,7 +2581,7 @@ $('#daOk').onclick=()=>{
     if (cb.checked){ f.labels[lblKey(p.x)]='@'+sel.value; chosen.push({x:p.x, id:sel.value}); } });
   let nOther=0;
   if ($('#daOthers').checked && chosen.length){
-    const tol=Math.max(SNAP_TOL[f.instr]||0, 1e-6)+1;
+    const tol = f.instr==='xrf' ? 0.1 : f.instr==='hplc' ? 0.05 : Math.max(SNAP_TOL[f.instr]||0, 1e-6)+1;
     files.forEach(g=>{ if(g===f || g.instr!==f.instr) return; const gv=viewOf(g); let ch=false;
       gv.peaks.forEach(q=>{ if (q.custom) return; const c=chosen.find(o=>Math.abs(o.x-q.x)<=tol); if (c && q.sugg.some(s=>s.id===c.id)){ g.labels[lblKey(q.x)]='@'+c.id; ch=true; } });
       if (ch){ persist(g); nOther++; } });
@@ -2069,6 +2607,7 @@ function mmPos(e){ const r=pv.getBoundingClientRect(); return [(e.clientX-r.left
 function xAt(mx){ const t=(mx-geo.px0)/geo.pw; return geo.invertX ? geo.xmax - t*(geo.xmax-geo.xmin) : geo.xmin + t*(geo.xmax-geo.xmin); }
 pv.addEventListener('click', e=>{
   if (drag && drag.moved){ drag=null; return; } drag=null;
+  if (lassoOn || Date.now()-lassoJust<400) return;
   if (viewMode==='cmp') return;
   const f=files[cur]; if(!f || !geo) return;
   if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
@@ -2082,11 +2621,11 @@ pv.addEventListener('click', e=>{
   changed(f);
 });
 pv.addEventListener('mousemove', e=>{
-  if(!geo || !pvView) return; const [mx,my]=mmPos(e);
+  if(!geo || !pvView || lassoOn) return; const [mx,my]=mmPos(e);
   if (viewMode==='cmp'){
     pv.style.cursor='crosshair';
     if (mx<geo.px0 || mx>geo.px0+geo.pw || my<geo.py0 || my>geo.py0+geo.ph){ $('#readout').innerHTML='&nbsp;'; return; }
-    const xv=xAt(mx), yv=geo.ymax-(my-geo.py0)/geo.ph*(geo.ymax-geo.ymin); let best=null, bd=Infinity;
+    const xv=xAt(mx), yv= geo.logY ? Math.pow(10, geo.lmax-(my-geo.py0)/geo.ph*(geo.lmax-geo.lmin)) : geo.ymax-(my-geo.py0)/geo.ph*(geo.ymax-geo.ymin); let best=null, bd=Infinity;
     pvView.series.forEach(sr=>{ if (xv<sr.xs[0]||xv>sr.xs[sr.xs.length-1]) return; const d=Math.abs(interpY(sr.xs,sr.ys,xv)-yv); if(d<bd){bd=d;best=sr;} });
     const unit=INSTR[pvView.instr].xPdf.replace('cm-1','cm⁻¹');
     $('#readout').innerHTML = `x = ${(+xv.toPrecision(6)).toString().replace('.',T_().dec)} ${unit}${best?`   ·   più vicino: <b style="color:${best.color}">${esc(best.name)}</b>`:''}`;
@@ -2110,7 +2649,7 @@ function zTarget(){
 function setZoom(t, a, b){
   const [fa,fb]=t.range, W=fb-fa, minW=W/300;
   if (b-a<minW){ const c=(a+b)/2; a=c-minW/2; b=c+minW/2; }
-  if (b-a>=W*0.995){ t.o._zoom=null; } else {
+  if (b-a>=W*0.995){ t.o._zoom=null; t.o._yzoom=null; } else {
     if (a<fa){ b+=fa-a; a=fa; } if (b>fb){ a-=b-fb; b=fb; }
     t.o._zoom=[Math.max(fa,a), Math.min(fb,b)];
   }
@@ -2127,7 +2666,7 @@ pv.addEventListener('wheel', e=>{
   zoomBy(e.deltaY>0 ? 1.25 : 0.8, xc);
 }, {passive:false});
 let drag=null;
-pv.addEventListener('mousedown', e=>{ const t=zTarget(); if(!t||!geo||e.button!==0) return; drag={x0:e.clientX, z:(t.o._zoom||t.range).slice(), moved:false, pw:geo.pw}; });
+pv.addEventListener('mousedown', e=>{ const t=zTarget(); if(!t||!geo||e.button!==0||lassoOn) return; drag={x0:e.clientX, z:(t.o._zoom||t.range).slice(), moved:false, pw:geo.pw}; });
 window.addEventListener('mousemove', e=>{
   if (!drag || !(e.buttons&1)) return; const t=zTarget(); if(!t) return;
   const dxPx=e.clientX-drag.x0; if (Math.abs(dxPx)>4) drag.moved=true; if (!drag.moved || !t.o._zoom) return;
@@ -2139,7 +2678,69 @@ window.addEventListener('mousemove', e=>{
 window.addEventListener('mouseup', ()=>{ if (drag && !drag.moved) drag=null; else if (drag) setTimeout(()=>{ drag=null; },0); });
 $('#zIn').onclick=()=>zoomBy(0.6);
 $('#zOut').onclick=()=>zoomBy(1.6);
-$('#zReset').onclick=()=>{ const t=zTarget(); if(t){ t.o._zoom=null; renderPreview(); } };
+$('#zReset').onclick=()=>{ const t=zTarget(); if(t){ t.o._zoom=null; t.o._yzoom=null; t.o._lasso=null; renderPreview(); } };
+/* ---- ingrandimento di una zona disegnata a mano libera ---- */
+let lassoOn=false, lasso=null, lassoJust=0;
+function yAt(my){ const t=(my-geo.py0)/geo.ph; return geo.logY ? Math.pow(10, geo.lmax - t*(geo.lmax-geo.lmin)) : geo.ymax - t*(geo.ymax-geo.ymin); }
+function setLasso(on){
+  lassoOn=on; lasso=null; $('#lassoBtn').classList.toggle('on', on); $('.preview').classList.toggle('lasso', on);
+  $('#lassoBtn').textContent = on ? '✕ Annulla selezione' : '✏️ Ingrandisci una zona';
+  if (on){ $('#readout').textContent='Tieni premuto e disegna una forma intorno alla zona da ingrandire, poi rilascia (Esc per annullare).';
+    say('#tip2','Disegna col mouse un giro intorno alla zona che vuoi vedere più grande. ✏️'); }
+  else { $('#readout').textContent=readoutHint(); renderPreview(); }
+}
+function renderInsetBar(o){
+  const bar=$('#insetBar'); if (!bar) return;
+  const zoomed=!!(o && o._lasso && o._zoom), has=!!(o && o.inset);
+  bar.hidden = !zoomed && !has;
+  $('#insetPin').hidden = !zoomed;
+  $('#insetDel').hidden = !has;
+  $('#insetMsg').innerHTML = zoomed
+    ? (has ? 'Stai guardando la zona ingrandita. Puoi sostituire il riquadro già presente con questa zona.' : '<b>Zona ingrandita.</b> Vuoi che resti nel grafico come riquadro? Comparirà anche nel PDF e nelle immagini.')
+    : '📌 Questo grafico ha un <b>riquadro ingrandito</b> (anche nel PDF e nelle PNG). Per cambiarlo, disegna una nuova zona con «✏️ Ingrandisci una zona».';
+}
+function lassoDraw(){
+  if (!lasso || lasso.pts.length<2) return;
+  const ctx=pv.getContext('2d'); renderPreview();
+  ctx.save(); ctx.setTransform(pv.width/PV_W,0,0,pv.height/PV_H,0,0);
+  ctx.beginPath(); lasso.pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
+  ctx.fillStyle='rgba(37,99,201,.08)'; ctx.fill();
+  ctx.strokeStyle='#2563c9'; ctx.lineWidth=0.35; ctx.setLineDash([1.2,0.8]); ctx.stroke(); ctx.restore();
+}
+function simplify(pts, maxN){ if (pts.length<=maxN) return pts; const st=pts.length/maxN, out=[]; for (let i=0;i<maxN;i++) out.push(pts[Math.floor(i*st)]); return out; }
+pv.addEventListener('pointerdown', e=>{
+  if (!lassoOn || !geo || e.button!==0) return; e.preventDefault(); e.stopPropagation();
+  try{ pv.setPointerCapture(e.pointerId); }catch(_){}
+  const [mx,my]=mmPos(e); lasso={pts:[[mx,my]]};
+});
+pv.addEventListener('pointermove', e=>{
+  if (!lassoOn || !lasso) return;
+  const [mx,my]=mmPos(e), last=lasso.pts[lasso.pts.length-1];
+  if (Math.hypot(mx-last[0], my-last[1])>0.6){ lasso.pts.push([mx,my]); lassoDraw(); }
+});
+pv.addEventListener('pointerup', e=>{
+  if (!lassoOn || !lasso) return; lassoJust=Date.now();
+  const t=zTarget(), g=geo, pts=lasso.pts.map(([x,y])=>[Math.min(g.px0+g.pw, Math.max(g.px0, x)), Math.min(g.py0+g.ph, Math.max(g.py0, y))]);
+  lasso=null;
+  const xsP=pts.map(p=>p[0]), ysP=pts.map(p=>p[1]);
+  const w=Math.max(...xsP)-Math.min(...xsP), h=Math.max(...ysP)-Math.min(...ysP);
+  if (!t || pts.length<3 || w<g.pw*0.01 || h<g.ph*0.02){ setLasso(false); say('#tip2','Zona troppo piccola: disegna un giro un po\' più largo intorno a quello che vuoi ingrandire. ✏️'); return; }
+  const dat=simplify(pts,120).map(([x,y])=>[xAt(x), yAt(y)]);
+  const xa=Math.min(...dat.map(p=>p[0])), xb=Math.max(...dat.map(p=>p[0])), ya=Math.min(...dat.map(p=>p[1])), yb=Math.max(...dat.map(p=>p[1]));
+  t.o._zoom=[xa,xb]; t.o._yzoom=[ya,yb]; t.o._lasso={x:[xa,xb], y:[ya,yb], shape:dat};
+  setLasso(false);
+  say('#tip2','Ecco la zona ingrandita! 🔍 Con «📌 Metti l\'ingrandimento nel grafico» la trovi anche nel PDF e nelle immagini. «↺ Tutto» per tornare indietro.');
+});
+$('#lassoBtn').onclick=()=>setLasso(!lassoOn);
+$('#insetPin').onclick=()=>{ const t=zTarget(); if (!t || !t.o._lasso) return;
+  const o=t.o, cmp=viewMode==='cmp';
+  o.inset=cleanInset(Object.assign({}, o._lasso, {yk: cmp ? insetKeyCmp(o) : insetKeyFile(o)}));
+  o._zoom=null; o._yzoom=null; o._lasso=null;
+  if (cmp) saveCmps(); else { persist(o); renderList(); }
+  renderPreview(); say('#tip2','Fatto! Il riquadro ingrandito è nel grafico e finirà anche nel PDF e nelle immagini. 📌'); };
+$('#insetDel').onclick=()=>{ const t=zTarget(); if (!t) return; t.o.inset=null;
+  if (viewMode==='cmp') saveCmps(); else { persist(t.o); renderList(); }
+  renderPreview(); };
 function setBig(on){
   $('.preview').classList.toggle('big', on); document.body.classList.toggle('bigmode', on);
   $('#bigBtn').textContent = on ? '⛶ Grafico normale' : '⛶ Grafico grande';
@@ -2154,8 +2755,18 @@ $('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; COMPS.for
 $('#fSample').onchange=e=>{ const f=files[cur]; f.sample=e.target.value||null; changed(f); };
 $('#fInclude').onchange=e=>{ const f=files[cur]; f.include=e.target.checked; persist(f); renderList(); renderSummary(); };
 $('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; f.removed=[]; f.added=[]; f.labels={}; changed(f); };
+$('#xrfAlign').onclick=()=>{ const f=files[cur]; if(!f) return; const r=alignXrf(f), m=$('#xrfMsg'); m.hidden=false;
+  if (!r) m.innerHTML='Non ho trovato abbastanza righe sicure (servono almeno 2 picchi forti di elementi noti). La calibrazione resta quella del file.';
+  else if (r.nochange) m.innerHTML='La calibrazione del file è già corretta: nessuna modifica. 👍';
+  else m.innerHTML=`Fatto! Spostamento di <b>${fmtE(r.fit.a+r.fit.b*8-8,3)} keV</b> a 8 keV (scarto medio ${Math.round(r.fit.rms*1000)} eV). Righe usate: ${r.fit.pairs.map(q=>`${esc(q.name)} ${fmtE(q.x,2)}→${fmtE(q.E,2)}`).join(' · ')}.`;
+  changed(f); renderList(); };
+$('#xrfAlignAll').onclick=()=>{ let ok=0, tot=0; files.forEach(g=>{ if (g.instr==='xrf' && !g.uncal){ tot++; const r=alignXrf(g); if (r) ok++; } });
+  const m=$('#xrfMsg'); m.hidden=false; m.innerHTML=`Allineati ${ok} spettri XRF su ${tot}.${ok<tot?' Per gli altri non ho trovato abbastanza righe sicure.':''}`;
+  const f=files[cur]; if (f) changed(f); renderList(); renderSummary(); };
+$('#xrfReset').onclick=()=>{ const f=files[cur]; if(!f) return; setEcal(f, null); persist(f); $('#xrfMsg').hidden=true; changed(f); renderList(); };
 $('#resetFile').onclick=()=>{ const f=files[cur]; if(!f) return; if(!confirm('Annullare nome, descrizione, picchi e intervallo di questo file?')) return;
-  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr,sample:null}); f.kind=yKindFor(f.instr,f._p); f._pk=null; xrForce=true; changed(f); };
+  if (f.ecal) setEcal(f, null);
+  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr,sample:null,inset:null,_zoom:null,_yzoom:null}); f.kind=yKindFor(f.instr,f._p); f._pk=null; xrForce=true; changed(f); };
 function readXR(){ const a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value); return (isFinite(a)&&isFinite(b)&&a!==b)?[Math.min(a,b),Math.max(a,b)]:null; }
 ['#xrA','#xrB'].forEach(s=>$(s).addEventListener('change', ()=>{ const f=files[cur]; if(!f) return;
   let a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value);
@@ -2169,7 +2780,9 @@ $('#nextF').onclick=()=>{ if (viewMode==='cmp'){ const v=visibleCmps(), i=v.find
 document.addEventListener('keydown', e=>{
   if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key==='ArrowLeft') $('#prevF').click(); if (e.key==='ArrowRight') $('#nextF').click();
+  if (e.key==='Escape' && lassoOn){ setLasso(false); return; }
   if (e.key==='Escape' && $('.preview').classList.contains('big')) setBig(false);
+  if (e.key==='l' || e.key==='L') setLasso(!lassoOn);
   if (e.key==='0') $('#zReset').click(); if (e.key==='+') zoomBy(0.6); if (e.key==='-') zoomBy(1.6);
 });
 window.addEventListener('resize', ()=>{ if(curView===2) renderPreview(); });
@@ -2189,7 +2802,9 @@ const ICO = (() => {
     none: box(curve),
     rubber: box('M2 25 L13 25 L16 13 L19 25 L31 25 L34 6 L37 25 L46 25'),
     linear: box('M2 25 Q12 21 14 20 L17 9 L20 19 Q28 18 32 19 L35 8 L38 21 Q43 24 46 25'),
-    s0: zig(2.4), s7: zig(1.4), s15: zig(0.7), s31: zig(0.15)
+    s0: zig(2.4), s7: zig(1.4), s15: zig(0.7), s31: zig(0.15),
+    lin: box('M2 27 L10 27 L12 25 L14 27 L22 27 L25 3 L28 27 L36 27 L38 24 L40 27 L46 27'),
+    log: box('M2 22 L10 22 L12 14 L14 22 L22 21 L25 3 L28 21 L36 21 L38 12 L40 21 L46 21')
   };
 })();
 function processedKind(f){ return f.kind; }
@@ -2209,11 +2824,13 @@ function renderProc(){
     {p:'base', title:'Linea di base', why:'Se lo spettro sale o scende (fluorescenza nel Raman, deriva), tolgo la parte di fondo e restano solo i picchi.',
       opts:[{v:'none',t:'Nessuna correzione',sub:'il fondo resta inclinato o curvo',ico:ICO.none},{v:'rubber',t:'Automatica',sub:'fondo piatto, restano solo i picchi',ico:ICO.rubber},{v:'linear',t:'Lineare',sub:'tolgo solo l\'inclinazione tra gli estremi',ico:ICO.linear}]},
     {p:'smooth', title:'Smoothing (pulizia del rumore)', why:'Riduce il rumore. Se è troppo forte allarga e abbassa i picchi stretti.',
-      opts:[{v:0,t:'Nessuno',sub:'dati grezzi',ico:ICO.s0},{v:7,t:'Leggero',sub:'consigliato per Raman',ico:ICO.s7},{v:15,t:'Medio',ico:ICO.s15},{v:31,t:'Forte',sub:'solo per dati molto rumorosi',ico:ICO.s31}]}
+      opts:[{v:0,t:'Nessuno',sub:'dati grezzi',ico:ICO.s0},{v:7,t:'Leggero',sub:'consigliato per Raman',ico:ICO.s7},{v:15,t:'Medio',ico:ICO.s15},{v:31,t:'Forte',sub:'solo per dati molto rumorosi',ico:ICO.s31}]},
+    {p:'logY', title:'Scala dell\'asse Y', why: k==='xrf' ? 'Nell\'XRF i picchi vanno da poche decine a decine di migliaia di conteggi: in scala logaritmica vedi insieme elementi maggiori e tracce.' : 'La scala logaritmica fa vedere insieme picchi molto grandi e molto piccoli. Vale solo per l\'anteprima, il PDF e le immagini: i dati non cambiano.',
+      opts:[{v:'lin',t:'Lineare',sub:'come di solito',ico:ICO.lin},{v:'log',t:'Logaritmica',sub: k==='xrf' ? 'consigliata per XRF' : 'per picchi molto diversi',ico:ICO.log}]}
   ];
   $('#procBox').innerHTML = groups.map(g=>`<div class="cgroup"><b>${g.title}</b><p class="why">${g.why}</p><div class="choices">${
-      g.opts.map(o=>choiceBtn(`data-p="${g.p}" data-i="${k}" data-v="${o.v}"`, String(S[g.p][k])===String(o.v), o.ico, o.t, o.sub)).join('')}</div></div>`).join('');
-  $$('#procBox [data-p]').forEach(b=>b.onclick=()=>{ const p=b.dataset.p; S[p][b.dataset.i] = p==='smooth'? +b.dataset.v : b.dataset.v; saveS(); renderProc(); renderPreview(); renderSummary(); });
+      g.opts.map(o=>choiceBtn(`data-p="${g.p}" data-i="${k}" data-v="${o.v}"`, g.p==='logY' ? (!!S.logY[k])===(o.v==='log') : String(S[g.p][k])===String(o.v), o.ico, o.t, o.sub)).join('')}</div></div>`).join('');
+  $$('#procBox [data-p]').forEach(b=>b.onclick=()=>{ const p=b.dataset.p; S[p][b.dataset.i] = p==='smooth'? +b.dataset.v : p==='logY' ? b.dataset.v==='log' : b.dataset.v; saveS(); renderProc(); renderPreview(); renderSummary(); });
 }
 function renderLook(){
   const cm=[['instr','Un colore per strumento','FTIR blu, Raman rosso…','<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="#1f5fbf" stroke-width="2.2" fill="none"/><path d="M2 26 Q14 14 24 22 T46 18" stroke="#c0392b" stroke-width="2.2" fill="none"/></svg>'],
@@ -2279,7 +2896,7 @@ $('#presetSave').onclick=()=>{ const n=$('#presetName').value.trim(); if(!n){ $(
 $('#presetLoad').onclick=()=>{ const n=$('#presetSel').value; const p=presets(); if(!p[n]) return; S=merge(DEFAULTS,p[n]); saveS(); syncControls(); resetCaches(); renderPreview(); renderSummary(); say('#tip3','Impostazioni «'+n+'» caricate. 👍'); };
 $('#presetDel').onclick=()=>{ const n=$('#presetSel').value; const p=presets(); if(!p[n]) return; if(!confirm('Eliminare «'+n+'»?')) return; delete p[n]; lsSet(LS_PRESETS,p); renderPresets(); };
 $('#presetReset').onclick=()=>{ S=clone(DEFAULTS); saveS(); syncControls(); resetCaches(); renderPreview(); renderSummary(); say('#tip3','Tutto come appena installato. ✨'); };
-$('#presetExport').onclick=()=>download(new Blob([JSON.stringify({attuali:S, salvate:presets(), libreria:LIB},null,2)],{type:'application/json'}),'acchiappaspettri_impostazioni.json');
+$('#presetExport').onclick=()=>download(new Blob([JSON.stringify({attuali:S, salvate:presets(), libreria:LIB},null,2)],{type:'application/json'}),'impostazioni_grafici.json');
 $('#presetImport').onclick=()=>$('#presetFile').click();
 $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ const o=JSON.parse(await f.text()); const p=presets(); Object.assign(p, o.salvate||{}); lsSet(LS_PRESETS,p);
@@ -2339,6 +2956,7 @@ async function buildPdf(){
   const { jsPDF } = window.jspdf, Lx=T_();
   const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10, G=5;
   const doc = new jsPDF({orientation:S.orient, unit:'mm', format:'a4', compress:true});
+  doc.setProperties({title:pdfText(S.docTitle || Lx.title), subject:pdfText(Lx.title), creator:'', keywords:'spectra'});
   const inc=included(), [cols,rows]=gridFor(S.perPage,S.orient);
   const cw=(PW-2*M-(cols-1)*G)/cols, ch=(PH-2*M-8-(rows-1)*G)/rows;
   const fontPt = Math.max(5.5, Math.min(9, ch/11));
@@ -2406,7 +3024,7 @@ async function buildPdf(){
   if (S.cmpPdf==='end') await addOverlays();
   const total=doc.getNumberOfPages();
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
-    doc.text(pdfText(title)+'  ·  '+date+'  ·  Acchiappaspettri', M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
+    doc.text(pdfText(title)+'  ·  '+date, M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
   return doc.output('blob');
 }
 
@@ -2482,6 +3100,7 @@ $('#doDl').onclick=()=>runExport();
 const TOUR=[
   {sel:'#filesCard', t:'Qui ci sono i tuoi spettri. Clicca un nome per vederlo; la spunta decide se finisce nel PDF e nelle immagini.'},
   {sel:'#pv', t:'Questo è il grafico. Clic per aggiungere un picco, clic su un picco per toglierlo, rotellina per zoomare.'},
+  {sel:'#lassoBtn', t:'Con «Ingrandisci una zona» disegni col mouse un giro intorno a un dettaglio: lo vedi in grande e puoi metterlo nel grafico come riquadro, anche nel PDF e nelle immagini.'},
   {sel:'#viewSeg', t:'Con «Confronta grafici» sovrapponi più spettri dello stesso strumento, li vedi subito qui e puoi metterli anche nel PDF e nelle immagini.'},
   {sel:'.pvtools', t:'Con «Grafico grande» lo vedi a tutto schermo: comodo per mettere i picchi con precisione.'},
   {sel:'#tabs', t:'Gli strumenti sono divisi per cosa vuoi fare: nome, picchi, ritocchi, zona da stampare, aspetto.'},

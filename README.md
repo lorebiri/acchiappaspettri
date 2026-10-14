@@ -2,7 +2,7 @@
 
 > C'è uno spettro nel tuo file? Lo acchiappiamo noi: lo scienziatino e Gino, il fantasma di fiducia.
 
-A simple web tool for turning spectra and chromatograms saved as text files (FTIR/ATR-FTIR, Raman, UV-Vis, HPLC) into:
+A simple web tool for turning spectra and chromatograms saved as text files (FTIR/ATR-FTIR, Raman, UV-Vis, HPLC, XRF) into:
 
 - a **PDF for quick review**, with several plots per page;
 - a **folder of PNG images** at 600 dpi (16 × 10 cm by default), ready for theses and papers;
@@ -18,12 +18,13 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
 
 - A loading panel shows progress («3 di 20: filename») while files are read.
 - You can load single files, several files or a whole folder, by drag and drop or with the buttons.
-- Accepted formats: `.txt` `.asc` `.csv` `.dat` `.dpt` `.prn` `.xy`.
+- Accepted formats: `.txt` `.asc` `.csv` `.dat` `.dpt` `.prn` `.xy`, plus `.mca` `.spt` `.spe` for XRF.
 - The instrument is detected automatically:
   - FTIR from the PerkinElmer `PE IR` header or from the IR range with %T/A values;
   - Raman from cm⁻¹ shift with counts;
   - HPLC from DAD/VWD in the file name, or from an x axis in minutes;
   - UV-Vis from a 150–1200 nm range;
+  - XRF from Amptek/PMCA `.mca` files (`<<DATA>>`, `<<CALIBRATION>>`), LIDAQ `.spt` files (`[DATA]`, `[CALIBRATION]`), Maestro/ORTEC `.spe` files, or a single column of counts; the energy calibration, tube anode and kV are read from the header;
   - JCAMP-style header fields (`DATA TYPE`, `XUNITS`, `YUNITS`, instrument name) are read first, so JASCO exports (UV-Vis V-750, FT/IR, NRS Raman) and JCAMP-DX files are recognised from their header, including the instrument model.
 
 ### 2 · Controlla (review)
@@ -41,6 +42,12 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
   - automatic baseline correction (rubber band, good for fluorescence in Raman) or linear baseline;
   - Savitzky–Golay smoothing (light, medium or strong).
 - **Large plot** (⛶ Grafico grande) that fills the screen, with **zoom** (mouse wheel or 🔍 buttons) and **pan** (drag), for placing peaks precisely. The zoom only affects the preview, not the output.
+- **Enlarge a zone (freehand)**:
+  - with *✏️ Ingrandisci una zona* (or the `L` key), draw a free shape around a detail with the mouse or a finger;
+  - the preview zooms on that zone in both X and Y;
+  - *📌 Metti l'ingrandimento nel grafico* keeps it as an **inset**: a magnified box placed inside the plot, with the selected zone outlined by a dashed line;
+  - the inset also appears in the PDF and the PNG images;
+  - it works for single spectra and for comparisons, is remembered for each file, and can be removed with *🗑️ Togli il riquadro*.
 - **Cursor readout** of x and y while the mouse is over the plot.
 - **Search** in the file list and checkboxes to exclude files from the output.
 - Edits to each file (name, description, peaks, labels, range) are **remembered on that computer**: reloading the same file brings them back.
@@ -56,6 +63,24 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
   - the peak list;
   - a CSV of processed data for each spectrum.
 - **Saved settings**: named profiles that can be exported or imported as `.json` and shared with colleagues.
+- **Professional, neutral output**:
+  - the PDF, PNG, CSV and ZIP files carry no tool name or mascot;
+  - the PDF footer shows only the document title, date and page number;
+  - the default document title is "Report spettri" / "Spectra report".
+
+## Plot layout: nothing overlaps
+
+The same layout engine is used for the preview, the PDF and the PNGs. It guarantees that peak labels, the legend and the inset never overlap.
+
+- **Peak labels**:
+  - labels are packed into separate columns, so they never touch each other;
+  - each label starts above the curve in its column, never across it;
+  - labels always stay inside the plot frame, so they never run into the title or the axes;
+  - when there is not enough room, the data margin above the curve (below it for downward peaks such as %T) grows step by step, while the data always keep at least half of the plot height;
+  - beyond that limit, long names are shortened with "…" and the peak number is always kept;
+  - when there are more peaks than columns, the most important ones keep their text and the others keep only their tick mark.
+- **Legend and inset** go into a free corner or a free position along the top or bottom edge, away from the curve, the labels and the magnified zone. If no such position exists, they move to a column beside the plot.
+- **Log axes** use 10³, 10⁴… tick labels.
 
 ## Automatic peak detection: how it works and how it was validated
 
@@ -74,6 +99,28 @@ Validation (`node test/peak-benchmark.js`): 200 synthetic spectra per technique 
 | 10 | 100 % | 100 % | 800/800 |
 
 Median position error is under 1 % of the peak width. Limits: shoulders with no local maximum, and peaks merged with a neighbour, cannot be told apart by this method. You can add them by clicking on the plot.
+
+## XRF spectra
+
+- The **energy axis is in keV**, and the Y axis defaults to a **log scale** so that minor elements remain visible. You can switch to a linear scale under *Ritocca lo spettro*. In a comparison, overlaid XRF spectra also use the log scale.
+- **Peak detection** runs on the Anscombe-transformed counts, 2√(y+3/8), which makes Poisson noise uniform across the spectrum. This lets a minor line next to a very strong one still be found. XRF files get about 1.7× the usual maximum number of peaks.
+- **Line database**:
+  - covers Kα, Kβ, Lα, Lβ, Lγ, Lℓ and Mα lines from Na to U (X-ray Data Booklet values);
+  - each suggestion shows ✓ when the element's other lines are also present among the peaks (Kα↔Kβ, Lα↔Lβ…);
+  - when two elements are close, for example As Kα and Pb Lα at 10.5 keV, the dialog lists the other lines of each candidate so you can decide which one fits;
+  - with sample type *Beni culturali* each element carries pigment and alloy hints, for example Pb → lead white, minium, lead-tin yellow, or Hg → cinnabar.
+- **Instrument artefacts** are suggested as well:
+  - tube Rayleigh lines and the Compton peak (for Rh, Ag, Mo, Pd and W anodes);
+  - Si escape peaks (−1.74 keV);
+  - sum peaks;
+  - argon from air.
+- **Calibration alignment**:
+  - many portable instruments drift by a few tens of eV;
+  - *Zona e strumento → 🎯 Allinea sulle righe note* fits a small offset/gain correction using the strongest identified lines (Cu, Fe, Pb…) and reports the shift and residual;
+  - it can be applied to all XRF files or undone;
+  - peak labels follow the corrected axis.
+- **Peak areas** are given in **net counts** (above the local background).
+- Uncalibrated files are plotted against channel number, and no lines are suggested.
 
 ## Overlaying spectra (comparisons)
 
