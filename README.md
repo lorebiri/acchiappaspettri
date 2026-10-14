@@ -117,10 +117,14 @@ Validation (`node test/area-benchmark.js`, about 750 peaks of known area per cas
 
 As in the software on the instruments, peaks with long tails are underestimated because the part of the tail beyond the limits is lost. Strongly overlapping peaks are split at the valley. For official results use the instrument software.
 
+## Author
+
+Idea by **Lorenzo Birindelli** (CNR-ICCOM, Pisa). For ideas or criticism: [lorenzo.birindelli@cnr.it](mailto:lorenzo.birindelli@cnr.it).
+
 ## Publishing on GitHub Pages
 
 1. Create the `acchiappaspettri` repository on GitHub.
-2. Upload `index.html` and `README.md`.
+2. Upload `index.html`, `README.md`, `apple-touch-icon.png` and the `test/` folder.
 3. Open *Settings → Pages*, set *Source: Deploy from a branch*, then choose branch `main` and folder `/ (root)`, and click *Save*.
 4. After about a minute the tool is online at `https://lorebiri.github.io/acchiappaspettri/`.
 
