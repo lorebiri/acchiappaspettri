@@ -12,6 +12,8 @@ Everything happens in the browser: the data never leave the computer of the pers
 
 ## The three steps
 
+On the first visit a welcome screen explains why the tool exists and what it does; «ℹ️ Cos'è» in the header shows it again.
+
 In step 2 the tools sit under the plot in tabs named after what you want to do (Nome, Picchi, Ritocca lo spettro, Zona e strumento, Riferimenti, Aspetto e lingua). A coloured label on each option shows where it applies: green = only this spectrum, blue = every spectrum from the same instrument, yellow = all plots. A guided tour with Gino is offered the first time you open step 2. In step 3 you tick what you want (PDF, PNG images, peak list, processed data) and a single button downloads it. A small scientist and Gino, his ghost, guide the user through the steps (click on Gino 😉).
 
 ### 1 · Carica (load)
@@ -66,6 +68,17 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
   - the inset also appears in the PDF and the PNG images;
   - it works for single spectra and for comparisons, is remembered for each file, and can be removed with *🗑️ Togli il riquadro*.
 - **Cursor readout** of x and y while the mouse is over the plot.
+- **Bulk rename** (✏️ Rinomina in the file list):
+  - you write a name template with tokens:
+    - `{n}` is a number taken from the file name, as written; you choose which one (1st, 2nd… or the last);
+    - `{N}` is the same number without leading zeros, and `{n+10}`/`{n-1}` shift it;
+    - `{i}` is a progressive count, in the order of that number or of the list;
+    - `{nome}` is the file name, plus `{strumento}` and `{cartella}`;
+    - `{elenco}` takes a line from a pasted list of real sample names, where line n goes to the file with number n, or the smallest number goes to line 1, or the list order is used;
+  - an optional find and replace step (plain text or regular expression);
+  - a live preview that marks duplicate names; files missing the number or the list line keep their current name;
+  - one-click undo and «Nomi dei file» to go back to the original names;
+  - the files on disk are never touched.
 - **Search** in the file list and checkboxes to exclude files from the output.
 - Edits to each file (name, description, peaks, labels, range) are **remembered on that computer**: reloading the same file brings them back.
 
@@ -80,6 +93,14 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
   - the peak list;
   - a CSV of processed data for each spectrum.
 - **Saved settings**: named profiles that can be exported or imported as `.json` and shared with colleagues.
+- **Excel workbook for Origin** (`.xlsx`). Origin's `.opj`/`.opju` project formats are closed, so they cannot be written outside Origin; this workbook is what Origin imports cleanly:
+  - one sheet per spectrum, with X, Y and the DTG column for TGA;
+  - for every instrument with 2 or more spectra, a «Tutti …» sheet with all the X/Y pairs side by side, ready for overlaid graphs;
+  - a «Picchi» sheet with the peak list;
+  - the first three rows are Long Name, Units and Comments, the comment being description, instrument, processing applied and file path;
+  - the data can be as in the plot (with the processing) or the original file values.
+  
+  In Origin: *File → Open → Excel*, or drag the file in, then choose 3 header lines (Long Name, Units, Comments) and save the project as `.opju`.
 - **Vector SVG images** (optional, in the ZIP). They are the same plots, drawn as vectors with real text, for journals, posters and Illustrator/Inkscape.
 - **Ready-made sizes**: single column 8.5 × 6 cm, double column 17.5 × 10 cm, thesis 16 × 10 cm and slide 25 × 14 cm. The font size adapts to the chosen size.
 - **Measurement information**: date, operator and instrument are read from the file headers when present and printed in the summary page. *Operatore / laboratorio* and *Progetto* fields go into the summary, the footer and the PDF properties.

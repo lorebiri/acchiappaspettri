@@ -244,6 +244,26 @@ footer a:hover{text-decoration:underline}
 .how h4{margin:6px 0 6px;font-size:15px}
 .how ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px}
 .how li{margin-bottom:2px}
+dialog.wide{max-width:760px}
+dialog.welcome{max-width:720px}
+.infobtn{margin-left:10px;align-self:center}
+.wchero{display:flex;gap:16px;align-items:center}
+.wchero h2{margin:0 0 4px;font-size:22px}.wchero p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.45}
+.wcgino{flex:none;width:74px;height:74px;border-radius:22px;background:var(--accent-soft);display:grid;place-items:center}.wcgino svg{width:54px;height:54px}
+.wcwhy{margin:14px 0 4px;font-size:14px;line-height:1.5;background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.wcsteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.wcsteps div{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.wcsteps span{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.wcsteps small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.wcinstr{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}.wcinstr span{background:#eef2f8;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700;color:#334155}
+.wclist{margin:12px 0 0;padding-left:0;list-style:none;display:grid;gap:5px;font-size:13.5px}
+@media (max-width:560px){ .wcsteps{grid-template-columns:1fr} .wchero{flex-direction:column;align-items:flex-start} .infobtn{display:none} }
+.rntok{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}
+.rntok button{border:1px solid #c9d6ea;background:#f4f8ff;color:#1d4f9e;border-radius:99px;padding:3px 10px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.rntok button:hover{background:#e3edff}
+#rnPreview tr.dup td{background:#fff1f0}
+#rnPreview td{font-size:12.5px;text-align:left}
+#rnPreview table{width:100%}#rnPreview th{text-align:left}
 dialog{border:0;border-radius:18px;padding:0;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(20,30,50,.25)}
 dialog::backdrop{background:rgba(20,30,50,.35)}
 .dlg{padding:20px 22px}
@@ -378,6 +398,7 @@ body.busy, body.busy *{cursor:progress !important}
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 15a10 10 0 0 1 20 0v13l-3.3-2.4L19.3 28 16 25.6 12.7 28l-3.4-2.4L6 28z" fill="#fff" stroke="#1c2230" stroke-width="2" stroke-linejoin="round"/><circle cx="12.3" cy="13.5" r="1.7" fill="#1c2230"/><circle cx="19.7" cy="13.5" r="1.7" fill="#1c2230"/><path d="M8.5 21.5h3l1.5-3.5 2 6 2-8.5 2 6h4.5" fill="none" stroke="#2563c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div>Acchiappaspettri<small>c'è uno spettro nel tuo file? lo acchiappo io 👻</small></div>
+      <button class="btn small ghost infobtn" id="aboutBtn" title="A cosa serve questo strumento">ℹ️ Cos'è</button>
     </div>
     <nav class="steps">
       <button class="step on" data-go="1"><b>1</b>Carica</button>
@@ -484,6 +505,7 @@ body.busy, body.busy *{cursor:progress !important}
       <div class="row" style="padding:2px 2px 8px">
         <h3 style="margin:0">I tuoi spettri (<span id="nFiles">0</span>)</h3>
         <span class="spacer"></span>
+        <button class="btn small ghost" id="renameBtn" title="Rinomina tanti spettri insieme, anche usando il numero che hanno già nel nome">✏️ Rinomina</button>
         <button class="btn small ghost" id="addMore" title="Aggiungi altri file">+ Aggiungi</button>
       </div>
       <input type="search" id="filter" placeholder="🔎 Cerca uno spettro…">
@@ -785,6 +807,13 @@ body.busy, body.busy *{cursor:progress !important}
         <label class="check cmpOutRow"><input type="checkbox" data-k="cmpPng"><span>Un'immagine anche per ogni confronto (<span class="cmpCount">0</span>)</span></label>
       </div>
     </div>
+    <div class="outcard" data-out="outOrigin">
+      <label class="ohead"><input type="checkbox" data-k="outOrigin"><span class="oico">📈</span><span><b>Cartella Excel per Origin</b><small>un foglio per spettro e uno con tutti gli spettri affiancati per strumento, con nome, unità e commento già nelle righe che Origin usa</small></span></label>
+      <div class="obody">
+        <div class="field"><label>Dati</label><select data-k="originData"><option value="proc">come nel grafico (con conversioni, linea di base, smoothing…)</option><option value="raw">originali del file</option></select></div>
+        <p class="why" style="margin:6px 0 0">In Origin: <b>File → Apri → Excel</b> (oppure trascina il file nella finestra) e scegli <b>3 righe di intestazione: Long Name, Units, Comments</b>. Poi salva come progetto <b>.opju</b>. Il formato .opj di Origin è chiuso e non si può creare fuori da Origin.</p>
+      </div>
+    </div>
     <div class="outcard" data-out="csvPeaks">
       <label class="ohead"><input type="checkbox" data-k="csvPeaks"><span class="oico">📊</span><span><b>Elenco dei picchi</b><small>un file per Excel con posizione, valore e nome di ogni picco</small></span></label>
     </div>
@@ -835,6 +864,67 @@ body.busy, body.busy *{cursor:progress !important}
   <label class="check" id="dlSaveRow" style="display:none"><input type="checkbox" id="dlSave"> Ricordalo nella mia libreria per i prossimi spettri</label>
   <div class="note">💡 I suggerimenti vengono da tabelle di letteratura e sono indicativi: verificali sempre con quello che sai del campione.</div>
   <div class="actions"><button class="btn" value="cancel" type="button" id="dlCancel">Annulla</button><button class="btn primary" value="ok" id="dlOk">Applica</button></div>
+</form></dialog>
+<dialog id="dlgWelcome" class="welcome" aria-labelledby="wcTitle"><div class="dlg">
+  <div class="wchero">
+    <div class="wcgino" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 15a10 10 0 0 1 20 0v13l-3.3-2.4L19.3 28 16 25.6 12.7 28l-3.4-2.4L6 28z" fill="#fff" stroke="#1c2230" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12.3" cy="13.5" r="1.7" fill="#1c2230"/><circle cx="19.7" cy="13.5" r="1.7" fill="#1c2230"/><path d="M8.5 21.5h3l1.5-3.5 2 6 2-8.5 2 6h4.5" fill="none" stroke="#2563c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div><h2 id="wcTitle">Benvenuto in Acchiappaspettri</h2>
+      <p>Dai file di testo che esportano gli strumenti del laboratorio a grafici puliti, pronti da consultare, condividere e mettere in tesi e articoli. In pochi secondi, senza installare nulla.</p></div>
+  </div>
+  <div class="wcwhy"><b>Perché nasce.</b> Ogni strumento esporta i dati nel suo formato e rifare i grafici a mano, uno per uno, porta via tempo. Questo strumento nasce al CNR-ICCOM di Pisa per avere subito, da una cartella di spettri, un PDF da sfogliare e le immagini per le pubblicazioni, con i picchi già trovati e, se vuoi, anche il loro nome.</div>
+  <div class="wcsteps">
+    <div><span>1</span><b>Carica</b><small>trascina i file o una cartella intera: riconosco da solo lo strumento</small></div>
+    <div><span>2</span><b>Controlla</b><small>picchi trovati in automatico con nomi suggeriti, ritocchi, confronti, zoom</small></div>
+    <div><span>3</span><b>Scarica</b><small>PDF di consultazione, PNG 600 dpi e SVG, elenco picchi, Excel per Origin</small></div>
+  </div>
+  <div class="wcinstr"><span>FTIR</span><span>Raman</span><span>UV-Vis</span><span>Fluorescenza</span><span>HPLC</span><span>XRF</span><span>LIBS</span><span>TGA</span><span>DSC</span><span>NMR</span><span>EPR</span></div>
+  <ul class="wclist">
+    <li>🔍 picchi trovati in automatico; il nome lo metto solo se lo approvi</li>
+    <li>🔀 spettri sovrapposti, spettro differenza, derivate, confronto con i tuoi riferimenti</li>
+    <li>🧮 valori calcolati: aree, ΔH e Tg (DSC), T₅% e gradini (TGA), fattore g (EPR), Stokes</li>
+    <li>🔒 tutto avviene nel tuo browser: i dati non lasciano mai il tuo computer</li>
+  </ul>
+  <div class="actions"><label class="check" style="margin-right:auto"><input type="checkbox" id="wcNoMore" checked> Non mostrarlo più</label><button class="btn primary" type="button" id="wcGo">Iniziamo 👻</button></div>
+</div></dialog>
+<dialog id="dlgRename" class="wide"><form method="dialog" class="dlg">
+  <h2>✏️ Rinomina gli spettri in blocco</h2>
+  <div style="color:var(--muted);font-size:13.5px">Il nuovo nome compare sul grafico, nel PDF e nel nome delle immagini. I file sul tuo computer non vengono toccati.</div>
+  <div class="field" style="margin-top:12px"><label>Modello del nuovo nome</label><input type="text" id="rnTpl" value="{nome}" autocomplete="off" style="font-size:15px"></div>
+  <div class="rntok" id="rnTokens">
+    <button type="button" data-t="{n}" title="il numero preso dal nome del file, così com'è (es. 007)">{n} numero nel nome</button>
+    <button type="button" data-t="{N}" title="lo stesso numero senza zeri davanti (es. 7)">{N} senza zeri</button>
+    <button type="button" data-t="{n+10}" title="il numero più (o meno) un valore: modifica a piacere, es. {n-1}">{n+10} spostato</button>
+    <button type="button" data-t="{i}" title="1, 2, 3… nell'ordine scelto qui sotto">{i} progressivo</button>
+    <button type="button" data-t="{elenco}" title="la riga corrispondente dell'elenco di nomi qui sotto">{elenco} dall'elenco</button>
+    <button type="button" data-t="{nome}" title="nome del file senza estensione">{nome} del file</button>
+    <button type="button" data-t="{strumento}">{strumento}</button>
+    <button type="button" data-t="{cartella}" title="cartella da cui viene il file">{cartella}</button>
+  </div>
+  <div class="rntok" id="rnExamples" style="margin-top:4px"><span class="opt-l">Esempi:</span>
+    <button type="button" data-ex="Campione {N}">Campione {N}</button>
+    <button type="button" data-ex="PET {n} – {strumento}">PET {n} – {strumento}</button>
+    <button type="button" data-ex="{elenco}">solo l'elenco</button>
+    <button type="button" data-ex="{elenco} ({N})">elenco + numero</button>
+  </div>
+  <div class="ibfields" style="margin-top:10px">
+    <label class="ibf"><span>Quale numero del nome è {n}</span><select id="rnWhich"></select></label>
+    <label class="ibf"><span>Ordine di {i}</span><select id="rnOrder"><option value="num">secondo il numero nel nome</option><option value="load">come nella lista</option></select></label>
+    <label class="ibf"><span>{i} parte da</span><input type="number" id="rnStart" value="1" step="1" style="min-width:80px;width:90px"></label>
+  </div>
+  <details class="sec" style="margin-top:10px"><summary>📋 Elenco di nomi (facoltativo): incolla i nomi veri dei campioni</summary><div class="in">
+    <p class="why">Una riga per campione. Con {elenco} nel modello, al file col numero 1 va la prima riga, al 2 la seconda, e così via.</p>
+    <textarea id="rnList" rows="5" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:7px;font:inherit" placeholder="cotone non trattato&#10;cotone + PAA 5%&#10;cotone + PAA 10%"></textarea>
+    <label class="ibf" style="margin-top:6px"><span>Come abbinare le righe</span><select id="rnListBy"><option value="num">numero nel nome = numero di riga (1 → riga 1)</option><option value="min">il numero più piccolo va alla riga 1</option><option value="order">nell'ordine di {i}</option></select></label>
+  </div></details>
+  <details class="sec"><summary>🔁 Cerca e sostituisci (facoltativo)</summary><div class="in ibfields">
+    <label class="ibf"><span>Cerca</span><input type="text" id="rnFind" placeholder="es. _ "></label>
+    <label class="ibf"><span>Sostituisci con</span><input type="text" id="rnRepl" placeholder="es. spazio"></label>
+    <label class="check"><input type="checkbox" id="rnRegex"> espressione regolare</label>
+  </div></details>
+  <label class="check" style="margin-top:8px"><input type="checkbox" id="rnOnlyOn"> Solo gli spettri spuntati</label>
+  <div class="allrows" id="rnPreview" style="margin-top:8px;max-height:34vh"></div>
+  <div class="signote" id="rnWarn" hidden></div>
+  <div class="actions"><button class="btn ghost" type="button" id="rnUndo" hidden>↶ Annulla l'ultima rinomina</button><button class="btn ghost" type="button" id="rnReset" title="Torna ai nomi dei file">Nomi dei file</button><span class="spacer" style="flex:1"></span><button class="btn" type="button" id="rnCancel">Chiudi</button><button class="btn primary" type="button" id="rnApply">Rinomina</button></div>
 </form></dialog>
 <dialog id="dlgAll"><form method="dialog" class="dlg">
   <h2>💡 Nomi suggeriti</h2>
@@ -2381,7 +2471,7 @@ const DEFAULTS = {
   outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
-  showInfo:true, docAuthor:'', docProject:'', outSvg:false,
+  showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc',
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{},
   logY:{xrf:true}
 };
@@ -2404,7 +2494,8 @@ function sanitizeS(r){
   if (!SAMPLE_TYPES[r.sample]) r.sample='all';
   if (typeof r.docTitle!=='string') r.docTitle=''; r.docTitle=r.docTitle.slice(0,120);
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
-  ['showInfo','outSvg','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  oneOf('originData',['proc','raw']);
+  ['showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear'].includes(r.base[k])) r.base[k]='none';
@@ -3874,7 +3965,7 @@ $$('[data-k]').forEach(el=>{
     if (typeof DEFAULTS[k]==='number'){ v=parseFloat(v); if(!isFinite(v)) return; }
     S[k]=v; saveS();
     if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
-    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','csvPeaks','csvData','color'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
@@ -3934,17 +4025,20 @@ function renderSummary(){
   if (S.outSvg) zipParts.push(`${inc.length+ovSvg} immagin${inc.length+ovSvg===1?'e':'i'} vettorial${inc.length+ovSvg===1?'e':'i'} SVG`);
   if (S.csvPeaks) zipParts.push('elenco dei picchi');
   if (S.csvData) zipParts.push('dati elaborati');
+  const originAlone = S.outOrigin && !zipParts.length;
+  if (S.outOrigin && zipParts.length) zipParts.push('la cartella Excel per Origin');
   const items=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
   else {
     items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>`);
     if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 ${S.orient==='landscape'?'orizzontale':'verticale'}, ${S.perPage} grafic${S.perPage===1?'o':'i'} per pagina, circa ${pages} pagin${pages===1?'a':'e'}${ov?`, ${ov} pagin${ov===1?'a':'e'} di confronto`:''}</li>`);
     if (zipParts.length) items.push(`<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
+    if (originAlone) items.push('<li>📈 <b>1 file Excel per Origin</b>: un foglio per spettro e i fogli con gli spettri affiancati</li>');
     const halfCmp = COMPS.filter(c=>c.out && members(c).length===1).length;
     if (halfCmp) items.push(`<li>ℹ️ ${halfCmp} confront${halfCmp===1?'o ha':'i hanno'} un solo spettro e non ${halfCmp===1?'verrà stampato':'verranno stampati'}: servono almeno 2 spettri.</li>`);
   }
   $('#sumList').innerHTML = items.join('');
-  const what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null].filter(Boolean);
+  const what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null, originAlone?'Excel':null].filter(Boolean);
   const btn=$('#doDl');
   btn.disabled = !inc.length || !what.length;
   btn.textContent = !what.length ? 'Spunta almeno una cosa da scaricare' : `⬇️ Scarica ${what.join(' + ')}`;
@@ -4019,6 +4113,177 @@ function renderSvg(view, wmm, hmm, fontPt){
   const k=10, ctx=new SvgCtx(); view.fontPt=fontPt; view.highlightManual=false;
   drawPlot(ctx, wmm, hmm, k, view, S);
   return ctx.toString(wmm, hmm, k);
+}
+/* ---------------- CARTELLA EXCEL PER ORIGIN ----------------
+   .xlsx scritto a mano (è uno ZIP di XML): un foglio per spettro e, per ogni strumento, un foglio con tutti gli spettri affiancati.
+   Le prime tre righe sono quelle che Origin usa come Long Name, Units e Comments. */
+function xlsxColName(i){ let s=''; i++; while (i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+function xmlEsc(s){ return String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* cols: [{head:[longName, units, comment], data:Float64Array|Array}] */
+function xlsxSheet(cols){
+  const nRows = Math.max(0, ...cols.map(c=>c.data.length)), out=[];
+  out.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>');
+  out.push(`<cols><col min="1" max="${Math.max(1,cols.length)}" width="16" customWidth="1"/></cols><sheetData>`);
+  for (let r=0;r<3;r++){ out.push(`<row r="${r+1}">`); cols.forEach((c,j)=>{ const v=c.head[r]; if (v!=null && v!=='') out.push(`<c r="${xlsxColName(j)}${r+1}" t="inlineStr" s="${r===0?1:2}"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`); }); out.push('</row>'); }
+  for (let i=0;i<nRows;i++){
+    let row=`<row r="${i+4}">`;
+    for (let j=0;j<cols.length;j++){ const v=cols[j].data[i], ref=xlsxColName(j)+(i+4);
+      if (cols[j].text){ if (v!=null && v!=='') row+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`; }
+      else if (v!=null && v!=='' && isFinite(v)) row+=`<c r="${ref}"><v>${+(+v).toPrecision(10)}</v></c>`; }
+    out.push(row+'</row>');
+  }
+  out.push('</sheetData></worksheet>');
+  return out.join('');
+}
+function xlsxSheetName(name, used){
+  let s=String(name).replace(/[\[\]:*?\/\\]/g,'_').replace(/^'+|'+$/g,'').trim().slice(0,31) || 'Foglio';
+  let t=s, k=2; while (used.has(t.toLowerCase())) { const suf=' ('+(k++)+')'; t=s.slice(0,31-suf.length)+suf; }
+  used.add(t.toLowerCase()); return t;
+}
+async function buildXlsx(sheets, props){
+  const z=new JSZip();
+  z.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`);
+  z.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`);
+  const now=new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  z.file('docProps/core.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xmlEsc(props.title||'')}</dc:title><dc:creator>${xmlEsc(props.author||'')}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created></cp:coreProperties>`);
+  z.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xmlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`);
+  z.file('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  z.file('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF555555"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
+  for (let i=0;i<sheets.length;i++){ z.file(`xl/worksheets/sheet${i+1}.xml`, xlsxSheet(sheets[i].cols)); if (i%4===3) await tick(); }
+  return await z.generateAsync({type:'blob', compression:'DEFLATE', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+/* unità degli assi, nella forma che Origin mostra tra parentesi */
+function originUnits(f, P){
+  const xu = f.uncal ? 'canale' : (INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
+  const yu = ({T:'%', A:'', I:'conteggi', mAU:'mAU', N:'u.n.', U:'u.a.', FL:'u.a.', W:'%', DTG:'%/°C', HF:(f.therm&&f.therm.yUnit)||'', E:'u.a.', D1:'', D2:''})[P.kind] ?? '';
+  return {xu, yu};
+}
+function procNote(f, P){
+  const i=f.instr, parts=[];
+  if (S.conv[i] && S.conv[i]!=='orig') parts.push({A:'convertito in assorbanza', T:'convertito in %T', norm:'normalizzato 0–1', dtg:'DTG', both:'massa (DTG nella colonna accanto)', flip:'ribaltato'}[S.conv[i]]||S.conv[i]);
+  if (S.base[i] && S.base[i]!=='none' && i!=='tga') parts.push(S.base[i]==='rubber'?'linea di base automatica':'linea di base lineare');
+  if (+S.smooth[i]) parts.push('smoothing SG '+S.smooth[i]+' punti');
+  if (P.deriv) parts.push(P.deriv===2?'derivata seconda':'derivata prima');
+  if (P.diff) parts.push(`differenza: − ${P.diff.k} × ${P.diff.name}`);
+  if (f.xr) parts.push(`intervallo ${f.xr[0]}–${f.xr[1]}`);
+  return parts.join('; ');
+}
+async function buildOriginXlsx(){
+  const L=L10N.it, inc=included(), used=new Set(), sheets=[], groups={};
+  const raw = S.originData==='raw';
+  for (const f of inc){
+    const P=processed(f), v=viewOf(f), nm=dispTitle(f), {xu,yu}=originUnits(f, raw?{kind:f.kind}:P);
+    const xs = raw ? f.xs : P.xs, ys = raw ? f.ys : P.ys;
+    const yName = raw ? (L.y[f.kind]||'Y') : (L.y[P.kind]||'Y');
+    const note = [f.desc, NOME_IT[f.instr], raw ? 'dati originali del file' : procNote(f,P), f.path].filter(Boolean).join(' · ');
+    const cols=[{head:[L.x[f.instr].replace(/\s*\(.*\)$/,''), xu, nm], data:xs}, {head:[nm, yu, note], data:ys}];
+    const extra = !raw && (P.y2 || (f.instr==='tga' && P.kind==='W' ? P.dtg : null));
+    if (extra) cols.push({head:['DTG', '%/°C', nm], data:extra});
+    sheets.push({name:xlsxSheetName(nm, used), cols});
+    (groups[f.instr]=groups[f.instr]||[]).push({f, cols});
+  }
+  // un foglio per strumento con tutti gli spettri affiancati (coppie X/Y), comodo per i grafici sovrapposti in Origin
+  const all=[];
+  for (const [instr, list] of Object.entries(groups)){ if (list.length<2) continue;
+    all.push({name:xlsxSheetName('Tutti '+NOME_IT[instr].split(' ')[0], used), cols:list.flatMap(o=>o.cols)}); }
+  // elenco dei picchi
+  const rows=[];
+  for (const f of inc){ const v=viewOf(f); for (const p of v.peaks) rows.push([f.name, dispTitle(f), NOME_IT[f.instr], p.x, p.y, p.custom ? (p.nameUi||p.name) : '']); }
+  const peakSheet = rows.length ? {name:xlsxSheetName('Picchi', used), text:rows} : null;
+  const out = all.concat(sheets);
+  if (peakSheet){ // colonne miste testo/numeri: scritte come testo dove serve
+    out.push({name:peakSheet.name, cols:null, rows:peakSheet.text}); }
+  return await buildXlsxMixed(out, {title:S.docTitle||'Spettri per Origin', author:S.docAuthor||''});
+}
+/* come buildXlsx, ma un foglio può essere una tabella di righe miste (testo e numeri) */
+async function buildXlsxMixed(sheets, props){
+  const conv = sheets.map(s=> s.cols ? s : {name:s.name, cols:tableToCols(s.rows)});
+  return buildXlsx(conv, props);
+}
+function tableToCols(rows){
+  const heads=['File','Nome','Strumento','Posizione picco','Valore Y','Etichetta'];
+  return heads.map((h,j)=>({head:[h,'',''], data:rows.map(r=>r[j]), text: typeof rows[0][j]==='string'}));
+}
+/* ---------------- RINOMINA IN BLOCCO ---------------- */
+/* numeri interi presenti nel nome del file (senza estensione), nell'ordine in cui compaiono */
+function numsInName(name){ return [...String(name).replace(/\.[^.]{1,4}$/,'').matchAll(/\d+/g)].map(m=>m[0]); }
+function pickNum(name, which){ const a=numsInName(name); if (!a.length) return null; if (which==='last') return a[a.length-1]; const k=+which||0; return a[k]!=null ? a[k] : null; }
+/* piano di rinomina: per ogni file il nuovo nome, senza toccare nulla */
+function renamePlan(list, o){
+  const tpl = o.tpl || '{nome}', lines = (o.list||'').split(/\r?\n/).map(s=>s.trim());   // le righe vuote contano: la riga 5 resta la riga 5
+  while (lines.length && lines[lines.length-1]==='') lines.pop();
+  const items = list.map((f,k)=>({f, k, num:pickNum(f.name, o.which)}));
+  const N = it => it.num==null ? null : parseInt(it.num,10);
+  const byNum = items.slice().sort((a,b)=> (N(a)==null) - (N(b)==null) || (N(a)??0)-(N(b)??0) || a.k-b.k);
+  const order = o.order==='load' ? items : byNum;
+  order.forEach((it,i)=>{ it.i = (+o.start||1)+i; });
+  const nums = items.map(N).filter(v=>v!=null), minN = nums.length ? Math.min(...nums) : 1;
+  const padI = Math.max(String(Math.max(...items.map(it=>it.i), 1)).length, +o.pad||0);
+  const esc = s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return items.map(it=>{
+    const f=it.f, base=f.name.replace(/\.[^.]{1,4}$/,''), n=it.num, nn=N(it);
+    let line='';
+    if (lines.length){ const idx = o.listBy==='order' ? it.i-(+o.start||1) : (o.listBy==='min' ? (nn!=null ? nn-minN : -1) : (nn!=null ? nn-1 : -1)); line = idx>=0 && idx<lines.length ? lines[idx] : ''; }
+    const folder = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')).split('/').pop() : '';
+    let out = tpl
+      .replace(/\{n([+-]\d+)\}/g, (m,d)=> nn==null ? '' : String(nn+parseInt(d,10)))
+      .replace(/\{n\}/g, n==null ? '' : n).replace(/\{N\}/g, nn==null ? '' : String(nn))
+      .replace(/\{i\}/g, String(it.i).padStart(padI,'0'))
+      .replace(/\{nome\}/g, base).replace(/\{titolo\}/g, dispTitle(f).replace(/\.[^.]{1,4}$/,''))
+      .replace(/\{strumento\}/g, NOME_IT[f.instr]||'').replace(/\{cartella\}/g, folder)
+      .replace(/\{elenco\}/g, line);
+    if (o.find){ try{ out = out.replace(new RegExp(o.regex ? o.find : esc(o.find), 'g'), o.repl||''); }catch(e){} }
+    out = out.replace(/\s{2,}/g,' ').trim().slice(0,120);
+    const missing = (/\{elenco\}/.test(tpl) && !line) || (/\{[nN]/.test(tpl) && n==null);
+    return {f, old:dispTitle(f), neu: missing ? null : out, num:n, missing};   // manca il numero o la riga: il nome resta com'è
+  });
+}
+let renUndo=null;
+function openRename(){
+  const maxN=Math.max(1, ...files.map(f=>numsInName(f.name).length));
+  $('#rnWhich').innerHTML = Array.from({length:Math.min(maxN,6)},(_,i)=>`<option value="${i}">${i+1}° numero del nome</option>`).join('') + (maxN>1?'<option value="last">ultimo numero del nome</option>':'');
+  $('#rnUndo').hidden = !renUndo;
+  renderRename(); $('#dlgRename').showModal(); $('#rnTpl').focus();
+}
+function rnOpts(){ return {tpl:$('#rnTpl').value, which:$('#rnWhich').value, order:$('#rnOrder').value, start:$('#rnStart').value, pad:0,
+  list:$('#rnList').value, listBy:$('#rnListBy').value, find:$('#rnFind').value, repl:$('#rnRepl').value, regex:$('#rnRegex').checked}; }
+function rnTargets(){ return $('#rnOnlyOn').checked ? files.filter(f=>f.include) : files.slice(); }
+function renderRename(){
+  const plan=renamePlan(rnTargets(), rnOpts()), seen={};
+  const fin = r => r.neu==null ? r.old : (r.neu || r.f.name);
+  plan.forEach(r=>{ seen[fin(r)]=(seen[fin(r)]||0)+1; });
+  const dup=plan.filter(r=>seen[fin(r)]>1).length, miss=plan.filter(r=>r.missing).length;
+  $('#rnPreview').innerHTML = `<table class="areatab"><thead><tr><th>File</th><th>Numero</th><th>Nuovo nome</th></tr></thead><tbody>${plan.map(r=>`<tr${seen[fin(r)]>1?' class="dup"':''}><td title="${esc(r.f.path)}">${esc(r.f.name)}</td><td>${r.num!=null?esc(r.num):'—'}</td><td>${r.neu==null ? `<span class="opt-l">resta «${esc(r.old)}»</span>` : `<b>${esc(r.neu || r.f.name)}</b>`}</td></tr>`).join('')}</tbody></table>`;
+  const w=[]; if (dup) w.push(`⚠️ ${dup} spettri avrebbero lo stesso nome di un altro (righe in rosso).`); if (miss) w.push(`ℹ️ ${miss} file non hanno il numero o la riga dell'elenco richiesti: tengono il nome attuale.`);
+  $('#rnWarn').hidden=!w.length; $('#rnWarn').innerHTML=w.join('<br>');
+  const nCh=plan.filter(r=>r.neu!=null && (r.neu||r.f.name)!==r.old).length;
+  $('#rnApply').textContent = nCh ? `Rinomina ${nCh} spettr${nCh===1?'o':'i'}` : 'Nessun nome cambia'; $('#rnApply').disabled=!nCh;
+}
+function applyRename(){
+  const plan=renamePlan(rnTargets(), rnOpts());
+  renUndo = plan.map(r=>({f:r.f, t:r.f.title||''}));
+  plan.forEach(r=>{ if (r.neu==null) return; r.f.title = r.neu && r.neu!==r.f.name ? r.neu : ''; persist(r.f); });
+  $('#dlgRename').close(); renderList(); renderPreview(); renderSummary(); renderCmpBar && renderCmpBar();
+  const nDone=plan.filter(r=>r.neu!=null).length;
+  say('#tip2', `Fatto! ${nDone} spettri rinominati. Se non ti piace: «✏️ Rinomina in blocco» → «↶ Annulla l'ultima rinomina». ✏️`);
+}
+function showWelcome(){ const d=$('#dlgWelcome'); if (!d.open) d.showModal(); $('#wcGo').focus(); }
+function bindWelcome(){
+  $('#aboutBtn').onclick=()=>{ $('#wcNoMore').checked = !!lsGet('acch.welcomeDone'); showWelcome(); };
+  const close=()=>{ if ($('#wcNoMore').checked) lsSet('acch.welcomeDone', true); else lsDel('acch.welcomeDone'); $('#dlgWelcome').close(); };
+  $('#wcGo').onclick=close;
+  $('#dlgWelcome').addEventListener('cancel', e=>{ e.preventDefault(); close(); });
+  if (!lsGet('acch.welcomeDone')) setTimeout(showWelcome, 250);
+}
+function bindRename(){
+  $('#renameBtn').onclick=openRename;
+  ['#rnTpl','#rnWhich','#rnOrder','#rnStart','#rnList','#rnListBy','#rnFind','#rnRepl','#rnRegex','#rnOnlyOn'].forEach(s=>{ const el=$(s); el.addEventListener('input', renderRename); el.addEventListener('change', renderRename); });
+  $$('#rnTokens [data-t]').forEach(b=>b.onclick=()=>{ const el=$('#rnTpl'), t=b.dataset.t, a=el.selectionStart??el.value.length, z=el.selectionEnd??a; el.value=el.value.slice(0,a)+t+el.value.slice(z); el.focus(); el.selectionStart=el.selectionEnd=a+t.length; renderRename(); });
+  $$('#rnExamples [data-ex]').forEach(b=>b.onclick=()=>{ $('#rnTpl').value=b.dataset.ex; renderRename(); });
+  $('#rnCancel').onclick=()=>$('#dlgRename').close();
+  $('#rnApply').onclick=applyRename;
+  $('#rnReset').onclick=()=>{ rnTargets().forEach(f=>{ f.title=''; persist(f); }); renderRename(); renderList(); renderPreview(); renderSummary(); };
+  $('#rnUndo').onclick=()=>{ if (!renUndo) return; renUndo.forEach(u=>{ u.f.title=u.t; persist(u.f); }); renUndo=null; $('#rnUndo').hidden=true; renderRename(); renderList(); renderPreview(); renderSummary(); };
 }
 async function buildPdf(){
   const { jsPDF } = window.jspdf, Lx=T_();
@@ -4149,6 +4414,7 @@ async function buildZip(){
     if (S.outSvg) folder.file(uniq('svg/'+Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.svg'), renderSvg(cmpViewOf(cmp), wmm, hmm, fontPt));
     await tick();
   }
+  if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); folder.file('per_Origin.xlsx', await buildOriginXlsx()); }
   if (S.csvPeaks) folder.file(Lx.csvName, '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   status('🗜️ Impacchetto lo ZIP…');
   return await zip.generateAsync({type:'blob', compression:'STORE'}, m=>progress(0.9+m.percent/1000));
@@ -4160,7 +4426,9 @@ async function runExport(what){
   try{
     const base=safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp();
     if (S.outPdf){ progress(0); download(await buildPdf(), base+'.pdf'); }
-    if (S.outPng || S.outSvg || S.csvPeaks || S.csvData){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
+    const zipNeeded = S.outPng || S.outSvg || S.csvPeaks || S.csvData;
+    if (zipNeeded){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
+    else if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); progress(0.5); download(await buildOriginXlsx(), 'per_Origin_'+stamp()+'.xlsx'); }
     status('✅ Fatto! Trovi tutto nella cartella Download.');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
@@ -4218,7 +4486,7 @@ function confetti(){
 }
 
 /* avvio */
-bindRefs(); bindSizePresets(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
+bindRefs(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 </body>
 </html>
