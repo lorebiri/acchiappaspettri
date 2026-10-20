@@ -131,6 +131,8 @@ body.bigmode::before{content:"";position:fixed;inset:0;background:rgba(20,30,50,
 @media (max-width:700px){.editgrid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .pvwrap{position:relative}
+.ready{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#f7f9fc}
+.ready #readyList{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .refrow{display:grid;grid-template-columns:minmax(0,1fr) 140px 44px 40px;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid #eef1f5;font-size:13px}
 .refrow:last-child{border-bottom:0}
 .refrow .sc{height:8px;border-radius:99px;background:#e8edf5;overflow:hidden}.refrow .sc i{display:block;height:100%;background:linear-gradient(90deg,#9ec5ff,#2563c9)}
@@ -827,9 +829,11 @@ body.busy, body.busy *{cursor:progress !important}
 
   <div class="card dlcard">
     <ul class="summary" id="sumList"></ul>
+    <label class="check" id="oneFileRow" style="margin:0 0 10px"><input type="checkbox" data-k="oneFile"> Tutto in un unico file ZIP <small class="opt-l">consigliato: i browser a volte bloccano due download di fila</small></label>
     <button class="btn primary big" id="doDl">Scarica</button>
     <div class="progress" id="prog"><div></div></div>
     <div class="status" id="status"></div>
+    <div class="ready" id="readyBox" hidden><b>File pronti</b> <small class="opt-l">se il browser ne ha bloccato uno, scaricalo da qui con un clic</small><div id="readyList"></div></div>
   </div>
 
   <details class="sec card" style="margin-top:14px;padding:6px 18px">
@@ -2471,7 +2475,7 @@ const DEFAULTS = {
   outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
-  showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc',
+  showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc', oneFile:true,
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{},
   logY:{xrf:true}
 };
@@ -2495,7 +2499,7 @@ function sanitizeS(r){
   if (typeof r.docTitle!=='string') r.docTitle=''; r.docTitle=r.docTitle.slice(0,120);
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
   oneOf('originData',['proc','raw']);
-  ['showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear'].includes(r.base[k])) r.base[k]='none';
@@ -4038,7 +4042,9 @@ function renderSummary(){
     if (halfCmp) items.push(`<li>ℹ️ ${halfCmp} confront${halfCmp===1?'o ha':'i hanno'} un solo spettro e non ${halfCmp===1?'verrà stampato':'verranno stampati'}: servono almeno 2 spettri.</li>`);
   }
   $('#sumList').innerHTML = items.join('');
-  const what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null, originAlone?'Excel':null].filter(Boolean);
+  let what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null, originAlone?'Excel':null].filter(Boolean);
+  $('#oneFileRow').hidden = what.length<2;
+  if (what.length>1 && S.oneFile){ what=['tutto in un file ZIP']; if (inc.length) items.push('<li>📦 Arriva <b>un solo file ZIP</b> con dentro tutto quanto sopra</li>'); $('#sumList').innerHTML = items.join(''); }
   const btn=$('#doDl');
   btn.disabled = !inc.length || !what.length;
   btn.textContent = !what.length ? 'Spunta almeno una cosa da scaricare' : `⬇️ Scarica ${what.join(' + ')}`;
@@ -4050,6 +4056,15 @@ function status(t){ $('#status').textContent=t; }
 const tick = () => new Promise(r=>setTimeout(r,0));
 function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`; }
 function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 4000); }
+/* file appena prodotti: restano scaricabili con un clic (un clic dell'utente non viene mai bloccato dal browser) */
+let READY=[];
+function setReady(list){
+  READY.forEach(r=>URL.revokeObjectURL(r.url));
+  READY=list.map(o=>({name:o.name, url:URL.createObjectURL(o.blob), size:o.blob.size}));
+  const kb=n=> n>1048576 ? (n/1048576).toFixed(1).replace('.',',')+' MB' : Math.max(1,Math.round(n/1024))+' kB';
+  $('#readyBox').hidden=!READY.length;
+  $('#readyList').innerHTML=READY.map((r,i)=>`<a class="btn small" href="${r.url}" download="${esc(r.name)}">⬇️ ${esc(r.name)} <small class="opt-l">${kb(r.size)}</small></a>`).join('');
+}
 function safeName(s){ return s.replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|]+/g,'_').trim() || 'grafico'; }
 function pdfText(s){ return String(s).replace(/⁻¹/g,'-1').replace(/[^\x20-\x7E -ÿ–—…·]/g,'?'); }
 function renderCanvas(view, wmm, hmm, dpi, fontPt){
@@ -4382,8 +4397,9 @@ async function pngWithDpi(canvas, dpi){
   return new Blob(parts, {type:'image/png'});
 }
 function csvCell(c, sep){ c=String(c); return (c.includes(sep)||/["\n]/.test(c)) ? '"'+c.replace(/"/g,'""')+'"' : c; }
-async function buildZip(){
-  const Lx=T_(), zip=new JSZip(), root=Lx.zip+'_'+stamp(), folder=zip.folder(root);
+async function buildZip(extra){
+  const Lx=T_(), zip=new JSZip(), root=(S.oneFile && extra && extra.length ? safeName(S.docTitle||Lx.title).replace(/\s+/g,'_') : Lx.zip)+'_'+stamp(), folder=zip.folder(root);
+  for (const e of (extra||[])) folder.file(e.name, e.blob);
   const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
   const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
   const rows=[S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()];
@@ -4424,12 +4440,22 @@ async function runExport(what){
   const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
   say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
   try{
+    setReady([]);
     const base=safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp();
-    if (S.outPdf){ progress(0); download(await buildPdf(), base+'.pdf'); }
     const zipNeeded = S.outPng || S.outSvg || S.csvPeaks || S.csvData;
-    if (zipNeeded){ progress(0); download(await buildZip(), T_().zip+'_'+stamp()+'.zip'); }
-    else if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); progress(0.5); download(await buildOriginXlsx(), 'per_Origin_'+stamp()+'.xlsx'); }
-    status('✅ Fatto! Trovi tutto nella cartella Download.');
+    const nOut = (S.outPdf?1:0) + (zipNeeded?1:0) + (!zipNeeded && S.outOrigin?1:0);
+    const out=[];
+    if (S.oneFile && nOut>1){   // un solo download: il PDF (e il resto) dentro lo ZIP
+      progress(0); const pdf = S.outPdf ? await buildPdf() : null;
+      progress(0); out.push({name:base+'.zip', blob: await buildZip(pdf ? [{name:base+'.pdf', blob:pdf}] : [])});
+    } else {
+      if (S.outPdf){ progress(0); out.push({name:base+'.pdf', blob: await buildPdf()}); }
+      if (zipNeeded){ progress(0); out.push({name:T_().zip+'_'+stamp()+'.zip', blob: await buildZip()}); }
+      else if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); progress(0.5); out.push({name:'per_Origin_'+stamp()+'.xlsx', blob: await buildOriginXlsx()}); }
+    }
+    out.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
+    setReady(out);
+    status(out.length>1 ? '✅ Fatto! Se nella cartella Download manca un file, il browser l\'ha bloccato: scaricalo qui sotto con un clic.' : '✅ Fatto! Trovi il file nella cartella Download (o qui sotto).');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
   }catch(e){ console.error(e); status('😬 Qualcosa è andato storto: '+e.message); say('#tip3','Ops… riproviamo? 🙈'); }

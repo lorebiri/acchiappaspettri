@@ -84,6 +84,7 @@ In step 2 the tools sit under the plot in tabs named after what you want to do (
 
 ### 3 · Scarica (download)
 
+- **One download**: when several outputs are chosen, they arrive in a single ZIP with the PDF inside (option *Tutto in un unico file ZIP*, on by default). Browsers often block a second automatic download. After every export, the *File pronti* box keeps a button for each file, so a blocked file can be downloaded with one click.
 - **Plot language**, Italian or English, covering axis labels, decimal separator, the summary page and the peak list.
 - **Plots per page**: 1, 2, 4, 6 or 9, on A4 landscape or portrait.
 - **Summary page** listing each sample with its description, instrument, X range and peaks, including any assignments.
