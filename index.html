@@ -440,6 +440,37 @@ body:not(.expert) .adv{display:none !important}
 .recipes .rbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;text-align:left;flex:1 1 210px;max-width:320px}
 .recipes .rbtn:hover{border-color:var(--accent);background:var(--accent-soft)}
 .recipes .rbtn b{font-size:14px}.recipes .rbtn small{color:var(--muted);font-size:12.5px}
+/* barra dei comandi, selezione multipla, scorciatoie */
+.cmdbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#f6f8fc;border-radius:11px;padding:6px 8px 6px 12px;color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer;min-width:220px;justify-content:space-between}
+.cmdbtn:hover{border-color:var(--accent);color:var(--ink)}
+kbd{font:600 11.5px ui-monospace,Menlo,Consolas,monospace;border:1px solid #cdd5e1;border-bottom-width:2px;border-radius:6px;padding:1px 6px;background:#fff;color:var(--ink)}
+dialog.cmdk{padding:0;border:0;border-radius:16px;width:min(680px,94vw);max-height:76vh;box-shadow:0 30px 80px rgba(10,20,40,.35);margin-top:10vh;overflow:hidden}
+dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
+.cmdin{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.cmdin input{flex:1;border:0;outline:none;font:inherit;font-size:17px;background:transparent}
+.cmdlist{max-height:56vh;overflow:auto;padding:6px}
+.cmdlist .grp{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px 4px}
+.cmdlist .it{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer}
+.cmdlist .it.on{background:var(--accent-soft)}
+.cmdlist .it .ic{width:22px;text-align:center}
+.cmdlist .it .lb{flex:1;min-width:0}.cmdlist .it .lb small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmdlist .it .on1{color:var(--ok);font-size:12px;font-weight:700}
+.cmdfoot{border-top:1px solid var(--line);padding:7px 14px;font-size:12px;color:var(--muted)}
+.keysgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 18px;margin-top:10px;font-size:14px}
+.keysgrid div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #eef1f5;padding:5px 0}
+.keysgrid h4{grid-column:1/-1;margin:10px 0 0;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.fitem.msel{background:#eef4fe;border-color:#9fbbe8;box-shadow:inset 3px 0 0 var(--accent)}
+.batchbar{border:1px solid #c5d6f3;background:#f5f9ff;border-radius:12px;padding:8px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.batchbar .bb{display:flex;flex-wrap:wrap;gap:5px}
+.batchbar select{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:12.5px;max-width:100%}
+@media (max-width:760px){ .cmdbtn{min-width:0} .cmdbtn span{display:none} }
+/* novità della versione */
+.newslist{display:flex;flex-direction:column;gap:7px;max-height:58vh;overflow:auto;padding-right:4px}
+.newslist .nv{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff}
+.newslist .nv .ic{font-size:22px;line-height:1.1}.newslist .nv div{flex:1;min-width:0}
+.newslist .nv b{display:block;font-size:14.5px}.newslist .nv small{color:var(--muted);font-size:13px;line-height:1.45}
+.newslist .nv .btn{flex:none;align-self:center}
+.newslist .ver{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
 /* falso colore */
 .imwrap{position:relative;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:#f4f6fa;min-height:120px;display:grid;place-items:center;overflow:hidden}
 #imOut{max-width:100%;max-height:60vh;display:block;cursor:crosshair}
@@ -495,6 +526,7 @@ body:not(.expert) .adv{display:none !important}
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 15a10 10 0 0 1 20 0v13l-3.3-2.4L19.3 28 16 25.6 12.7 28l-3.4-2.4L6 28z" fill="#fff" stroke="#1c2230" stroke-width="2" stroke-linejoin="round"/><circle cx="12.3" cy="13.5" r="1.7" fill="#1c2230"/><circle cx="19.7" cy="13.5" r="1.7" fill="#1c2230"/><path d="M8.5 21.5h3l1.5-3.5 2 6 2-8.5 2 6h4.5" fill="none" stroke="#2563c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div>Acchiappaspettri<small>c'è uno spettro nel tuo file? lo acchiappo io 👻</small></div>
       <button class="btn small ghost infobtn" id="aboutBtn" title="A cosa serve questo strumento">ℹ️ Cos'è</button>
+      <button class="cmdbtn" id="cmdBtn" title="Cerca e lancia qualsiasi comando (⌘K o Ctrl+K)"><span>🔎 Cosa vuoi fare?</span><kbd>⌘K</kbd></button>
       <button class="btn small ghost infobtn" id="zoomTxt" title="Testo più grande o più piccolo">🔠 Aa</button>
       <button class="btn small ghost infobtn" id="soberBtn" title="Aspetto sobrio: niente mascotte né emoji">◐ Sobrio</button>
     </div>
@@ -569,6 +601,7 @@ body:not(.expert) .adv{display:none !important}
         </div>
       </div>
     </div>
+    <div class="imgentry"><span class="ico">📂</span><div><b>Hai un progetto salvato?</b><small>Riapri un file «.acchiappa.json»: tornano spettri, nomi, picchi, elaborazioni, analisi, riferimenti e confronti. Puoi anche trascinarlo qui sopra.</small></div><label class="btn" style="cursor:pointer">Apri un progetto<input type="file" id="openProjIn" accept=".json,application/json" hidden></label></div>
     <div class="imgentry"><span class="ico">🖼️</span><div><b>Hai foto nel visibile, all'infrarosso o all'ultravioletto?</b><small>Componi i falsi colori IR e UV per distinguere i pigmenti, o sovrapponi l'infrarosso al visibile per vedere il disegno preparatorio. Puoi anche trascinare le foto qui sopra insieme agli spettri: ti chiederò cosa farne.</small></div><button class="btn" id="imgBtn">Componi i falsi colori</button></div>
     <div class="notice" id="skipNote"></div>
     <div class="loaded" id="loaded"></div>
@@ -607,11 +640,13 @@ body:not(.expert) .adv{display:none !important}
       <div class="row" style="padding:2px 2px 8px">
         <h3 style="margin:0">I tuoi spettri (<span id="nFiles">0</span>)</h3>
         <span class="spacer"></span>
+        <button class="btn small ghost" id="saveProjBtn" title="Salva tutto il lavoro in un file da riaprire o passare a un collega (⌘S)">💾 Salva</button>
         <button class="btn small ghost" id="renameBtn" title="Rinomina tanti spettri insieme, anche usando il numero che hanno già nel nome">✏️ Rinomina</button>
         <button class="btn small ghost" id="addMore" title="Aggiungi altri file">+ Aggiungi</button>
       </div>
       <input type="search" id="filter" placeholder="🔎 Cerca uno spettro…">
       <div class="listhint" id="listHint">La spunta decide cosa finisce nel PDF e nelle immagini. <button class="linkbtn" id="allOn">Tutti / nessuno</button></div>
+      <div class="batchbar" id="batchBar" hidden></div>
       <div id="flist"></div>
     </div>
 
@@ -995,6 +1030,10 @@ body:not(.expert) .adv{display:none !important}
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:26px">💾</span><div style="flex:1 1 300px"><b>Salva il progetto</b><br><small class="opt-l">Un file solo con i dati originali e tutto il lavoro fatto: si riapre identico anche su un altro computer o da un collega. Comodo per riprendere domani o archiviare insieme ai risultati.</small></div>
+    <button class="btn" id="saveProjBtn3">💾 Salva il progetto</button>
+  </div>
   <div class="card dlcard">
     <ul class="summary" id="sumList"></ul>
     <label class="check" id="oneFileRow" style="margin:0 0 10px"><input type="checkbox" data-k="oneFile"> Tutto in un unico file ZIP <small class="opt-l">consigliato: i browser a volte bloccano due download di fila</small></label>
@@ -1031,6 +1070,14 @@ body:not(.expert) .adv{display:none !important}
 </main>
 <div class="ctxmenu" id="ctxMenu" role="menu" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlgCmd" class="cmdk" aria-label="Comandi"><div class="cmdin"><span>🔎</span><input type="text" id="cmdQ" placeholder="Cosa vuoi fare? Es. «arpls», «deconvolvi», «pdf», «calcite», il nome di uno spettro…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div><div class="cmdlist" id="cmdList" role="listbox"></div><div class="cmdfoot">↑↓ scegli · Invio esegue · <b>?</b> scorciatoie da tastiera</div></dialog>
+<dialog id="dlgNews" class="wide" aria-labelledby="nwTitle"><div class="dlg">
+  <h2 id="nwTitle"></h2>
+  <p class="why" id="nwSub" style="margin:2px 0 8px"></p>
+  <div class="newslist" id="nwList"></div>
+  <div class="actions"><span class="opt-l" style="margin-right:auto">Rivedile quando vuoi: <kbd>⌘K</kbd> e scrivi «novità».</span><button class="btn primary" type="button" id="nwOk">Ho capito, iniziamo</button></div>
+</div></dialog>
+<dialog id="dlgKeys" class="wide"><div class="dlg"><h2>⌨️ Scorciatoie da tastiera</h2><div class="keysgrid" id="keysGrid"></div><div class="actions"><button class="btn primary" type="button" onclick="this.closest('dialog').close()">Ho capito</button></div></div></dialog>
 <div class="glpop" id="glPop" role="tooltip" hidden></div>
 <dialog id="dlgImgAsk"><div class="dlg">
   <h2>🖼️ Hai caricato delle fotografie</h2>
@@ -1092,7 +1139,7 @@ body:not(.expert) .adv{display:none !important}
     <li>🔬 assistente per l'analisi: controllo di qualità con rimedi, ipotesi qualitative, deconvoluzione delle bande, rette di taratura con LOD/LOQ, PCA e cluster, miscele, bozza del paragrafo «Metodi» con la bibliografia</li>
     <li>🔒 tutto avviene nel tuo browser: i dati non lasciano mai il tuo computer</li>
   </ul>
-  <div class="actions"><label class="check" style="margin-right:auto"><input type="checkbox" id="wcNoMore" checked> Non mostrarlo più</label><button class="btn primary" type="button" id="wcGo">Iniziamo 👻</button></div>
+  <div class="actions"><label class="check" style="margin-right:auto"><input type="checkbox" id="wcNoMore" checked> Non mostrarlo più</label><button class="btn ghost" type="button" onclick="this.closest('dialog').close(); showNews();">🎉 Novità</button><button class="btn primary" type="button" id="wcGo">Iniziamo 👻</button></div>
 </div></dialog>
 <dialog id="dlgRename" class="wide"><form method="dialog" class="dlg">
   <h2>✏️ Rinomina gli spettri in blocco</h2>
@@ -4123,7 +4170,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-const frame = () => new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+const frame = () => new Promise(r=>{ let done=false; const go=()=>{ if (!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go, 120); });   // in una scheda nascosta requestAnimationFrame si ferma: il caricamento prosegue comunque
 let ldTimer=null;
 function loader(show, title, sub, frac){
   const L=$('#loader');
@@ -4136,7 +4183,7 @@ function loader(show, title, sub, frac){
 }
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
 async function addEntries(entries){
-  let skipped=[], errors=[], unreadable=[], dup=0, added=0; const images=[];
+  let skipped=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[];
   const tot=entries.length; let done=0, lastPaint=0;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
   try{
@@ -4144,19 +4191,20 @@ async function addEntries(entries){
       done++;
       if (performance.now()-lastPaint > 60 || done===1){ loader(true, null, `${done} di ${tot} · ${path}`, (done-1)/tot); await frame(); lastPaint=performance.now(); }
       if (err || !file){ unreadable.push(path); continue; }
+      if (/\.acchiappa\.json$/i.test(file.name)){ projects.push(file); continue; }
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
       if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
       if (files.some(f=>f.path===path && f.size===file.size)){ dup++; continue; }
       let buf;
       try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); continue; }
       try{
-        const p = parseBinary(buf, file.name) || parseText(decodeBuffer(buf));
+        const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
         if (p.xs.length<5) { errors.push(path); continue; }
         const det = detectInstrument(p, file.name);
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
-        f._p = {peY:p.peY, ys:p.ys, meta:p.meta};
+        f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
         f.n0 = p.xs.length; postDetect(f, p);
         const saved = lsGet(fkey(f));
         if (saved){
@@ -4205,6 +4253,7 @@ async function addEntries(entries){
   if (added && curView===2) renderPreview();
   loader(false);
   if (images.length) askImages(images);
+  if (projects.length) await openProject(projects[0]);
 }
 async function entriesFromDrop(dt, fallback){
   const roots = [...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
@@ -4272,6 +4321,7 @@ $('#inFolder').onchange=e=>fromInput(e,true);
 /* ---------------- OMINO ---------------- */
 /* messaggi di Gino: nel fumetto e, se il fumetto non è visibile (pagina scorsa più in basso), anche in un avviso in fondo allo schermo */
 function say(sel, txt){ const b=$(sel); if (!b) return; b.textContent=txt;
+  if (performance.now()<3000) return;   // i saluti all'apertura della pagina restano nel fumetto
   const r=b.getBoundingClientRect(), z=zf(), shown=b.offsetParent!==null && r.bottom>70*z && r.top<innerHeight-40; if (!shown) toast(txt); }
 let toastT=null;
 function toast(txt){ const t=$('#toast'); if (!t) return; t.textContent=txt; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), Math.max(3200, String(txt).length*55)); }
@@ -4349,7 +4399,7 @@ function renderList(){
          <div class="nm">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.desc||''))}</small></div>
          <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`;
      }
-     return `<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'}" data-i="${i}">
+     return `<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'} ${SEL.has(f.id)?'msel':''}" data-i="${i}">
      <input type="checkbox" ${f.include?'checked':''} data-inc="${i}" title="Includi nell'output">
      <div class="nm" title="${esc(f.path)}">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.path.includes('/')?f.path.slice(0,f.path.lastIndexOf('/')):(f.desc||'')))}</small></div>
      ${isEdited(f)?'<span class="ed" title="Modificato">✎</span>':''}
@@ -4359,8 +4409,44 @@ function renderList(){
     $$('#flist [data-cm]').forEach(el=>el.addEventListener('change', ()=>toggleMember(files[+el.dataset.cm], el.checked)));
     return;
   }
-  $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if(e.target.dataset.inc!==undefined) return; cur=+el.dataset.i; renderList(); renderPreview(); }));
+  $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if(e.target.dataset.inc!==undefined) return; const i=+el.dataset.i;
+    if (e.shiftKey && cur>=0){ const vis=$$('#flist .fitem').map(x=>+x.dataset.i), a=vis.indexOf(cur), b=vis.indexOf(i); if (!SEL.size && files[cur]) SEL.add(files[cur].id); vis.slice(Math.min(a,b), Math.max(a,b)+1).forEach(k=>SEL.add(files[k].id)); }
+    else if (e.metaKey || e.ctrlKey){ if (!SEL.size && files[cur]) SEL.add(files[cur].id); SEL.has(files[i].id) ? SEL.delete(files[i].id) : SEL.add(files[i].id); }
+    else SEL.clear();
+    cur=i; renderList(); renderPreview(); }));
+  renderBatch();
   $$('#flist [data-inc]').forEach(el=>el.addEventListener('change', ()=>{ const f=files[+el.dataset.inc]; f.include=el.checked; persist(f); renderList(); renderPreview(); renderSummary(); }));
+}
+/* ---- selezione multipla: azioni su molti spettri insieme ---- */
+const SEL=new Set();
+function selFiles(){ return files.filter(f=>SEL.has(f.id)); }
+function renderBatch(){
+  const bar=$('#batchBar'); if (!bar) return; [...SEL].forEach(id=>{ if (!files.some(f=>f.id===id)) SEL.delete(id); });
+  const L=selFiles(); bar.hidden = L.length<2 || viewMode==='cmp'; if (bar.hidden){ bar.innerHTML=''; return; }
+  const ins=[...new Set(L.map(f=>f.instr))], one=ins.length===1, f0=files[cur];
+  bar.innerHTML=`<div><b>${L.length} spettri selezionati</b>${one?' · '+esc(NOME_IT[ins[0]]):` · ${ins.length} strumenti`} <button class="linkbtn" data-b="none">annulla selezione</button></div>
+    <div class="bb"><button class="btn small" data-b="inc">✔ Includi</button><button class="btn small" data-b="exc">✖ Escludi</button>
+      ${one?'<button class="btn small" data-b="cmp">🔀 Confronta</button>':''}<button class="btn small" data-b="ref">📚 Ai riferimenti</button>
+      ${one && f0 && fitValid(f0) && L.includes(f0)?'<button class="btn small" data-b="fit" title="La deconvoluzione dello spettro aperto applicata agli altri selezionati">📑 Stessa deconvoluzione</button>':''}
+      ${one?'<button class="btn small" data-b="pca">🧭 PCA</button>':''}<button class="btn small ghost" data-b="del" title="Toglie gli spettri dall\\'elenco (i file sul computer restano)">🗑 Togli</button></div>
+    <div class="bb"><select data-b="sample"><option value="">Tipo di campione…</option><option value="-">come per tutti</option>${Object.entries(SAMPLE_TYPES).filter(([k])=>k!=='all').map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
+      <select data-b="instr"><option value="">Strumento…</option>${Object.keys(INSTR).map(k=>`<option value="${k}">${NOME_IT[k]}</option>`).join('')}</select></div>`;
+  const done=t=>{ files.forEach(persist); renderList(); renderPreview(); renderSummary(); toast(t); };
+  $$('#batchBar [data-b]').forEach(el=>{ const b=el.dataset.b, ev=el.tagName==='SELECT'?'onchange':'onclick'; el[ev]=()=>{
+    if (b==='none'){ SEL.clear(); renderList(); return; }
+    if (b==='inc'||b==='exc'){ L.forEach(f=>f.include=b==='inc'); done(`${L.length} spettri ${b==='inc'?'inclusi':'esclusi'} dall'output.`); }
+    if (b==='cmp'){ newCmp(ins[0], L); SEL.clear(); setView('cmp'); renderSummary(); toast(`Confronto creato con ${L.length} spettri.`); }
+    if (b==='ref'){ const n=addRefs(L.map(f=>makeRef(dispTitle(f), f.instr, f.xs, f.ys, f.kind))); if (n) toast(`${n} spettri aggiunti ai riferimenti. 📚`); }
+    if (b==='fit'){ const F=f0.fit; let ok=0; for (const g of L){ if (g===f0) continue; const P=processed(g), U=upData(P); let a=0; while (a<P.xs.length && P.xs[a]<F.range[0]) a++; let z=P.xs.length-1; while (z>=0 && P.xs[z]>F.range[1]) z--; if (z-a<12) continue;
+        const fit=fitPeaks(P.xs.subarray(a,z+1), U.y.subarray(a,z+1), F.peaks.map(q=>({x:q.c, w:q.w})), {profile:F.profile, base:F.bm}); if (!fit) continue;
+        g.fit={pk:procKey(g), range:F.range.slice(), profile:F.profile, bm:F.bm, auto:false, peaks:fit.peaks.map(q=>({c:q.c, w:q.w, eta:q.eta, area:q.area, h:q.h, sc:q.sc, sw:q.sw, sarea:q.sarea, sh:q.sh, seta:q.seta, pct:q.pct})), base:fit.base, xm:fit.xm, xr:fit.xr, r2:fit.r2, rmse:fit.rmse, noise:noiseSigma(U.y.subarray(a,z+1)), bic:fit.bic, n:fit.n, np:fit.p}; ok++; }
+      done(`Stessa deconvoluzione applicata a ${ok} spettri.`); }
+    if (b==='pca'){ const c=mvCfg(ins[0]); c.which='all'; mvSave(); const keep=files.map(f=>f.include); files.forEach(f=>f.include=SEL.has(f.id)); openTab('multi'); $('#mvInstr').value=ins[0]; renderMulti(); runPCA(ins[0]); renderPCA(ins[0]); files.forEach((f,k)=>f.include=keep[k]); reveal('#pcOut'); }
+    if (b==='del'){ if (!confirm(`Togliere ${L.length} spettri dall'elenco? I file sul computer non vengono toccati.`)) return; const ids=new Set(L.map(f=>f.id)), curF=files[cur];
+      for (let k=files.length-1;k>=0;k--) if (ids.has(files[k].id)) files.splice(k,1); SEL.clear(); cur = curF && files.includes(curF) ? files.indexOf(curF) : (files.length?0:-1); refreshAll(); toast(`Tolti ${L.length} spettri dall'elenco.`); }
+    if (b==='sample' && el.value){ L.forEach(f=>f.sample = el.value==='-' ? null : el.value); done(`Tipo di campione cambiato per ${L.length} spettri.`); }
+    if (b==='instr' && el.value){ L.forEach(f=>{ f.instr=el.value; f.kind=yKindFor(f.instr, f._p); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; syncDerived(f); }); renderLoaded(); done(`Strumento impostato a ${NOME_IT[el.value]} per ${L.length} spettri.`); }
+  }; });
 }
 function toggleMember(f, on){
   let c=curCmp();
@@ -4466,6 +4552,7 @@ function setView(m){
   $('#viewHint').textContent = m==='cmp' ? 'Sovrapponi più spettri dello stesso strumento per confrontarli.' : 'Sistema ogni spettro: nome, picchi, ritocchi.';
   $('#readout').textContent = readoutHint();
   if (m==='cmp' && !curCmp()){ const v=visibleCmps(); curCmpId = v.length ? v[v.length-1].id : null; }
+  if (m==='cmp') SEL.clear();
   renderCmp();
   if (m==='cmp') say('#tip2', curCmp() ? 'Ecco il confronto! Spunta o togli spettri a sinistra, scegli come sovrapporli qui sotto. 🔀' : 'Spunta a sinistra gli spettri da sovrapporre: ci penso io a metterli insieme. 🔀');
 }
@@ -6529,6 +6616,183 @@ function renderRecipes(f){
   $$('#recipes [data-r]').forEach(b=>b.onclick=()=>R[+b.dataset.r][3]());
 }
 
+/* ---------------- NOVITÀ: annunciate una volta a chi entra per la prima volta in una versione nuova ----------------
+   Regola per gli sviluppi futuri: ogni novità visibile all'utente va aggiunta in cima a NOVITA con un numero di versione
+   più alto in APP_VERSION. Chi ha già usato lo strumento la vede al primo ingresso; chi arriva per la prima volta vede il benvenuto. */
+const APP_VERSION='2.0';
+const NOVITA=[
+  {v:'2.0', data:'ottobre 2026', voci:[
+    ['🔬','Nuova scheda «Analisi»: un assistente per ogni spettro','Controlla la qualità del dato e propone i rimedi con un clic, suggerisce che cosa potrebbe esserci nel campione e calcola i parametri della tecnica (piatti teorici, onset, band gap, limiti di rilevabilità, struttura delle proteine…).', ()=>{ if (files.length){ go(2); openTab('an'); } }],
+    ['👋','«Cosa vuoi fare con questo spettro?»','In cima ad Analisi trovi i percorsi più comuni già pronti: riconoscere un pigmento, valutare una separazione HPLC, misurare il degrado di un polimero…'],
+    ['🏛️','Beni culturali','Pigmenti Raman riconosciuti con l\'epoca d\'uso; XRF con controllo della calibrazione, righe sovrapposte, pigmenti in base al colore del punto e composizione in % con gli standard.'],
+    ['🖼️','Falso colore dalle foto','Carica foto nel visibile, infrarosso e ultravioletto: compongo i falsi colori IR e UV e le allineo da solo.', ()=>$('#imgBtn').click()],
+    ['📈','Deconvoluzione delle bande','Separa le bande sovrapposte e misura posizione, larghezza e area di ognuna con la sua incertezza. Anche dal clic destro su un picco.'],
+    ['📊','Più campioni','Misura la stessa banda su tutti gli spettri, retta di taratura con LOD e LOQ, taratura PLS, PCA e gruppi di campioni.'],
+    ['🔎','Trova tutto con ⌘K (Ctrl+K)','Scrivi cosa vuoi fare — «arpls», «deconvolvi», «pdf», il nome di uno spettro — e premi Invio. Con «?» vedi le scorciatoie da tastiera.', ()=>setTimeout(openCmd, 50)],
+    ['💾','Salva il progetto','Un file solo con dati e lavoro fatto, da riaprire domani o passare a un collega (⌘S).'],
+    ['☑️','Più spettri insieme','⌘+clic o Maiusc+clic nell\'elenco per includere, confrontare, cambiare tipo di campione o applicare la stessa deconvoluzione a molti spettri.'],
+    ['🖥️','Interfaccia più comoda','Su schermi larghi grafico sempre visibile e strumenti a fianco; testo più grande con «Aa»; aspetto «Sobrio»; «?» accanto ai termini tecnici; menu col clic destro sul grafico.'],
+    ['🧪','Nuove elaborazioni e formati','Linea di base arPLS e SNIP, rimozione dei raggi cosmici; file JCAMP-DX, Thermo OMNIC .spa e Bruker OPUS.'],
+    ['📄','Risultati pronti per la tesi o l\'articolo','Pagine di analisi nel PDF, tabelle CSV e una bozza del paragrafo «Metodi» con la bibliografia.']]}
+];
+const cmpV=(a,b)=>{ const A=String(a).split('.').map(Number), B=String(b).split('.').map(Number); for (let i=0;i<Math.max(A.length,B.length);i++){ const d=(A[i]||0)-(B[i]||0); if (d) return d; } return 0; };
+function showNews(list){
+  list=list||NOVITA.slice(0,1); const last=list[0];
+  $('#nwTitle').textContent=`🎉 Novità di Acchiappaspettri ${last.v}`;
+  $('#nwSub').textContent = list.length>1 ? `Dall'ultima volta che sei passato sono uscite ${list.length} versioni. Ecco cosa è cambiato:` : `Versione ${last.v} · ${last.data}. Ecco cosa c'è di nuovo:`;
+  const acts=[]; $('#nwList').innerHTML=list.map(n=>(list.length>1?`<div class="ver">Versione ${n.v} · ${n.data}</div>`:'')+n.voci.map(([ic,t,d,fn])=>{ if (fn) acts.push(fn); return `<div class="nv"><span class="ic">${ic}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${fn?`<button class="btn small" type="button" data-nv="${acts.length-1}">Mostrami</button>`:''}</div>`; }).join('')).join('');
+  $$('#nwList [data-nv]').forEach(b=>b.onclick=()=>{ $('#dlgNews').close(); acts[+b.dataset.nv](); });
+  const d=$('#dlgNews'); if (!d.open) d.showModal();
+}
+function checkNews(){
+  const seen=lsGet('acch.seenVersion'), returning = seen || lsGet('acch.welcomeDone') || lsGet('acch.tourDone') || lsGet(LS_KEY);
+  const mark=()=>lsSet('acch.seenVersion', APP_VERSION);
+  $('#nwOk').onclick=()=>{ mark(); $('#dlgNews').close(); }; $('#dlgNews').addEventListener('close', mark);
+  if (!returning){ mark(); return; }   // primo ingresso in assoluto: c'è già il benvenuto
+  if (seen && cmpV(seen, APP_VERSION)>=0) return;
+  const list = seen ? NOVITA.filter(n=>cmpV(n.v, seen)>0) : NOVITA.slice(0,1);
+  if (!list.length){ mark(); return; }
+  const go=()=>{ if ($('#dlgWelcome').open){ setTimeout(go, 500); return; } showNews(list); };   // dopo l'eventuale benvenuto
+  setTimeout(go, 600);
+}
+
+/* ---------------- PROGETTO: tutto il lavoro in un file (.acchiappa.json) ---------------- */
+function b64(buf){ const u=new Uint8Array(buf); let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000)); return btoa(s); }
+function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }
+function saveProject(){
+  if (!files.length){ toast('Non c\'è ancora niente da salvare: carica qualche spettro. 🙂'); return; }
+  files.forEach(persist);
+  const P={app:'acchiappaspettri', v:1, saved:new Date().toISOString(), title:S.docTitle||'', S, MV, COMPS:COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined})), REFS, LIB, cur:files[cur]?fkey(files[cur]):null,
+    files:files.map(f=>({name:f.name, path:f.path, key:fkey(f), mem:lsGet(fkey(f))||null, bin:!!f.rawBin, data: f.raw ? (f.rawBin ? b64(f.raw) : decodeBuffer(f.raw)) : null})).filter(o=>o.data!=null)};
+  const name=safeName(S.docTitle||'progetto').replace(/\s+/g,'_')+'_'+stamp()+'.acchiappa.json';
+  download(new Blob([JSON.stringify(P)],{type:'application/json'}), name);
+  toast(`💾 Progetto salvato: ${P.files.length} spettri e tutto il lavoro, nel file «${name}».`);
+}
+async function openProject(file){
+  let P; try{ P=JSON.parse(await file.text()); }catch(e){ toast('Questo file non è un progetto valido. 😕'); return; }
+  if (!P || P.app!=='acchiappaspettri' || !Array.isArray(P.files)){ toast('Questo file non è un progetto di Acchiappaspettri. 😕'); return; }
+  if (files.length && !confirm('Aprire il progetto? Gli spettri che hai ora restano nell\'elenco, quelli del progetto si aggiungono.')) return;
+  if (P.S){ S=merge(DEFAULTS, P.S); saveS(); }
+  if (P.MV && typeof P.MV==='object'){ MV=Object.assign(MV, P.MV); mvSave(); }
+  if (Array.isArray(P.LIB)){ const have=new Set(LIB.map(e=>e.id)); P.LIB.filter(e=>e && !have.has(e.id)).forEach(e=>LIB.push(e)); saveLib && saveLib(); }
+  if (Array.isArray(P.REFS)){ const have=new Set(REFS.map(r=>r.id)); const add=P.REFS.filter(r=>r && !have.has(r.id) && INSTR[r.i] && Array.isArray(r.x)); if (add.length){ REFS=REFS.concat(add); saveRefs(); } }
+  for (const o of P.files) if (o.key && o.mem) lsSet(o.key, o.mem);   // la memoria di ogni spettro torna prima di ricaricarlo
+  if (Array.isArray(P.COMPS)){ const have=new Set(COMPS.map(c=>c.id)); P.COMPS.filter(c=>c && !have.has(c.id) && Array.isArray(c.keys)).forEach(c=>COMPS.push(Object.assign({mode:'stack',gap:1.1,out:true},c))); saveCmps(); }
+  const ents=P.files.map(o=>({file:new File([o.bin ? unb64(o.data) : o.data], o.name), path:o.path||o.name}));
+  await addEntries(ents);
+  if (P.cur){ const k=files.findIndex(f=>fkey(f)===P.cur); if (k>=0) cur=k; }
+  syncControls(); resetCaches(); refreshAll(); go(2);
+  toast(`📂 Progetto aperto: ${ents.length} spettri${P.saved?', salvato il '+new Date(P.saved).toLocaleString('it-IT'):''}.`);
+}
+function bindProject(){
+  $('#saveProjBtn').onclick=saveProject; $('#saveProjBtn3').onclick=saveProject;
+  $('#openProjIn').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if (f) await openProject(f); };
+}
+
+/* ---------------- BARRA DEI COMANDI (⌘K) E SCORCIATOIE ---------------- */
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w%+.\- ]/g,' ');
+function commands(){
+  const C=[], f=files[cur], it=f&&f.instr, add=(grp, ic, label, run, o)=>C.push(Object.assign({grp, ic, label, run}, o||{}));
+  const s2=()=>{ if (curView!==2) go(2); };
+  add('Vai a','📂','Passo 1 · Carica i file',()=>go(1),{kw:'carica aggiungi file cartella',key:''});
+  if (files.length){ add('Vai a','🔍','Passo 2 · Controlla',()=>go(2),{kw:'controlla grafici'}); add('Vai a','⬇️','Passo 3 · Scarica',()=>go(3),{kw:'scarica export pdf png',key:'E'}); }
+  if (files.length){ [['peaks','📍','Scheda Picchi','1'],['proc','🧪','Scheda Ritocca lo spettro','2'],['zone','🏷️','Scheda Dati dello spettro (nome, zona, strumento)','3'],['refs','🔎','Scheda Riferimenti','4'],['an','🔬','Scheda Analisi','5'],['multi','📊','Più campioni: taratura, PCA, composizione','6']].forEach(([t,ic,l,k])=>add('Vai a',ic,l,()=>{ s2(); openTab(t); },{kw:'scheda tab '+t,key:k})); }
+  if (f){
+    add('Spettro aperto','💡','Accetta i nomi suggeriti dei picchi',()=>{ s2(); $('#acceptAll').click(); },{kw:'nomi picchi suggerimenti assegna',key:'A'});
+    add('Spettro aperto','📈','Deconvolvi la zona visibile',()=>{ s2(); ctxFit(f, visibleRange(f)); },{kw:'fit separa bande sovrapposte componenti',key:'D'});
+    add('Spettro aperto','📏','Misura la zona visibile su tutti gli spettri',()=>{ s2(); ctxMeasure(f, visibleRange(f)); },{kw:'banda area altezza taratura'});
+    add('Spettro aperto','↶','Annulla l\'ultima modifica ai picchi',()=>pkUndo(),{kw:'undo',key:'⌘Z'});
+    add('Spettro aperto','↺','Torna ai picchi automatici',()=>{ s2(); $('#resetPeaks').click(); },{kw:'reset picchi'});
+    add('Spettro aperto','✏️','Rinomina lo spettro',()=>{ s2(); openTab('zone'); $('#fTitle').focus(); },{kw:'nome titolo descrizione'});
+    add('Spettro aperto','📚','Aggiungi ai riferimenti',()=>{ s2(); openTab('refs'); $('#refAddCur').click(); },{kw:'libreria riferimento'});
+    add('Spettro aperto','🧩','Scomponi come miscela dei riferimenti',()=>{ s2(); openTab('refs'); $('#mixRun').click(); },{kw:'miscela nnls'});
+    try{ recipesFor(f).forEach(([ic,t,sub,fn])=>add('Ricette per questo spettro',ic,t,()=>{ s2(); openTab('an'); fn(); },{sub, kw:sub})); }catch(e){}
+    try{ assess(f, viewOf(f)).filter(o=>o.act).forEach(o=>add('Consigli dell\'assistente','🩺',o.act.lab,()=>{ s2(); o.act.fn(); },{sub:o.t.replace(/<[^>]+>/g,''), kw:o.t.replace(/<[^>]+>/g,'')})); }catch(e){}
+    const grp='Ritocca: tutti gli spettri '+NOME_IT[it], set=(k,v,msg)=>()=>{ S[k][it]=v; saveS(); renderProc(); renderPreview(); renderSummary(); toast('✔ '+msg+' — vale per tutti gli spettri '+NOME_IT[it]+'.'); };
+    INSTR[it].conv.forEach(v=>add(grp,'📐','Asse Y: '+({orig:'come nel file',A:'assorbanza',T:'trasmittanza %',norm:'normalizzato 0–1',dtg:'solo DTG',both:'massa + DTG',flip:'ribaltato'}[v]||v),set('conv',v,'Asse Y cambiato'),{on:S.conv[it]===v, kw:'conversione'}));
+    [['none','nessuna'],['rubber','automatica (inviluppo)'],['arpls','arPLS (fondi curvi, fluorescenza)'],['snip','SNIP (XRF, LIBS)'],['linear','lineare']].forEach(([v,t])=>add(grp,'〰️','Linea di base: '+t,set('base',v,'Linea di base: '+t),{on:S.base[it]===v, kw:'fondo baseline '+v}));
+    [[0,'nessuno'],[7,'leggero'],[15,'medio'],[31,'forte']].forEach(([v,t])=>add(grp,'🌫️','Smoothing '+t,set('smooth',v,'Smoothing '+t),{on:+S.smooth[it]===v, kw:'rumore savitzky golay liscia'}));
+    [[0,'nessuna'],[1,'prima'],[2,'seconda']].forEach(([v,t])=>add(grp,'∂','Derivata '+t,set('deriv',v,'Derivata '+t),{on:+S.deriv[it]===v, kw:'derivata'}));
+    if (['raman','fluo','gen'].includes(it)) add(grp,'✨',S.spike[it]?'Lascia i raggi cosmici':'Togli i raggi cosmici',set('spike',!S.spike[it],S.spike[it]?'Raggi cosmici lasciati':'Raggi cosmici tolti'),{kw:'spike cosmici'});
+    add(grp,'📊',S.logY[it]?'Asse Y lineare':'Asse Y logaritmico',set('logY',!S.logY[it],'Scala Y cambiata'),{kw:'log scala'});
+  }
+  files.forEach((g,k)=>add('Spettri','📄',dispTitle(g),()=>{ s2(); cur=k; refreshAll(); },{sub:NOME_IT[g.instr]+' · '+g.path, kw:g.name+' '+g.path+' '+NOME_IT[g.instr]}));
+  if (files.length){
+    add('Vista','⛶','Grafico grande',()=>{ s2(); setBig(!$('.preview').classList.contains('big')); },{kw:'schermo intero fullscreen',key:'F'});
+    add('Vista','🔀',viewMode==='cmp'?'Un grafico alla volta':'Confronta grafici (sovrapponi)',()=>{ s2(); setView(viewMode==='cmp'?'one':'cmp'); },{kw:'sovrapponi confronto overlay',key:'C'});
+    add('Vista','↺','Mostra tutto (togli lo zoom)',()=>{ s2(); $('#zReset').click(); },{kw:'zoom reset',key:'0'});
+    add('Vista','⬚','Ingrandisci una zona…',()=>{ s2(); setLasso(true); },{kw:'zoom riquadro inset',key:'R'});
+  }
+  add('Strumenti','🖼️','Falso colore da foto multibanda',()=>$('#imgBtn').click(),{kw:'irfc uvfc infrarosso ultravioletto foto immagini'});
+  add('Strumenti','✏️','Rinomina molti spettri insieme',()=>{ s2(); $('#renameBtn').click(); },{kw:'rinomina blocco elenco'});
+  add('Progetto','💾','Salva il progetto',saveProject,{kw:'salva progetto json archivio',key:'⌘S'});
+  add('Progetto','📂','Apri un progetto…',()=>$('#openProjIn').click(),{kw:'apri progetto json',key:'⌘O'});
+  if (files.length) add('Progetto','⬇️','Scarica adesso (PDF, immagini, risultati)',()=>{ go(3); runExport(); },{kw:'esporta download pdf zip png'});
+  add('Aspetto','🇮🇹','Grafici in italiano',()=>{ S.lang='it'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='it', kw:'lingua italiano'});
+  add('Aspetto','🇬🇧','Grafici in inglese',()=>{ S.lang='en'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='en', kw:'lingua english inglese'});
+  add('Aspetto','🔠','Testo più grande / più piccolo',()=>$('#zoomTxt').click(),{kw:'testo grande zoom caratteri'});
+  add('Aspetto','◐',S.sober?'Aspetto normale':'Aspetto sobrio (senza mascotte ed emoji)',()=>$('#soberBtn').click(),{kw:'sobrio professionale'});
+  add('Aspetto','⚙️',S.expert?'Nascondi le opzioni avanzate':'Mostra le opzioni avanzate',()=>{ S.expert=!S.expert; saveS(); syncControls(); applyExpert(); },{kw:'esperto avanzate'});
+  add('Aiuto','🎉','Novità di questa versione',()=>showNews(),{kw:'novita nuove funzioni cosa c e di nuovo changelog versione '+APP_VERSION});
+  add('Aiuto','⌨️','Scorciatoie da tastiera',showKeys,{kw:'tasti shortcut aiuto',key:'?'});
+  add('Aiuto','👻','Giro guidato',()=>{ s2(); startTour(); },{kw:'tour aiuto guida'});
+  add('Aiuto','ℹ️','A cosa serve questo strumento',()=>$('#aboutBtn').click(),{kw:'informazioni benvenuto'});
+  Object.entries(GLOSS).forEach(([k,[t,d]])=>add('Cosa vuol dire','❓',t,()=>toast(t+': '+d),{sub:d, kw:d}));
+  return C;
+}
+let CMD=[], cmdSel=0;
+function cmdFilter(){
+  const q=norm($('#cmdQ').value).trim(), toks=q.split(/\s+/).filter(Boolean), all=commands();
+  CMD = !toks.length ? all.filter(c=>!/^(Cosa vuol dire|Spettri)$/.test(c.grp) || c.grp==='Spettri' && all.filter(x=>x.grp==='Spettri').length<=8) :
+    all.map(c=>{ const L=norm(c.label), K=norm((c.kw||'')+' '+c.grp+' '+(c.sub||'')); let sc=0; for (const t of toks){ if (L.startsWith(t)) sc+=4; else if (new RegExp('\\b'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(L)) sc+=3; else if (L.includes(t)) sc+=2; else if (K.includes(t)) sc+=1; else return null; } return Object.assign({sc}, c); }).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  cmdSel=0; cmdRender();
+}
+function cmdRender(){
+  let grp='', html=''; CMD.forEach((c,i)=>{ if (c.grp!==grp){ grp=c.grp; html+=`<div class="grp">${esc(grp)}</div>`; }
+    html+=`<div class="it ${i===cmdSel?'on':''}" data-k="${i}" role="option"><span class="ic">${c.ic}</span><span class="lb">${esc(c.label)}${c.sub?`<small>${esc(c.sub)}</small>`:''}</span>${c.on?'<span class="on1">in uso</span>':''}${c.key?`<kbd>${esc(c.key)}</kbd>`:''}</div>`; });
+  $('#cmdList').innerHTML = html || '<div class="pkempty" style="padding:14px">Niente con queste parole. Prova con un sinonimo, o scrivi il nome di uno spettro.</div>';
+  $$('#cmdList .it').forEach(el=>{ el.onclick=()=>cmdRun(+el.dataset.k); el.onmousemove=()=>{ if (cmdSel!==+el.dataset.k){ cmdSel=+el.dataset.k; $$('#cmdList .it').forEach(x=>x.classList.toggle('on', +x.dataset.k===cmdSel)); } }; });
+  const on=$('#cmdList .it.on'); if (on) on.scrollIntoView({block:'nearest'});
+}
+function cmdRun(k){ const c=CMD[k]; if (!c) return; $('#dlgCmd').close(); setTimeout(()=>{ try{ c.run(); }catch(e){ console.error(e); toast('Questo comando qui non si può usare. 🤔'); } }, 20); }
+function openCmd(){ const d=$('#dlgCmd'); if (d.open) return; $('#cmdQ').value=''; cmdFilter(); d.showModal(); $('#cmdQ').focus(); }
+function showKeys(){
+  const K=[['Ovunque',[['⌘K / Ctrl+K','cerca e lancia qualsiasi comando'],['?','questa scheda'],['⌘S / Ctrl+S','salva il progetto'],['⌘O / Ctrl+O','apri un progetto'],['Esc','chiudi finestre e menu']]],
+    ['Spettri',[['← →','spettro precedente / successivo'],['clic','apri uno spettro'],['⌘+clic','aggiungi o togli dalla selezione'],['Maiusc+clic','seleziona un intervallo'],['E','vai a scaricare']]],
+    ['Schede',[['1 … 5','Picchi, Ritocca, Dati, Riferimenti, Analisi'],['6','Più campioni (taratura, PCA)']]],
+    ['Grafico',[['clic','aggiungi un picco / dai un nome'],['clic destro','menu con tutte le azioni'],['Canc','togli il picco selezionato'],['⌘Z / Ctrl+Z','annulla'],['rotellina, + −','zoom'],['0','mostra tutto'],['R','ingrandisci una zona'],['F','grafico grande'],['C','confronta grafici / uno alla volta']]],
+    ['Analisi',[['A','accetta i nomi suggeriti'],['D','deconvolvi la zona visibile']]]];
+  $('#keysGrid').innerHTML=K.map(([g,L])=>`<h4>${g}</h4>`+L.map(([k,t])=>`<div><span>${t}</span><kbd>${k}</kbd></div>`).join('')).join('');
+  $('#dlgKeys').showModal();
+}
+function bindCommands(){
+  $('#cmdBtn').onclick=openCmd;
+  $('#cmdQ').addEventListener('input', cmdFilter);
+  $('#cmdQ').addEventListener('keydown', e=>{
+    if (e.key==='ArrowDown'){ e.preventDefault(); cmdSel=Math.min(CMD.length-1, cmdSel+1); cmdRender(); }
+    else if (e.key==='ArrowUp'){ e.preventDefault(); cmdSel=Math.max(0, cmdSel-1); cmdRender(); }
+    else if (e.key==='Enter'){ e.preventDefault(); cmdRun(cmdSel); }
+    else if (e.key==='?' && !$('#cmdQ').value){ e.preventDefault(); $('#dlgCmd').close(); showKeys(); } });
+  $('#dlgCmd').addEventListener('click', e=>{ if (e.target===$('#dlgCmd')) $('#dlgCmd').close(); });
+  document.addEventListener('keydown', e=>{
+    const mod=e.metaKey||e.ctrlKey, typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
+    if (mod && (e.key==='k'||e.key==='K')){ e.preventDefault(); openCmd(); return; }
+    if (mod && (e.key==='s'||e.key==='S')){ e.preventDefault(); saveProject(); return; }
+    if (mod && (e.key==='o'||e.key==='O')){ e.preventDefault(); $('#openProjIn').click(); return; }
+    if (typing || mod || e.altKey || document.querySelector('dialog[open]')) return;
+    if (e.key==='?'){ e.preventDefault(); showKeys(); return; }
+    if (curView!==2 || !files.length) return;
+    const tabs={'1':'peaks','2':'proc','3':'zone','4':'refs','5':'an','6':'multi'};
+    if (tabs[e.key]){ openTab(tabs[e.key]); return; }
+    const k=e.key.toLowerCase(), f=files[cur];
+    if (k==='a' && viewMode==='one'){ $('#acceptAll').click(); return; }
+    if (k==='d' && f && viewMode==='one'){ ctxFit(f, visibleRange(f)); return; }
+    if (k==='f'){ setBig(!$('.preview').classList.contains('big')); return; }
+    if (k==='c'){ setView(viewMode==='cmp'?'one':'cmp'); return; }
+    if (k==='e'){ go(3); return; }
+  });
+}
+
 /* ---------------- FOTOGRAFIE MULTIBANDA: FALSO COLORE IR e UV ----------------
    IRFC: rosso ← infrarosso, verde ← rosso del visibile, blu ← verde del visibile. UVFC: rosso ← verde, verde ← blu, blu ← ultravioletto.
    (Moon et al. 1992; Aldrovandi et al. 2005; Cosentino 2014) */
@@ -6710,6 +6974,7 @@ const TOUR=[
   {sel:'#viewSeg', t:'«Confronta grafici» sovrappone più spettri dello stesso strumento.'},
   {sel:'#tabs', t:'Gli strumenti, divisi per cosa vuoi fare: picchi, ritocchi (fondo, rumore, derivate), dati dello spettro, riferimenti e Analisi.'},
   {sel:'#tabs [data-tab="an"]', t:'In «Analisi» trovi le proposte già pronte («Cosa vuoi fare con questo spettro?»), il controllo della qualità, cosa potrebbe esserci nel campione, i parametri della tecnica e, in fondo, il confronto tra più campioni (tarature, PCA).'},
+  {sel:'#cmdBtn', t:'Non trovi qualcosa? Premi ⌘K (Ctrl+K su Windows) e scrivi cosa vuoi fare: «arpls», «deconvolvi», «pdf», il nome di uno spettro… Con «?» vedi tutte le scorciatoie.'},
   {sel:'#zoomTxt', t:'Scritte piccole? «Aa» ingrandisce il testo. «Sobrio» toglie mascotte ed emoji, se preferisci un aspetto più professionale.'},
   {sel:'#toV3', t:'Quando sei contento, vai a scaricare PDF, immagini e risultati. Buon lavoro! 👻'}
 ];
@@ -6755,7 +7020,7 @@ function confetti(){
 }
 
 /* avvio */
-applySober(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
+applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ A simple web tool for turning spectra and chromatograms saved as text files (FTI
 - a **PDF for quick review**, with several plots per page;
 - a **folder of PNG images** at 600 dpi and, optionally, **vector SVG images**, with ready-made journal sizes;
 - optionally, a **peak list** and the **processed data** as CSV files for Excel;
+- **⌘K command bar, keyboard shortcuts, multi-selection and project files** to work fast and keep the work;
 - an **analysis assistant** for qualitative and quantitative work: data-quality checks with one-click remedies, hypotheses on what the sample contains, band deconvolution with uncertainties, technique-specific figures of merit, calibration lines with LOD/LOQ, PCA and clustering, mixture analysis, and a draft *Methods* paragraph with references.
 
 Everything happens in the browser: the data never leave the computer of the person using the tool.
@@ -122,6 +123,12 @@ Besides the synthetic benchmarks, the tool was run on spectra from the institute
 - **Raman** (1800–700 cm⁻¹ text files with strong fluorescence): carotenoids recognised (1522, 1153, 1004 cm⁻¹) after arPLS; with sample type *biologico* the recipes become «Riconosci le molecole» and «Confronta i campioni» (ready-made carotenoid ν₁/CH₂ ratio), and the pigment finder steps aside.
 
 ## Made for everyone
+
+- **What's new**: the first time a returning user opens a new version, a «Novità» window lists what changed, with «Mostrami» buttons that open the new feature; it is shown once per version and can be reopened from ⌘K («novità») or from «Cos'è». First-time users see only the welcome. *For developers: every user-visible change must add an entry at the top of `NOVITA` in `index.html` and raise `APP_VERSION`.*
+- **⌘K / Ctrl+K command bar** («🔎 Cosa vuoi fare?» in the header): type what you want — «arpls», «deconvolvi», «pdf», «calcite», the name of a spectrum — and press Enter. It finds every tab, recipe, assistant remedy, processing option (marked «in uso» when active), view, export, project action, setting, glossary entry and loaded spectrum; accents and word order do not matter.
+- **Keyboard shortcuts** (press **?** for the full list): 1–6 tabs, ← → previous/next spectrum, A accept suggested names, D deconvolve the visible zone, F large plot, C compare, R zoom box, 0 show all, E go to download, ⌘S save project, ⌘O open project, ⌘Z undo.
+- **Several spectra at once**: ⌘/Ctrl+click and Shift+click in the list select several spectra; a bar offers include/exclude, compare, add to references, same deconvolution, PCA, sample type, instrument and remove from the list.
+- **Project files** (`.acchiappa.json`, 💾 Salva or ⌘S; open from step 1, ⌘O or by dropping the file with the spectra): the original data of every spectrum (binary formats included) plus names, peaks, processing, deconvolutions, concentrations and standards, references, personal library, comparisons and settings, in one file to reopen on another computer or share with a colleague.
 
 - **Messages where you are looking**: when Gino's speech bubble is out of view, the same message appears briefly at the bottom of the screen; changes that apply to every spectrum of an instrument say so («Applicato a tutti i 7 spettri FTIR»).
 - **Analysis in collapsible sections**, each with a one-line summary («⚠️ 1 avviso», «verde smeraldo o di Scheele», «4 componenti · R² 0,998»); when you move to another spectrum, only the sections with something to show open by themselves.

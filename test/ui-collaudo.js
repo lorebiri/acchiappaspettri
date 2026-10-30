@@ -1,10 +1,12 @@
 // Collaudo automatico dell'interfaccia di Acchiappaspettri: carica spettri sintetici di tutti gli strumenti (più eventuali file veri),
 // esercita schede, elaborazioni, deconvoluzione, menu del clic destro, ricette, riferimenti, più campioni, confronti, esportazioni
-// (PDF, ZIP con PNG/SVG/CSV, Excel per Origin, risultati delle analisi), rinomina, preset, modalità e falso colore, e registra ogni errore.
+// (PDF, ZIP con PNG/SVG/CSV, Excel per Origin, risultati delle analisi), rinomina, preset, modalità, falso colore, ogni comando della barra ⌘K,
+// le scorciatoie, la selezione multipla, il salvataggio e la riapertura del progetto e la finestra delle novità, e registra ogni errore.
 // Uso: servi la cartella del progetto (es. python3 -m http.server), apri la pagina e nella console del browser:
 //   const s=document.createElement('script'); s.src='test/ui-collaudo.js'; document.head.appendChild(s);
 //   // facoltativo: window.REALI=['percorso/file1.csv', …] (URL relativi alla pagina)
 //   runHarness().then(r=>console.log(r));      // r.errs è vuoto se tutto va bene; dura alcuni minuti
+//   runHarness({soloNuovo:true})                // solo barra dei comandi, scorciatoie, novità, selezione multipla e progetto
 // I download sono disattivati durante il collaudo.
 window.H = { errs:[], steps:0 };
 const rec=(ctx,e)=>{ H.errs.push(ctx+' → '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):String(e))); };
@@ -37,7 +39,7 @@ window.synthFiles=()=>{ const F={};
   F['decrescente_dup.txt']=mk(3000,500,400,x=>Lz(x,1700,20,1)+0.01)+'\n1700\t0.5\n1700\t0.6';
   F['virgola_decimale.csv']='x;y\n'+Array.from({length:300},(_,i)=>`${(400+i*12).toString().replace('.',',')};${(Math.sin(i/9)+2).toFixed(4).replace('.',',')}`).join('\n');
   return F; };
-window.runHarness=async ()=>{
+window.runHarness=async (opt)=>{ opt=opt||{};
   H.errs=[]; H.steps=0;
   window.download=()=>{}; window.alert=()=>{}; window.confirm=()=>true;   // niente download né finestre durante il collaudo
   const ents=[]; for (const u of (window.REALI||[])){ try{ const res=await fetch(u); if (res.ok) ents.push({file:new File([await res.arrayBuffer()], u.split('/').pop()), path:'reali/'+u.split('/').pop()}); }catch(e){} }
@@ -46,7 +48,7 @@ window.runHarness=async ()=>{
   document.querySelectorAll('dialog[open]').forEach(d=>d.close()); go(2); try{ endTour(); }catch(e){}
   H.loaded=files.map(f=>f.name+':'+f.instr+'/'+f.kind+(f.uncal?'/uncal':''));
   const tabs=$$('#tabs .tab').map(t=>t.dataset.tab);
-  for (let i=0;i<files.length;i++){ const f=files[i], it=f.instr, ctx=f.name;
+  if (!opt.soloNuovo) for (let i=0;i<files.length;i++){ const f=files[i], it=f.instr, ctx=f.name;
     cur=i; await T(ctx+' refresh', ()=>refreshAll());
     for (const t of tabs) await T(ctx+' tab '+t, ()=>openTab(t));
     await T(ctx+' sezioni', ()=>{ $$('#v2 details').forEach(d=>d.open=true); renderAnalysis(); renderMulti(); });
@@ -80,7 +82,7 @@ window.runHarness=async ()=>{
   }
   S.showArea=false;
   // più campioni e chemiometria per ogni strumento
-  for (const it of [...new Set(files.map(f=>f.instr))]){
+  if (!opt.soloNuovo) for (const it of [...new Set(files.map(f=>f.instr))]){
     await T('multi '+it, async ()=>{ openTab('multi'); $('#mvInstr').value=it; const c=mvCfg(it); c.which='all'; const P=processed(files.find(f=>f.instr===it)); c.a=P.xs[Math.floor(P.xs.length*0.3)]; c.b=P.xs[Math.floor(P.xs.length*0.6)]; mvSave();
       files.filter(f=>f.instr===it).forEach((f,k)=>anSet(f,'conc',k+1)); renderMulti();
       for (const m of ['height','area','value','centroid','fwhm']){ c.meas=m; renderMulti(); }
@@ -89,19 +91,35 @@ window.runHarness=async ()=>{
       for (const pre of ['snv','msc','d1','d2','none']) for (const sc of ['mean','auto','pareto']){ c.pre=pre; c.scale=sc; runPCA(it); renderPCA(it); }
       if (it==='xrf'){ c.qEls=['Cu','Pb','Ag']; files.filter(f=>f.instr==='xrf').forEach((f,k)=>anSet(f,'std',{Cu:50+k, Pb:5, Ag:10})); renderMulti(); } }); }
   // confronti
-  await T('confronti', ()=>{ setView('cmp'); $('#cmpAuto').click(); for (const c of COMPS){ curCmpId=c.id; for (const m of ['stack','over','norm']){ c.mode=m; renderCmp(); renderPreview(); } } setView('one'); });
+  if (!opt.soloNuovo) await T('confronti', ()=>{ setView('cmp'); $('#cmpAuto').click(); for (const c of COMPS){ curCmpId=c.id; for (const m of ['stack','over','norm']){ c.mode=m; renderCmp(); renderPreview(); } } setView('one'); });
   // esportazioni
-  for (const lang of ['it','en']) for (const pp of [1,9]) await T(`export ${lang} ${pp}/pag`, async ()=>{ S.lang=lang; LANG=lang; S.perPage=pp; S.outPdf=S.outPng=S.outSvg=S.outOrigin=S.csvPeaks=S.csvData=S.outAnalysis=true; S.pngDpi=300; S.pngW=8; S.pngH=6; saveS();
+  if (!opt.soloNuovo) for (const lang of ['it','en']) for (const pp of [1,9]) await T(`export ${lang} ${pp}/pag`, async ()=>{ S.lang=lang; LANG=lang; S.perPage=pp; S.outPdf=S.outPng=S.outSvg=S.outOrigin=S.csvPeaks=S.csvData=S.outAnalysis=true; S.pngDpi=300; S.pngW=8; S.pngH=6; saveS();
     const pdf=await buildPdf(); const z=await buildZip([{name:'r.pdf', blob:pdf}]); const zz=await JSZip.loadAsync(z); H['zip_'+lang+pp]=Object.keys(zz.files).length; const x=await buildOriginXlsx(); H['xlsx']=x.size; });
   S.lang='it'; LANG='it'; saveS();
-  await T('runExport', ()=>runExport());
+  if (!opt.soloNuovo) await T('runExport', ()=>runExport());
   // rinomina, preset, modalità
-  await T('rinomina', ()=>{ openRename(); $('#rnTpl').value='Campione {N} – {strumento}'; renderRename(); applyRename(); $('#dlgRename').close(); });
-  await T('preset', ()=>{ $('#presetName').value='prova'; $('#presetSave').click(); $('#presetLoad').click(); $('#presetDel').click(); });
-  await T('sobrio/testo/esperto', ()=>{ S.expert=true; applyExpert(); $('#zoomTxt').click(); renderPreview(); $('#zoomTxt').click(); $('#zoomTxt').click(); S.sober=true; applySober(); renderAnalysis(); });
-  await T('giro', ()=>{ startTour(); for (let k=0;k<12;k++) $('#tNext') && $('#tNext').click(); endTour(); });
-  await T('falso colore', async ()=>{ const c=document.createElement('canvas'); c.width=300; c.height=200; const x=c.getContext('2d'); x.fillStyle='#2a4aa8'; x.fillRect(50,50,100,100); const b=await new Promise(rs=>c.toBlob(rs,'image/png'));
+  if (!opt.soloNuovo) await T('rinomina', ()=>{ openRename(); $('#rnTpl').value='Campione {N} – {strumento}'; renderRename(); applyRename(); $('#dlgRename').close(); });
+  if (!opt.soloNuovo) await T('preset', ()=>{ $('#presetName').value='prova'; $('#presetSave').click(); $('#presetLoad').click(); $('#presetDel').click(); });
+  if (!opt.soloNuovo) await T('sobrio/testo/esperto', ()=>{ S.expert=true; applyExpert(); $('#zoomTxt').click(); renderPreview(); $('#zoomTxt').click(); $('#zoomTxt').click(); S.sober=true; applySober(); renderAnalysis(); });
+  if (!opt.soloNuovo) await T('giro', ()=>{ startTour(); for (let k=0;k<12;k++) $('#tNext') && $('#tNext').click(); endTour(); });
+  if (!opt.soloNuovo) await T('falso colore', async ()=>{ const c=document.createElement('canvas'); c.width=300; c.height=200; const x=c.getContext('2d'); x.fillStyle='#2a4aa8'; x.fillRect(50,50,100,100); const b=await new Promise(rs=>c.toBlob(rs,'image/png'));
     await addEntries([{file:new File([b],'quadro_VIS.png'),path:'quadro_VIS.png'},{file:new File([b],'quadro_IR.png'),path:'quadro_IR.png'},{file:new File([b],'quadro_UVR.png'),path:'quadro_UVR.png'}]);
     await useAskedImages(); await sleep(300); for (const m of ['irfc','uvfc','mix','vis','ir']){ IM.mode=m; imCompose(); } $('#dlgImg').close(); });
-  return {steps:H.steps, errs:H.errs, loaded:H.loaded, zip:H.zip_it1, xlsx:H.xlsx};
+  // barra dei comandi: ogni comando (tranne quelli che aprono il selettore di file o rifanno l'export completo)
+  await T('comandi', async ()=>{ go(2); cur=0; refreshAll(); for (const q of ['arpls','deconv','pdf','calcite','novità','xyz qwe','']){ openCmd(); $('#cmdQ').value=q; cmdFilter(); $('#dlgCmd').close(); }
+    const L=commands().filter(c=>!/Apri un progetto|Scarica adesso|Giro guidato|A cosa serve|Aspetto normale/.test(c.label));   // «Aspetto normale» ricarica la pagina
+    for (const c of L){ try{ c.run(); }catch(e){ rec('comando «'+c.label+'»', e); } document.querySelectorAll('dialog[open]').forEach(d=>d.close()); if (typeof lassoOn!=='undefined' && lassoOn) setLasso(false); if ($('.preview').classList.contains('big')) setBig(false); await sleep(5); } H.cmds=L.length; });
+  await T('scorciatoie', ()=>{ go(2); document.activeElement && document.activeElement.blur && document.activeElement.blur(); for (const k of ['1','2','3','4','5','6','a','d','f','f','c','c','?','e']){ document.dispatchEvent(new KeyboardEvent('keydown',{key:k, bubbles:true})); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); go(2); } });
+  await T('novità', ()=>{ showNews(); $('#dlgNews').close(); showNews(NOVITA); $('#nwOk').click(); });
+  // selezione multipla: tutte le azioni sugli spettri dello stesso strumento
+  await T('selezione multipla', async ()=>{ go(2); setView('one'); const it=files[0].instr; SEL.clear(); files.filter(f=>f.instr===it).slice(0,4).forEach(f=>SEL.add(f.id)); cur=files.findIndex(f=>SEL.has(f.id)); renderList();
+    for (const b of ['exc','inc','ref','fit','pca']){ const el=$('#batchBar [data-b="'+b+'"]'); if (el){ el.click(); await sleep(20); go(2); setView('one'); renderList(); } }
+    for (const sel of ['sample','instr']){ const el=$('#batchBar select[data-b="'+sel+'"]'); if (el){ el.selectedIndex=2; el.onchange(); renderList(); } }
+    const c=$('#batchBar [data-b="cmp"]'); if (c){ c.click(); setView('one'); } });
+  // progetto: salva, svuota, riapri, confronta
+  await T('progetto', async ()=>{ let saved=null; const dl=window.download; window.download=(b,n)=>{ saved=b; }; saveProject(); window.download=dl; const txt=await saved.text(); const n=files.length, names=files.map(f=>f.name).sort().join('|');
+    files.length=0; cur=-1; SEL.clear(); refreshAll(); await openProject(new File([txt],'p.acchiappa.json')); await sleep(200);
+    if (files.length!==n || files.map(f=>f.name).sort().join('|')!==names) throw new Error(`progetto riaperto con ${files.length} spettri invece di ${n}`); H.proj=Math.round(txt.length/1024)+' kB'; });
+  await T('togli dall\'elenco', ()=>{ SEL.clear(); files.slice(-2).forEach(f=>SEL.add(f.id)); renderList(); const n=files.length; $('#batchBar [data-b="del"]').click(); if (files.length!==n-2) throw new Error('rimozione non riuscita'); });
+  return {steps:H.steps, errs:H.errs, loaded:H.loaded, zip:H.zip_it1, xlsx:H.xlsx, cmds:H.cmds, proj:H.proj};
 };
