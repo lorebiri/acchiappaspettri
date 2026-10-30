@@ -70,6 +70,12 @@ window.runHarness=async (opt)=>{ opt=opt||{};
     await T(ctx+' tecnica', ()=>{ $$('#anTech [data-an]').forEach(el=>{ el.value='0.5'; el.onchange&&el.onchange(); }); $$('#anTech [data-ans]').forEach(el=>{ el.selectedIndex=el.options.length-1; el.onchange&&el.onchange(); }); });
     await T(ctx+' azioni assistente', ()=>{ $$('#anQual [data-act]').forEach(b=>b.click()); });
     await T(ctx+' colore XRF', ()=>{ const b=$('#anHyp [data-col="green"]'); if (b) b.click(); });
+    if (it==='xrf' && !f.uncal) await T(ctx+' concentrazioni XRF', ()=>{ openTab('an'); $('#secCult').open=true; renderCult(f);
+      for (const m of ['norm','oxides','compton']){ const c=fpCfg(f); c.mode=m; fpSaveCfg(f,c); renderCult(f); }
+      const c=fpCfg(f); c.bal='custom'; c.balTxt='CaSO4·2H2O'; fpSaveCfg(f,c); renderCult(f); c.els=['Cu','Pb','Ca','Fe','S']; fpSaveCfg(f,c); renderCult(f);
+      c.S={anode:'Rh', kv:35, psi1:60, psi2:50, d2:1.2, atm:'he'}; fpSaveCfg(f,c); renderCult(f); $('#fpSall').click();
+      for (const meth of ['ratio','atten']) for (const cov of ['org','gesso','oro','custom']){ const c2=fpCfg(f); c2.layer={on:true, el:'Pb', method:meth, cover:cov, coverTxt:'C 60 H 8 O 32', coverRho:1.1, sub:'biacca', ref:(files.find(g=>g!==f && g.instr==='xrf' && !g.uncal)||{}).id}; fpSaveCfg(f,c2); renderCult(f); }
+      const c3=fpCfg(f); c3.layer={on:true, el:'Cu', method:'ratio', cover:'oro', sub:'fp'}; c3.mode='norm'; delete c3.els; delete c3.S; fpSaveCfg(f,c3); renderCult(f); });
     await T(ctx+' menu destro', async ()=>{ renderPreview(); const g=geo, rc=pv.getBoundingClientRect(), sx=rc.width/PV_W;
       const pts=[g.hits[0] ? [g.hits[0].x, g.hits[0].y] : null, [g.px0+g.pw*0.5, g.py0+g.ph*0.5]].filter(Boolean);
       for (const [x,y] of pts){ pv.dispatchEvent(new MouseEvent('contextmenu',{clientX:rc.left+x*sx, clientY:rc.top+y*sx, bubbles:true, cancelable:true}));
@@ -89,7 +95,9 @@ window.runHarness=async (opt)=>{ opt=opt||{};
       c.c=c.a; c.d=c.b; renderMulti(); delete c.c; delete c.d;
       c.model='pls'; renderMulti(); c.model='line'; renderMulti();
       for (const pre of ['snv','msc','d1','d2','none']) for (const sc of ['mean','auto','pareto']){ c.pre=pre; c.scale=sc; runPCA(it); renderPCA(it); }
-      if (it==='xrf'){ c.qEls=['Cu','Pb','Ag']; files.filter(f=>f.instr==='xrf').forEach((f,k)=>anSet(f,'std',{Cu:50+k, Pb:5, Ag:10})); renderMulti(); } }); }
+      if (it==='xrf'){ c.qEls=['Cu','Pb','Ag']; files.filter(f=>f.instr==='xrf').forEach((f,k)=>anSet(f,'std',{Cu:50+k, Pb:5, Ag:10})); renderMulti();
+        c.qModel='fp'; renderMulti(); const xs=files.filter(f=>f.instr==='xrf'); xs.forEach((f,k)=>anSet(f,'std',k===0?{Cu:80, Pb:5, Ag:15}:null)); renderMulti(); c.q100=false; renderMulti(); c.q100=true; c.qModel='auto'; renderMulti(); }
+      if (it==='raman' || it==='ftir'){ const g=files.find(f=>f.instr===it); if (g){ cur=files.indexOf(g); openTab('refs'); $('#mixRun').click(); const inp=$$('#mixOut .mixw'); inp.forEach((el,k)=>{ el.value=String(50+k*10); el.onchange(); }); $('#mixRun').click(); } } }); }
   // confronti
   if (!opt.soloNuovo) await T('confronti', ()=>{ setView('cmp'); $('#cmpAuto').click(); for (const c of COMPS){ curCmpId=c.id; for (const m of ['stack','over','norm']){ c.mode=m; renderCmp(); renderPreview(); } } setView('one'); });
   // esportazioni
