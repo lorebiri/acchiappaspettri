@@ -1,0 +1,22 @@
+{
+  "name": "acchiappaspettri",
+  "version": "2.2.0",
+  "private": true,
+  "description": "Acchiappaspettri: spectra and chromatograms to clean plots and scientific analysis (web and desktop)",
+  "type": "commonjs",
+  "scripts": {
+    "prepare:desktop": "node scripts/prepare-desktop.js",
+    "tauri": "tauri",
+    "test": "node --test test/unit/",
+    "test:benchmarks": "node test/analysis-benchmark.js && node test/peak-benchmark.js && node test/area-benchmark.js && node test/format-test.js && node test/xrf-fp-benchmark.js",
+    "test:ui": "node test/ui-run.js"
+  },
+  "devDependencies": {
+    "@fontsource/nunito": "5.1.0",
+    "@tauri-apps/cli": "2.12.4",
+    "acorn": "8.14.0",
+    "jspdf": "2.5.1",
+    "jszip": "3.10.1",
+    "playwright": "1.64.1"
+  }
+}

@@ -1,5 +1,27 @@
 # 👻 Acchiappaspettri
 
+Turns spectra and chromatograms saved as files (FTIR/ATR-FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) into clean plots and scientific analysis. Italian and English. Your data stay on your computer.
+
+**▶ [Use it online](https://lorebiri.github.io/acchiappaspettri/)** · **🖥️ [Download the desktop app](https://github.com/lorebiri/acchiappaspettri/releases/latest)** (Windows, macOS, Linux: works offline, offers updates when a new version is published)
+
+| | |
+|---|---|
+| Install · Installazione | [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md) |
+| User guide · Guida | [docs/GUIDA.md](docs/GUIDA.md) |
+| Projects · Progetti `.acchspettri` | [docs/FORMATO-ACCHSPETTRI.md](docs/FORMATO-ACCHSPETTRI.md) |
+| Science, corrections, limits · Scienza | [docs/SCIENZA.md](docs/SCIENZA.md) |
+| Updates · Aggiornamenti | [docs/AGGIORNAMENTI.md](docs/AGGIORNAMENTI.md) |
+| Publishing a release · Pubblicare | [docs/PUBBLICARE.md](docs/PUBBLICARE.md) |
+| Architecture · Architettura | [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) |
+| Audit | [docs/AUDIT.md](docs/AUDIT.md) |
+| Tests run · Collaudo | [docs/COLLAUDO.md](docs/COLLAUDO.md) |
+| Dependencies · Dipendenze | [docs/DIPENDENZE.md](docs/DIPENDENZE.md) |
+| Known limitations · Limitazioni | [docs/LIMITAZIONI.md](docs/LIMITAZIONI.md) |
+
+Automatic identifications are hypotheses, and concentrations without standards are estimates, checked on simulated spectra and not yet on certified materials: see [docs/SCIENZA.md](docs/SCIENZA.md).
+
+## What it does
+
 > C'è uno spettro nel tuo file? Lo acchiappiamo noi: lo scienziatino e Gino, il fantasma di fiducia.
 
 A simple web tool for turning spectra and chromatograms saved as text files (FTIR/ATR-FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) into:
@@ -128,7 +150,7 @@ Besides the synthetic benchmarks, the tool was run on spectra from the institute
 - **⌘K / Ctrl+K command bar** («🔎 Cosa vuoi fare?» in the header): type what you want — «arpls», «deconvolvi», «pdf», «calcite», the name of a spectrum — and press Enter. It finds every tab, recipe, assistant remedy, processing option (marked «in uso» when active), view, export, project action, setting, glossary entry and loaded spectrum; accents and word order do not matter.
 - **Keyboard shortcuts** (press **?** for the full list): 1–6 tabs, ← → previous/next spectrum, A accept suggested names, D deconvolve the visible zone, F large plot, C compare, R zoom box, 0 show all, E go to download, ⌘S save project, ⌘O open project, ⌘Z undo.
 - **Several spectra at once**: ⌘/Ctrl+click and Shift+click in the list select several spectra; a bar offers include/exclude, compare, add to references, same deconvolution, PCA, sample type, instrument and remove from the list.
-- **Project files** (`.acchiappa.json`, 💾 Salva or ⌘S; open from step 1, ⌘O or by dropping the file with the spectra): the original data of every spectrum (binary formats included) plus names, peaks, processing, deconvolutions, concentrations and standards, references, personal library, comparisons and settings, in one file to reopen on another computer or share with a colleague.
+- **Project files** (`.acchspettri`, documented in [docs/FORMATO-ACCHSPETTRI.md](docs/FORMATO-ACCHSPETTRI.md); older `.acchiappa.json` files still open. 💾 Salva or ⌘S; open from step 1, ⌘O or by dropping the file with the spectra): the original data of every spectrum (binary formats included) plus names, peaks, processing, deconvolutions, concentrations and standards, references, personal library, comparisons and settings, in one file to reopen on another computer or share with a colleague.
 
 - **Messages where you are looking**: when Gino's speech bubble is out of view, the same message appears briefly at the bottom of the screen; changes that apply to every spectrum of an instrument say so («Applicato a tutti i 7 spettri FTIR»).
 - **Analysis in collapsible sections**, each with a one-line summary («⚠️ 1 avviso», «verde smeraldo o di Scheele», «4 componenti · R² 0,998»); when you move to another spectrum, only the sections with something to show open by themselves.
@@ -163,7 +185,7 @@ Besides the synthetic benchmarks, the tool was run on spectra from the institute
 Everything below is computed in the browser, on the spectrum as processed in *Ritocca lo spettro*.
 
 **Data-quality check.** For each spectrum the assistant reports, with the reason and, when there is one, a one-click remedy:
-- signal-to-noise ratio and whether it is enough to quantify (S/N ≥ 10, ICH Q2); the noise is estimated also on sub-sampled data, because instruments that filter or oversample (HPLC detectors) produce correlated noise that second differences underestimate — on a real 33 000-point chromatogram the S/N went from an impossible 2.9 million to about 150 000, matching the Ph. Eur. 2H/h value;
+- signal-to-noise ratio (height/σ of the noise) and whether it is enough to quantify (the ICH Q2 criterion S/N ≥ 10 uses peak-to-peak noise and corresponds to about 30 on this scale); the noise is estimated also on sub-sampled data, because instruments that filter or oversample (HPLC detectors) produce correlated noise that second differences underestimate — on a real 33 000-point chromatogram the S/N went from an impossible 2.9 million to about 150 000, matching the Ph. Eur. 2H/h value;
 - detector saturation (flat-topped maximum), absorbance above ~1.5 in UV-Vis (stray light, Beer–Lambert non-linearity), saturated FTIR bands (T < 1%), negative absorbance;
 - a large background (→ *Applica arPLS* / *SNIP*), cosmic rays (→ *Togli i raggi cosmici*), too few points per peak width, irregular X step;
 - hidden bands (shoulders) seen in the second derivative (→ *Deconvolvi*);
@@ -318,7 +340,7 @@ These are synthetic tests: validation on certified reference materials (e.g. CHA
 
 `test/ui-collaudo.js` is an automatic test of the whole interface, to run in the browser (instructions at the top of the file): it loads synthetic spectra of every instrument plus malformed files (empty, text only, two points, constant, NaN/inf, negative values in log scale, decreasing and duplicated X, comma decimals, uncalibrated XRF), and exercises every tab, processing combination, deconvolution, right-click menu item, recipe, reference and mixture tool, multi-sample analysis, comparison, export (PDF, ZIP with PNG/SVG/CSV, Origin workbook, analysis results, in both languages), renaming, presets, modes and false colour. Last run: 1604 operations, no errors, also with the institute's HPLC, FTIR, Raman and XRF files; for version 2.1 it also exercises the XRF concentration section (all sample kinds, custom balance, measurement conditions, layer methods and covers), the fundamental-parameters model with standards and the mixture weight percentages — 1412 operations, no errors, with the two XRF example files.
 
-The benchmarks run with Node.js; on a Mac without Node, Safari's JavaScriptCore (`jsc`) works too with a few lines of adapter for `require`.
+`npm test` runs the unit tests (science regressions, `.acchspettri` format, i18n, configuration); `npm run test:ui` runs the whole interface in a real browser in both languages; `test/e2e/` runs inside the real desktop app. See [docs/COLLAUDO.md](docs/COLLAUDO.md).
 
 ## XRF spectra
 

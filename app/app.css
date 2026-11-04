@@ -1,0 +1,17 @@
+/* Aggiunte all'interfaccia: punto di accesso, download, aggiornamenti */
+.entry{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px}
+.entrytxt{flex:1 1 320px;min-width:0}
+.entrytxt small{display:block;color:var(--muted);font-size:13px}
+.dllist{display:flex;flex-direction:column;gap:8px}
+.dllist a{display:flex;justify-content:space-between;gap:12px;text-decoration:none}
+.upnotes{max-height:220px;overflow:auto;white-space:pre-wrap;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:10px 0;font-size:13.5px}
+.upnotes:empty{display:none}
+.updbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}
+.updbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+/* nell'app desktop i comandi di progetto stanno nel menu e nella barra degli strumenti */
+.apptool{display:none}
+html.desktop .apptool{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);padding:5px 16px;position:sticky;top:0;z-index:6}
+html.desktop .apptool .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+html.desktop .apptool .pname{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+html.desktop .brand small{display:none}
+html.desktop header{position:static}

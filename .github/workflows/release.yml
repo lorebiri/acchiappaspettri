@@ -1,0 +1,65 @@
+# Pubblicazione: si parte da un tag v1.2.3 (stabile) o v1.2.3-beta.1 (beta).
+# Prima i test; poi gli installer in una release in bozza; infine la pubblicazione, solo se ci sono tutti i pacchetti e i metadati.
+name: Release
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions:
+  contents: write
+jobs:
+  check-version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/check-version.js "$GITHUB_REF_NAME"
+      - name: La firma degli aggiornamenti è configurata
+        env: { KEY: "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" }
+        run: test -n "$KEY" || { echo "Manca il segreto TAURI_SIGNING_PRIVATE_KEY (docs/PUBBLICARE.md)"; exit 1; }
+  tests:
+    needs: check-version
+    uses: ./.github/workflows/ci.yml
+  build:
+    needs: tests
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: windows-latest, args: "--bundles nsis" }
+          - { os: macos-latest, args: "--target aarch64-apple-darwin --bundles app,dmg", rust_target: aarch64-apple-darwin }
+          - { os: macos-latest, args: "--target x86_64-apple-darwin --bundles app,dmg", rust_target: x86_64-apple-darwin }
+          - { os: ubuntu-22.04, args: "--bundles appimage,deb" }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: "${{ matrix.rust_target }}" }
+      - uses: swatinem/rust-cache@v2
+        with: { workspaces: src-tauri, key: "${{ matrix.rust_target }}" }
+      - name: Librerie di sistema (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Acchiappaspettri ${{ github.ref_name }}
+          releaseBody: "Note di rilascio in preparazione."
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Controlla i pacchetti, scrive le note e pubblica
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: node scripts/publish-release.js "$GITHUB_REF_NAME"

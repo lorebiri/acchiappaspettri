@@ -1,0 +1,7 @@
+// Aggiornamento dalla finestra dell'app (stesso codice dell'utente): controlla, firma, installa, riavvia.
+// Uso: node test/e2e/update-ui-test.js <eseguibile-A> <platform-key> <pacchetto-B> <firma-B> <versione-B> <porta>
+const http=require('http'), fs=require('fs'), {spawn}=require('child_process'), path=require('path'), os=require('os');
+const [exe,plat,pkg,sigFile,verB,port]=process.argv.slice(2), dir=fs.mkdtempSync(path.join(os.tmpdir(),'acch-upui-')), rep=path.join(dir,'e2e-report.json'), body=fs.readFileSync(pkg), sig=fs.readFileSync(sigFile,'utf8').trim();
+const srv=http.createServer((q,r)=>{ if (q.url==='/latest.json') return r.end(JSON.stringify({version:verB,notes:'Note di prova',pub_date:'2026-01-01T00:00:00Z',platforms:{[plat]:{url:`http://127.0.0.1:${port}/pkg`,signature:sig}}})); if (q.url==='/pkg') return r.end(body); r.writeHead(404); r.end(); });
+srv.listen(+port,'127.0.0.1',()=>{ const c=spawn(exe,[],{env:Object.assign({},process.env,{ACCH_E2E_DIR:dir,ACCH_E2E_SCENARIO:'update-ui',ACCH_E2E_UPDATE_URL:''}),stdio:'ignore',detached:true}); c.unref();
+  const t0=Date.now(), iv=setInterval(()=>{ if (fs.existsSync(rep)){ clearInterval(iv); setTimeout(()=>{ const R=JSON.parse(fs.readFileSync(rep,'utf8')); console.log(JSON.stringify(R)); const ok=R.afterRelaunch && R.version===verB; console.log(ok?'✓ aggiornata dalla finestra e riavviata':'✗ fallito'); process.exit(ok?0:1); },300); } else if (Date.now()-t0>180000){ console.log('✗ tempo scaduto'); process.exit(2); } },500); });

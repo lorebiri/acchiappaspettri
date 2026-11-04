@@ -41,7 +41,7 @@ window.synthFiles=()=>{ const F={};
   return F; };
 window.runHarness=async (opt)=>{ opt=opt||{};
   H.errs=[]; H.steps=0;
-  window.download=()=>{}; window.alert=()=>{}; window.confirm=()=>true;   // niente download né finestre durante il collaudo
+  window.ACCH_TEST=true; window.download=()=>{}; window.alert=()=>{}; window.confirm=()=>true;   // niente download né finestre durante il collaudo
   const ents=[]; for (const u of (window.REALI||[])){ try{ const res=await fetch(u); if (res.ok) ents.push({file:new File([await res.arrayBuffer()], u.split('/').pop()), path:'reali/'+u.split('/').pop()}); }catch(e){} }
   for (const [n,t] of Object.entries(synthFiles())) ents.push({file:new File([t], n), path:'sint/'+n});
   await T('addEntries', ()=>addEntries(ents));
@@ -125,9 +125,9 @@ window.runHarness=async (opt)=>{ opt=opt||{};
     for (const sel of ['sample','instr']){ const el=$('#batchBar select[data-b="'+sel+'"]'); if (el){ el.selectedIndex=2; el.onchange(); renderList(); } }
     const c=$('#batchBar [data-b="cmp"]'); if (c){ c.click(); setView('one'); } });
   // progetto: salva, svuota, riapri, confronta
-  await T('progetto', async ()=>{ let saved=null; const dl=window.download; window.download=(b,n)=>{ saved=b; }; saveProject(); window.download=dl; const txt=await saved.text(); const n=files.length, names=files.map(f=>f.name).sort().join('|');
-    files.length=0; cur=-1; SEL.clear(); refreshAll(); await openProject(new File([txt],'p.acchiappa.json')); await sleep(200);
-    if (files.length!==n || files.map(f=>f.name).sort().join('|')!==names) throw new Error(`progetto riaperto con ${files.length} spettri invece di ${n}`); H.proj=Math.round(txt.length/1024)+' kB'; });
-  await T('togli dall\'elenco', ()=>{ SEL.clear(); files.slice(-2).forEach(f=>SEL.add(f.id)); renderList(); const n=files.length; $('#batchBar [data-b="del"]').click(); if (files.length!==n-2) throw new Error('rimozione non riuscita'); });
+  await T('progetto', async ()=>{ let saved=null; const dl=window.download; window.download=(b,n)=>{ saved=b; }; while (AcchProject.busy) await sleep(100); const ok=await saveProject(); window.download=dl; if (!saved) throw new Error('niente salvato: '+ok+' '+(AcchProject.lastError&&(AcchProject.lastError.stack||AcchProject.lastError))+' file '+files.length); const bytes=new Uint8Array(await saved.arrayBuffer()), n=files.length, names=files.map(f=>f.name).sort().join('|');
+    await AcchProject.closeProject(); SEL.clear(); if (files.length) throw new Error('chiusura non riuscita'); await AcchProject.openBytes(bytes,'p.acchspettri',null); await sleep(200);
+    if (files.length!==n || files.map(f=>f.name).sort().join('|')!==names) throw new Error(`progetto riaperto con ${files.length} spettri invece di ${n}`); if (AcchProject.isDirty()) throw new Error('modifiche fantasma dopo la riapertura'); H.proj=Math.round(bytes.length/1024)+' kB'; });
+  await T('togli dall\'elenco', async ()=>{ SEL.clear(); files.slice(-2).forEach(f=>SEL.add(f.id)); renderList(); const n=files.length; $('#batchBar [data-b="del"]').click(); await sleep(50); if (files.length!==n-2) throw new Error('rimozione non riuscita'); });
   return {steps:H.steps, errs:H.errs, loaded:H.loaded, zip:H.zip_it1, xlsx:H.xlsx, cmds:H.cmds, proj:H.proj};
 };

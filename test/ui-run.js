@@ -1,0 +1,62 @@
+// Collaudo dell'interfaccia in un browser vero (Chromium, senza finestra): collaudo completo, lingua inglese, progetto, file ostili, download, offline.
+// Uso: npx playwright install chromium; node test/ui-run.js [--quick] [--lang en|it] [--real file1 file2]
+const http=require('http'), fs=require('fs'), path=require('path'), {chromium}=require('playwright'), root=path.join(__dirname,'..');
+const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.woff2':'font/woff2','.png':'image/png','.json':'application/json'};
+const args=process.argv.slice(2), quick=args.includes('--quick');
+const server=http.createServer((q,r)=>{ const u=decodeURIComponent(q.url.split('?')[0]); const p=path.join(root,u==='/'?'index.html':u); if (!p.startsWith(root) || !fs.existsSync(p) || fs.statSync(p).isDirectory()){ r.writeHead(404); r.end(); return; } r.writeHead(200,{'content-type':MIME[path.extname(p)]||'application/octet-stream'}); fs.createReadStream(p).pipe(r); });
+const ITA=/\b(il|lo|gli|della|dello|delle|degli|nel|nella|che|per|con|non|sono|questo|questa|spettri|spettro|picchi|picco|banda|bande|file sul|scegli|carica|salva|premi|zona|campioni|campione|tutti|tutte|anche|oppure|qui|più|già|riga|righe|ancora|nessun|nessuna|ho|hai|puoi|fondo|della|sulla|sul|dal|dalla|alla|allo|taratura|grafico|grafici)\b/i;
+const results={}; let fail=0; const check=(name,ok,detail)=>{ results[name]=ok?'ok':('FALLITO '+(detail||'')); if (!ok) fail++; console.log((ok?'✓ ':'✗ ')+name+(detail&&!ok?': '+String(detail).slice(0,800):'')); };
+async function page(browser, opt){ opt=opt||{}; const ctx=await browser.newContext({locale:opt.locale||'it-IT', viewport:{width:1400,height:900}, acceptDownloads:true}); await ctx.addInitScript(()=>{ try{ localStorage.setItem('acch.welcomeDone','true'); localStorage.setItem('acch.seenVersion',JSON.stringify('99')); localStorage.setItem('acch.tourDone','true'); }catch(e){} }); const p=await ctx.newPage(); const external=[], errors=[];
+  p.on('pageerror',e=>errors.push(String(e.stack||e))); p.on('dialog',d=>d.accept().catch(()=>{}));
+  await ctx.route('**/*',(route)=>{ const u=route.request().url(); if (u.startsWith('http://127.0.0.1')||u.startsWith('data:')||u.startsWith('blob:')) return route.continue(); external.push(u); if (opt.mock && opt.mock(u)) return route.fulfill(opt.mock(u)); return route.abort(); });
+  await p.goto(`http://127.0.0.1:${server.address().port}/index.html`); await p.waitForFunction(()=>window.AcchProject && window.AcchUi); await p.evaluate(()=>{ try{ endTour(); }catch(e){} document.querySelectorAll('dialog[open]').forEach(d=>d.close()); });
+  return {p,ctx,external,errors}; }
+const loadFiles=(p,list)=>p.evaluate(async list=>{ await addEntries(list.map(([n,t])=>({file:new File([t],n),path:n}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); return files.length; },list);
+const xrfText=()=>{ let s='# Tube Anode: Rh\n# Tube Voltage: 40\n# Incident beam angle: 68\n# Fluorescence beam: 63,5\n# MCA Channels: 2048\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'; for (let i=0;i<2048;i++){ const E=i*0.02; s+=Math.round(20+5000*Math.exp(-0.5*((E-8.04)/0.07)**2)+700*Math.exp(-0.5*((E-8.9)/0.07)**2)+900*Math.exp(-0.5*((E-22.1)/0.09)**2))+'\n'; } return s; };
+const ftir=()=>Array.from({length:800},(_,i)=>{ const x=4000-i*4; return x+'\t'+(0.02+0.8*Math.exp(-0.5*((x-1730)/10)**2)+0.3*Math.exp(-0.5*((x-2920)/15)**2)).toFixed(5); }).join('\n');
+(async()=>{
+  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const browser=await chromium.launch(process.env.PW_CHANNEL?{channel:process.env.PW_CHANNEL}:{});
+  { // nessuna risorsa esterna; l'app parte offline
+    const {p,ctx,external,errors}=await page(browser); await p.waitForTimeout(500); check('avvio senza collegamenti esterni', external.length===0, external.join(' ')); check('avvio senza errori', errors.length===0, errors.join(' | '));
+    check('librerie locali caricate', await p.evaluate(()=>!!window.jspdf && !!window.JSZip)); await ctx.close(); }
+  { // progetto: salva, chiudi, riapri, stesso lavoro; modifiche non salvate; file danneggiato non tocca il lavoro
+    const {p,ctx,errors}=await page(browser); await loadFiles(p,[['m.mca',xrfText()],['a.txt',ftir()]]);
+    const before=await p.evaluate(async ()=>{ const f=files[0]; f.title='Campione <b>è</b>'; f.labels={'8.04':'Cu Kα'}; anSet(f,'fp',{mode:'norm',layer:{on:true,el:'Cu',cover:'oro',sub:'fp',method:'ratio'}}); persist(f); cur=1; const c=mvCfg('xrf'); c.a=7; c.b=9; mvSave(); return {dirty:AcchProject.isDirty(), sig:null}; });
+    check('modifiche non salvate rilevate', before.dirty===true);
+    const r=await p.evaluate(async ()=>{ const sig0=AcchProject._sig(); let saved=null; const h=AcchProject.host, old=h.saveAs; h.saveAs=async (b,s)=>{ saved=b; return {name:s,path:null}; }; const ok=await AcchProject.saveAs(); h.saveAs=old; window.__saved=saved; const clean=!AcchProject.isDirty();
+      const P=await AcchFormat.decode(saved,JSZip); const mem=P.spectra[0].memory, bytesOk=[...P.spectra[0].bytes].length===new Uint8Array(files[0].raw).length && P.spectra[0].bytes.every((v,i)=>v===new Uint8Array(files[0].raw)[i]);
+      const peaks0=viewOf(files[0]).peaks.map(q=>+q.x.toFixed(4)).join(), proc0=Array.from(processed(files[0]).ys.slice(0,200)).join();
+      await AcchProject.closeProject(); const empty=files.length===0;
+      const reopened=await AcchProject.openBytes(saved,'p.acchspettri',null);
+      const same=fileMemory(files[0]).title==='Campione <b>è</b>' && files[0].labels['8.04']==='Cu Kα' && files[0].an.fp.layer.el==='Cu' && cur===1 && mvCfg('xrf').a===7 && viewOf(files[0]).peaks.map(q=>+q.x.toFixed(4)).join()===peaks0 && Array.from(processed(files[0]).ys.slice(0,200)).join()===proc0;
+      return {ok,clean,bytesOk,title:mem.title,empty,reopened,same,cleanAfter:!AcchProject.isDirty(),n:files.length}; });
+    check('salvataggio', r.ok&&r.clean&&r.bytesOk&&r.title==='Campione <b>è</b>', JSON.stringify(r)); check('chiusura', r.empty); check('riapertura con lo stesso stato', r.reopened&&r.same&&r.cleanAfter&&r.n===2, JSON.stringify(r));
+    const bad=await p.evaluate(async ()=>{ const b=window.__saved.slice(); b[Math.floor(b.length/2)]^=255; const n=files.length; const ok=await AcchProject.openBytes(b,'rotto.acchspettri',null); const ok2=await AcchProject.openBytes(new TextEncoder().encode('ciao'),'x.acchspettri',null); return {ok,ok2,kept:files.length===n}; });
+    check('file danneggiato: rifiutato, lavoro intatto', !bad.ok&&!bad.ok2&&bad.kept, JSON.stringify(bad));
+    const leg=await p.evaluate(async ()=>{ await AcchProject.closeProject(); const t=JSON.stringify({app:'acchiappaspettri',v:1,S:{},MV:{},COMPS:[],REFS:[],LIB:[],files:[{name:'v.txt',path:'v.txt',mem:{title:'Vecchio'},bin:false,data:Array.from({length:50},(_,i)=>i+' '+i*i).join('\n')}]}); const ok=await AcchProject.openFile(new File([t],'vecchio.acchiappa.json')); return {ok,title:files[0]&&files[0].title}; });
+    check('vecchio .acchiappa.json', leg.ok&&leg.title==='Vecchio', JSON.stringify(leg));
+    check('progetto senza errori di pagina', errors.length===0, errors.join(' | ')); await ctx.close(); }
+  { // progetto ostile: nessun codice eseguito
+    const {p,ctx,errors}=await page(browser); const X='"><img src=x onerror="window.__pwn=1"><script>window.__pwn=1</script>';
+    const r=await p.evaluate(async X=>{ const data=Array.from({length:60},(_,i)=>i+' '+Math.sin(i/5)).join('\n'); const st={title:X,S:{docTitle:X},MV:{xrf:{a:X,b:X,c:X,d:X,unit:X,qEls:[X],qModel:'fp'},constructor:{a:X}},COMPS:[{id:X,name:X,keys:[X]}],REFS:[{id:X,n:X,i:'raman',k:X,x:[1,2,3,4,5,6,7,8,9],y:[1,2,3,4,5,6,7,8,9]},{id:'c',n:'c',i:'constructor',x:[1],y:[1]}],LIB:[{id:X,n:X,i:'raman',a:1,b:2},{id:'z',n:X,i:X,a:1,b:2}],curIndex:0};
+      const b=await AcchFormat.encode({appVersion:'9',title:X,state:st,spectra:[{name:X+'.txt',path:X,bytes:new TextEncoder().encode(data),memory:{title:X,desc:X,labels:{1:X},an:{fp:{els:[X],bal:'custom',balTxt:X,layer:{on:true,el:X,cover:X,sub:X,coverTxt:X,ref:X}},mixW:{[X]:1},qyRef:X},sample:X,instr:X,refShow:X}}]},JSZip);
+      await AcchProject.openBytes(b,'o.acchspettri',null); cur=0; refreshAll(); go(2); openTab('refs'); renderRefs(); openTab('multi'); $('#secMulti').open=true; renderMulti(); renderLib(); openTab('an'); renderAnalysis(); await new Promise(r=>setTimeout(r,300)); return {pwn:window.__pwn||0, proto:({}).a, n:files.length}; },X);
+    check('progetto ostile: nessun codice eseguito', r.pwn===0, JSON.stringify(r)); await ctx.close(); }
+  { // pagina di download: collegamenti solo da una release reale
+    const rel={tag_name:'v9.9.9',prerelease:false,draft:false,assets:[{name:'Acchiappaspettri_9.9.9_x64-setup.exe',browser_download_url:'https://github.com/x/a.exe',size:5e6},{name:'Acchiappaspettri_9.9.9_x64-setup.exe.sig',browser_download_url:'https://github.com/x/a.sig'},{name:'latest.json',browser_download_url:'https://github.com/x/l.json'},{name:'Acchiappaspettri_9.9.9_aarch64.dmg',browser_download_url:'https://github.com/x/a.dmg',size:9e6},{name:'Acchiappaspettri_9.9.9_amd64.AppImage',browser_download_url:'https://github.com/x/a.AppImage',size:9e7},{name:'acchiappaspettri_9.9.9_amd64.deb',browser_download_url:'https://github.com/x/a.deb',size:9e6}]};
+    let mode='ok'; const mock=u=>/releases\/latest/.test(u) ? (mode==='ok'?{status:200,contentType:'application/json',body:JSON.stringify(rel)}:{status:404,body:'{}'}) : null;
+    const {p,ctx,external}=await page(browser,{mock}); check('nessun contatto con GitHub prima del clic', external.length===0, external.join());
+    await p.evaluate(()=>{ localStorage.removeItem('acch.ui.entryDone'); $('#entryBox').hidden=false; }); await p.click('#entryDesktop'); await p.waitForSelector('#dlBody .dllist'); const links=await p.$$eval('#dlBody a',a=>a.map(x=>x.getAttribute('href')));
+    check('solo gli installer, niente firme né metadati', links.length===4 && links.every(l=>!/sig$|json$/.test(l)), links.join()); await p.click('#dlClose'); mode='none'; await p.click('#entryDesktop'); await p.waitForSelector('#dlBody .signote'); check('senza release: nessun collegamento finto', (await p.$$('#dlBody a')).length===0); await ctx.close(); }
+  { // cambio di lingua e persistenza
+    const {p,ctx}=await page(browser,{locale:'it-IT'}); await loadFiles(p,[['a.txt',ftir()]]); const it=await p.textContent('#settingsBtn'); await p.click('#langBtn'); const en=await p.textContent('#settingsBtn'); check('la lingua cambia subito', /Impostazioni/.test(it)&&/Settings/.test(en),it+'|'+en); await p.reload(); await p.waitForFunction(()=>window.AcchI18n); await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close())); check('la lingua resta dopo il riavvio', /Settings/.test(await p.textContent('#settingsBtn'))); await p.click('#langBtn'); check('si torna all\'italiano', /Impostazioni/.test(await p.textContent('#settingsBtn'))); await ctx.close(); }
+  for (const lang of (quick?[]:['it','en'])){ // collaudo completo
+    const {p,ctx,errors}=await page(browser,{locale:lang==='en'?'en-GB':'it-IT'});
+    await p.addScriptTag({url:'/test/ui-collaudo.js'}); if (lang==='en') await p.evaluate(()=>AcchI18n._cov.begin());
+    await p.evaluate(list=>{ window.REALI=list; },[]);
+    p.setDefaultTimeout(0); const h=await p.evaluate(async opt=>{ const r=await runHarness(opt); return {steps:H.steps, errs:H.errs}; },{});
+    check(`collaudo completo (${lang}): ${h.steps} operazioni`, h.errs.length===0 && errors.length===0, JSON.stringify(h.errs.slice(0,8))+errors.slice(0,4).join(' | '));
+    if (lang==='en'){ const miss=await p.evaluate(()=>AcchI18n._cov.end()); const enVals=new Set(Object.values(JSON.parse(fs.readFileSync(path.join(root,'i18n/en.json'),'utf8')))); const ita=miss.filter(([s])=>ITA.test(s.replace(/per-\w+/g,'')) && !enVals.has(s) && !/^Campione \d+ – /.test(s) && !/\.(txt|csv|mca|spt|spe|dat|asc|prn|xy|dpt|sp|jdx|dx|spa|\d)\b/i.test(s)); fs.writeFileSync(path.join(root,'test/i18n-missing.json'),JSON.stringify(ita.map(x=>x[0]),null,0)); check('inglese: nessun testo italiano rimasto', ita.length===0, ita.length+' testi: '+ita.slice(0,25).map(x=>x[0].slice(0,70)).join(' ¦ ')); }
+    await ctx.close(); }
+  await browser.close(); server.close(); console.log(`\n${Object.keys(results).length-fail} riusciti, ${fail} falliti`); process.exit(fail?1:0);
+})().catch(e=>{ console.error(e); process.exit(2); });
