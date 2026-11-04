@@ -18,10 +18,13 @@ jobs:
   tests:
     needs: check-version
     uses: ./.github/workflows/ci.yml
+    with: { native: true }
+    secrets: inherit
   build:
     needs: tests
     strategy:
       fail-fast: true
+      max-parallel: 1   # tauri-action fonde latest.json leggendo e riscrivendo: in parallelo si perderebbe una piattaforma
       matrix:
         include:
           - { os: windows-latest, args: "--bundles nsis" }

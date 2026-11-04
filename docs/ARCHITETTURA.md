@@ -26,6 +26,6 @@ Il criterio decisivo è il primo rischio di questo progetto: senza certificato A
 
 ## Sicurezza dell'app
 - Politica CSP: solo script della app (inline ammesso per hash), nessuna connessione di rete dalla pagina, nessun gestore inline. Verificata nel collaudo.
-- La pagina non ha accesso libero al disco: legge e scrive solo percorsi scelti dall'utente nella finestra di sistema o passati dal sistema operativo, più i progetti dell'elenco «recenti». Verificato nel collaudo.
+- La pagina non ha accesso libero al disco: legge e scrive solo percorsi scelti dall'utente nella finestra di sistema o passati dal sistema operativo, più i file con estensione di progetto (per l'elenco «recenti»). Il rifiuto degli altri file è verificato nel collaudo.
 - Scrittura atomica (file temporaneo, svuotamento su disco, rinomina); la versione precedente di un progetto resta in `.bak`.
 - La funzione di collaudo (`feature e2e`) non esiste negli installer pubblicati.

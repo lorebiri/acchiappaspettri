@@ -14,7 +14,7 @@
   /* stato del lavoro (senza i dati grezzi): serve a capire se ci sono modifiche non salvate */
   function memoryOf(f){ return win.fileMemory(f); }
   function stateObj(){ return {title:S.docTitle||'', S, MV, COMPS:COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined})), REFS, LIB, curIndex:cur}; }
-  function sig(){ const st=stateObj(); return JSON.stringify({S:st.S, MV:st.MV, C:st.COMPS, R:st.REFS.map(r=>r.id), L:st.LIB.map(e=>e.id), F:files.map(f=>[f.path, f.size, memoryOf(f)])}); }
+  function sig(){ const st=stateObj(), Sx=Object.assign({},st.S); delete Sx.lang; return JSON.stringify({S:Sx, MV:st.MV, C:st.COMPS, R:st.REFS.map(r=>r.id), L:st.LIB.map(e=>e.id), F:files.map(f=>[f.path, f.size, memoryOf(f)])}); }
   function markSaved(){ baseline=sig(); notify(); }
   function isDirty(){ if (busy) return false; if (!files.length && !path) return false; return baseline==null || sig()!==baseline; }
   function notify(){ const d=isDirty(), info={name:displayName(), path, dirty:d, hasFiles:files.length>0}; listeners.forEach(fn=>{ try{ fn(info); }catch(e){} }); }
@@ -57,7 +57,7 @@
   }
   function showErr(e){ api.lastError=e; const code=e && e.code, m=MSG[code]; toast('😕 '+(m || 'Non sono riuscito a completare l\'operazione sul progetto. I tuoi dati non sono stati toccati.')); if (api.onError) api.onError(m||null, e); }
   /* true se si può proseguire: nessuna modifica, oppure salvate o volutamente scartate */
-  async function guard(){ if (!isDirty()) return true; const ans=await api.host.ask(`Il progetto «${displayName()}» ha modifiche non salvate. Vuoi salvarle?`); if (ans==='cancel') return false; if (ans==='save') return doSave(false); return true; }
+  async function guard(){ if (busy){ toast('Un momento: sto finendo un\'operazione sul progetto.'); return false; } if (!isDirty()) return true; const ans=await api.host.ask(`Il progetto «${displayName()}» ha modifiche non salvate. Vuoi salvarle?`); if (ans==='cancel') return false; if (ans==='save') return doSave(false); return true; }
   function clearAll(){
     files.forEach(f=>{ try{ lsDel(fkey(f)); }catch(e){} });
     files.length=0; cur=-1; curCmpId=null; COMPS.length=0; saveCmps();
@@ -65,7 +65,10 @@
     for (const k of Object.keys(MVres||{})) delete MVres[k]; for (const k of Object.keys(MVpls||{})) delete MVpls[k];
     name=null; path=null; createdAt=null;
   }
-  async function newProject(){ if (!await guard()) return false; clearAll(); busy=true; refreshAll(); go(1); busy=false; markSaved(); return true; }
+  /* copia di sicurezza in memoria: se l'apertura si interrompe dopo aver svuotato, il lavoro torna com'era */
+  function snapshot(){ return {files:files.slice(), cur, comps:COMPS.slice(), mv:JSON.parse(JSON.stringify(MV)), S:JSON.parse(JSON.stringify(S)), name, path, createdAt}; }
+  function restore(o){ files.length=0; files.push(...o.files); cur=o.cur; COMPS.length=0; COMPS.push(...o.comps); saveCmps(); for (const k of Object.keys(MV)) delete MV[k]; Object.assign(MV,o.mv); mvSave(); S=merge(DEFAULTS,o.S); saveS(); name=o.name; path=o.path; createdAt=o.createdAt; files.forEach(persist); syncControls(); resetCaches(); refreshAll(); }
+  async function newProject(){ if (!await guard()) return false; clearAll(); S.docTitle=DEFAULTS.docTitle; saveS(); busy=true; refreshAll(); go(1); busy=false; markSaved(); return true; }
   const closeProject=newProject;
   /* apre byte già letti. Prima verifica tutto: se il file non è valido, il lavoro corrente resta com'è */
   async function openBytes(bytes, fileName, filePath){
@@ -73,7 +76,7 @@
     try{ P = legacy ? F().fromLegacyJson(new TextDecoder().decode(bytes)) : await F().decode(bytes, win.JSZip); }
     catch(e){ console.error(e); showErr(e); return false; }
     if (!await guard()) return false;
-    busy=true;
+    busy=true; const before=snapshot();
     try{ loader(true,'Gino sta aprendo il progetto…','',0.3); await frame();
       clearAll();
       const st=P.state||{}, okId=x=>typeof x==='string' && x.length<200, hasI=i=>typeof i==='string' && Object.prototype.hasOwnProperty.call(INSTR,i);
@@ -86,6 +89,7 @@
       win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>win.ACCH_PENDING_MEM.set(s.path, s.memory||null));
       const ents=P.spectra.map(s=>({file:new File([s.bytes], s.name), path:s.path}));
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
+      if (ents.length && !files.length) throw new (F().ProjectError)('corrupted','nessuno spettro leggibile');
       const lost=ents.length-files.length;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));
@@ -99,7 +103,7 @@
       if (legacy) toast('Progetto nel vecchio formato: con «Salva» diventerà un file .acchspettri; l\'originale resta intatto.');
       if (api.host.remember && path) api.host.remember(path, name);
       return true;
-    }catch(e){ console.error(e); showErr(e); return false; }
+    }catch(e){ console.error(e); win.ACCH_PENDING_MEM=null; try{ restore(before); }catch(e2){ console.error(e2); } showErr(e); return false; }
     finally{ win.ACCH_PENDING_MEM=null; busy=false; loader(false); notify(); }
   }
   function init(){
@@ -109,6 +113,8 @@
     baseline=sig();
     win.addEventListener('beforeunload', e=>{ if (api.host===hostDefault && isDirty()){ e.preventDefault(); e.returnValue=''; } });
   }
-  Object.assign(api,{init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, get path(){ return path; }, get busy(){ return busy; }, _build:build, _sig:sig, MSG});
+  Object.assign(api,{init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, _build:build, _sig:sig, MSG});
+  api.lock=v=>{ busy=!!v; };
+  Object.defineProperty(api,'path',{get:()=>path}); Object.defineProperty(api,'busy',{get:()=>busy});
   win.AcchProject=api;
 })(typeof self!=='undefined' ? self : this);

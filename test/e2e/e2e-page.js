@@ -1,6 +1,7 @@
 /* Collaudo dentro l'app vera (solo con la feature «e2e», mai negli installer pubblicati): usa i veri comandi nativi per scrivere e leggere i file */
 window.AcchE2E=async function(info){
   const T=window.__TAURI__, inv=T.core.invoke, res={os:info.os, kind:info.kind, version:APP_VERSION_FULL(), checks:{}}; let ok=true;
+  const pageErrors=[]; window.addEventListener('error',e=>pageErrors.push(String(e.message))); window.addEventListener('unhandledrejection',e=>pageErrors.push(String(e.reason)));
   const check=(n,v,d)=>{ res.checks[n]=v?'ok':('FALLITO '+(d||'')); if (!v) ok=false; };
   try{
     const cfg=await inv('e2e_config'), sep=info.os==='windows'?'\\':'/', dir=cfg.dir, sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -47,6 +48,12 @@ window.AcchE2E=async function(info){
       // chiusura con modifiche non salvate: si chiede, e «Annulla» lascia tutto com'è
       files[0].title='Non salvato'; persist(files[0]); await T.window.getCurrentWindow().close(); await sleep(400); check('chiusura: domanda se salvare', document.querySelector('#dlgConfirm').open); const cancel=[...document.querySelectorAll('#cfBtns button')].find(b=>/Annulla/.test(b.textContent)); cancel&&cancel.click(); await sleep(200); check('chiusura annullata: lavoro intatto', files[0].title==='Non salvato');
       files[0].title='Prova 2'; persist(files[0]); await AcchProject.save();
+      // collegamento a un file appena prodotto (blob): passa dal salvataggio nativo
+      { const orig=window.download; let got=null; window.download=(b,n)=>{ got=n; }; setReady([{name:'prova.txt',blob:new Blob(['x'])}]); document.querySelector('#readyList a').click(); await sleep(500); window.download=orig; check('file pronti: salvataggio dal collegamento (CSP blob)', got==='prova.txt', String(got)); setReady([]); }
+      // barra degli strumenti e comandi principali
+      for (const id of ['tbExport','tbZoom','tbCmd']){ document.querySelector('#'+id).click(); await sleep(100); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); } go(2);
+      AcchUi.openSettings(); await sleep(50); check('impostazioni: sezione aggiornamenti', !document.querySelector('#stDesktop').hidden); document.querySelector('#dlgSettings').close();
+      await AcchDesktop.checkUpdate(true); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
       // lingua e menu
       AcchUi.setLang('en'); await sleep(300); check('inglese', /Settings/.test(document.querySelector('#settingsBtn').textContent)); AcchUi.setLang('it'); await sleep(300); check('italiano', /Impostazioni/.test(document.querySelector('#settingsBtn').textContent));
       check('barra degli strumenti', !!document.querySelector('#tbSave'));
@@ -55,6 +62,7 @@ window.AcchE2E=async function(info){
       window.__xss=0; const im=document.createElement('div'); im.innerHTML='<img src=x onerror="window.__xss=1">'; document.body.appendChild(im); await sleep(300); check('gestori inline bloccati (CSP)', window.__xss===0); im.remove();
       const conn=await fetch('https://example.com/').then(()=>true,()=>false); check('nessuna connessione libera (CSP)', !conn);
     }
+    if (pageErrors.length) check('nessun errore nella pagina', false, pageErrors.slice(0,5).join(' | '));
   }catch(e){ res.exception=String(e&&e.stack||e); ok=false; }
   await inv('e2e_finish',{report:JSON.stringify(res,null,1), ok});
 };

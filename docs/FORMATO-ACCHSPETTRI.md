@@ -17,7 +17,7 @@ results/…                tabelle dei risultati e bozza dei metodi (copia infor
 - **Autonomo e portabile**: i dati sono dentro il file, i percorsi sono sempre relativi; nessun percorso assoluto del computer.
 - **Nessun contenuto eseguibile**: si leggono solo le voci previste; le altre vengono ignorate e mai eseguite.
 - **Verifica a ogni apertura**: CRC dello ZIP, impronta SHA-256 di ogni voce, schema dei dati. Se qualcosa non torna, il progetto non si apre e il lavoro corrente resta intatto.
-- **Protezioni**: percorsi con `..`, assoluti o con barre rovesce rifiutati; limiti di dimensione contro gli archivi «bomba»; chiavi JSON pericolose scartate; valori controllati prima di entrare nell'interfaccia.
+- **Protezioni**: percorsi con `..`, assoluti o con barre rovesce rifiutati; limiti sulle dimensioni dichiarate dallo ZIP; chiavi JSON pericolose scartate; valori controllati prima di entrare nell'interfaccia.
 - **Salvataggio verificato**: dopo la scrittura in memoria l'archivio viene riletto e verificato prima di considerarlo salvato. Nell'app la scrittura è atomica e la versione precedente resta in `*.acchspettri.bak`.
 
 ## Versioni e migrazioni

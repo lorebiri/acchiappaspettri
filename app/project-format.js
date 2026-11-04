@@ -79,7 +79,8 @@
     if (!bytes || !bytes.length) throw new ProjectError('empty');
     if (bytes.length>LIMITS.archiveBytes) throw new ProjectError('too-large','archive');
     if (!(bytes[0]===0x50 && bytes[1]===0x4b)) throw new ProjectError('not-a-project');
-    let zip; try{ zip=await JSZip.loadAsync(bytes, {checkCRC32:true}); }catch(e){ throw new ProjectError('corrupted', 'zip'); }
+    // niente controllo CRC qui: decomprimerebbe tutto prima del controllo delle dimensioni; ogni voce ha la sua impronta SHA-256
+    let zip; try{ zip=await JSZip.loadAsync(bytes); }catch(e){ throw new ProjectError('corrupted', 'zip'); }
     const names=Object.keys(zip.files); if (names.length>LIMITS.entries) throw new ProjectError('too-large','entries');
     let declared=0; for (const n of names){ if (!isSafeEntry(n.replace(/\/$/,''))) throw new ProjectError('unsafe-path', n); const d=zip.files[n]._data; if (d && d.uncompressedSize) declared+=d.uncompressedSize; }
     if (declared>LIMITS.totalBytes) throw new ProjectError('too-large','content');
@@ -96,7 +97,7 @@
     for (const p of Object.keys(manifest.entries)) if (!isSafeEntry(p)) throw new ProjectError('unsafe-path', p);
     const known=new Set(['mimetype','manifest.json',...Object.keys(manifest.entries)]);
     if (names.some(n=>!zip.files[n].dir && !known.has(n))) warnings.push('unknown-entries');   // ignorati: non vengono né letti né eseguiti
-    const checked=async p=>{ const info=manifest.entries[p]; if (!isObj(info)) throw new ProjectError('missing-entry', p); const b=await read(p); if (b.length!==info.size || sha256(b)!==info.sha256) throw new ProjectError('integrity', p); return b; };
+    const checked=async p=>{ const info=manifest.entries[p]; if (!isObj(info)) throw new ProjectError('missing-entry', p); if (!(info.size>=0) || (/\.json$/.test(p) && info.size>LIMITS.jsonBytes)) throw new ProjectError('too-large',p); const b=await read(p); if (b.length!==info.size || sha256(b)!==info.sha256) throw new ProjectError('integrity', p); return b; };
     const state=safeParse(unutf8(await checked('project/state.json')),'state'); if (!isObj(state)) throw new ProjectError('invalid-schema','state');
     const spectra=validateSpectra(safeParse(unutf8(await checked('project/spectra.json')),'spectra'));
     for (const s of spectra) s.bytes=await checked(s.data);

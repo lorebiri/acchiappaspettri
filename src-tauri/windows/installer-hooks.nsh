@@ -4,6 +4,6 @@
   FileWrite $0 "$LANGUAGE"
   FileClose $0
 !macroend
-!macro NSIS_HOOK_POSTUNINSTALL
+!macro NSIS_HOOK_PREUNINSTALL
   Delete "$INSTDIR\installer-language.txt"
 !macroend

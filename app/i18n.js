@@ -30,22 +30,25 @@
   function lookup(s){
     if (cache.has(s)) return cache.get(s);
     let r=exact.has(s) ? exact.get(s) : null;
-    const fits=(m,t)=>{ let cap=0; for (let i=1;i<m.length;i++) cap+=m[i].length; return cap<=60 || cap<=0.6*s.length; };   // un modello quasi tutto segnaposto non deve «inghiottire» frasi intere
+    const fits=(m,t)=>{ let cap=0; for (let i=1;i<m.length;i++) cap+=m[i].length; return cap<=Math.max(24,3*t.len) && (cap<=60 || cap<=0.6*s.length || (t.len>=20 && cap<=140)); };   // un modello quasi tutto segnaposto non deve «inghiottire» frasi intere
     const fill=(t,m)=>{ const vals=[]; t.order.forEach((n,i)=>vals[n]=m[i+1]); return t.tr.replace(/\{(\d+)\}/g,(_,n)=>{ const v=vals[+n]; return v==null?'':(lookup(v)||v); }); };
-    if (r==null){ const seen=new Set();
-      outer: for (const w of wordsOf(s)){ if (seen.has(w)) continue; seen.add(w); const L=byWord.get(w); if (!L) continue;
-        for (const t of L){ const m=t.re.exec(s); if (m && fits(m,t)){ r=fill(t,m); break outer; } } }
-      if (r==null) for (const t of general){ const m=t.re.exec(s); if (m && fits(m,t)){ r=fill(t,m); break; } } }
+    if (r==null){ const seen=new Set(), cand=general.slice();   // tra tutti i modelli possibili vince quello con più testo fisso, il più specifico
+      for (const w of wordsOf(s)){ if (seen.has(w)) continue; seen.add(w); const L=byWord.get(w); if (L) cand.push(...L); }
+      cand.sort((a,b)=>b.len-a.len);
+      for (const t of cand){ const m=t.re.exec(s); if (m && fits(m,t)){ r=fill(t,m); break; } } }
     if (r==null && noEmoji.size){ const v=noEmoji.get(deEmoji(s)); if (v!=null) r=v; }
     if (r==null){ // testi composti in modo dinamico: «Etichetta: spiegazione», «Nome — nota», frasi di seguito, simboli attorno
       cache.set(s,null);
       const pair=(sep,any)=>{ const i=s.indexOf(sep); if (i<=0) return null; const A=s.slice(0,i), B=s.slice(i+sep.length), TA=lookup(A), TB=lookup(B); return (TA!=null&&TB!=null)||(any&&(TA!=null||TB!=null)) ? (TA!=null?TA:A)+sep+(TB!=null?TB:B) : null; };
       const list=(re,glue,any)=>{ const P=s.split(re); if (P.length<2) return null; const T=P.map(x=>lookup(x)); return (any?T.some(x=>x!=null):T.every(x=>x!=null)) ? T.map((x,i)=>x!=null?x:P[i]).join(glue) : null; };
       const SENT=/(?<=[.!?…])\s+(?=[\p{Lu}«])/u;
-      r=pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ');
+      { const q=/^(\d+) (\p{L}.*)$/u.exec(s); if (q){ const v=lookup(q[2]); if (v!=null) r=q[1]+' '+v; } }
+      { const q=/^Usa «(.+)»$/su.exec(s); if (q){ const v=lookup(q[1]); r='Use «'+(v!=null?v:q[1])+'»'; } }
+      r=r||pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ');
       if (r==null){ const m=/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N})»%]*)$/su.exec(s); if (m && (m[1]||m[3]) && m[2] && m[2]!==s){ const inner=lookup(m[2]); if (inner!=null) r=m[1]+inner+m[3]; } }
       if (r==null) r=pair(' — ',1)||pair(': ',1)||list(SENT,' ',1)||list(' · ',' · ',1)||list(', ',', ',1);
     }
+    if (r!=null && r.includes('spectrum/spectra')) r=r.replace(/\b1 spectrum\/spectra\b/g,'1 spectrum').replace(/spectrum\/spectra/g,'spectra');
     if (cache.size>40000) cache.clear(); cache.set(s,r); return r;
   }
   function tr(text){ if (text==null) return text; const s=String(text); if (!/\p{L}/u.test(s)) return s; const n=norm(s); if (!n) return s; const r=lookup(n); if (r==null) return s;

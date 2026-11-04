@@ -23,7 +23,7 @@ La pipeline `.github/workflows/release.yml`:
 1. controlla che tag e versioni coincidano e che la firma sia configurata;
 2. esegue test, benchmark, collaudo dell'interfaccia e collaudo dentro l'app sui tre sistemi: **se fallisce, non si pubblica nulla**;
 3. costruisce `.exe`, `.dmg` (Apple Silicon e Intel), AppImage, `.deb` e `latest.json` in una release in bozza;
-4. controlla che ci siano tutti i pacchetti e tutte le firme, scrive le note e pubblica.
+4. controlla che ci siano tutti i pacchetti e che `latest.json` abbia una firma per ogni piattaforma (la verifica vera la fa l'app all'installazione), scrive le note e pubblica.
 
 La pagina online e le app installate vedono la nuova versione appena la release è pubblica. La pagina si aggiorna con il push su `main` (GitHub Pages).
 

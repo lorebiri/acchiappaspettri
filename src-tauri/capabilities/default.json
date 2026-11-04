@@ -19,6 +19,7 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://github.com/lorebiri/acchiappaspettri/*" },
+        { "url": "https://github.com/lorebiri/acchiappaspettri#readme" },
         { "url": "https://lorebiri.github.io/acchiappaspettri/*" },
         { "url": "mailto:*" },
         { "url": "https://doi.org/*" }
