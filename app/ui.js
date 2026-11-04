@@ -46,6 +46,7 @@
     applyTheme(); if (win.matchMedia) win.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
     const I=win.AcchI18n; if (I.isChosen && I.lang && typeof S!=='undefined' && S.lang!==I.lang && !lsG('acch.ui.langSynced')){ S.lang=I.lang; saveS(); lsS('acch.ui.langSynced',true); }
     $('#langLab').textContent=I.lang.toUpperCase();
+    $('#acceptAll').addEventListener('click',()=>toast('⚠️ Nomi proposti solo in base alla posizione delle bande: sono ipotesi, controllali.'));
     $('#langBtn').onclick=()=>setLang(I.lang==='it'?'en':'it');
     $('#settingsBtn').onclick=openSettings; $('#stClose').onclick=()=>$('#dlgSettings').close();
     $('#stLang').onchange=e=>setLang(e.target.value);

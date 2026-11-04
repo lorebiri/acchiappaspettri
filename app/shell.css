@@ -154,3 +154,9 @@ html.shell .calbox,html.shell .fitsum{border-radius:3px;font-size:12px;line-heig
 /* all'inizio non c'è nulla da ispezionare */
 html.shell[data-doc=start] #workCard .wkR>*{visibility:hidden}
 html.shell[data-doc=start] #shDocTitle{visibility:hidden}
+html.shell .shrt[data-n]:not([data-n=""])::after{content:attr(data-n);margin-left:5px;padding:0 4px;border-radius:2px;font-size:10px;background:var(--sh-warn);color:var(--sh-field)}
+/* schede leggibili anche a 1280: l'opzione avanzata ha la sua riga; le sezioni di analisi su due righe ordinate */
+html.shell #tabs{flex-wrap:wrap}
+html.shell #tabs .advtog{order:9;flex:1 0 100%;align-self:auto;padding:2px 8px;border-top:1px solid var(--sh-border);background:var(--sh-pane);display:flex;align-items:center;gap:4px}
+html.shell .ansec>summary .scope{display:none}
+html.shell .ansec>summary .secsum{margin-left:auto;font-size:11px;color:var(--sh-sec);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

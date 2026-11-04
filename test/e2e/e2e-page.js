@@ -51,13 +51,13 @@ window.AcchE2E=async function(info){
       // collegamento a un file appena prodotto (blob): passa dal salvataggio nativo
       { const orig=window.download; let got=null; window.download=(b,n)=>{ got=n; }; setReady([{name:'prova.txt',blob:new Blob(['x'])}]); document.querySelector('#readyList a').click(); await sleep(500); window.download=orig; check('file pronti: salvataggio dal collegamento (CSP blob)', got==='prova.txt', String(got)); setReady([]); }
       // barra degli strumenti e comandi principali
-      for (const id of ['tbExport','tbZoom','tbCmd']){ document.querySelector('#'+id).click(); await sleep(100); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); } go(2);
+      for (const id of ['tbExport','tbZfit','cmdBtn','tbLeft','tbLeft','tbFocus','tbFocus']){ document.querySelector('#'+id).click(); await sleep(100); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); } go(2);
       AcchUi.openSettings(); await sleep(50); check('impostazioni: sezione aggiornamenti', !document.querySelector('#stDesktop').hidden); document.querySelector('#dlgSettings').close();
       await AcchDesktop.checkUpdate(true); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
       // lingua e menu
       AcchUi.setLang('en'); await sleep(300); check('inglese', /Settings/.test(document.querySelector('#settingsBtn').textContent)); AcchUi.setLang('it'); await sleep(300); check('italiano', /Impostazioni/.test(document.querySelector('#settingsBtn').textContent));
       check('barra degli strumenti', !!document.querySelector('#tbSave'));
-      const cs=getComputedStyle(document.querySelector('.btn')); check('fogli di stile applicati (CSP)', parseInt(cs.borderRadius)>=8, cs.borderRadius); check('carattere locale caricato', await document.fonts.load('16px Nunito').then(l=>l.length>0));
+      const cs=getComputedStyle(document.querySelector('.btn')); check('fogli di stile applicati (CSP)', getComputedStyle(document.querySelector('#shTool')).position==='fixed', cs.borderRadius); check('spazio di lavoro desktop attivo', document.documentElement.classList.contains('shell') && document.querySelector('#pv').clientWidth>500, String(document.querySelector('#pv').clientWidth)); check('carattere locale caricato', await document.fonts.load('16px Nunito').then(l=>l.length>0));
       const st=document.createElement('div'); st.innerHTML='<span id="cspS" style="color:rgb(1,2,3)"></span>'; document.body.appendChild(st); check('stili in linea permessi', getComputedStyle(document.querySelector('#cspS')).color==='rgb(1, 2, 3)'); st.remove();
       window.__xss=0; const im=document.createElement('div'); im.innerHTML='<img src=x onerror="window.__xss=1">'; document.body.appendChild(im); await sleep(300); check('gestori inline bloccati (CSP)', window.__xss===0); im.remove();
       const conn=await fetch('https://example.com/').then(()=>true,()=>false); check('nessuna connessione libera (CSP)', !conn);

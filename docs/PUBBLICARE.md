@@ -21,7 +21,7 @@ git push origin main v2.3.0
 
 La pipeline `.github/workflows/release.yml`:
 1. controlla che tag e versioni coincidano e che la firma sia configurata;
-2. esegue test, benchmark, collaudo dell'interfaccia e collaudo dentro l'app sui tre sistemi: **se fallisce, non si pubblica nulla**;
+2. esegue test, benchmark, collaudo dell'interfaccia e collaudo dentro l'app sui tre sistemi (Mac su Apple Silicon: la versione Intel viene costruita ma non provata): **se fallisce, non si pubblica nulla**;
 3. costruisce `.exe`, `.dmg` (Apple Silicon e Intel), AppImage, `.deb` e `latest.json` in una release in bozza;
 4. controlla che ci siano tutti i pacchetti e che `latest.json` abbia una firma per ogni piattaforma (la verifica vera la fa l'app all'installazione), scrive le note e pubblica.
 
@@ -30,7 +30,11 @@ La pagina online e le app installate vedono la nuova versione appena la release 
 ## Beta
 ```bash
 node scripts/set-version.js 2.3.0-beta.1
+```
+Aggiungi la voce in `NOVITA` e la sezione `## 2.3.0-beta.1` in `CHANGELOG.md`, poi commit e:
+```bash
 git tag v2.3.0-beta.1
+git push origin main v2.3.0-beta.1
 ```
 Con un trattino nel tag la release è una *pre-release*: non è `latest`, quindi non arriva né agli utenti stabili né ai pulsanti della pagina. Chi vuole provarla scarica il pacchetto a mano.
 

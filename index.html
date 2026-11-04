@@ -2156,18 +2156,18 @@ function parseText(text){
     start = iData>=0 ? iData+1 : 0;
     for (let i=0;i<start;i++) meta.push(lines[i]);
   }
-  const xs=[], ys=[], tail=[];
+  const xs=[], ys=[], tail=[]; let extraCols=0;
   for (let i=start;i<lines.length;i++){
     const l = lines[i].trim(); if (!l) continue;
     const p = parseLine(l);
-    if (p){ xs.push(p[0]); ys.push(p[1]); }
+    if (p){ xs.push(p[0]); ys.push(p[1]); if (xs.length===3){ const tk=l.split(/[\s;\t]+/).filter(t=>/^[-+]?[\d.,]+([eE][-+]?\d+)?$/.test(t)); extraCols=Math.max(0,tk.length-2); } }
     else if (xs.length < 3) { if (xs.length){ xs.length=0; ys.length=0; } meta.push(l); }
     else if (tail.length < 120) tail.push(l);
   }
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -2607,7 +2607,9 @@ function despike(ys, thr, maxW){
     const a=i-1, b=j+1, wd=j-i+1;
     if (wd<=maxW+1 && a>=0 && b<n){
       let dev=0; for (let k=i;k<=j;k++){ const ln=ys[a]+(ys[b]-ys[a])*(k-a)/(b-a); dev=Math.max(dev, Math.abs(ys[k]-ln)); }
-      if (dev > thr*mad/0.6745/Math.SQRT2){ for (let k=i;k<=j;k++) out[k]=ys[a]+(ys[b]-ys[a])*(k-a)/(b-a); at.push(i); }
+      let top=i; for (let k=i;k<=j;k++) if (Math.abs(ys[k]-ys[a]-(ys[b]-ys[a])*(k-a)/(b-a))>Math.abs(ys[top]-ys[a]-(ys[b]-ys[a])*(top-a)/(b-a))) top=k;
+      const base=Math.min(ys[Math.max(0,i-6)],ys[Math.min(n-1,j+6)]), half=(ys[top]-base)/2; let hw=1, sgn=Math.sign(half)||1; for (let k=top-1;k>=Math.max(0,top-6)&&sgn*(ys[k]-base)>sgn*half;k--) hw++; for (let k=top+1;k<=Math.min(n-1,top+6)&&sgn*(ys[k]-base)>sgn*half;k++) hw++;
+      if (hw<=maxW && dev > thr*mad/0.6745/Math.SQRT2){ for (let k=i;k<=j;k++) out[k]=ys[a]+(ys[b]-ys[a])*(k-a)/(b-a); at.push(i); }
     }
     i=j;
   }
@@ -4600,7 +4602,7 @@ function loader(show, title, sub, frac){
 }
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
 async function addEntries(entries){
-  let skipped=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[];
+  let skipped=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[];
   const tot=entries.length; let done=0, lastPaint=0;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
   try{
@@ -4617,6 +4619,7 @@ async function addEntries(entries){
       try{
         const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
         if (p.xs.length<5) { errors.push(path); continue; }
+        if (p.extraCols>0) extra.push(`${path} (${p.extraCols})`);
         const det = detectInstrument(p, file.name);
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
@@ -4649,6 +4652,7 @@ async function addEntries(entries){
   if (skipped.length) msgs.push(`🙈 Ho saltato ${skipped.length===1?'un file che non è':skipped.length+' file che non sono'} di testo: ${list(skipped)}.`);
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato due colonne di numeri: ${list(errors)}. Se è un formato particolare mandamelo e lo aggiungo.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
+  if (extra.length){ msgs.push(`⚠️ In ${extra.length===1?'questo file ci sono':'questi file ci sono'} altre colonne di valori, che non ho letto (uso solo le prime due): ${list(extra)}.`); toast(`⚠️ Alcuni file hanno altre colonne di valori, che non ho letto: uso solo le prime due.`); }
   if (dup) msgs.push(`👯 ${dup} file ${dup===1?'era':'erano'} già caricat${dup===1?'o':'i'}.`);
   note.style.display = msgs.length?'block':'none'; note.innerHTML = msgs.join('<br>');
   if (files.length && cur<0) cur=0;
@@ -4946,7 +4950,8 @@ function renderCompare(){
     const mixNote = kinds.length>1 ? (c.mode==='over'
       ? `⚠️ Questi spettri hanno unità diverse (${kinds.map(k=>({T:'%T',A:'assorbanza',I:'conteggi',mAU:'mAU',N:'normalizzata'}[k]||k)).join(', ')}): nella stessa scala non sono confrontabili. Usa «Sfalsati» o «Normalizzati», oppure converti l'asse Y in «Ritocca lo spettro».`
       : `ℹ️ Gli spettri hanno unità diverse (%T e assorbanza): li ho girati tutti con i picchi nello stesso verso del primo.`) : '';
-    $('#cmpMix').hidden=!mixNote; $('#cmpMix').innerHTML=mixNote;
+    const uncal=mem.filter(g=>g.uncal), uncalNote=uncal.length&&uncal.length<mem.length?`⚠️ ${uncal.length} spettri non hanno calibrazione in energia: il loro asse è in canali, non in keV, e il confronto con gli altri non ha senso. Toglili dal confronto o calibrali.`:'';
+    $('#cmpMix').hidden=!(mixNote||uncalNote); $('#cmpMix').innerHTML=[uncalNote,mixNote].filter(Boolean).join('<br>');
   }
 }
 function renderCmp(){ renderCmpBar(); renderList(); renderPreview(); renderCmpOut(); }
@@ -5635,8 +5640,8 @@ function renderProc(){
         : 'Puoi riportare tutti gli spettri tra 0 e 1, così hanno la stessa altezza.',
       opts: convOpts.map(([v,t,sub,ic])=>({v, t, sub, ico: ic ? ICO[ic] : v==='orig' ? (files[cur] && processedKind(files[cur])==='T' ? ICO.T : ICO.up) : ICO[v]}))},
     k==='tga' ? null : {p:'base', title:'Linea di base', why: k==='dsc' ? 'Toglie l\'inclinazione della linea di base tra gli estremi.' : k==='epr' ? 'Toglie solo l\'inclinazione: la correzione automatica non è adatta agli spettri in derivata.' : 'Se lo spettro sale o scende (fluorescenza nel Raman, deriva), tolgo la parte di fondo e restano solo i picchi.', opts:baseOpts},
-    ['raman','fluo','gen'].includes(k) ? {p:'spike', title:'Raggi cosmici', why:'Picchi strettissimi (1–3 punti) e isolati dovuti a particelle cosmiche sul rivelatore CCD. Li riconosco con lo z-score modificato delle differenze (Whitaker & Hayes 2018) e li sostituisco con l\'interpolazione dei punti vicini; i picchi veri, più larghi, non vengono toccati.'+((files[cur]&&files[cur].instr===k&&processed(files[cur]).spikes)?` Su questo spettro ne ho tolti ${processed(files[cur]).spikes}.`:''),
-      opts:[{v:'off',t:'Lasciali',sub:'dati come sono',ico:ICO.spk},{v:'on',t:'Toglili',sub:'consigliato per il Raman',ico:ICO.nospk}]} : null,
+    ['raman','fluo','gen'].includes(k) ? {p:'spike', title:'Raggi cosmici', why:'Picchi strettissimi (1–3 punti) e isolati dovuti a particelle cosmiche sul rivelatore CCD. Li riconosco con lo z-score modificato delle differenze (Whitaker & Hayes 2018) e li sostituisco con l\'interpolazione dei punti vicini; i picchi più larghi di 3 punti a metà altezza restano; una banda vera molto stretta può essere scambiata per un raggio: controlla le bande strette.'+((files[cur]&&files[cur].instr===k&&processed(files[cur]).spikes)?` Su questo spettro ne ho tolti ${processed(files[cur]).spikes}.`:''),
+      opts:[{v:'off',t:'Lasciali',sub:'dati come sono',ico:ICO.spk},{v:'on',t:'Toglili',sub:'se vedi punte isolate',ico:ICO.nospk}]} : null,
     {p:'smooth', title:'Smoothing (pulizia del rumore)', why:'Riduce il rumore. Se è troppo forte allarga e abbassa i picchi stretti.',
       opts:[{v:0,t:'Nessuno',sub:'dati grezzi',ico:ICO.s0},{v:7,t:'Leggero',sub:'consigliato per Raman',ico:ICO.s7},{v:15,t:'Medio',ico:ICO.s15},{v:31,t:'Forte',sub:'solo per dati molto rumorosi',ico:ICO.s31}]},
     (k==='tga'||k==='epr') ? null : {p:'deriv', title:'Derivata', why:'La derivata seconda separa le bande sovrapposte: ogni banda diventa un picco stretto (in giù se le bande vanno in su). Comoda per FTIR e UV-Vis; aumenta il rumore, quindi abbinala a un po\' di smoothing.',
@@ -6097,6 +6102,7 @@ async function buildPdf(){
   const total=doc.getNumberOfPages();
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text(pdfText([title, date, S.docAuthor].filter(Boolean).join('  ·  ')), M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
+  { const tot=doc.internal.getNumberOfPages(); for (let i=1;i<=tot;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(140); doc.text('Acchiappaspettri '+APP_VERSION_FULL(), doc.internal.pageSize.getWidth()-4, doc.internal.pageSize.getHeight()-2.5, {align:'right'}); } doc.setProperties({creator:'Acchiappaspettri '+APP_VERSION_FULL()}); }
   return doc.output('blob');
 }
 
@@ -6245,6 +6251,8 @@ function assess(f, d){
   const it=f.instr, P=processed(f), out=[], add=(lv, t, act)=>out.push({lv, t, act});
   const raw = f.kind==='T' ? transformY(f.ys,'T','A').ys : f.ys;
   const shapeOk = !['tga','dsc','epr'].includes(it);
+  if (['hplc','raman','fluo','ftir','uv'].includes(it) && !P.deriv && S.showPeaks!==false){ try{ const up=upData(P), low=findPeaks(P.xs, up.y, 1, 0.3, 200), st=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, miss=low.filter(q=>!d.peaks.some(p=>Math.abs(p.x-q.x)<=6*st) && !(f.removed||[]).some(x=>Math.abs(x-q.x)<=6*st));
+      if (miss.length) add('warn', `${miss.length} segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a ${miss.slice(0,3).map(q=>fmtTick(q.x,2)).join(', ')}).${it==='hplc'?' Le percentuali di area non li contano.':''} Abbassa «Quanti picchi cerco» o aggiungili con un clic.`); }catch(e){} }
   if (it==='xrf' && !f.uncal && !f.ecal && f._auto && f._auto.length>=2){
     const fit=xrfAlignFit(f._auto.map(q=>({x:q.x, w:q.prom||1})), f.tube), sh = fit ? fit.a+(fit.b-1)*8 : 0;
     if (fit && Math.abs(sh)>0.025) add('warn', `La calibrazione in energia è spostata di circa ${Math.round(sh*1000)} eV (righe usate: ${fit.pairs.slice(0,4).map(q=>q.name).join(', ')}). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio.`,
@@ -7056,9 +7064,9 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
   head(T('Analisi: controllo dei dati e ipotesi','Analysis: data check and hypotheses'));
   for (const f of inc){ const d=viewOf(f), Q=assess(f,d).filter(o=>o.lv==='warn'||o.lv==='bad'), H=hypotheses(f,d);
     line(`${dispTitle(f)} · ${T_().nome[f.instr]}`, 10, true); y+=0.5;
-    if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili: ','Compatible pigments/materials: ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${Math.round(h.score*100)}%)`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
+    if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili (% = bande trovate, non concentrazione): ','Compatible pigments/materials (% = bands found, not concentration): ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${Math.round(h.score*100)}%)`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
-    if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici: ','Chemical groups: ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${Math.round(h.score*100)}%)`).join('; '), 8.5);
+    if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (% = bande trovate, non concentrazione): ','Compatible chemical groups (% = bands found, not concentration): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${Math.round(h.score*100)}%)`).join('; '), 8.5);
     if (fitValid(f)) line(T('Deconvoluzione: ','Deconvolution: ')+f.fit.peaks.map(q=>`${fmtPeak(f.instr,q.c)} (${fmtN(q.pct,1)}%)`).join(', ')+` · R² ${fmtN(f.fit.r2,4)}`, 8.5);
     Q.forEach(o=>line('! '+o.t.replace(/<[^>]+>/g,''), 8, false, 120));
     if (!Q.length && !(H && ((H.pig&&H.pig.length)||(H.list&&H.list.length)||(H.els&&H.els.length))) && !fitValid(f)) line(T('nessun avviso','no warnings'), 8, false, 120);
@@ -7125,6 +7133,7 @@ function analysisFiles(){
 }
 function methodsText(inc, used){
   const en=LANG==='en', T=(it,e)=>en?e:it, parts=[], cite=new Set(used);
+  parts.push(T(`Elaborazione con Acchiappaspettri ${APP_VERSION_FULL()} (https://github.com/lorebiri/acchiappaspettri). I nomi delle bande e dei picchi proposti dallo strumento si basano sulla sola posizione e sono ipotesi, da confermare da chi firma il lavoro.`,`Processed with Acchiappaspettri ${APP_VERSION_FULL()} (https://github.com/lorebiri/acchiappaspettri). Band and peak names proposed by the tool rest on position alone and are hypotheses, to be confirmed by the authors.`));
   const byI={}; inc.forEach(f=>(byI[f.instr]=byI[f.instr]||[]).push(f));
   const proc=[];
   for (const [k,list] of Object.entries(byI)){

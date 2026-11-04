@@ -15,6 +15,11 @@ I pacchetti **non sono firmati** con certificati Microsoft o Apple (costano e so
 - **Windows**: «PC protetto da Windows» → *Ulteriori informazioni* → *Esegui comunque*.
 - **macOS**: se viene bloccata, *Impostazioni di Sistema → Privacy e sicurezza → Apri comunque*.
 
+## Requisiti
+- **Windows**: serve il componente WebView2, già presente su Windows 11 e sulla maggior parte dei Windows 10. Se manca, l'installer lo scarica: **senza internet in quel caso l'installazione si ferma**. Sui PC di strumento isolati dalla rete installa prima WebView2 Runtime (installer offline Microsoft).
+- **Linux**: il `.deb` richiede `libwebkit2gtk-4.1-0` (Ubuntu 22.04 o successivi, Debian 12 o successivi). L'AppImage richiede FUSE sul sistema. Provato solo con la compilazione automatica, non su ogni distribuzione.
+- **macOS**: 11 o successivi.
+
 ## Lingua
 Su Windows la scegli nell'installer e l'app la usa al primo avvio. Su macOS e Linux l'app la chiede al primo avvio. Si cambia quando vuoi da ⚙️ Impostazioni o 🌐.
 

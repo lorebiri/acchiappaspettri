@@ -77,6 +77,8 @@
   const oAdd=win.addEntries; win.addEntries=async function(){ const r=await oAdd.apply(this,arguments); if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
   const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
+  /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
+  const oFit=win.runFitUI; win.runFitUI=async function(fromAssist){ const f=files[cur], before=f&&f.fit; const r=await oFit(fromAssist); if (f&&f.fit&&f.fit!==before&&f.fit.range&&viewMode!=='cmp'){ f._zoom=[Math.min(...f.fit.range),Math.max(...f.fit.range)]; showPane('bottom',true); showRes('fit'); renderPreview(); } return r; };
   win.startTour=function(){ if (typeof showKeys==='function') showKeys(); };   // il giro della pagina indica elementi che qui non esistono
 
   /* ---- risultati ---- */
@@ -109,7 +111,8 @@
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;
-  win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
+  win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ qualBadge(); refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
+  function qualBadge(){ const f=files[cur]; let n=0; if (f&&viewMode!=='cmp'){ try{ n=assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){} } RES.qual.b.dataset.n=n||''; }
   function updateStatus(){ const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
     if (!f||viewMode==='cmp'){ stChain.textContent=''; stRange.textContent=''; return; }
     const it=f.instr; stChain.textContent=[NOME_IT[it]||it, S.conv[it]&&S.conv[it]!=='orig'?S.conv[it]:null, S.base[it]&&S.base[it]!=='none'?S.base[it]:null, +S.smooth[it]?'SG'+S.smooth[it]:null, +S.deriv[it]?'d'+S.deriv[it]:null, S.spike[it]?'despike':null].filter(Boolean).join(' · ');

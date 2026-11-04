@@ -10,11 +10,13 @@ jobs:
   check-version:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: node scripts/check-version.js "$GITHUB_REF_NAME"
       - name: La firma degli aggiornamenti è configurata
-        env: { KEY: "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" }
-        run: test -n "$KEY" || { echo "Manca il segreto TAURI_SIGNING_PRIVATE_KEY (docs/PUBBLICARE.md)"; exit 1; }
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PW: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: test -n "$KEY" && test -n "$PW" || { echo "Mancano i segreti di firma (docs/PUBBLICARE.md)"; exit 1; }
   tests:
     needs: check-version
     uses: ./.github/workflows/ci.yml
@@ -34,8 +36,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: "${{ matrix.rust_target }}" }
@@ -62,7 +64,7 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Controlla i pacchetti, scrive le note e pubblica
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         run: node scripts/publish-release.js "$GITHUB_REF_NAME"
