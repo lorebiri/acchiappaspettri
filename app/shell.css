@@ -1,0 +1,156 @@
+/* Spazio di lavoro dell'app desktop. Ogni regola inizia con html.shell: la pagina online non cambia (c'è un test). Scelte: docs/DESIGN-DESKTOP.md
+   Geometria: posizioni fisse da variabili; #v2, .bench e #workCard restano nel documento con display:contents. Fissi, non 100vh, perché il testo ingrandito usa body zoom. */
+html.shell{--sh-app:#E9EBEE;--sh-pane:#F5F6F7;--sh-field:#FFF;--sh-hover:#E3E6EA;--sh-sel:#D6E4F5;--sh-border:#CDD2D8;--sh-ctl:#7F8792;--sh-text:#1A1E24;--sh-sec:#4E5763;--sh-acc:#1457B8;--sh-onacc:#FFF;--sh-ok:#1B7A47;--sh-warn:#8A5200;--sh-err:#B3261E;--sh-matte:#E9EBEE;
+  --bg:var(--sh-app);--panel:var(--sh-pane);--ink:var(--sh-text);--muted:var(--sh-sec);--line:var(--sh-border);--accent:var(--sh-acc);--accent-soft:var(--sh-sel);--ok:var(--sh-ok);--danger:var(--sh-err);--radius:3px;
+  --T:40px;--D:30px;--S:24px;--L:250px;--R:340px;--B:210px}
+html.shell[data-theme=dark]{--sh-app:#14171B;--sh-pane:#1B1F24;--sh-field:#111418;--sh-hover:#262B31;--sh-sel:#1F3A5C;--sh-border:#2E343B;--sh-ctl:#6B7480;--sh-text:#E4E7EB;--sh-sec:#A2ABB6;--sh-acc:#5B9CF0;--sh-onacc:#0B1118;--sh-ok:#4FBF87;--sh-warn:#E0A23C;--sh-err:#F0807A;--sh-matte:#2A2F36}
+html.shell,html.shell body{height:100%;overflow:hidden;font:13px/18px -apple-system,"Segoe UI Variable Text","Segoe UI","Noto Sans",Cantarell,sans-serif;background:var(--sh-app);color:var(--sh-text)}
+/* ciò che appartiene solo alla pagina online */
+html.shell body>header,html.shell .stephead,html.shell body>footer,html.shell .viewbar,html.shell .pvtools,html.shell #entryBox,html.shell #confetti,html.shell .howto,html.shell #loaded,html.shell #workCard .wkL>.row,html.shell #readout,html.shell #secQual,html.shell #secHyp,html.shell #secTech,html.shell #secMulti>summary,html.shell #tourBtn,html.shell #v1 .sci,html.shell #v1 .bubble,html.shell #v1 .gino,html.shell #v1 .mascot{display:none!important}
+/* struttura */
+html.shell main{display:block;margin:0;padding:0;max-width:none}
+html.shell .view{display:none}
+html.shell #v2{display:contents!important}
+html.shell .bench,html.shell #workCard{display:contents!important}
+html.shell #filesCard{max-height:none!important;position:fixed;left:0;top:var(--T);bottom:var(--S);width:var(--L);margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:var(--sh-pane);overflow:clip;display:flex;flex-direction:column;z-index:2}
+html.shell #workCard .wkR{position:fixed;right:0;top:var(--T);bottom:var(--S);width:var(--R);display:flex!important;flex-direction:column;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:var(--sh-pane);overflow:clip;z-index:2;max-height:none;height:auto;min-height:0;grid-column:auto}
+html.shell #workCard .wkL{position:fixed;left:var(--L);right:var(--R);top:calc(var(--T) + var(--D));bottom:calc(var(--S) + var(--B));display:flex;flex-direction:column;gap:6px;padding:8px;margin:0;background:var(--sh-matte);overflow:clip;min-height:0;max-width:none;width:auto}
+html.shell #v1.on,html.shell #v3.on,html.shell .shcenter{position:fixed;left:var(--L);right:var(--R);top:calc(var(--T) + var(--D));bottom:var(--S);overflow:auto;background:var(--sh-app);margin:0;max-width:none;width:auto;z-index:1;display:block}
+html.shell[data-doc=start] #workCard .wkL,html.shell[data-doc=export] #workCard .wkL,html.shell[data-doc=sheet] #workCard .wkL,html.shell[data-doc=study] #workCard .wkL,html.shell[data-doc=start] #shBottom,html.shell[data-doc=export] #shBottom,html.shell[data-doc=study] #shBottom,html.shell[data-doc=start] #shSplitB,html.shell[data-doc=export] #shSplitB,html.shell[data-doc=study] #shSplitB{display:none!important}
+html.shell .shcenter{display:none}
+html.shell[data-doc=sheet] #shSheet{display:block;bottom:calc(var(--S) + var(--B))}
+html.shell[data-doc=study] #shStudy{display:block;padding:10px 16px}
+html.shell #shStudy .panel{display:none;padding:0;border:0;background:none}html.shell #shStudy .panel.on{display:block}
+html.shell[data-doc=start] #v1{padding:24px}html.shell[data-doc=export] #v3{padding:16px 24px}
+html.shell #shApp{position:static}
+html.shell #shTool{position:fixed;left:0;right:0;top:0;height:var(--T);display:flex;align-items:center;gap:2px;padding:0 8px;background:var(--sh-pane);border-bottom:1px solid var(--sh-border);overflow:hidden;z-index:3}
+html.shell #shTabs{position:fixed;left:var(--L);right:var(--R);top:var(--T);height:var(--D);display:flex;align-items:stretch;background:var(--sh-pane);border-bottom:1px solid var(--sh-border);overflow:hidden;z-index:2}
+html.shell #shBottom{position:fixed;left:var(--L);right:var(--R);bottom:var(--S);height:var(--B);display:flex;flex-direction:column;background:var(--sh-pane);border-top:1px solid var(--sh-border);z-index:2;min-height:0}
+html.shell #shStatus{position:fixed;left:0;right:0;bottom:0;height:var(--S);display:flex;align-items:center;background:var(--sh-pane);border-top:1px solid var(--sh-border);font-size:12px;line-height:16px;color:var(--sh-sec);overflow:hidden;z-index:3}
+html.shell .shsplit{position:fixed;z-index:4;background:var(--sh-border)}
+html.shell #shSplitL{left:calc(var(--L) - 1px);top:var(--T);bottom:var(--S);width:1px;cursor:col-resize}
+html.shell #shSplitR{right:calc(var(--R) - 1px);top:var(--T);bottom:var(--S);width:1px;cursor:col-resize}
+html.shell #shSplitB{left:var(--L);right:var(--R);bottom:calc(var(--S) + var(--B) - 1px);height:1px;cursor:row-resize}
+html.shell .shsplit::after{content:"";position:absolute}
+html.shell .shsplit.v::after{inset:0 -3px}html.shell .shsplit.h::after{inset:-3px 0}
+html.shell.no-left #filesCard,html.shell.no-left #shSplitL,html.shell.no-right #workCard .wkR,html.shell.no-right #shSplitR{display:none!important}
+html.shell.no-bottom #shResBody,html.shell.no-bottom #shSplitB,html.shell.focus #shBottom{display:none!important}
+html.shell.focus #shTabs,html.shell.focus .shsplit{display:none!important}
+html.shell.focus{--D:0px}
+/* controlli */
+html.shell #shTool .spacer,html.shell #shTabs .spacer,html.shell #shResTabs .spacer,html.shell #shSheetBar .spacer{flex:1}
+html.shell .shb{height:28px;min-width:28px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;border:0;border-radius:3px;background:none;color:var(--sh-text);cursor:pointer;font:inherit;white-space:nowrap;flex:none}
+html.shell .shb:hover:not(:disabled){background:var(--sh-hover)}html.shell .shb.on{background:var(--sh-sel)}html.shell .shb:disabled{opacity:.4;cursor:default}
+html.shell .ic{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+html.shell .shsep{width:1px;height:18px;margin:0 6px;background:var(--sh-border);flex:none}
+html.shell :focus-visible{outline:2px solid var(--sh-acc);outline-offset:1px}
+html.shell .btn{border-radius:3px;font-weight:500;padding:3px 10px;font-size:13px;line-height:18px;min-height:26px;box-shadow:none;background:var(--sh-field);border:1px solid var(--sh-ctl);transform:none!important;color:var(--sh-text);transition:none}
+html.shell .btn.small{padding:2px 8px;min-height:24px;font-size:12px;line-height:16px}
+html.shell .btn:hover{background:var(--sh-hover)}
+html.shell .btn.ghost{background:none;border-color:var(--sh-border)}
+html.shell .btn.primary,html.shell .btn.primary:hover{background:var(--sh-acc);border-color:var(--sh-acc);color:var(--sh-onacc)}
+html.shell .btn.big{font-size:13px;padding:4px 14px}
+html.shell select,html.shell input[type=text],html.shell input[type=search],html.shell input[type=number],html.shell textarea{background:var(--sh-field);color:var(--sh-text);border:1px solid var(--sh-ctl);border-radius:3px;font:inherit;font-size:13px;min-height:26px;padding:2px 6px}
+html.shell input[type=number],html.shell td,html.shell .shrow,html.shell .st.num{font-variant-numeric:tabular-nums lining-nums}
+html.shell dialog{border-radius:6px;border:1px solid var(--sh-border);background:var(--sh-pane);color:var(--sh-text);box-shadow:0 8px 28px rgba(0,0,0,.25)}
+html.shell h2{font-size:14px;line-height:20px;font-weight:600}html.shell h3,html.shell h4{font-size:13px;font-weight:600}
+html.shell .why,html.shell .opt-l{font-size:12px;line-height:16px;color:var(--sh-sec)}
+html.shell .card{box-shadow:none;border-radius:3px;border-color:var(--sh-border);background:var(--sh-pane)}
+/* spettri */
+html.shell .shhead{flex:none;height:24px;line-height:24px;padding:0 10px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sh-sec);border-bottom:1px solid var(--sh-border);background:var(--sh-app)}
+html.shell #shProject{flex:none;padding:4px 10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:26px}
+html.shell #filesCard>.row{flex:none;padding:4px 8px!important;gap:4px;margin:0}html.shell #filesCard>.row h3{font-size:12px;font-weight:500;color:var(--sh-sec)}
+html.shell #filter{flex:none;margin:0 8px 4px;width:calc(100% - 16px)}
+html.shell #listHint{flex:none;padding:0 10px 4px;font-size:11px;line-height:14px;color:var(--sh-sec)}
+html.shell #flist{flex:1;overflow:auto;min-height:0;max-height:none;padding:0}
+html.shell .badge{border-radius:2px;font-size:10px;line-height:14px;padding:0 4px;font-weight:600}
+/* documenti */
+html.shell .shtab{display:inline-flex;align-items:center;gap:6px;padding:0 12px;background:none;border:0;border-right:1px solid var(--sh-border);color:var(--sh-sec);cursor:pointer;font:inherit;white-space:nowrap}
+html.shell .shtab:hover:not(:disabled){background:var(--sh-hover)}html.shell .shtab.on{background:var(--sh-app);color:var(--sh-text);box-shadow:inset 0 2px 0 var(--sh-acc)}html.shell .shtab:disabled{opacity:.45;cursor:default}
+html.shell #shDocTitle{display:flex;align-items:center;padding:0 10px;min-width:0}
+html.shell #shDocTitle h2{margin:0;max-width:44vw!important;font-size:12px;font-weight:500;color:var(--sh-sec)}
+html.shell #pvWrap{flex:1;min-height:0;position:relative;border:1px solid var(--sh-border);border-radius:0;background:#fff;width:100%;max-height:none;margin:0}
+html.shell #pv,html.shell #pvo{position:absolute;inset:0;width:100%!important;height:100%!important;border-radius:0;border:0;max-height:none!important}
+html.shell #pvo{pointer-events:none}
+html.shell .insetbar{margin:0;padding:4px 8px;border-radius:3px;flex:none}
+html.shell #cmpBar{flex:none;margin:0;padding:4px 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--sh-pane);border:1px solid var(--sh-border);border-radius:3px}
+html.shell #cmpBar[hidden]{display:none}
+/* ispettore */
+html.shell #tabs{flex:none;display:flex;gap:0;flex-wrap:nowrap;padding:0;margin:0;border-bottom:1px solid var(--sh-border);background:var(--sh-app);position:static;overflow:hidden}
+html.shell #tabs .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px 3px;border:0;border-radius:0;background:none;color:var(--sh-sec);font-size:11px;line-height:13px;font-weight:500;white-space:nowrap}
+html.shell #tabs .tab span{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+html.shell #tabs .tab:hover{background:var(--sh-hover)}html.shell #tabs .tab.on{background:var(--sh-pane);color:var(--sh-acc);box-shadow:inset 0 -2px 0 var(--sh-acc)}
+html.shell #tabs .spacer{display:none}html.shell #tabs .advtog{flex:none;align-self:center;padding:0 6px;font-size:11px;white-space:nowrap}
+html.shell #workCard .wkR>.panel,html.shell #cmpPanel{min-height:0;overflow:auto;padding:8px 10px;margin:0;border:0;background:none}
+html.shell #workCard .wkR>.panel.on{flex:1}
+html.shell #workCard:not(.cmpmode) #cmpPanel{display:none}
+html.shell #workCard.cmpmode #cmpPanel{display:block;flex:1}
+html.shell .phead{margin:6px 0 4px;font-size:12px}
+html.shell .scope{font-size:10px;font-weight:400;padding:0 4px;border-radius:2px;background:none;color:var(--sh-sec);border:1px solid var(--sh-border)}
+html.shell .ansec{border:0;border-top:1px solid var(--sh-border);border-radius:0;background:none;margin:0;padding:0}
+html.shell .ansec>summary{padding:6px 0;font-size:12.5px;background:none}
+html.shell .recipes{padding:0;background:none;border:0;margin:0 0 8px}
+html.shell .recipes h4{font-size:12px;margin:2px 0 4px}
+html.shell .rlist{display:flex;flex-direction:column;gap:0}
+html.shell .recipes .rbtn{display:block;flex:none;width:100%;max-width:none;background:none;border:0;border-radius:0;padding:4px 6px;text-align:left;min-height:0;box-shadow:none}
+html.shell .recipes .rbtn:hover{background:var(--sh-hover);transform:none}
+html.shell .recipes .rbtn b{font-size:12.5px;font-weight:500}html.shell .recipes .rbtn small{display:none}
+html.shell .cgroup{margin:0 0 10px;padding:0;border:0;background:none}
+html.shell .gl{width:15px;height:15px;font-size:10px;line-height:13px;box-shadow:none}
+/* risultati */
+html.shell #shResTabs{flex:0 0 28px;display:flex;align-items:stretch;border-bottom:1px solid var(--sh-border);background:var(--sh-app);overflow:hidden}
+html.shell .shrt{padding:0 10px;border:0;border-right:1px solid var(--sh-border);background:none;color:var(--sh-sec);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+html.shell .shrt:hover{background:var(--sh-hover)}html.shell .shrt.on{background:var(--sh-pane);color:var(--sh-text);box-shadow:inset 0 2px 0 var(--sh-acc)}
+html.shell #shResBody{flex:1;min-height:0;position:relative}
+html.shell .shres{display:none;position:absolute;inset:0;overflow:auto;padding:6px 10px}html.shell .shres.on{display:block}
+html.shell .shres .pkwrap{max-height:none;overflow:visible;border:0}
+html.shell .shres .pktools{margin:0 0 6px;display:flex;flex-wrap:wrap;gap:4px}
+html.shell #shCmpNote{display:none;padding:12px}
+html.shell #shApp.cmp .shres:not([data-res=log]){display:none}html.shell #shApp.cmp #shCmpNote{display:block}
+html.shell table{font-size:12px;line-height:16px}
+html.shell .pktab th,html.shell .areatab th{font-weight:600;font-size:11px;background:var(--sh-app);position:sticky;top:0;color:var(--sh-sec)}
+html.shell .pktab td,html.shell .areatab td{padding:2px 6px}
+html.shell #shLog .lg{display:flex;gap:10px;padding:1px 0;font-size:12px}html.shell #shLog .t{color:var(--sh-sec);font-variant-numeric:tabular-nums}
+/* foglio dati */
+html.shell #shSheet{overflow:hidden;background:var(--sh-field)}
+html.shell #shSheetBar{height:32px;display:flex;align-items:center;gap:6px;padding:0 10px;background:var(--sh-pane);border-bottom:1px solid var(--sh-border)}
+html.shell #shGrid{position:absolute;inset:32px 0 0 0;overflow:auto;font-size:12px}
+html.shell #shGridIn{position:relative;min-width:100%}
+html.shell #shGridRows{position:absolute;inset:0}
+html.shell .shrow{position:absolute;left:0;right:0;height:22px;line-height:22px;display:grid;border-bottom:1px solid var(--sh-hover)}
+html.shell .shrow span{padding:0 8px;text-align:right;white-space:nowrap;overflow:hidden;border-right:1px solid var(--sh-hover)}
+html.shell .shrow.head{background:var(--sh-app);font-weight:600;color:var(--sh-sec);z-index:1}
+/* inizio */
+html.shell #v1 .hero{display:block;background:none;border:0;box-shadow:none;padding:0}
+html.shell .drop,html.shell #dropZone{border:1px dashed var(--sh-ctl);border-radius:3px;background:var(--sh-pane)}
+html.shell .imgentry{border:1px solid var(--sh-border);border-radius:3px;background:var(--sh-pane);padding:8px 12px;margin-top:8px}
+html.shell #secMulti{border:0}
+html.shell .minic{max-width:100%}
+/* barra di stato */
+html.shell .st{text-align:left;padding:0 10px;border-left:1px solid var(--sh-border);white-space:pre;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:38vw}
+html.shell .st:empty{display:none}
+html.shell .st.grow{flex:1 1 0;border-left:0;cursor:pointer;min-width:60px;max-width:none}
+html.shell .st.num{min-width:220px}
+html.shell .st.warn{color:var(--sh-warn)}
+@media (max-width:1439px){html.shell #shChain{display:none}}
+/* comandi nella barra */
+html.shell #shTool #cmdBtn{width:280px;height:28px;border:1px solid var(--sh-border);border-radius:3px;background:var(--sh-field);color:var(--sh-sec);font:inherit;font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:0 8px;cursor:pointer;box-shadow:none;flex:0 1 280px;min-width:90px}
+html.shell #shTool #cmdBtn kbd{font-size:10px}
+@media (max-width:1320px){html.shell .shb.lab span{display:none}}
+html.shell #viewSeg{display:flex;gap:0;background:none;border:1px solid var(--sh-border);border-radius:3px;padding:0;overflow:hidden;flex:none}
+html.shell #viewSeg button{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 8px;border:0;border-radius:0;background:none;color:var(--sh-text);font:inherit;font-size:12px;box-shadow:none;cursor:pointer}
+html.shell #viewSeg button.on{background:var(--sh-sel)}
+html.shell #toast{left:auto;right:12px;bottom:32px;transform:none;border-radius:4px;font-size:12px;max-width:420px}
+html.shell[data-theme=dark] canvas:not(#confetti){border-radius:0}
+/* densità dell'ispettore e controlli */
+html.shell .phead b,html.shell #workCard .wkR h3,html.shell #workCard .wkR h4{font-size:13px;font-weight:600}
+html.shell .check{font-size:13px;line-height:18px}
+html.shell .pill{border-radius:3px;border:1px solid var(--sh-ctl);background:var(--sh-field);color:var(--sh-text);padding:2px 8px;font-size:12px;font-weight:500;line-height:18px}
+html.shell .pill.on{background:var(--sh-sel);border-color:var(--sh-acc);color:var(--sh-text)}
+html.shell .pktab input{min-height:22px;padding:0 4px;font-size:12px}
+html.shell .choices .choice,html.shell .cgroup .choice{border-radius:3px;box-shadow:none;padding:6px 8px}
+html.shell .signote{border-radius:3px;font-size:12px;line-height:16px;padding:6px 8px}
+html.shell .calbox,html.shell .fitsum{border-radius:3px;font-size:12px;line-height:16px}
+/* all'inizio non c'è nulla da ispezionare */
+html.shell[data-doc=start] #workCard .wkR>*{visibility:hidden}
+html.shell[data-doc=start] #shDocTitle{visibility:hidden}

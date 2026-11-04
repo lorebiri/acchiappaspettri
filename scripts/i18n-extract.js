@@ -13,6 +13,7 @@ const looksCode=s=>{ const t=s.trim();
   if (/^(https?:|data:|mailto:|image\/|text\/|application\/)/.test(t)) return true;
   if (/[{;]\s*[a-z-]+\s*:/.test(t) || /^[a-z-]+\s*:\s*[^ ]+;/.test(t)) return true;  // CSS
   if (/^\d+(\.\d+)?(px|em|rem|%)/.test(t) || /px [a-z"]/.test(t)) return true;
+  if (/^M[\d.]+[ ,]?[\d.]/.test(t)) return true;   // tracciati SVG
   if (/^[A-Z][a-z]?$/.test(t)) return true;   // simbolo chimico
   return false; };
 function addFragment(f){ f=norm(decode(f)); f=f.replace(/^[\s·,:;—–-]+(?=\p{L})/u,'').trim(); if (!looksCode(f.replace(/\{\d+\}/g,'x'))) out.add(f); }
@@ -46,7 +47,7 @@ function walk(n, parent){
   for (const k in n){ if (k==='type'||k==='start'||k==='end') continue; if (n.type==='Property' && k==='key' && !n.computed) continue; const v=n[k]; if (Array.isArray(v)) v.forEach(x=>x&&walk(x,n)); else if (v&&typeof v.type==='string') walk(v,n); }
 }
 walk(acorn.parse(js,{ecmaVersion:'latest',sourceType:'script'}));
-for (const f of ['app/ui.js','app/project.js','app/desktop.js']){ js=fs.readFileSync(path.join(root,f),'utf8'); walk(acorn.parse(js,{ecmaVersion:'latest',sourceType:'script'})); }
+for (const f of ['app/ui.js','app/project.js','app/desktop.js','app/shell.js']){ js=fs.readFileSync(path.join(root,f),'utf8'); walk(acorn.parse(js,{ecmaVersion:'latest',sourceType:'script'})); }
 const dictPath=path.join(root,'i18n/en.json'); const dict=fs.existsSync(dictPath)?JSON.parse(fs.readFileSync(dictPath,'utf8')):{};
 const extraPath=path.join(root,'i18n/en-app.json'), extra=fs.existsSync(extraPath)?JSON.parse(fs.readFileSync(extraPath,'utf8')):{}, skipPath=path.join(root,'i18n/not-text.json'), skip=new Set(fs.existsSync(skipPath)?JSON.parse(fs.readFileSync(skipPath,'utf8')):[]);
 const all=[...out].sort(), todo=all.filter(s=>!(s in dict) && !(s in pairs) && !(s in extra) && !skip.has(s));

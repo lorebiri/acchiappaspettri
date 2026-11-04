@@ -3,7 +3,6 @@
 (function(win){
   'use strict';
   const T=win.__TAURI__; if (!T) return;
-  document.documentElement.classList.add('desktop');
   const inv=T.core.invoke, tr=s=>win.AcchI18n.lang==='en' ? win.AcchI18n.tr(s) : s, $=s=>document.querySelector(s);
   const lsG=k=>{ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
   const CHECK_EVERY=6*3600*1000, LATER_KEY='acch.update.later', RECENT='acch.recent';
@@ -47,14 +46,8 @@
   T.window.getCurrentWindow().onCloseRequested(async ev=>{ if (closing) return; ev.preventDefault(); await requestQuit(); });
 
   /* titolo della finestra e barra degli strumenti */
-  function title(i){ const t=(i.dirty?'• ':'')+i.name+' — Acchiappaspettri'; T.window.getCurrentWindow().setTitle(t).catch(()=>{}); const n=$('#tbName'); if (n) n.textContent=(i.dirty?'• ':'')+i.name; }
+  function title(i){ const t=(i.dirty?'• ':'')+i.name+' — Acchiappaspettri'; T.window.getCurrentWindow().setTitle(t).catch(()=>{}); }
   win.AcchProject.onChange(title);
-  function toolbar(){ const b=document.createElement('div'); b.className='apptool';
-    const items=[['tbNew','📄 Nuovo',()=>win.AcchProject.newProject()],['tbOpen','📂 Apri',openDialog],['tbSave','💾 Salva',()=>win.AcchProject.save()],null,['tbLoad','➕ Aggiungi spettri',()=>{ win.go(1); $('#inFiles').click(); }],['tbExport','⬇️ Esporta',()=>{ if (files.length) win.go(3); }],null,['tbZoom','↺ Tutto',()=>{ const z=$('#zReset'); if (z) z.click(); }],['tbCmd','🔎 Comandi',()=>win.openCmd()]];
-    items.forEach(x=>{ if (!x){ const s=document.createElement('span'); s.className='sep'; b.appendChild(s); return; } const el=document.createElement('button'); el.type='button'; el.id=x[0]; el.className='btn small ghost'; el.textContent=x[1]; el.onclick=x[2]; b.appendChild(el); });
-    const n=document.createElement('span'); n.className='pname'; n.id='tbName'; n.setAttribute('data-noi18n',''); b.appendChild(n);
-    document.body.insertBefore(b, document.body.firstChild); }
-
   /* menu nativo, ricostruito quando cambia la lingua o l'elenco dei recenti */
   let menuBusy=false, menuAgain=false;
   async function buildMenu(){ if (menuBusy){ menuAgain=true; return; } menuBusy=true;
@@ -63,9 +56,13 @@
       const sub=async (text,items)=>M.Submenu.new({text:tr(text),items:await Promise.all(items)});
       const file=await sub('File',[item('Nuovo progetto',()=>win.AcchProject.newProject(),'CmdOrCtrl+N'),item('Apri progetto…',openDialog,'CmdOrCtrl+O'),sub('Progetti recenti',recItems),sep(),item('Salva progetto',()=>win.AcchProject.save(),'CmdOrCtrl+S'),item('Salva progetto con nome…',()=>win.AcchProject.saveAs(),'CmdOrCtrl+Shift+S'),item('Chiudi progetto',()=>win.AcchProject.closeProject(),'CmdOrCtrl+W'),sep(),item('Aggiungi spettri…',()=>{ win.go(1); $('#inFiles').click(); }),item('Esporta (PDF, immagini, dati)…',()=>{ if (files.length) win.go(3); },'CmdOrCtrl+E'),...(info.os==='macos'?[]:[sep(),item('Esci',requestQuit,'CmdOrCtrl+Q')])]);
       const edit=await sub('Modifica',[pre('Undo','Annulla'),pre('Redo','Ripeti'),sep(),pre('Cut','Taglia'),pre('Copy','Copia'),pre('Paste','Incolla'),pre('SelectAll','Seleziona tutto')]);
-      const view=await sub('Vista',[item('Carica',()=>win.go(1)),item('Controlla',()=>{ if (files.length) win.go(2); }),item('Scarica',()=>{ if (files.length) win.go(3); }),sep(),item('Barra dei comandi',()=>win.openCmd(),'CmdOrCtrl+K'),item('Impostazioni…',()=>win.AcchUi.openSettings(),'CmdOrCtrl+,')]);
-      const help=await sub('Aiuto',[item('A cosa serve Acchiappaspettri',()=>$('#aboutBtn').click()),item('Scorciatoie da tastiera',()=>win.showKeys&&win.showKeys()),item('Novità di questa versione',()=>win.showNews&&win.showNews()),sep(),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Documentazione',()=>T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri#readme').catch(e=>console.warn(e))),sep(),item('Informazioni',()=>win.AcchUi.openSettings())]);
-      const items=[file,edit,view,help];
+      const Sh=win.AcchShell;
+      const view=await sub('Vista',[item('Grafico',()=>{ if (files.length){ Sh.showDoc('graph'); } },'CmdOrCtrl+1'),item('Foglio dati',()=>{ if (files.length) Sh.showDoc('sheet'); },'CmdOrCtrl+2'),item('Più campioni',()=>{ if (files.length) win.openTab('multi'); },'CmdOrCtrl+3'),sep(),item('Pannello del progetto',()=>Sh.togglePane('left')),item('Ispettore',()=>Sh.togglePane('right')),item('Risultati',()=>Sh.togglePane('bottom')),item('Solo il grafico',()=>Sh.toggleFocus(),'F11'),sep(),item('Mostra tutto',()=>{ const z=$('#zReset'); if (z) z.click(); }),item('Testo più grande o più piccolo',()=>$('#zoomTxt').click()),item('Barra dei comandi',()=>win.openCmd(),'CmdOrCtrl+K'),item('Impostazioni…',()=>win.AcchUi.openSettings(),'CmdOrCtrl+,')]);
+      const insp=t=>()=>{ if (files.length){ Sh.showDoc('graph'); win.openTab(t); } };
+      const res=t=>()=>{ if (files.length){ Sh.showPane('bottom',true); Sh.showRes(t); } };
+      const ana=await sub('Analisi',[item('Picchi',insp('peaks')),item('Elaborazione (linea di base, smoothing, derivate)',insp('proc')),item('Dati dello spettro e strumento',insp('zone')),item('Riferimenti e miscele',insp('refs')),sep(),item('Deconvoluzione e parametri',insp('an')),item('Controllo del dato',res('qual')),item('Ipotesi',res('hyp')),sep(),item('Confronta gli spettri',()=>{ if (files.length) win.setView('cmp'); }),item('Taratura, PLS, PCA, composizione',()=>{ if (files.length) win.openTab('multi'); }),item('Falso colore da foto',()=>$('#imgBtn').click())]);
+      const help=await sub('Aiuto',[item('Giro guidato',()=>win.startTour&&win.startTour()),item('A cosa serve Acchiappaspettri',()=>$('#aboutBtn').click()),item('Scorciatoie da tastiera',()=>win.showKeys&&win.showKeys()),item('Novità di questa versione',()=>win.showNews&&win.showNews()),sep(),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Documentazione',()=>T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri#readme').catch(e=>console.warn(e))),sep(),item('Informazioni',()=>win.AcchUi.openSettings())]);
+      const items=[file,edit,view,ana,help];
       if (info.os==='macos') items.unshift(await sub('Acchiappaspettri',[item('Informazioni su Acchiappaspettri',()=>win.AcchUi.openSettings()),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Impostazioni…',()=>win.AcchUi.openSettings()),sep(),pre('Hide','Nascondi Acchiappaspettri'),pre('HideOthers','Nascondi gli altri'),sep(),item('Esci da Acchiappaspettri',requestQuit,'CmdOrCtrl+Q')]));
       const menu=await M.Menu.new({items}); await menu.setAsAppMenu(); win.AcchDesktop.menuBuilt=true;
     }catch(e){ console.error('menu',e); }
@@ -97,7 +94,7 @@
     try{ await up.download(ev=>{ if (ev.event==='Started') total=ev.data.contentLength||0; else if (ev.event==='Progress'){ got+=ev.data.chunkLength; if (total) bar.style.width=Math.min(100,100*got/total)+'%'; } else if (ev.event==='Finished') bar.style.width='100%'; });
       m.textContent=tr('Firma verificata. Installo e riavvio…'); await up.install(); closing=true; await T.process.relaunch();
     }catch(e){ console.error(e); m.textContent=tr('Aggiornamento non riuscito: il pacchetto non è stato installato e la versione attuale resta intatta. Riprova più tardi.'); go.disabled=false; lt.disabled=false; box.hidden=true; installing=false; win.AcchProject.lock(false); try{ curUpdate=await T.updater.check({timeout:20000}); }catch(_){} } }
-  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, compare, get info(){ return info; }, openPath };
+  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, compare, get info(){ return info; }, openPath, openDialog };
 
   /* lingua al primo avvio: dall'installer di Windows se c'è, altrimenti si chiede */
   async function firstRunLanguage(){ if (win.AcchI18n.isChosen) return; const fromInstaller=await inv('installer_language').catch(()=>null);
@@ -107,7 +104,7 @@
 
   $('#dlgUpdate').addEventListener('cancel', e=>{ if (installing) e.preventDefault(); });
   async function boot(){
-    info=await inv('install_info'); toolbar();
+    info=await inv('install_info');
     if (!info.e2e) await firstRunLanguage();
     await buildMenu();
     win.AcchProject.onChange(()=>{}); title({name:win.AcchProject.displayName(), dirty:false});

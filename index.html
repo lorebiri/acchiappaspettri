@@ -13,6 +13,7 @@
 <link href="vendor/fonts/nunito.css" rel="stylesheet">
 <link href="app/app.css" rel="stylesheet">
 <link href="app/theme-dark.css" rel="stylesheet">
+<script src="app/shell-boot.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
 <script src="i18n/en.js"></script>
@@ -520,6 +521,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
 .mixrow{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #eef1f5;font-size:13.5px}.mixrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mixrow .sc{display:inline-block;width:110px;height:8px;border-radius:5px;background:#e9edf3;overflow:hidden}.mixrow .sc i{display:block;height:100%;background:#7b4fc9}
 </style>
+<link href="app/shell.css" rel="stylesheet">
 </head>
 <body>
 <canvas id="confetti"></canvas>
@@ -4888,7 +4890,7 @@ function zoomSlice(d, z){
   return Object.assign({}, d, {xs:sx, ys:sy, idxOff:lo, series:[Object.assign({}, d.series[0], {xs:sx, ys:sy})].concat(rest)});
 }
 function sizeCanvas(){
-  const big=$('.preview').classList.contains('big');
+  const big=$('.preview').classList.contains('big')||window.ACCH_SHELL;
   const cssW = pv.clientWidth || 800, dpr = window.devicePixelRatio||1;
   const cssH = big ? (pv.clientHeight || cssW*0.5) : cssW*100/160;
   if (!big) pv.style.height='';
@@ -4991,6 +4993,7 @@ $('#cmpDel').onclick=async ()=>{ const c=curCmp(); if(!c) return; if(!await uiCo
 $$('.goCmp').forEach(b=>b.onclick=()=>{ go(2); setView('cmp'); });
 
 function renderPreview(){
+  const ro=$('#readout'); if (ro && !pvHover) ro.innerHTML='&nbsp;';
   if (viewMode==='cmp') return renderCompare();
   const f=files[cur];
   if (!f){ renderInsetBar(null); closePop(); $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); drawOverlay(); $('#pkTable').innerHTML=''; return; }
@@ -6007,7 +6010,7 @@ function bindWelcome(){
   const close=()=>{ if ($('#wcNoMore').checked) lsSet('acch.welcomeDone', true); else lsDel('acch.welcomeDone'); $('#dlgWelcome').close(); };
   $('#wcGo').onclick=close; $('#wcNews').onclick=()=>{ $('#dlgWelcome').close(); showNews(); }; $('#keysOk').onclick=()=>$('#dlgKeys').close();
   $('#dlgWelcome').addEventListener('cancel', e=>{ e.preventDefault(); close(); });
-  if (!lsGet('acch.welcomeDone')) setTimeout(showWelcome, 250);
+  if (!lsGet('acch.welcomeDone') && !window.ACCH_SHELL) setTimeout(showWelcome, 250);
 }
 function bindRename(){
   $('#renameBtn').onclick=openRename;
@@ -6591,7 +6594,7 @@ function mvTable(instr){
 }
 function mvCalib(rows){ const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y)).map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts)||{}, {pts}) : null; }
 function renderMulti(){
-  const box=$('#mvBody'); if (!files.length){ box.innerHTML=''; return; }
+  const box=$('#mvBody'); if (!files.length){ if (box) box.innerHTML=''; return; }
   const counts={}; files.forEach(f=>counts[f.instr]=(counts[f.instr]||0)+1);
   const f=files[cur]; let instr=$('#mvInstr').value; if (!counts[instr]) instr = f ? f.instr : Object.keys(counts)[0];
   $('#mvInstr').innerHTML=Object.keys(counts).map(k=>`<option value="${k}" ${k===instr?'selected':''}>${NOME_IT[k]} (${counts[k]})</option>`).join('');
@@ -7215,8 +7218,8 @@ function stripEmoji(root){ if (!document.body.classList.contains('sober')) retur
   for (let n=w.nextNode(); n; n=w.nextNode()){ const t=n.nodeValue; if (!EMOJI_RE.test(t)) continue; EMOJI_RE.lastIndex=0; const v=t.replace(EMOJI_RE,'').replace(/^\s+(?=\S)/,m=>n.previousSibling?m:''); if (v!==t){ soberOrig.set(n,{t,v}); soberNodes.add(new WeakRef(n)); n.nodeValue=v; } } }
 const soberOrig=new WeakMap(), soberNodes=new Set();
 let soberObs=null;
-function applySober(){ document.body.classList.toggle('sober', !!S.sober); $('#soberBtn').classList.toggle('primary', !!S.sober); $('#soberBtn').classList.toggle('ghost', !S.sober);
-  if (S.sober){ stripEmoji(document.body); if (!soberObs){ soberObs=new MutationObserver(ms=>{ for (const m of ms){ if (m.type==='characterData') stripEmoji(m.target.parentNode||document.body); else m.addedNodes.forEach(n=>{ if (n.nodeType===1||n.nodeType===3) stripEmoji(n.nodeType===3 ? (n.parentNode||document.body) : n); }); } });
+function applySober(){ document.body.classList.toggle('sober', !!(S.sober||window.ACCH_SHELL)); $('#soberBtn').classList.toggle('primary', !!S.sober); $('#soberBtn').classList.toggle('ghost', !S.sober);
+  if (S.sober||window.ACCH_SHELL){ stripEmoji(document.body); if (!soberObs){ soberObs=new MutationObserver(ms=>{ for (const m of ms){ if (m.type==='characterData') stripEmoji(m.target.parentNode||document.body); else m.addedNodes.forEach(n=>{ if (n.nodeType===1||n.nodeType===3) stripEmoji(n.nodeType===3 ? (n.parentNode||document.body) : n); }); } });
       soberObs.observe(document.body, {childList:true, subtree:true, characterData:true}); } }
   else if (soberObs){ soberObs.disconnect(); soberObs=null; } }
 $('#soberBtn').onclick=()=>{ S.sober=!S.sober; saveS(); if (!S.sober){ applySober(); soberNodes.forEach(r=>{ const n=r.deref(), o=n&&soberOrig.get(n); if (n && o && n.nodeValue===o.v) n.nodeValue=o.t; }); soberNodes.clear(); refreshAll(); toast('Aspetto normale di nuovo attivo.'); return; } applySober(); toast('Aspetto sobrio attivo: premi di nuovo «Sobrio» per tornare a quello normale.'); };
@@ -7662,6 +7665,7 @@ window.LANG_EN_OUT=()=>LANG==='en';
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 <script src="app/ui.js"></script>
+<script src="app/shell.js"></script>
 <script src="app/desktop.js"></script>
 </body>
 </html>

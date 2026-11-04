@@ -62,7 +62,7 @@
   const noTr=el=>{ for (let p=el; p; p=p.parentElement){ if (SKIP.has(p.tagName) || p.hasAttribute && p.hasAttribute('data-noi18n')) return true; } return false; };
   function doText(node){
     const cur=node.nodeValue, st=seen.get(node);
-    if (st && (cur===st.en)) return;              // già tradotto
+    if (st && (cur===st.en || deEmoji(cur)===deEmoji(st.en))) return;   // già tradotto (anche se «Sobrio» ha tolto le emoji)
     if (!/\p{L}/u.test(cur)) return;
     const en=tr(cur); seen.set(node,{it:cur, en});
     if (en!==cur) node.nodeValue=en; else if (collect) note(cur);
@@ -78,7 +78,7 @@
     const w=win.document.createTreeWalker(rootEl, 5 /* elementi e testi */, {acceptNode(n){ if (n.nodeType===1) return SKIP.has(n.tagName)||(n.hasAttribute('data-noi18n')) ? 2 : 1; return 1; }});
     for (let n=w.nextNode(); n; n=w.nextNode()){ if (n.nodeType===3) doText(n); else doAttrs(n); }
   }
-  function restore(rootEl){ const w=win.document.createTreeWalker(rootEl||win.document.documentElement, 5); for (let n=w.nextNode(); n; n=w.nextNode()){ if (n.nodeType===3){ const st=seen.get(n); if (st && n.nodeValue===st.en) n.nodeValue=st.it; seen.delete(n); } else { const mem=attrMem.get(n); if (mem){ for (const a in mem) if (n.getAttribute(a)===mem[a].en) n.setAttribute(a,mem[a].it); attrMem.delete(n); } } } }
+  function restore(rootEl){ const w=win.document.createTreeWalker(rootEl||win.document.documentElement, 5); for (let n=w.nextNode(); n; n=w.nextNode()){ if (n.nodeType===3){ const st=seen.get(n); if (st && (n.nodeValue===st.en || deEmoji(n.nodeValue)===deEmoji(st.en))) n.nodeValue=st.it; seen.delete(n); } else { const mem=attrMem.get(n); if (mem){ for (const a in mem) if (n.getAttribute(a)===mem[a].en) n.setAttribute(a,mem[a].it); attrMem.delete(n); } } } }
   function watch(){ if (obs) return; obs=new win.MutationObserver(list=>{ for (const m of list){ if (m.type==='childList') m.addedNodes.forEach(apply); else if (m.type==='characterData') apply(m.target); else if (m.type==='attributes' && !noTr(m.target)) doAttrs(m.target); } });
     obs.observe(win.document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:ATTRS}); }
   function unwatch(){ if (obs){ obs.disconnect(); obs=null; } }
