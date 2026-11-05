@@ -211,4 +211,9 @@ html.shell #shProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html.shell .seg,html.shell .seg button{border-radius:3px}
 html.shell .shres .pktools{padding-right:18px}
 html.shell .shsplit::after{background:transparent}
-html.shell .shres .pktab td:nth-child(5){overflow:hidden} html.shell .shres .pktab .sgp{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* tabella dei picchi nel pannello dei risultati: larghezze fisse, i suggerimenti lunghi finiscono con i puntini (nome intero nel title) */
+html.shell .shres .pktab{table-layout:fixed;width:100%}
+html.shell .shres .pktab th:nth-child(1){width:28px} html.shell .shres .pktab th:nth-child(2){width:92px} html.shell .shres .pktab th:nth-child(3){width:110px} html.shell .shres .pktab th:nth-child(4){width:170px} html.shell .shres .pktab th:nth-child(6){width:56px}
+html.shell .shres .pktab td{overflow:hidden}
+html.shell .shres .pktab td:nth-child(4) input{width:100%;max-width:260px;box-sizing:border-box}
+html.shell .shres .pktab .sgp{display:inline-block;vertical-align:middle;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

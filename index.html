@@ -2030,7 +2030,7 @@ function parseThermal(nc){
 /* EPR (Bruker Xenon/WinEPR e simili): colonna del campo + intensità; campo in G, mT o T */
 function parseEPRCols(nc){
   const low=nc.names.map(s=>s.toLowerCase());
-  const iB = low.findIndex(n=>/field|b_field|\bb\s*[\[(]|gauss|\[g\]|\(g\)|\[mt\]|\(mt\)|campo/.test(n)); if (iB<0) return null;
+  const iB = low.findIndex(n=>/field|b_field|\bb\s*[\[(]\s*(g|gauss|mt|t)\s*[\])]|gauss|\[g\]|\(g\)|\[mt\]|\(mt\)|campo/.test(n) && !/%/.test(n)); if (iB<0) return null;
   let iY = low.findIndex((n,i)=>i!==iB && /intens|signal|segnale|amplit|\bepr\b|\besr\b|value|\by\b/.test(n));
   if (iY<0) iY = iB+1<nc.cols.length ? iB+1 : (iB>0 ? 0 : -1); if (iY<0) return null;
   const u=low[iB]; let k=1; if (/gauss|\[g\]|\(g\)|\bg\s*$/.test(u)) k=0.1; else if (/\[t\]|\(t\)/.test(u)) k=1000;
@@ -2282,7 +2282,7 @@ function detectInstrument(p, name){
   // massa in percentuale (anche contro il tempo): termogravimetria, non cromatogramma
   if (p.meta.some(l=>/\b(weight|mass|massa|peso)\s*[(\[]\s*(%|wt\s*%|mg)\s*[)\]]/i.test(l))) return {instr:'tga', reason:'intestazione: massa (TGA)'};
   // tempo e temperatura senza altre indicazioni: misura termica non riconosciuta, meglio far scegliere che indovinare
-  if (p.meta.some(l=>/\b(time|tempo)\b/i.test(l) && /\b(temperat\w*|temp\.?)\s*[(\[]|°c\b/i.test(l))) return {instr:'gen', reason:'tempo e temperatura: scegli la tecnica'};
+  if (p.meta.some(l=>/\b(time|tempo)\b/i.test(l) && /\btemperat\w*|\btemp\b|°c\b/i.test(l))) return {instr:'gen', reason:'tempo e temperatura: scegli la tecnica'};
   // intestazione di colonna con il tempo in minuti e un segnale da rivelatore: cromatogramma anche se non parte da 0
   if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(min|minutes?|minuti)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|intens|counts|dad|uv\b|fld|vwd|\bau\b/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in minuti e segnale del rivelatore'};
   if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
@@ -6817,7 +6817,7 @@ function rerenderKeep(fn, now, origin){ setTimeout(()=>{ const act=document.acti
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; setTimeout(()=>rerenderKeep(fn, true, document.activeElement),0); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
   if (!key) return; let q=key.id?document.getElementById(key.id):null; if (!q && key.cls){ q=document.querySelector('.'+CSS.escape(key.cls)+(key.i!=null?`[data-i="${key.i}"]`:'')+(key.e!=null?`[data-e="${key.e}"]`:'')+(key.f!=null?`[data-f="${key.f}"]`:'')); }
-  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!=='' && (!origin || origin===a)){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
+  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!=='' && (!origin || origin===a)){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); else if (q.select) q.select(); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
 document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
   // larghezza al 10% sopra la retta tra i bordi della zona: con una deriva il minimo sta da un lato e falserebbe la forma
@@ -6916,7 +6916,11 @@ function renderMulti(){
   }
   $('#mvOut').innerHTML=html;
   // eventi
-  const setNum=(k,el)=>{ const x=numIn(el.value); if (x==null) delete c[k]; else c[k]=x; mvSave(); renderMulti(); };
+  const setNum=(k,el)=>{ const x=numIn(el.value);
+    // un limite fuori dall'asse degli spettri (per esempio due numeri attaccati) non viene accettato
+    if (x!=null){ let lo=Infinity, hi=-Infinity; files.forEach(f=>{ if (f.instr!==instr || !f.xs || !f.xs.length) return; lo=Math.min(lo,f.xs[0],f.xs[f.xs.length-1]); hi=Math.max(hi,f.xs[0],f.xs[f.xs.length-1]); }); const m=(hi-lo)*0.05;
+      if (isFinite(lo) && (x<lo-m || x>hi+m)){ toast(`${fmtN(x,2)} è fuori dall'asse degli spettri (${fmtN(lo,2)}–${fmtN(hi,2)}): valore non accettato.`); el.value=c[k]!=null?c[k]:''; el.select&&el.select(); return; } }
+    if (x==null) delete c[k]; else c[k]=x; mvSave(); renderMulti(); };
   ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); renderMulti(); };
   $('#mvModel').onchange=e=>{ c.model=e.target.value; mvSave(); renderMulti(); if (c.model==='pls') say('#tip2','PLS: uso tutto lo spettro (con il pretrattamento scelto sotto, nella PCA) e la validazione incrociata per scegliere quante componenti tenere. 📈'); };
@@ -7183,9 +7187,9 @@ function renderXrfQuant(instr){
     <div class="row" style="margin-top:6px"><span class="spacer"></span><button class="btn small ghost" id="xqCsv">⬇️ CSV</button></div></div>`;
   box.innerHTML=html;
   $$('#xqBox [data-qe]').forEach(b=>b.onclick=()=>{ const e=b.dataset.qe; c.qEls = c.qEls.includes(e) ? c.qEls.filter(x=>x!==e) : c.qEls.concat([e]); mvSave(); renderXrfQuant(instr); });
-  $('#xqAdd').onchange=e=>{ const v=e.target.value.trim(); const el=v.charAt(0).toUpperCase()+v.slice(1).toLowerCase(); if (XRF_LINES[el] && !c.qEls.includes(el)){ c.qEls.push(el); mvSave(); renderXrfQuant(instr); } else if (v) toast(`«${v}» non è un elemento che conosco.`); };
-  $('#xq100').onchange=e=>{ c.q100=e.target.checked; mvSave(); renderXrfQuant(instr); };
-  $('#xqModel').onchange=e=>{ c.qModel=e.target.value; mvSave(); renderXrfQuant(instr); };
+  $('#xqAdd').onchange=e=>{ const v=e.target.value.trim(); const el=v.charAt(0).toUpperCase()+v.slice(1).toLowerCase(); if (XRF_LINES[el] && !c.qEls.includes(el)){ c.qEls.push(el); mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); } else if (v) toast(`«${v}» non è un elemento che conosco.`); };
+  $('#xq100').onchange=e=>{ c.q100=e.target.checked; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
+  $('#xqModel').onchange=e=>{ c.qModel=e.target.value; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
   $$('#xqBox .xq').forEach(el=>el.onchange=()=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); const v=numIn(el.value); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); rerenderKeep(()=>renderXrfQuant(instr)); });
   if ($('#xqCsv')) $('#xqCsv').onclick=()=>download(new Blob(['\ufeff'+xqCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), 'composizione_xrf.csv');
 }

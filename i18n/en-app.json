@@ -600,6 +600,7 @@
 "{0} ± {1} · recupero {2}%": "{0} ± {1} · recovery {2}%",
 "{0} ± {1} · recupero {2}% ⚠️ fuori 80–120%": "{0} ± {1} · recovery {2}% ⚠️ outside 80–120%",
 "{0} ± {1}{2}": "{0} ± {1}{2}",
+"{0} è fuori dall'asse degli spettri ({1}–{2}): valore non accettato.": "{0} is outside the spectra axis ({1}–{2}): value not accepted.",
 "{0}: {1} ± {2} {3}{4}{5}": "{0}: {1} ± {2} {3}{4}{5}",
 "· elements considered: {0}; an element below the detection threshold may be missing and its share goes to the others": "· elements considered: {0}; an element below the detection threshold may be missing and its share goes to the others",
 "· {0} MB": "· {0} MB",
