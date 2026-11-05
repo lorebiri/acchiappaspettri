@@ -74,7 +74,7 @@
     if (id==='sheet') renderSheet(); if (id==='graph') resize(); }
   $$('[data-go]').forEach(b=>{ const n=+b.dataset.go; b.addEventListener('click',()=>{ if (curView===n) mark(); }); });
   const oOpen=win.openTab; win.openTab=function(name){ const r=oOpen(name); if (name==='multi') showDoc('study'); else { if (docNow==='start'&&files.length) showDoc('graph'); multi.classList.toggle('on',docNow==='study'); } return r; };
-  const oAdd=win.addEntries; win.addEntries=async function(){ const r=await oAdd.apply(this,arguments); if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
+  const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; const r=await oAdd.apply(this,arguments); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
   const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
   /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
@@ -87,16 +87,19 @@
 
   /* ---- pannelli ---- */
   const PANES={left:{v:'--L',def:250,min:180,max:420},right:{v:'--R',def:340,min:280,max:560},bottom:{v:'--B',def:210,min:90,max:700}};
-  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; return lsG('acch.sh.'+k,d); };
+  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; return fitPane(k,lsG('acch.sh.'+k,d),d); };
+  const paneOn=k=>!lsG('acch.sh.'+k+'.off',false);
+  const fitPane=(k,v)=>{ const p=PANES[k], w=win.innerWidth, h=win.innerHeight; if (k==='bottom') return Math.max(p.min,Math.min(v,h-94-220)); const o=k==='left'?'right':'left', ov=paneOn(o)?Math.min(lsG('acch.sh.'+o,PANES[o].def),PANES[o].max):0; return Math.max(p.min,Math.min(v,w-ov-440)); };
   function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const off=foc||lsG('acch.sh.'+k+'.off',false); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); } resize(); }
   function showPane(k,on){ lsS('acch.sh.'+k+'.off',!on); applySizes(); }
   function togglePane(k){ showPane(k,!!lsG('acch.sh.'+k+'.off',false)); }
   function toggleFocus(on){ const v=on==null?!app.classList.contains('focus'):on; app.classList.toggle('focus',v); root.classList.toggle('focus',v); $('#tbFocus').classList.toggle('on',v); applySizes(); }
   let rT=null; function resize(){ cancelAnimationFrame(rT); rT=requestAnimationFrame(()=>{ if (docNow==='graph'&&curView===2){ try{ renderPreview(); }catch(e){ console.error(e); } } if (docNow==='sheet') paintSheet(); }); }
   function bindSplit(s,k,axis,sign){ const p=PANES[k]; s.addEventListener('pointerdown',e=>{ e.preventDefault(); s.setPointerCapture(e.pointerId); const c0=axis==='x'?e.clientX:e.clientY, v0=sizeOf(k); let v=v0;
-      const mv=ev=>{ v=Math.max(p.min,Math.min(p.max,v0+sign*((axis==='x'?ev.clientX:ev.clientY)-c0))); root.style.setProperty(p.v,v+'px'); };
+      const mv=ev=>{ v=fitPane(k,Math.max(p.min,Math.min(p.max,v0+sign*((axis==='x'?ev.clientX:ev.clientY)-c0)))); root.style.setProperty(p.v,v+'px'); };
       const up=()=>{ s.removeEventListener('pointermove',mv); s.removeEventListener('pointerup',up); lsS('acch.sh.'+k,Math.round(v)); resize(); }; s.addEventListener('pointermove',mv); s.addEventListener('pointerup',up); });
     s.addEventListener('dblclick',()=>{ try{ localStorage.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
+  win.addEventListener('resize',applySizes);
   bindSplit(splitL,'left','x',1); bindSplit(splitR,'right','x',-1); bindSplit(splitB,'bottom','y',-1);
   new ResizeObserver(()=>resize()).observe($('#pvWrap'));
   win.addEventListener('resize',applySizes);
@@ -104,10 +107,12 @@
   win.addEventListener('keydown',e=>{ if (e.key==='Escape'&&app.classList.contains('focus')&&!document.querySelector('dialog[open]')) toggleFocus(false); });
 
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
-  function pushMsg(t){ if (!t) return; const clean=String(t).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); if (!clean) return; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{},clean)); log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
+  const cleanMsg=t=>tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim();
+  win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
+  let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;
-  win.say=function(sel,txt){ oSay(sel,txt); pushMsg(txt); };
-  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt))) oToast(txt); };
+  win.say=function(sel,txt){ oSay(sel,txt); if (!/^Sotto al grafico trovi/.test(String(txt))) pushMsg(txt); };
+  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt))){ lastWarn=txt; oToast(txt); } };
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;

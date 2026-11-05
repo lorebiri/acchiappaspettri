@@ -7,10 +7,12 @@ app/project.js        nuovo, apri, salva, chiudi, modifiche non salvate
 app/i18n.js           lingua dell'interfaccia; i18n/en.json + en-app.json → i18n/en.js
 app/ui.js             impostazioni, tema, conferme, finestra di download
 app/desktop.js        solo nell'app: menu, file nativi, chiusura sicura, aggiornamenti
+app/shell-boot.js     solo nell'app: attiva lo spazio di lavoro prima del primo disegno
+app/shell.js, shell.css  solo nell'app: barra strumenti, documenti, risultati, stato (DESIGN-DESKTOP.md)
 src-tauri/            lato nativo in Rust: finestre di dialogo, lettura e scrittura controllate
 vendor/               jsPDF, JSZip, carattere Nunito: tutto incluso, niente rete
 ```
-La pagina resta una sola: nessuna riscrittura e nessuna seconda copia del codice scientifico. Online e desktop eseguono lo stesso `index.html`; l'app aggiunge `app/desktop.js`.
+La pagina resta una sola: nessuna riscrittura e nessuna seconda copia del codice scientifico. Online e desktop eseguono lo stesso `index.html`; l'app aggiunge `app/desktop.js` e lo spazio di lavoro, che dispone diversamente gli stessi pannelli e non tocca i calcoli. Scelte e motivi in [DESIGN-DESKTOP.md](DESIGN-DESKTOP.md).
 
 ## Perché Tauri 2
 | Criterio | Tauri 2 (scelto) | Electron | Python + Qt |

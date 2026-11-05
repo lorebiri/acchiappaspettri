@@ -13,6 +13,8 @@ Turns spectra and chromatograms saved as files (FTIR/ATR-FTIR, Raman, UV-Vis, fl
 | Updates · Aggiornamenti | [docs/AGGIORNAMENTI.md](docs/AGGIORNAMENTI.md) |
 | Publishing a release · Pubblicare | [docs/PUBBLICARE.md](docs/PUBBLICARE.md) |
 | Architecture · Architettura | [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) |
+| Desktop workspace · Spazio di lavoro | [docs/DESIGN-DESKTOP.md](docs/DESIGN-DESKTOP.md) |
+| Roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Audit | [docs/AUDIT.md](docs/AUDIT.md) |
 | Tests run · Collaudo | [docs/COLLAUDO.md](docs/COLLAUDO.md) |
 | Dependencies · Dipendenze | [docs/DIPENDENZE.md](docs/DIPENDENZE.md) |

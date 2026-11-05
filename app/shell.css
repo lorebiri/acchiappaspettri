@@ -161,3 +161,5 @@ html.shell #tabs .advtog{order:9;flex:1 0 100%;align-self:auto;padding:2px 8px;b
 html.shell .ansec>summary .scope{display:none}
 html.shell .ansec>summary .secsum{margin-left:auto;font-size:11px;color:var(--sh-sec);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html.shell #workCard .wkR select{max-width:100%}html.shell .ibf{min-width:0}
+html.shell #shStatus{padding:0}
+html.shell .navrow{display:none!important}
