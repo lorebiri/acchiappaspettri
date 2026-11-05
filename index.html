@@ -836,7 +836,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
       <!-- ZONA E STRUMENTO -->
       <div class="panel" data-panel="zone">
         <div class="phead" style="margin-top:20px"><b>Asse X: riferimento e scala</b><span class="scope s-one">solo questo spettro</span></div>
-        <p class="why">x nuovo = scala × x del file + spostamento. Per riferire un NMR (es. TMS a 0 ppm), per il fattore di scala delle frequenze calcolate (es. 0,96), per spostare uno spettro TD-DFT. Il file originale non cambia; il valore usato finisce nei metodi.</p>
+        <p class="why">x nuovo = scala × x del file + spostamento. Per riferire un NMR (es. TMS a 0 ppm), per il fattore di scala delle frequenze calcolate (es. 0,96), per i secondi in minuti (0,016667). Uno spostamento costante in nm non equivale a uno in eV. Il file originale non cambia; il valore usato finisce nei metodi.</p>
         <div class="ibfields"><label class="ibf"><span>Scala</span><input type="number" id="axB" step="any" placeholder="1" style="width:90px"></label><label class="ibf"><span>Spostamento</span><input type="number" id="axA" step="any" placeholder="0" style="width:90px"></label><button class="btn small" id="axApply" type="button">Applica</button><button class="btn small ghost" id="axReset" type="button">Originale</button></div>
         <div class="phead" style="margin-top:14px"><b>Che cosa sono i dati</b><span class="scope s-one">solo questo spettro</span></div>
         <div class="ibfields"><label class="ibf" id="ykindBox"><span>Asse Y</span><select id="ykindSel"><option value="">riconosciuto da solo</option><option value="T">trasmittanza %</option><option value="A">assorbanza</option><option value="U">altra grandezza, picchi in su</option></select></label><label class="check" style="align-self:flex-end"><input type="checkbox" id="calcChk"> Dato calcolato, non misurato</label></div>
@@ -2162,8 +2162,10 @@ function parseBinary(buf, name){
   if (buf.byteLength>4 && new DataView(buf).getUint32(0, true)===0xFEFE0A0A) return parseOPUS(buf);
   return null;
 }
+function guessYCol(meta){ for (let k=meta.length-1;k>=Math.max(0,meta.length-3);k--){ const n=splitLine(meta[k].replace(/^#\s*/,''))||[]; if (n.length<3) continue; const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
 function parseText(text, opt){
   const jc = parseJcamp(text); if (jc) return jc;
+  if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))){ const q=parseText(text.replace(/##\s*(NTUPLES|DATA\s*CLASS)/gi,'##X'),opt); if (q){ q.importNotes=(q.importNotes||[]).concat(['JCAMP NTUPLES non è supportato: parte reale e immaginaria si mescolano e questi dati sono probabilmente sbagliati. Esporta lo spettro come testo o come JCAMP semplice']); q.importIssue=Object.assign({dropped:0,thou:0,after:0,midText:false,total:q.xs.length},q.importIssue||{},{ntuples:true}); } return q; }
   const ts = parseTopSpin(text); if (ts) return ts;
   const nc = parseNamedColumns(text);
   if (nc){ const th=parseThermal(nc); if (th) return th; const ep=parseEPRCols(nc); if (ep) return ep; }
@@ -2181,15 +2183,16 @@ function parseText(text, opt){
     start = iData>=0 ? iData+1 : 0;
     for (let i=0;i<start;i++) meta.push(lines[i]);
   }
-  const tail=[]; let extraCols=0, dropped=0, pending=0, thou=0, after=0, midText=false, gap0=null; const ycol=(opt&&opt.ycol)||1;
+  const tail=[]; let extraCols=0, dropped=0, pending=0, thou=0, after=0, midText=false, gap0=null; const ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,start+3)));
   const THOU=/^[-+]?(\d{1,3}(\.\d{3})+,\d+|\d{1,3}(\.\d{3}){2,}|\d{1,3}(,\d{3})+\.\d+)$/, DOT3=/^[-+]?[1-9]\d{0,2}\.\d{3}$/, COMMA=/^[-+]?\d+,\d+$/;
   const newB=()=>({xs:[],ys:[],extra:0,textBefore:0,cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
   // quante celle vuote ci sono fra i valori: se cambia da una riga all'altra una colonna è saltata, e la riga non si può leggere
-  const innerEmpty=l=>{ const sep=l.includes('\t')?'\t':l.includes(';')?';':null; if (!sep) return 0; const q=l.split(sep); let n=0; for (let k=1;k<q.length-1;k++) if (!q[k].trim()) n++; return n; };
+  const innerEmpty=l=>{ const sep=l.includes('\t')?'\t':l.includes(';')?';':(!/\s/.test(l)&&!l.includes('"')&&l.includes(','))?',':null; if (!sep) return 0; const q=l.split(sep); let n=0; for (let k=1;k<q.length-1;k++) if (!q[k].trim()) n++; return n; };
+  { const cnt={}; for (let i=start, n=0;i<lines.length && n<400;i++){ const l=lines[i].trim(); if (l && parseLine(l, ycol)){ const g=innerEmpty(l); cnt[g]=(cnt[g]||0)+1; n++; } } const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; gap0=e?+e[0]:0; }   // il numero di celle vuote più comune: una riga diversa ha una colonna saltata
   for (let i=start;i<lines.length;i++){
     const l = lines[i].trim(); if (!l) continue;
     const tk=splitLine(l)||[]; let p = parseLine(l, ycol);
-    if (p){ const g=innerEmpty(l); if (gap0==null) gap0=g; else if (g!==gap0) p=null; }
+    if (p && innerEmpty(l)!==gap0) p=null;
     if (!p && /^"?[^\d+\-."]/.test(l)){   // riga di testo: chiude il blocco di numeri
       if (cur.xs.length>=3){ blocks.push(cur); cur=newB(); }
       else if (cur.xs.length){ if (blocks.length) after+=cur.xs.length; cur=newB(); }
@@ -2198,7 +2201,8 @@ function parseText(text, opt){
     if (cur.xs.length>=3 && tk.length>1){
       if (tk.some(t=>THOU.test(t)) || (tk.some(t=>COMMA.test(t)) && tk.some(t=>DOT3.test(t)))) thou++;
       if (!/[\t;\s]/.test(l) && tk.some((t,k)=>k>=2 && /^\d{3}$/.test(t) && /^\d{1,3}$/.test(tk[k-1]))) thou++;   // 3.00,1,800: la virgola può essere un separatore delle migliaia
-      if (!p && /^"?[-+]?\d/.test(l)) pending++; }
+      }
+    if (cur.xs.length>=3 && !p && /^"?[-+]?\d/.test(l)) pending++;
     if (p){ dropped+=pending; pending=0;   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
       [0,ycol].forEach((c,k)=>{ const t=tk[c], C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)) C.other++; });
       cur.xs.push(p[0]); cur.ys.push(p[1]); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
@@ -2206,16 +2210,19 @@ function parseText(text, opt){
     else if (tail.length < 120) tail.push(l);
   }
   if (cur.xs.length>=3 || !blocks.length) blocks.push(cur); else after+=cur.xs.length;
-  // il blocco più lungo sono i dati; un altro vi si aggiunge solo se prosegue l'asse, altrimenti è una tabella (picchi, riassunti) e non diventa punti dello spettro
+  // il blocco più lungo sono i dati; un altro vi si aggiunge solo se prosegue l'asse senza buchi (una pausa nella misura), altrimenti è una tabella e non diventa punti dello spettro
   const mainIx=blocks.reduce((b,q,k)=>q.xs.length>blocks[b].xs.length?k:b,0), M=blocks[mainIx], dir=Math.sign(M.xs[M.xs.length-1]-M.xs[0])||1;
-  const xs=M.xs, ys=M.ys; extraCols=M.extra;
-  blocks.forEach((q,k)=>{ if (k===mainIx) return; const stepM=Math.abs(M.xs[M.xs.length-1]-M.xs[0])/Math.max(1,M.xs.length-1), stepQ=Math.abs(q.xs[q.xs.length-1]-q.xs[0])/Math.max(1,q.xs.length-1), lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]), outside=Math.min(...q.xs)>hi||Math.max(...q.xs)<lo; if (q.xs.length>=3 && outside && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<5*stepM && stepM<5*stepQ){ q.xs.forEach((v,t)=>{ xs.push(v); ys.push(q.ys[t]); }); midText=true; dropped+=q.textBefore; M.cols.forEach((C,t)=>{ C.dot+=q.cols[t].dot; C.int+=q.cols[t].int; C.other+=q.cols[t].other; }); } else after+=q.xs.length; });
+  const xs=M.xs.slice(), ys=M.ys.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
+  const left=blocks.map((q,k)=>k).filter(k=>k!==mainIx); let grew=true;
+  while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=Math.min(...q.xs), qhi=Math.max(...q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
+      if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.int+=q.cols[u].int; C.other+=q.cols[u].other; }); left.splice(t,1); t--; grew=true; } } }
+  left.forEach(k=>{ after+=blocks[k].xs.length; });
   const cols=M.cols;
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
   for (const c of cols) if (c.dot && c.int && !c.other) thou+=c.dot;
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, total:xs.length+dropped} : null, nCols:extraCols+2};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, total:xs.length+dropped} : null, nCols:extraCols+2, ycol};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -4263,12 +4270,12 @@ function insetKeyCmp(c){ const m=members(c); return [c.mode, c.gap, ...m.map(f=>
 function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {auto: o.inset.yk!==key}) : null; }
 /* allineamento in energia (XRF): x_nuovo = a + b·x_file; picchi ed etichette vengono spostati di conseguenza */
 function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; f.xs0=p.xs; f.xs=f.ecal?Float64Array.from(p.xs,x=>f.ecal.a+f.ecal.b*x):p.xs; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.removed=[]; f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
-function kindOf(f){ return (f.an&&f.an.ykind) || yKindFor(f.instr, f._p); }
+function kindOf(f){ return (f.an&&f.an.ykind) || (f.an&&f.an.calc&&['ftir','uv'].includes(f.instr) ? 'U' : yKindFor(f.instr, f._p)); }
 function bindAxisFields(){
   const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; $('#pBmSel').value=(f.an&&f.an.pBm)||''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
   const redo=f=>{ f._pk=null; f._autoKey=null; f._areaKey=null; persist(f); syncDerived(f); refreshAll(); };
   $('#ykindSel').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'ykind',e.target.value||null); f.kind=kindOf(f); redo(f); };
-  $('#calcChk').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'calc',e.target.checked||null); redo(f); };
+  $('#calcChk').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'calc',e.target.checked||null); f.kind=kindOf(f); redo(f); };
   $('#pSmSel').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'pSm',e.target.value===''?null:+e.target.value); redo(f); };
   $('#pBmSel').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'pBm',e.target.value||null); redo(f); };
   document.querySelector('#tabs [data-tab="proc"]').addEventListener('click',sync);
@@ -4412,7 +4419,7 @@ function viewOf(f){
   for (const p of f._auto) if (!f.removed.some(r=>Math.abs(r-p.x)<=tol)) peaks.push(Object.assign({manual:false}, p));
   for (const x of f.added) if (inR(x)){ const y=interpY(P.xs,P.ys,x); peaks.push({x, y, manual:true, side: instr==='dsc' && !P.deriv ? (y>=localBase(P,x) ? 1 : -1) : undefined}); }
   const xsAll = peaks.map(p=>p.x), sctx = sugCtx(f, peaks), endo = instr==='dsc' ? dscEndoSide(f) : 0;
-  { const K=Object.keys(f.labels); if (K.length){ const have=new Set(peaks.map(p=>lblKey(p.x))), step=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, near=Math.max(tol||0,3*step); for (const k of K){ if (have.has(k)) continue; let b=null, bd=Infinity; for (const p of peaks){ const dx=Math.abs(p.x-+k); if (dx<bd){ bd=dx; b=p; } } if (b && bd<=near && f.labels[lblKey(b.x)]==null){ f.labels[lblKey(b.x)]=f.labels[k]; delete f.labels[k]; have.add(lblKey(b.x)); } } } }
+  { const pkNow=procKey(f), K=Object.keys(f.labels); if (K.length && f._lblPK && f._lblPK!==pkNow){ const have=new Set(peaks.map(p=>lblKey(p.x))), step=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, near=Math.max(tol||0,3*step); for (const k of K){ if (have.has(k)) continue; let b=null, bd=Infinity; for (const p of peaks){ const dx=Math.abs(p.x-+k); if (dx<bd){ bd=dx; b=p; } } if (b && bd<=near && f.labels[lblKey(b.x)]==null){ f.labels[lblKey(b.x)]=f.labels[k]; delete f.labels[k]; have.add(lblKey(b.x)); } } } f._lblPK=pkNow; }
   peaks.sort((a,b)=>a.x-b.x).forEach(p=>{
     const raw=f.labels[lblKey(p.x)];
     let name='', nameUi='';
@@ -4424,7 +4431,8 @@ function viewOf(f){
     let auto=p.num;
     if (instr==='epr' && f.freq>0) { p.g=eprG(p.x, f.freq); auto=`g = ${fmtN(p.g,4)}`; }
     p.label = !name ? auto : (name.includes(p.num) ? name : (instr==='epr' && p.g ? `${auto} ${name}` : p.num+' '+name));
-    p.sugg = name ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample, Object.assign({y:p.y, sign:p.sign}, sctx));
+    p.sugg = name || (f.an&&f.an.calc) ? [] : suggest(instr, p.x, xsAll, f.sample||S.sample, Object.assign({y:p.y, sign:p.sign}, sctx));
+    if (name && raw && raw[0]==='@' && (instr==='xrf'||instr==='libs')) p.suggAll=suggest(instr, p.x, xsAll, f.sample||S.sample, Object.assign({y:p.y, sign:p.sign}, sctx));
   });
   let areaUnit='';
   const needAreas = (S.showArea || instr==='dsc' || instr==='tga') && peaks.length && !P.deriv;
@@ -4706,7 +4714,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.nCols=p.nCols||2; f.xSeconds=!!det.xSeconds; postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.nCols=p.nCols||2; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=!!det.xSeconds; postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -4738,7 +4746,7 @@ async function addEntries(entries){
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
   { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true); toast('⚠️ Dati da controllare: righe non lette o separatori delle migliaia in «'+bad[0].name+'». Vedi «Controllo del dato».'); msgs.push(`⚠️ Righe non lette o separatori delle migliaia in: ${list(bad.map(f=>f.path))}. I numeri possono essere sbagliati.`); } }
   if (extra.length){ msgs.push(`⚠️ In ${extra.length===1?'questo file ci sono':'questi file ci sono'} altre colonne di valori, che non ho letto (Y è la seconda colonna: si cambia in «Dati dello spettro»): ${list(extra)}.`); toast(`⚠️ Alcuni file hanno altre colonne di valori, che non ho letto: uso solo le prime due.`); }
-  if (!window.ACCH_PROC_SAID && added && !window.ACCH_PENDING_MEM){ window.ACCH_PROC_SAID=true; const q=files.find(f=>procNote(f,processed(f))); if (q) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta su '+NOME_IT[q.instr]+': '+procNote(q,processed(q))+'.'); }
+  if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=f.xs.length+'|'+f.xs[0]+'|'+f.xs[f.xs.length-1]; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
   if (dup) msgs.push(`👯 ${dup} file ${dup===1?'era':'erano'} già caricat${dup===1?'o':'i'}.`);
   note.style.display = msgs.length?'block':'none'; note.innerHTML = msgs.join('<br>');
@@ -6215,9 +6223,9 @@ async function pngWithDpi(canvas, dpi){
 }
 function csvCell(c, sep){ c=String(c); return (c.includes(sep)||/["\n]/.test(c)) ? '"'+c.replace(/"/g,'""')+'"' : c; }
 /* una riga per spettro: quale file, con quale impronta, con quali scelte. Serve a ricostruire un dato esportato */
-function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[[en?'File':'File','SHA-256',en?'Bytes':'Byte',en?'Points':'Punti',en?'Technique':'Tecnica',en?'Recognised from':'Riconosciuta da',en?'Y column':'Colonna Y',en?'X scale':'Scala X',en?'X shift':'Spostamento X',en?'Processing':'Elaborazione',en?'Printed range':'Zona stampata',en?'Application version':'Versione del programma',en?'Exported':'Esportato']];
+function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[[en?'File':'File','SHA-256',en?'Bytes':'Byte',en?'Points':'Punti',en?'Technique':'Tecnica',en?'Recognised from':'Riconosciuta da',en?'Y column':'Colonna Y',en?'X scale':'Scala X',en?'X shift':'Spostamento X',en?'Processing':'Elaborazione',en?'Printed range':'Zona stampata',en?'Computed data':'Dato calcolato',en?'Application version':'Versione del programma',en?'Exported':'Esportato']];
   const now=new Date().toISOString(); for (const f of list){ let h=''; try{ if (f.raw) h=AcchFormat.sha256(new Uint8Array(f.raw)); }catch(e){}
-    out.push([f.path||f.name, h, f.size, f.xs.length, NOME_IT[f.instr], f.instr===f.autoInstr?f.reason:(en?'chosen by hand':'scelta a mano'), ((f.an&&f.an.ycol)||1)+1, n(f.ecal&&f.ecal.b), n(f.ecal&&f.ecal.a), procNote(f,processed(f))||'', f.xr?f.xr.join(' - '):'', APP_VERSION_FULL(), now]); }
+    out.push([f.path||f.name, h, f.size, f.xs.length, NOME_IT[f.instr], f.instr===f.autoInstr?f.reason:(en?'chosen by hand':'scelta a mano'), ((f.an&&f.an.ycol)||1)+1, n(f.ecal&&f.ecal.b), n(f.ecal&&f.ecal.a), procNote(f,processed(f))||'', f.xr?f.xr.join(' - '):'', f.an&&f.an.calc?(en?'yes':'sì'):'', APP_VERSION_FULL(), now]); }
   return out; }
 async function buildZip(extra){
   const Lx=T_(), zip=new JSZip(), root=(S.oneFile && extra && extra.length ? safeName(S.docTitle||Lx.title).replace(/\s+/g,'_') : Lx.zip)+'_'+stamp(), folder=zip.folder(root);
@@ -6328,7 +6336,7 @@ function cleanAn(v){
   if (v.mixW && typeof v.mixW==='object'){ const w={}; for (const [k,x] of Object.entries(v.mixW)) if (typeof x==='number' && isFinite(x) && x>=0) w[k]=x; if (Object.keys(w).length) o.mixW=w; }
   if (v.fp && typeof v.fp==='object') o.fp=cleanFp(v.fp);
   for (const k of ['axX','axY']) if (typeof v[k]==='string' && v[k]) o[k]=v[k].slice(0,80);
-  if (['blank','qc'].includes(v.role)) o.role=v.role; if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (['none','linear','rubber','arpls','snip'].includes(v.pBm)) o.pBm=v.pBm;
+  if (['blank','qc'].includes(v.role)) o.role=v.role; if (typeof v.concK==='string' && v.concK.length<60) o.concK=v.concK; if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (['none','linear','rubber','arpls','snip'].includes(v.pBm)) o.pBm=v.pBm;
   if (Number.isInteger(v.ycol) && v.ycol>1 && v.ycol<200) o.ycol=v.ycol;
   if (COLOURS[v.color]) o.color=v.color;
   if (['direct','indirect'].includes(v.trans)) o.trans=v.trans; if (['abs','refl'].includes(v.data)) o.data=v.data;
@@ -6348,16 +6356,16 @@ function assess(f, d){
   const it=f.instr, P=processed(f), out=[], add=(lv, t, act)=>out.push({lv, t, act});
   const raw = f.kind==='T' ? transformY(f.ys,'T','A').ys : f.ys;
   const shapeOk = !['tga','dsc','epr'].includes(it);
-  if (f.an&&f.an.calc){ add('info','Dato calcolato: niente controlli di rumore, saturazione o ipotesi, che valgono per le misure.'); return out; }
-  (f.importNotes||[]).forEach(n=>add('warn', n+'.'));
+  if (f.an&&f.an.calc){ add('info','Dato calcolato: niente controlli di rumore, saturazione o ipotesi, che valgono per le misure.'); (f.importNotes||[]).forEach(n=>add('warn', n+'.')); if (f.importIssue){ const q=f.importIssue; if (q.dropped||q.thou||q.midText) add('bad',`Lettura del file da controllare: ${q.dropped} righe non lette${q.thou?`, ${q.thou} con separatori ambigui`:''}${q.midText?', dati interrotti da testo':''}.`); if (q.after) add('warn',`${q.after} righe di numeri fuori dal blocco principale non usate.`); } return out; }
+  (f.importNotes||[]).forEach(n=>add(/NTUPLES/.test(n)?'bad':'warn', n+'.'));
   if (/^(asse X in minuti|intervallo 150|intervallo IR|shift cm|conteggi interi)/.test(f.reason||'') && f.instr===f.autoInstr) add('info', `Tecnica dedotta solo dagli intervalli dei numeri (${f.reason}): controlla che sia giusta in «Dati dello spettro».`);
-  if (it==='ftir' && f.kind==='A' && f._p){ const v=Array.from(f._p.ys).sort((a,b)=>a-b), hi=v[v.length-1], lo=v[0], med=v[v.length>>1]; if (lo>=0 && hi<=1.05 && med>0.6*hi && !/absorb|^abs|^a$/.test(headerInfo(f._p.meta||[]).yu.toLowerCase())) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.'); }
+  if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.');
   if (it==='xrf'){ let neg=0; for (const v of f.ys) if (v<0) neg++; if (neg) add('warn',`${neg} canali con conteggi negativi: i conteggi veri non sono mai negativi, lo spettro è già stato elaborato e l'incertezza di conteggio non vale.`); }
   if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare il punto come separatore delle migliaia (${q.thou} righe, es. 12.355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
   if (f.nCols>2) add('info', `Il file ha ${f.nCols} colonne: Y è la colonna ${(f.an&&f.an.ycol||1)+1}. La puoi cambiare in «Dati dello spettro».`);
   if (f.xSeconds && !f.ecal) add('warn', 'L\'asse X sembra in secondi, ma è etichettato in minuti: in «Dati dello spettro» metti scala 0,016667 e cambia l\'etichetta.');
-  if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && !d.peaks.some(p=>p.custom||(p.sugg&&p.sugg.length))) add('warn','Ho trovato righe ma non so assegnarne nessuna: forse l\'asse X è spostato. Correggilo in «Dati dello spettro».');
+  if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
   if (it==='epr' && f.freq>0 && P.xs.length){ const B=(P.xs[0]+P.xs[P.xs.length-1])/2, g=B>0?71.4477*f.freq/B:0; if (g<0.5||g>10) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss letti come mT?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
   if (it==='epr'){ const v=Array.from(P.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(P.ys); if (sg>0 && v[v.length-1]/sg<200) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
   { const sw=pSmooth(f); if (sw && d.peaks.length){ const up=upData(P), w=d.peaks.map(p=>peakFwhmPts(P.xs,up.y,p.x)).filter(v=>v>0).sort((a,b)=>a-b); if (w.length && w[0]<sw) add('warn',`Lo smoothing (${sw} punti) è più largo del picco più stretto (circa ${Math.round(w[0])} punti): altezze e aree si abbassano. Riducilo o scegline uno per questo spettro.`); } }
@@ -6421,12 +6429,12 @@ function renderAnQual(f, d){
 function xrfElements(f, d){
   const mp=Math.max(1e-30, ...d.peaks.map(p=>p.prom||0)), by={}, lineOf=id=>{ const m=/^x_([A-Z][a-z]?)_([A-Za-z0-9]+?)(?:_c)?$/.exec(id||''); return m ? {el:m[1], ln:m[2]} : null; };
   const freeLine=t=>{ const m=/^([A-Z][a-z]?)\s*(K|L)\s*(α|a|β|b)/.exec(t); return m ? `x_${m[1]}_${m[2]}${/[αa]/.test(m[3])?'a':'b'}` : t; };
-  d.peaks.forEach(p=>{ const rawL=p.custom ? String(f.labels[lblKey(p.x)]||'') : '', autoIds=p.sugg.slice(0,3).filter((g,i)=>i===0 || g.coherent).map(g=>g.id);
+  d.peaks.forEach(p=>{ const rawL=p.custom ? String(f.labels[lblKey(p.x)]||'') : '', SG=(p.suggAll||p.sugg), autoIds=SG.slice(0,3).filter((g,i)=>i===0 || g.coherent).map(g=>g.id);
     // «Accetta i suggerimenti» non deve cambiare l'esito: un nome della banca dati si aggiunge alle alternative, non le cancella. Un nome scritto a mano conta da solo
     const ids = !p.custom ? autoIds : rawL[0]==='@' ? [...new Set(autoIds.concat([rawL.slice(1)]))] : [freeLine(rawL)];
-    const all = !p.custom || rawL[0]==='@' ? p.sugg.slice(0,3).map(g=>g.id).concat(ids) : ids;
+    const all = !p.custom || rawL[0]==='@' ? SG.slice(0,3).map(g=>g.id).concat(ids) : ids, altEls=SG.slice(0,3).map(g=>lineOf(g.id)).filter(Boolean).map(L=>L.el);
     ids.forEach((id,k)=>{ const L=lineOf(id); if (!L) return; const e=by[L.el]=by[L.el]||{main:false, strong:false, lines:new Set(), prom:0}; e.lines.add(L.ln);
-      if (/^(Ka|La)$/.test(L.ln)){ e.main=true; e.prom=Math.max(e.prom,(p.prom||0)/mp); if ((p.prom||0)/mp>=0.25) e.strong=true; } });
+      if (/^(Ka|La)$/.test(L.ln)){ e.main=true; e.prom=Math.max(e.prom,(p.prom||0)/mp); e.alt=new Set([...(e.alt||[]),...altEls]); if ((p.prom||0)/mp>=0.25) e.strong=true; } });
     all.forEach(id=>{ const L=lineOf(id); if (L && by[L.el]) by[L.el].lines.add(L.ln); }); });
   const els=Object.entries(by).filter(([el,e])=>e.main && (e.lines.size>=2 || e.strong) && el!=='Ar' && el!=='Rh').map(([el])=>el);
   /* Righe che coincidono: As Kα = Pb Lα (10,54/10,55 keV); As Kβ vicina a Hg Lβ; W Lα vicina a Au Lℓ e W Lβ ad Au Lα.
@@ -6437,10 +6445,10 @@ function xrfElements(f, d){
   if (PbOk && !(AsK && !Hg)) drop('As');
   else if (PbSeen && !PbOk && !AsK && els.includes('As')) drop('As');
   if (els.includes('Au') && els.includes('W')) drop('W');
-  const oneLine=els.filter(e=>by[e].lines.size<2), cands=Object.entries(by).filter(([el,e])=>e.main && e.prom>=0.01 && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh').map(([el])=>el);
+  const oneLine=els.filter(e=>by[e].lines.size<2), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
   const over=[];   // picchi dove due elementi presenti hanno righe sovrapposte
-  d.peaks.forEach(p=>{ if (p.custom) return; const es=[...new Set(p.sugg.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
-    if (es.length>=2) over.push({x:p.x, num:p.num, names:p.sugg.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });
+  d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg; if (p.custom && !p.suggAll) return; const es=[...new Set(SG.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
+    if (es.length>=2) over.push({x:p.x, num:p.num, names:SG.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });
   return {els, over, unsure, oneLine, cands};
 }
 function probableElements(f, d){
@@ -6449,7 +6457,7 @@ function probableElements(f, d){
     new Set(ids.map(elOf).filter(Boolean)).forEach(e=>cnt[e]=(cnt[e]||0)+1); });
   return Object.entries(cnt).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).map(([e])=>e);
 }
-function suspectT(f){ if (f.instr!=='ftir' || f.kind!=='A' || !f._p || (f.an&&f.an.ykind)) return false; const v=Array.from(f._p.ys).sort((a,b)=>a-b), hi=v[v.length-1], lo=v[0], med=v[v.length>>1]; return lo>=0 && hi<=1.05 && med>0.6*hi && !/absorb|^abs|^a$/.test(headerInfo(f._p.meta||[]).yu.toLowerCase()); }
+function suspectT(f){ if (f.instr!=='ftir' || f.kind!=='A' || !f._p || (f.an&&f.an.ykind)) return false; const v=Array.from(f._p.ys).sort((a,b)=>a-b), hi=v[v.length-1], lo=v[0], q3=v[Math.floor(v.length*0.75)]; return lo>=-0.05*hi && hi<=1.05 && q3>0.5*hi && !/absorb|^abs|^a$/.test(headerInfo(f._p.meta||[]).yu.toLowerCase()); }
 function hypotheses(f, d){
   if (f.an&&f.an.calc) return null; if (suspectT(f)) return null;
   const it=f.instr, P=processed(f);
@@ -6460,7 +6468,7 @@ function hypotheses(f, d){
     if (!P.deriv && P.kind!=='N') pk=pk.concat(hiddenBands(P.xs, up.y).map(h=>({x:h.x, rel:0.15})));   // le spalle confermano, non bastano come banda principale
     const x0=Math.min(P.xs[0],P.xs[P.xs.length-1]), x1=Math.max(P.xs[0],P.xs[P.xs.length-1]);
     const pig = it==='raman' && !P.deriv ? pigmentMatches(pk.filter(p=>p.rel>0.15 || p.rel===undefined).concat(pk.filter(p=>p.rel===0.15)), x0, x1) : [];
-    return {kind:'bands', list:groupHypotheses(it, pk, f.sample||S.sample), pig};
+    return {kind:'bands', list:markShared(groupHypotheses(it, pk, f.sample||S.sample)), pig:markShared(pig)};
   }
   if ((it==='xrf' && !f.uncal) || it==='libs'){ const xe=it==='xrf' ? xrfElements(f, d) : null, unsure=xe?xe.unsure:[], els=probableElements(f, d).filter(e=>!unsure.includes(e)), col=f.an&&f.an.color, over = xe ? xe.over : [], oneLine=xe?xe.oneLine:[];
     return {kind:'els', els, col, over, unsure, oneLine, list:elementHypotheses(els).map(h=>Object.assign({},h,{lvl:(h.els||[]).some(e=>oneLine.includes(e))?'una riga sola: inconclusiva':'plausibile'})), pig: col ? xrfPigments(els, col) : []}; }
@@ -6742,18 +6750,26 @@ function mvFlag(f, a, b, meas){
   if (meas==='area' && m && m.area<=0) return 'area negativa o nulla';
   const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; if (sg>0 && top-bot<5*sg) return 'nessun picco nella zona';
   if (Math.min(P.xs[k]-lo, hi-P.xs[k])<0.03*(hi-lo)) return 'massimo al bordo della zona: picco tagliato o spostato';
+  { const ys=f.ys, X=f.xs; let run=0, best=0, mx=-Infinity; for (let i=0;i<X.length;i++) if (X[i]>=lo&&X[i]<=hi&&ys[i]>mx) mx=ys[i]; for (let i=0;i<X.length;i++){ if (X[i]>=lo&&X[i]<=hi&&ys[i]===mx){ run++; best=Math.max(best,run); } else run=0; } const sgR=noiseSigma(ys)||0; if (best>=3 && mx>0 && mx>10*sgR) return 'cima tagliata o piatta: rivelatore saturo o due composti'; }
+  { const eL=U.y.find((v,i)=>P.xs[i]>=lo), iR=P.xs.length-1-[...P.xs].reverse().findIndex(x=>x<=hi), eR=U.y[iR]; if (eL!=null && eR!=null && Math.max(eL,eR)-bot>0.1*(top-bot)) return 'bordi della zona lontani dalla linea di base: zona da allargare o interferente'; }
   const sh=peakShape(P.xs,U.y,P.xs[k]); if (sh.flat) return 'cima piatta: rivelatore saturo o due composti'; if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
   return ''; }
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
+function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; let k=-1, top=-Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=Math.min(a,b)&&P.xs[i]<=Math.max(a,b)&&U.y[i]>top){ top=U.y[i]; k=i; } return {w:m.fwhm, x:k>=0?P.xs[k]:null}; }
 function mvTable(instr){
   const c=mvCfg(instr), list=mvFiles(instr, c), R=c.c!=null && c.d!=null;
   if (c.a==null || c.b==null) return null;
   const T=list.map(f=>{ const v=mvValue(f, c.a, c.b, c.meas), r=R ? mvValue(f, c.c, c.d, c.meas==='value'?'value':c.meas==='area'?'area':'height') : null;
-    return {f, v, r, y: v==null ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std'}; }); T.weight=c.weight; return T;
+    return {f, v, r, y: v==null ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
+  const key=c.a+'|'+c.b; T.forEach(o=>{ const k=o.f.an&&o.f.an.concK; if (o.conc!=null && k && k!==key){ o.conc=null; o.flag=o.flag||'concentrazione scritta per un\'altra zona'; o.stale=true; } });
+  // rispetto agli standard: un picco più largo nasconde un coeluito, uno spostato può essere un altro composto
+  const st=T.filter(o=>o.role==='std'&&o.conc!=null&&o.shape&&o.shape.w>0), med=a=>{ const v=a.slice().sort((p,q)=>p-q); return v.length?v[v.length>>1]:null; }, mw=med(st.map(o=>o.shape.w)), mx=med(st.map(o=>o.shape.x));
+  if (st.length>=3 && mw>0) T.forEach(o=>{ if (o.flag||!o.shape||!(o.shape.w>0)) return; if (Math.abs(o.shape.x-mx)>0.5*mw) o.flag='massimo spostato rispetto agli standard: altro composto?'; else if (o.shape.w>1.15*mw) o.flag='più largo degli standard: possibile coeluito'; });
+  T.weight=c.weight; return T;
 }
-function mvCalib(rows){ const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y) && o.role==='std').map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts}) : null; }
+function mvCalib(rows){ const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y) && o.role==='std' && !mvNoEstimate(o)).map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts}) : null; }
 function renderMulti(){
   const box=$('#mvBody'); if (!files.length){ if (box) box.innerHTML=''; return; }
   const counts={}; files.forEach(f=>counts[f.instr]=(counts[f.instr]||0)+1);
@@ -6776,7 +6792,7 @@ function renderMulti(){
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
     const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : MEAS_NAME[c.meas];
-    if (rows.some(o=>o.conc!=null) && c.concBand && c.concBand!==c.a+'|'+c.b) html+='<p class="why">⚠️ Hai cambiato zona: le concentrazioni scritte erano per un\'altra banda. Controllale: con più composti ognuno ha le sue.</p>';
+    if (rows.some(o=>o.stale)) html+='<p class="why">⚠️ Hai cambiato zona: le concentrazioni scritte erano per un\'altra banda. Controllale: con più composti ognuno ha le sue.</p>';
     if (cal && cal.weight) html+='<p class="why">Con i pesi LOD e LOQ dipendono dalla dispersione allo standard più basso e possono essere ottimistici: verificali con bianchi replicati.</p>';
     if (rows.length && (S.conv[instr]==='norm' || processed(rows[0].f).deriv)) html+='<p class="why">⚠️ Lo spettro è normalizzato o in derivata: questa retta non misura le quantità. Per la taratura usa i dati originali.</p>';
     html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>${esc(yl)}</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th><th>${cal&&cal.b?'Concentrazione stimata ± IC 95%':'Residuo'}</th></tr></thead><tbody>${rows.map((o,i)=>{
@@ -6809,7 +6825,7 @@ function renderMulti(){
   $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); renderMulti(); };
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⬚ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
-  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); c.concBand=c.a+'|'+c.b; mvSave(); renderMulti(); });
+  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); anSet(o.f, 'concK', c.a+'|'+c.b); renderMulti(); });
   $$('#mvOut .rolein').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'role', el.value==='std'?null:el.value); renderMulti(); });
   if ($('#mvCsv')) $('#mvCsv').onclick=()=>download(new Blob(['﻿'+mvCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `misure_${instr}.csv`);
   if (c.model!=='pls' && cal && cal.b!=null && $('#calC')) drawCalChart($('#calC'), instr, rows, cal);
@@ -7111,7 +7127,7 @@ function drawPlsChart(cv, instr, R){
 function mvCsvRows(instr){
   const c=mvCfg(instr), rows=mvTable(instr)||[], cal=mvCalib(rows), dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec);
   const out=[['File','Nome','Strumento','Banda da','Banda a','Misura','Rif. da','Rif. a','Valore','Concentrazione nota','Concentrazione stimata','IC 95%','Unità','Stato']];
-  rows.forEach(o=>{ const pr=cal&&cal.predict&&o.conc==null&&o.y!=null&&!mvNoEstimate(o) ? cal.predict(o.y,1) : null; out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), pr?n(pr.x):'', pr?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
+  rows.forEach(o=>{ const pr=cal&&cal.predict&&o.y!=null&&!mvNoEstimate(o)&&((o.role==='std'&&o.conc==null)||o.role==='qc') ? cal.predict(o.y,1) : null, rec=o.role==='qc'&&pr&&o.conc>0?`recupero ${fmtN(100*pr.x/o.conc,1)}%`:''; out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), pr?n(pr.x):'', pr?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', rec, mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
   if (cal && cal.b!=null){ out.push([]); out.push(['Retta','pesi',cal.weight||'nessuno','n',cal.n,'IC95 a',n(cal.ciA&&cal.ciA[0])+' / '+n(cal.ciA&&cal.ciA[1]),'IC95 b',n(cal.ciB&&cal.ciB[0])+' / '+n(cal.ciB&&cal.ciB[1]),'a',n(cal.a),'b',n(cal.b),'R2',n(cal.r2),'syx',n(cal.syx),'LOD',n(cal.lod),'LOQ',n(cal.loq)]);
     if (cal.mandel) out.push(['Mandel','PG',n(cal.mandel.PG),'F99',n(cal.mandel.F),'non lineare',cal.mandel.nonlinear?'sì':'no']); }
   return out;
@@ -7263,7 +7279,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     line(`LOD ${fmtG(cal.lod,3)} · LOQ ${fmtG(cal.loq,3)} ${c.unit||''} (ICH Q2)${cal.mandel?` · Mandel: ${cal.mandel.nonlinear?T('curvatura significativa','significant curvature'):T('retta adeguata','line adequate')}`:''}`, 9.5);
     const cv=offCanvas(150,95); drawCalChart(cv, instr, rows, cal); doc.addImage(cv.toDataURL('image/png'),'PNG', M, y+2, 150, 95, undefined, 'FAST'); y+=100;
     if (cal.weight) line(T('Retta pesata ','Weighted line ')+cal.weight, 9.5);
-    rows.filter(o=>o.conc==null && o.y!=null && o.role==='std' && !mvNoEstimate(o)).forEach(o=>{ const pr=cal.predict(o.y,1); line(`${dispTitle(o.f)}: ${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)} ${c.unit||''}${o.flag?' ['+o.flag+']':''}${pr.belowLod?' (< LOD)':''}${!pr.inRange?T(' (estrapolato)',' (extrapolated)'):''}${pr.belowLoq?' < LOQ':''}`, 9); });
+    rows.filter(o=>o.conc==null && o.y!=null && o.role==='std' && !mvNoEstimate(o)).forEach(o=>{ const pr=cal.predict(o.y,1); line(`${dispTitle(o.f)}: ${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)} ${c.unit||''}${o.flag?' ['+o.flag+']':''}${pr.belowLod?' (< LOD)':pr.belowLoq?' (< LOQ)':''}${S.conv[instr]==='norm'?T(' [normalizzato]',' [normalised]'):''}${!c.unit?T(' [unità mancante]',' [unit missing]'):''}${!pr.inRange?T(' (estrapolato)',' (extrapolated)'):''}${pr.belowLoq?' < LOQ':''}`, 9); });
     footer(); }
   for (const instr of Object.keys(MVres)){ const R=MVres[instr]; if (!R || R.err) continue;
     head(T('PCA e gruppi · ','PCA and groups · ')+T_().nome[instr]);
@@ -7333,6 +7349,7 @@ function methodsText(inc, used){
     if (dv){ st.push(T(`derivata ${dv===1?'prima':'seconda'} per regressione lineare locale`,`${dv===1?'first':'second'} derivative by local linear regression`)); cite.add('d2'); }
     proc.push(`${T_().nome[k]} (${list.length}): ${st.length?st.join('; '):T('dati come esportati dallo strumento','data as exported by the instrument')}.`);
   }
+  { const own=inc.filter(f=>f.an&&(f.an.pSm!=null||f.an.pBm!=null)); if (own.length) proc.push(T('Elaborazione scelta per singolo spettro: ','Processing chosen for individual spectra: ')+own.map(f=>`${dispTitle(f)} (${procNote(f,processed(f))||T('nessuna','none')})`).join('; ')+'.'); }
   parts.push(T('Elaborazione degli spettri. ','Spectral processing. ')+proc.join(' '));
   parts.push(T(`I picchi sono stati individuati per prominenza, con soglia pari a 8 volte la deviazione standard del rumore (stimata in modo robusto dalla mediana delle differenze seconde) e al ${S.sens}% della prominenza massima, dopo smoothing di Savitzky–Golay adattato alla larghezza dei picchi; la posizione è affinata per interpolazione parabolica.`,
     `Peaks were detected by prominence, with a threshold of 8 times the noise standard deviation (robustly estimated from the median of second differences) and ${S.sens}% of the largest prominence, after Savitzky–Golay smoothing matched to the peak width; positions were refined by parabolic interpolation.`)); cite.add('sg');
@@ -7341,6 +7358,7 @@ function methodsText(inc, used){
   if (cite.has('ich') && Object.values(MV).some(m=>m&&m.weight)) parts.push(T('Dove indicato, retta pesata (1/x o 1/x²): LOD e LOQ riferiti alla dispersione allo standard più basso.','Where stated, weighted line (1/x or 1/x²): LOD and LOQ refer to the dispersion at the lowest standard.'));
   if (cite.has('ich')) parts.push(T('Le rette di taratura sono state calcolate con i minimi quadrati ordinari; LOD = 3,3·s_y/x/b e LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); gli intervalli di confidenza al 95% delle concentrazioni stimate seguono Miller & Miller (2018) e la linearità è stata verificata con il test di Mandel (ISO 8466-1).',
     'Calibration lines were fitted by ordinary least squares; LOD = 3.3·s_y/x/b and LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); 95% confidence intervals of predicted concentrations follow Miller & Miller (2018) and linearity was checked with Mandel\'s test (ISO 8466-1).'));
+  if (cite.has('ich') && Object.values(MV).some(m=>m&&m.weight)){ const k=parts.length-1; parts[k]=parts[k].replace('minimi quadrati ordinari','minimi quadrati ordinari o pesati (dove indicato)').replace('ordinary least squares','ordinary or weighted (where stated) least squares').replace('e la linearità è stata verificata','e, per le rette non pesate, la linearità è stata verificata').replace(/and linearity was/,'and, for unweighted lines, linearity was'); }
   if (cite.has('xrfq')) parts.push(T('La composizione XRF è stata stimata con taratura empirica su standard: aree nette delle righe (finestra di ±1 FWHM, fondo SNIP) normalizzate al picco Compton, modello di Lucas-Tooth & Price (1961) per gli effetti di matrice dove il numero di standard lo consentiva, normalizzazione a 100% per le leghe, incertezze da validazione incrociata leave-one-out (cfr. Heginbotham et al., 2010, 2015).',
     'XRF composition was estimated by empirical calibration on standards: net line areas (±1 FWHM window, SNIP background) normalised to the Compton peak, Lucas-Tooth & Price (1961) matrix correction where the number of standards allowed, normalisation to 100% for alloys, uncertainties from leave-one-out cross-validation (cf. Heginbotham et al., 2010, 2015).'));
   if (cite.has('fp')) parts.push(T('La composizione XRF è stata calcolata con il metodo dei parametri fondamentali: intensità primarie per un campione spesso e omogeneo secondo Sherman (1955) e fluorescenza secondaria secondo Shiraiwa & Fujino (1966), con sezioni d\'urto, energie degli spigoli e rese di fluorescenza da xraylib (Schoonjans et al., 2011); spettro del tubo come continuo di Kramers con autoassorbimento nell\'anodo e righe caratteristiche (forma semplificata di Ebel, 1999), finestre di berillio, aria ed efficienza del rivelatore al silicio. Le aree delle righe sono state ottenute adattando allo spettro tutte le righe K, L e M di ogni elemento (gaussiane con la risoluzione del rivelatore, picchi di fuga del silicio, righe del tubo diffuse Rayleigh e Compton, fondo a B-spline) con minimi quadrati non negativi pesati (Lawson & Hanson, 1974), iterando i rapporti tra le righe previsti per la matrice. Le concentrazioni sono state normalizzate a 100% (leghe), come ossidi (vetri e ceramiche), oppure riferite al picco Compton con una matrice invisibile di composizione assunta (strati pittorici); dove indicato, la sensibilità di ogni elemento è stata tarata su standard di composizione nota. Lo spettro del tubo e le rese di fluorescenza sono approssimati; senza standard i valori sono stime semiquantitative, verificate su spettri simulati e non su materiali certificati.',
