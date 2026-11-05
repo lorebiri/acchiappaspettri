@@ -1113,7 +1113,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
 <dialog id="dlgConfirm" aria-labelledby="cfMsg"><div class="dlg"><p id="cfMsg" style="margin:0 0 14px;font-weight:600"></p><div class="actions" id="cfBtns"></div></div></dialog>
 <dialog id="dlgSettings" class="wide" aria-labelledby="stTitle"><div class="dlg"><h2 id="stTitle">⚙️ Impostazioni</h2>
   <div class="ibfields">
-    <label class="ibf"><span>Lingua dell'interfaccia</span><select id="stLang"><option value="it" data-noi18n>Italiano</option><option value="en" data-noi18n>English</option></select></label>
+    <label class="ibf"><span>Lingua</span><select id="stLang"><option value="it" data-noi18n>Italiano</option><option value="en" data-noi18n>English</option></select></label>
     <label class="ibf"><span>Tema</span><select id="stTheme"><option value="auto">Come il sistema</option><option value="light">Chiaro</option><option value="dark">Scuro</option></select><small>I grafici restano su fondo bianco, come nei file esportati.</small></label>
   </div>
   <div id="stDesktop" hidden>
@@ -4995,9 +4995,9 @@ function zoomSlice(d, z){
 function sizeCanvas(){
   const big=$('.preview').classList.contains('big')||window.ACCH_SHELL;
   const cssW = pv.clientWidth || 800, dpr = window.devicePixelRatio||1;
-  const cssH = big ? (pv.clientHeight || cssW*0.5) : cssW*100/160;
+  const k = big ? 1 : Math.max(1, 560/cssW), cssH = big ? (pv.clientHeight || cssW*0.5) : cssW*(k>1?0.85:100/160);
   if (!big) pv.style.height='';
-  PV_W = cssW/5; PV_H = cssH/5; pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssH*dpr); pvo.width=pv.width; pvo.height=pv.height;
+  PV_W = cssW/(5*k); PV_H = cssH/(5*k); pv.width = Math.round(cssW*dpr); pv.height = Math.round(cssH*dpr); pvo.width=pv.width; pvo.height=pv.height;
   return big;
 }
 function zoomSliceMulti(d, z){
@@ -5505,7 +5505,7 @@ function renderPkTable(f, d){
   tb.innerHTML = `<thead><tr><th>#</th><th>Posizione (${esc(unit)})</th><th>Intensità (${esc(yu)})</th><th>Nome sul grafico</th><th>Suggerimenti</th><th></th></tr></thead><tbody>`+
     rows.map((p,i)=>`<tr data-x="${p.x}" class="${p.manual?'man':''}" title="${p.manual?'Aggiunto da te':'Trovato in automatico'}">
       <td>${i+1}</td><td class="pos">${esc(p.num)}</td><td class="int">${esc(String(+p.y.toPrecision(4)).replace('.',dec))}</td>
-      <td class="nm"><input type="text" data-x="${p.x}" value="${esc(p.nameUi||'')}" placeholder="${p.sugg.length&&!p.custom?esc('💡 '+uiName(p.sugg[0])):'solo il numero'}" aria-label="Nome del picco ${esc(p.num)}"></td>
+      <td class="nm"><input type="text" data-x="${p.x}" value="${esc(p.nameUi||'')}" placeholder="${p.sugg.length&&!p.custom?'—':'solo il numero'}" aria-label="Nome del picco ${esc(p.num)}"></td>
       <td>${p.custom?'':p.sugg.slice(0,2).map(pillHtml).join('')}</td>
       <td class="act"><button type="button" class="more" data-x="${p.x}" title="Tutte le opzioni per questo picco">⋯</button><button type="button" class="del" data-x="${p.x}" title="Togli il picco (anche: Maiusc+clic o clic destro sul grafico)">×</button></td></tr>`).join('')+'</tbody>';
   const pk=x=>d.peaks.find(q=>Math.abs(q.x-x)<1e-9);

@@ -188,3 +188,8 @@ html.shell:not(.hasfiles) #workCard .wkR > *{display:none!important}
 html.shell:not(.hasfiles) #workCard .wkR::before{content:"Carica uno spettro: qui compariranno i suoi controlli.";display:block;padding:16px;color:var(--sh-sec);font-size:12px}
 html.shell .choicegrid .choice,html.shell .perpage .choice{border-radius:3px;padding:6px 10px}
 html.shell #shProject.dirty::after{content:" · modificato";color:var(--sh-sec);font-weight:400}
+html.shell .shres .pktools{overflow-x:auto;scrollbar-width:thin}
+html.shell[data-doc=export] #workCard .wkR,html.shell[data-doc=study] #workCard .wkR,html.shell[data-doc=export] #shSplitR,html.shell[data-doc=study] #shSplitR{display:none!important}
+html.shell[data-doc=export] #v3.on,html.shell[data-doc=study] #shStudy{right:0!important}
+html.shell #cmpName{min-width:200px}
+html.shell:not(.hasfiles) #prevF,html.shell:not(.hasfiles) #nextF,html.shell:not(.hasfiles) #viewSeg,html.shell:not(.hasfiles) #renameBtn{opacity:.4;pointer-events:none}
