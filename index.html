@@ -2162,7 +2162,7 @@ function parseBinary(buf, name){
   if (buf.byteLength>4 && new DataView(buf).getUint32(0, true)===0xFEFE0A0A) return parseOPUS(buf);
   return null;
 }
-function guessYCol(meta){ for (let k=meta.length-1;k>=Math.max(0,meta.length-3);k--){ const n=splitLine(meta[k].replace(/^#\s*/,''))||[]; if (n.length<3) continue; const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
+function guessYCol(meta, nData){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=meta[k].replace(/^#\s*/,''), n=/[\t;,]/.test(h) ? h.split(/[\t;,]/).map(t=>t.trim()).filter(Boolean) : (splitLine(h)||[]); if (n.length<3 || (nData && n.length!==nData) || n.some(t=>isFinite(toNum(t)))) continue;   /* solo la riga dei nomi delle colonne, non le righe informative */ const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
 function parseText(text, opt){
   const jc = parseJcamp(text); if (jc) return jc;
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))){ const q=parseText(text.replace(/##\s*(NTUPLES|DATA\s*CLASS)/gi,'##X'),opt); if (q){ q.importNotes=(q.importNotes||[]).concat(['JCAMP NTUPLES non è supportato: parte reale e immaginaria si mescolano e questi dati sono probabilmente sbagliati. Esporta lo spettro come testo o come JCAMP semplice']); q.importIssue=Object.assign({dropped:0,thou:0,after:0,midText:false,total:q.xs.length},q.importIssue||{},{ntuples:true}); } return q; }
@@ -2183,17 +2183,18 @@ function parseText(text, opt){
     start = iData>=0 ? iData+1 : 0;
     for (let i=0;i<start;i++) meta.push(lines[i]);
   }
-  const tail=[]; let extraCols=0, dropped=0, pending=0, thou=0, after=0, midText=false, gap0=null; const ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,start+3)));
+  const tail=[]; let extraCols=0, dropped=0, pending=0, thou=0, after=0, midText=false, gap0=null; const firstData=lines.slice(start).map(l=>l.trim()).find(l=>l&&parseLine(l)), ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,lines.indexOf(lines.slice(start).find(l=>l.trim()===firstData))).map(l=>l.trim()).filter(Boolean)), firstData?(splitLine(firstData)||[]).length:0);
   const THOU=/^[-+]?(\d{1,3}(\.\d{3})+,\d+|\d{1,3}(\.\d{3}){2,}|\d{1,3}(,\d{3})+\.\d+)$/, DOT3=/^[-+]?[1-9]\d{0,2}\.\d{3}$/, COMMA=/^[-+]?\d+,\d+$/;
   const newB=()=>({xs:[],ys:[],extra:0,textBefore:0,cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
   // quante celle vuote ci sono fra i valori: se cambia da una riga all'altra una colonna è saltata, e la riga non si può leggere
+  const lead=r=>/^\t|^\s*[,;]/.test(r)?1:0;   // prima colonna vuota: senza X la riga non si può leggere
   const innerEmpty=l=>{ const sep=l.includes('\t')?'\t':l.includes(';')?';':(!/\s/.test(l)&&!l.includes('"')&&l.includes(','))?',':null; if (!sep) return 0; const q=l.split(sep); let n=0; for (let k=1;k<q.length-1;k++) if (!q[k].trim()) n++; return n; };
-  { const cnt={}; for (let i=start, n=0;i<lines.length && n<400;i++){ const l=lines[i].trim(); if (l && parseLine(l, ycol)){ const g=innerEmpty(l); cnt[g]=(cnt[g]||0)+1; n++; } } const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; gap0=e?+e[0]:0; }   // il numero di celle vuote più comune: una riga diversa ha una colonna saltata
+  { const cnt={}; for (let i=start, n=0;i<lines.length && n<400;i++){ const l=lines[i].trim(); if (l && parseLine(l, ycol)){ const g=innerEmpty(l)+10*lead(lines[i]); cnt[g]=(cnt[g]||0)+1; n++; } } const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; gap0=e?+e[0]:0; }   // il numero di celle vuote più comune: una riga diversa ha una colonna saltata
   for (let i=start;i<lines.length;i++){
     const l = lines[i].trim(); if (!l) continue;
     const tk=splitLine(l)||[]; let p = parseLine(l, ycol);
-    if (p && innerEmpty(l)!==gap0) p=null;
-    if (!p && /^"?[^\d+\-."]/.test(l)){   // riga di testo: chiude il blocco di numeri
+    if (p && innerEmpty(l)+10*lead(lines[i])!==gap0) p=null;
+    if (!p && /^"?[^\d+\-.",;\t]/.test(l)){   // riga di testo: chiude il blocco di numeri
       if (cur.xs.length>=3){ blocks.push(cur); cur=newB(); }
       else if (cur.xs.length){ if (blocks.length) after+=cur.xs.length; cur=newB(); }
       if (blocks.length){ cur.textBefore++; if (tail.length<120) tail.push(l); } else meta.push(l);
@@ -2202,7 +2203,7 @@ function parseText(text, opt){
       if (tk.some(t=>THOU.test(t)) || (tk.some(t=>COMMA.test(t)) && tk.some(t=>DOT3.test(t)))) thou++;
       if (!/[\t;\s]/.test(l) && tk.some((t,k)=>k>=2 && /^\d{3}$/.test(t) && /^\d{1,3}$/.test(tk[k-1]))) thou++;   // 3.00,1,800: la virgola può essere un separatore delle migliaia
       }
-    if (cur.xs.length>=3 && !p && /^"?[-+]?\d/.test(l)) pending++;
+    if (cur.xs.length>=3 && !p && (/^"?[-+]?\d/.test(l) || /^[,;]\s*[-+]?\d/.test(l))) pending++;
     if (p){ dropped+=pending; pending=0;   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
       [0,ycol].forEach((c,k)=>{ const t=tk[c], C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)) C.other++; });
       cur.xs.push(p[0]); cur.ys.push(p[1]); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
@@ -2269,7 +2270,7 @@ function detectInstrument(p, name){
   if (/raman/.test(ty)) return {instr:'raman', reason:'intestazione: spettro Raman'+by};
   if (/ultraviolet|\buv\b|visible|uv.?vis/.test(ty)) return {instr:'uv', reason:'intestazione: spettro UV-Vis'+by};
   if (/chromatogram/.test(ty)) return {instr:'hplc', reason:'intestazione: cromatogramma'+by};
-  if (p.meta.some(l=>/^\W*(retention\s*)?(time|tempo|rt)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
+  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
   if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
   if (/nanomet|^nm/.test(xu)) return {instr:'uv', reason:'asse X in nm (intestazione)'+by};
   if (/minute|^min/.test(xu)) return {instr:'hplc', reason:'asse X in minuti (intestazione)'+by};
@@ -6449,6 +6450,11 @@ function xrfElements(f, d){
   const over=[];   // picchi dove due elementi presenti hanno righe sovrapposte
   d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg; if (p.custom && !p.suggAll) return; const es=[...new Set(SG.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
     if (es.length>=2) over.push({x:p.x, num:p.num, names:SG.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });
+  const assigned=d.peaks.filter(p=>p.custom||((p.suggAll||p.sugg)&&(p.suggAll||p.sugg).length)).length;
+  // la riga diffusa del tubo deve stare dove dice la fisica: se è spostata di oltre 80 eV, l'asse è spostato e gli elementi proposti non valgono
+  let tubeOff=null; try{ const an=f.xrf&&f.xrf.tube; if (an && FP.el[an]){ const E=fpLineE(an, ['W','Au','Pt'].includes(an)?'La':'Ka'); let best=null; for (const p of d.peaks){ const dx=p.x-E; if (Math.abs(dx)<=0.4 && (best==null || Math.abs(dx)<Math.abs(best))) best=dx; } tubeOff=best; } }catch(e){}
+  if (tubeOff!=null && Math.abs(tubeOff)>0.08) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true};
+  if (d.peaks.length>=5 && assigned<0.5*d.peaks.length) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true};
   return {els, over, unsure, oneLine, cands};
 }
 function probableElements(f, d){
@@ -6471,14 +6477,14 @@ function hypotheses(f, d){
     return {kind:'bands', list:markShared(groupHypotheses(it, pk, f.sample||S.sample)), pig:markShared(pig)};
   }
   if ((it==='xrf' && !f.uncal) || it==='libs'){ const xe=it==='xrf' ? xrfElements(f, d) : null, unsure=xe?xe.unsure:[], els=probableElements(f, d).filter(e=>!unsure.includes(e)), col=f.an&&f.an.color, over = xe ? xe.over : [], oneLine=xe?xe.oneLine:[];
-    return {kind:'els', els, col, over, unsure, oneLine, list:elementHypotheses(els).map(h=>Object.assign({},h,{lvl:(h.els||[]).some(e=>oneLine.includes(e))?'una riga sola: inconclusiva':'plausibile'})), pig: col ? xrfPigments(els, col) : []}; }
+    return {kind:'els', els, col, over, unsure, oneLine, shifted:!!(xe&&xe.shifted), list:elementHypotheses(els).map(h=>Object.assign({},h,{lvl:(h.els||[]).some(e=>oneLine.includes(e))?'una riga sola: inconclusiva':'plausibile'})), pig: col ? xrfPigments(els, col) : []}; }
   return null;
 }
 /* livello dichiarato: una banda sola è inconclusiva, qualunque sia il punteggio. «Supportata da più tecniche» non esiste: il programma non correla tecniche diverse */
 function hypGot(h){ return h.ev ? h.ev.filter(e=>e.hit!=null).length : 0; }
 function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : `${g} bande su ${m}: plausibile`)+sh; }
 /* due ipotesi che si reggono sulle stesse bande non si confermano a vicenda: lo si dichiara */
-function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>hits(o).includes(v)).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
+function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
 function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2]; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=noiseSigma(y)||0; if (!(h>0) || h<20*sg) return {};
@@ -6503,7 +6509,7 @@ function renderAnHyp(f, d){
   } else {
     why.innerHTML='Dagli elementi con una riga principale intensa o almeno due righe riconosciute ricavo i materiali compatibili, con l\'epoca d\'uso quando è un indizio di datazione (Eastaugh et al. 2008). Pensato per i beni culturali: <b>verifica sempre con altre tecniche</b> (Raman, FTIR, stratigrafia).';
     box.innerHTML = !H.els.length ? '<div class="pkempty">Nessun elemento con una riga principale intensa o due righe riconosciute. Dai un nome ai picchi o accetta i suggerimenti nella scheda «Picchi».</div>'
-      : `<div class="elrow"><b>Elementi:</b> ${H.els.map(e=>`<span class="pill on">${e}</span>`).join(' ')}</div>${(H.unsure||[]).length?`<p class="why" style="margin:4px 0">⚠️ Non distinguibili da questo spettro: ${H.unsure.map(esc).join(', ')}. As Kα coincide con Pb Lα, As Kβ è vicina a Hg Lβ, W è coperto dalle righe di Au: non si possono né affermare né escludere.</p>`:''}${(H.oneLine||[]).length?`<p class="why" style="margin:4px 0">⚠️ Una riga sola per ${H.oneLine.map(esc).join(', ')}: l'ipotesi è inconclusiva.</p>`:''}${(H.over||[]).length?`<p class="why" style="margin:4px 0">⚠️ Righe sovrapposte: ${H.over.map(o=>`${esc(o.num)} keV = ${esc(o.names.join(' + '))}`).join(' · ')}. L'area di questi picchi è la somma dei due elementi.</p>`:''}`;
+      : `<div class="elrow"><b>Elementi:</b> ${H.els.map(e=>`<span class="pill on">${e}</span>`).join(' ')}</div>${H.shifted?`<p class="why" style="margin:4px 0">⚠️ Più di metà delle righe non ha un'assegnazione: l'asse in energia sembra spostato e non propongo elementi. Allinealo o calibralo prima.</p>`:''}${(H.unsure||[]).length?`<p class="why" style="margin:4px 0">⚠️ Non distinguibili da questo spettro: ${H.unsure.map(esc).join(', ')}. As Kα coincide con Pb Lα, As Kβ è vicina a Hg Lβ, W è coperto dalle righe di Au: non si possono né affermare né escludere.</p>`:''}${(H.oneLine||[]).length?`<p class="why" style="margin:4px 0">⚠️ Una riga sola per ${H.oneLine.map(esc).join(', ')}: l'ipotesi è inconclusiva.</p>`:''}${(H.over||[]).length?`<p class="why" style="margin:4px 0">⚠️ Righe sovrapposte: ${H.over.map(o=>`${esc(o.num)} keV = ${esc(o.names.join(' + '))}`).join(' · ')}. L'area di questi picchi è la somma dei due elementi.</p>`:''}`;
     const cp=`<div class="colpick"><b>Di che colore è il punto misurato?</b> <span class="opt-l">così restringo le ipotesi</span><div class="pills">${Object.entries(COLOURS).filter(([k])=>k!=='orange').map(([k,[e,t]])=>`<button class="pill ${H.col===k?'on':''}" data-col="${k}">${e} ${t}</button>`).join('')}</div></div>`;
     let list='';
     if (H.col) list = H.pig.length ? `<ul class="anlist">${H.pig.map(h=>`<li class="lv-${h.weak?'info':'ok'}"><span>${COLOURS[h.col][0]}</span><div>${h.els.length?`<b>${h.els.join(' + ')}</b> → `:''}${esc(h.it)}${h.weak?' <small>(meno probabile: ci sono anche '+(h.no||[]).filter(e=>H.els.includes(e)).join(', ')+')</small>':''}</div></li>`).join('')}</ul>` : '<div class="pkempty">Nessun pigmento noto con questi elementi e questo colore: potrebbe essere una miscela o un materiale moderno.</div>';
@@ -6748,16 +6754,18 @@ function mvFlag(f, a, b, meas){
   for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo && P.xs[i]<=hi && U.y[i]>top){ top=U.y[i]; k=i; }
   if (k<0) return 'nessun dato nella zona'; const m=bandMeasure(P.xs, U.y, a, b);
   if (meas==='area' && m && m.area<=0) return 'area negativa o nulla';
-  const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; if (sg>0 && top-bot<5*sg) return 'nessun picco nella zona';
+  const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; const iz=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi) iz.push(i); const e3=a=>a.reduce((t,i)=>t+U.y[i],0)/a.length, eL=e3(iz.slice(0,3)), eR=e3(iz.slice(-3)); if (sg>0 && top-(eL+eR)/2<5*sg) return 'nessun picco nella zona';
   if (Math.min(P.xs[k]-lo, hi-P.xs[k])<0.03*(hi-lo)) return 'massimo al bordo della zona: picco tagliato o spostato';
   { const ys=f.ys, X=f.xs; let run=0, best=0, mx=-Infinity; for (let i=0;i<X.length;i++) if (X[i]>=lo&&X[i]<=hi&&ys[i]>mx) mx=ys[i]; for (let i=0;i<X.length;i++){ if (X[i]>=lo&&X[i]<=hi&&ys[i]===mx){ run++; best=Math.max(best,run); } else run=0; } const sgR=noiseSigma(ys)||0; if (best>=3 && mx>0 && mx>10*sgR) return 'cima tagliata o piatta: rivelatore saturo o due composti'; }
-  { const eL=U.y.find((v,i)=>P.xs[i]>=lo), iR=P.xs.length-1-[...P.xs].reverse().findIndex(x=>x<=hi), eR=U.y[iR]; if (eL!=null && eR!=null && Math.max(eL,eR)-bot>0.1*(top-bot)) return 'bordi della zona lontani dalla linea di base: zona da allargare o interferente'; }
+  { if (Math.max(eL,eR)-bot>0.1*(top-bot) && Math.max(eL,eR)-bot>3*sg) return 'bordi della zona lontani dalla linea di base: zona da allargare o interferente'; }
   const sh=peakShape(P.xs,U.y,P.xs[k]); if (sh.flat) return 'cima piatta: rivelatore saturo o due composti'; if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
   return ''; }
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
-function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; let k=-1, top=-Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=Math.min(a,b)&&P.xs[i]<=Math.max(a,b)&&U.y[i]>top){ top=U.y[i]; k=i; } return {w:m.fwhm, x:k>=0?P.xs[k]:null}; }
+function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
+  let w10=null, as=null; if (k>=0 && top>bot){ const t=bot+0.1*(top-bot); let l=k, r=k; while (l>0&&P.xs[l]>lo&&U.y[l]>t) l--; while (r<P.xs.length-1&&P.xs[r]<hi&&U.y[r]>t) r++; w10=P.xs[r]-P.xs[l]; const L=P.xs[k]-P.xs[l], Rr=P.xs[r]-P.xs[k]; as=L>0?Rr/L:null; }
+  return {w:m.fwhm, x:k>=0?P.xs[k]:null, w10, as}; }
 function mvTable(instr){
   const c=mvCfg(instr), list=mvFiles(instr, c), R=c.c!=null && c.d!=null;
   if (c.a==null || c.b==null) return null;
@@ -6765,8 +6773,8 @@ function mvTable(instr){
     return {f, v, r, y: v==null ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
   const key=c.a+'|'+c.b; T.forEach(o=>{ const k=o.f.an&&o.f.an.concK; if (o.conc!=null && k && k!==key){ o.conc=null; o.flag=o.flag||'concentrazione scritta per un\'altra zona'; o.stale=true; } });
   // rispetto agli standard: un picco più largo nasconde un coeluito, uno spostato può essere un altro composto
-  const st=T.filter(o=>o.role==='std'&&o.conc!=null&&o.shape&&o.shape.w>0), med=a=>{ const v=a.slice().sort((p,q)=>p-q); return v.length?v[v.length>>1]:null; }, mw=med(st.map(o=>o.shape.w)), mx=med(st.map(o=>o.shape.x));
-  if (st.length>=3 && mw>0) T.forEach(o=>{ if (o.flag||!o.shape||!(o.shape.w>0)) return; if (Math.abs(o.shape.x-mx)>0.5*mw) o.flag='massimo spostato rispetto agli standard: altro composto?'; else if (o.shape.w>1.15*mw) o.flag='più largo degli standard: possibile coeluito'; });
+  const st=T.filter(o=>o.role==='std'&&o.conc!=null&&o.shape&&o.shape.w>0), med=a=>{ const v=a.slice().sort((p,q)=>p-q); return v.length?v[v.length>>1]:null; }, mw=med(st.map(o=>o.shape.w)), mx=med(st.map(o=>o.shape.x)), m10=med(st.map(o=>o.shape.w10).filter(v=>v>0)), mas=med(st.map(o=>o.shape.as).filter(v=>v>0));
+  if (st.length>=3 && mw>0) T.forEach(o=>{ if (o.flag||!o.shape||!(o.shape.w>0)) return; if (Math.abs(o.shape.x-mx)>0.5*mw) o.flag='massimo spostato rispetto agli standard: altro composto?'; else if (o.shape.w>1.15*mw) o.flag='più largo degli standard: possibile coeluito'; else if (m10>0 && o.shape.w10>1.12*m10) o.flag='forma diversa dagli standard alla base: coeluito o coda'; else if (mas>0 && o.shape.as!=null && Math.abs(o.shape.as-mas)>0.35*mas) o.flag='forma diversa dagli standard alla base: coeluito o coda'; });
   T.weight=c.weight; return T;
 }
 function mvCalib(rows){ const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y) && o.role==='std' && !mvNoEstimate(o)).map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts}) : null; }
