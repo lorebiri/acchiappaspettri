@@ -217,3 +217,4 @@ html.shell .shres .pktab th:nth-child(1){width:28px} html.shell .shres .pktab th
 html.shell .shres .pktab td{overflow:hidden}
 html.shell .shres .pktab td:nth-child(4) input{width:100%;max-width:260px;box-sizing:border-box}
 html.shell .shres .pktab .sgp{display:inline-block;vertical-align:middle;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:1199px){html.shell .shres .pktab th:nth-child(2){width:72px} html.shell .shres .pktab th:nth-child(3){width:80px} html.shell .shres .pktab th:nth-child(4){width:120px} html.shell .shres .pktab th:nth-child(6){width:48px}}

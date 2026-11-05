@@ -8,3 +8,5 @@
 .upnotes:empty{display:none}
 .updbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}
 .updbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+
+#mvBand input[aria-invalid=true]{outline:2px solid #c62828;outline-offset:1px}
