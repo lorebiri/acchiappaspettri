@@ -96,6 +96,19 @@ fn pick_open(
 }
 
 #[tauri::command(async)]
+fn pick_many(app: AppHandle, g: State<'_, Grants>, title: String) -> Result<Vec<Picked>, String> {
+    let mut out = Vec::new();
+    if let Some(list) = app.dialog().file().set_title(title).blocking_pick_files() {
+        for f in list {
+            let p = fp(f)?;
+            grant(&g, &p);
+            out.push(Picked { name: file_name(&p), path: p.to_string_lossy().into_owned() });
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command(async)]
 fn pick_save(
     app: AppHandle,
     g: State<'_, Grants>,
@@ -295,11 +308,11 @@ pub fn run() {
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_save, read_file, write_file, take_pending_open, install_info, installer_language
+        pick_open, pick_many, pick_save, read_file, write_file, take_pending_open, install_info, installer_language
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_save, read_file, write_file, take_pending_open, install_info, installer_language,
+        pick_open, pick_many, pick_save, read_file, write_file, take_pending_open, install_info, installer_language,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder

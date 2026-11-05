@@ -1,0 +1,28 @@
+/* Versione online: Fast-Plotting e Fast-Consulting. Nasconde, non toglie: il codice resta, «Mostra qui» riporta tutto. Mai attivo nell'app desktop.
+   Non toccare picchi, riferimenti, ipotesi e assegnazioni: docs/WEB-LEGGERA.md */
+html:not(.web) .webinv{display:none}
+html.web.web-full .webinv{display:none}
+html.web .webinv{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;padding:8px 10px;border:1px dashed var(--line);border-radius:8px;font-size:13px;color:var(--muted)}
+html.web .webinv[hidden]{display:none}
+html.web:not(.web-full) .web-adv,
+html.web:not(.web-full) .imgentry:has(#imgBtn),
+html.web:not(.web-full) [data-panel="refs"] .phead:has([data-gl="nnls"]),
+html.web:not(.web-full) [data-panel="refs"] .phead:has([data-gl="nnls"]) + .why,
+html.web:not(.web-full) #mixRun,
+html.web:not(.web-full) #mixOut,
+html.web:not(.web-full) #secCult,
+html.web:not(.web-full) #xqBox,
+html.web:not(.web-full) #mvBand label:has(#mvModel),
+html.web:not(.web-full) #mvBand label:has(#mvUnit),
+html.web:not(.web-full) #mvOut th:nth-child(n+3),
+html.web:not(.web-full) #mvOut td:nth-child(n+3),
+html.web:not(.web-full) #mvOut > .row,
+html.web:not(.web-full) #mvOut .calbox,
+html.web:not(.web-full) #plsOut,
+html.web:not(.web-full) #secMulti h4:has([data-gl="cal"]) + p,
+html.web:not(.web-full) #secMulti h4:has([data-gl="pca"]),
+html.web:not(.web-full) #secMulti h4:has([data-gl="pca"]) + .why,
+html.web:not(.web-full) #secMulti .ibfields:has(#pcPre),
+html.web:not(.web-full) #pcOut,
+html.web:not(.web-full) #batchBar [data-b="pca"],
+html.web:not(.web-full) #batchBar [data-b="fit"]{display:none!important}
