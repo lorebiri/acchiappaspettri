@@ -66,7 +66,7 @@
 
   /* ---- documenti ---- */
   const root=document.documentElement; let docNow='start';
-  function mark(){ root.dataset.doc=docNow; for (const k in DOC){ DOC[k].classList.toggle('on',k===docNow); DOC[k].setAttribute('aria-selected',k===docNow); DOC[k].disabled=k!=='start'&&!files.length; } multi.classList.toggle('on',docNow==='study'); $('#tbExport').disabled=!files.length; }
+  function mark(){ root.dataset.doc=docNow; for (const k in DOC){ DOC[k].classList.toggle('on',k===docNow); DOC[k].setAttribute('aria-selected',k===docNow); DOC[k].disabled=k!=='start'&&!files.length; } multi.classList.toggle('on',docNow==='study'); $('#tbExport').disabled=!files.length; root.classList.toggle('hasfiles',files.length>0); ['#prevF','#nextF'].forEach(q=>{ const b=$(q); if (b) b.disabled=files.length<2; }); }
   const oGo=win.go;
   win.go=function(n){ oGo(n); if (curView===1) docNow='start'; else if (curView===3) docNow='export'; else if (docNow==='start'||docNow==='export') docNow='graph'; mark(); if (curView===2) resize(); };
   function showDoc(id){ if (id!=='start'&&!files.length) return; if (id==='start'){ go(1); return; } if (id==='export'){ go(3); return; } docNow=id; if (curView!==2) go(2); docNow=id; mark();
@@ -104,7 +104,6 @@
   win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   bindSplit(splitL,'left','x',1); bindSplit(splitR,'right','x',-1); bindSplit(splitB,'bottom','y',-1);
   new ResizeObserver(()=>resize()).observe($('#pvWrap'));
-  win.addEventListener('resize',applySizes);
   /* schede da tastiera: frecce sinistra e destra */
   win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   win.setBig=function(){ toggleFocus(); };
@@ -112,24 +111,25 @@
 
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
   /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
-  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/^Tocca\b/,'Fai clic su'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
+  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
   const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;
   win.say=function(sel,txt){ oSay(sel,txt); if (!/^Sotto al grafico trovi/.test(String(txt))) pushMsg(txt); };
   // un avviso o un errore si vede anche senza emoji: «non è», «non riesco», «non si può», «manca»…
-  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt)) || /\b(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible))\b/i.test(String(txt))){ lastWarn=txt; oToast(txt); } };
+  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible))(?=\s|$|[.,:;!?])/i.test(String(txt))){ lastWarn=txt; oToast(txt); } };
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;
   win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ qualBadge(); refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
   function qualBadge(){ const f=files[cur]; let n=0; if (f&&viewMode!=='cmp'){ try{ n=assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){} } RES.qual.b.dataset.n=n||''; }
-  function updateStatus(){ const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
+  function saveState(){ const P=win.AcchProject; if (!P) return; const dirty=P.isDirty(), has=files.length>0; stSave.textContent=has?(dirty?tr('Modificato'):tr('Salvato')):''; stSave.classList.toggle('warn',dirty); const n=$('#shProject'); if (n){ n.textContent=P.displayName(); n.classList.toggle('dirty',dirty); } }
+  function updateStatus(){ saveState(); const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
     if (!f||viewMode==='cmp'){ stChain.textContent=''; stRange.textContent=''; return; }
     const it=f.instr; stChain.textContent=[NOME_IT[it]||it, S.conv[it]&&S.conv[it]!=='orig'?S.conv[it]:null, S.base[it]&&S.base[it]!=='none'?S.base[it]:null, +S.smooth[it]?'SG'+S.smooth[it]:null, +S.deriv[it]?'d'+S.deriv[it]:null, S.spike[it]?'despike':null].filter(Boolean).join(' · ');
     const z=f._zoom; stRange.textContent=z?`${tr('Vista')}: ${fmtV(z[0])} – ${fmtV(z[1])} (${tr('solo anteprima')})`:''; }
-  win.AcchProject.onChange(i=>{ stSave.textContent=i.hasFiles||i.path?(i.dirty?tr('Modificato'):(i.path?tr('Salvato'):tr('Non salvato'))):''; stSave.classList.toggle('warn',i.dirty); const n=$('#shProject'); if (n){ n.textContent=(i.dirty?'• ':'')+i.name; n.title=i.path||''; } });
+  win.AcchProject.onChange(i=>{ stSave.textContent=i.hasFiles||i.path?(i.dirty?tr('Modificato'):(i.path?tr('Salvato'):tr('Non salvato'))):''; stSave.classList.toggle('warn',i.dirty); const n=$('#shProject'); if (n){ n.textContent=i.name; n.classList.toggle('dirty',!!i.dirty); n.title=i.path||''; } });
   $('#filesCard').prepend(el('div',{class:'shhead'},'Progetto'),el('div',{id:'shProject','data-noi18n':''}));
   $('#filesCard').insertBefore(el('div',{class:'shhead'},'Spettri'),$('#filesCard').querySelector('.row'));
 

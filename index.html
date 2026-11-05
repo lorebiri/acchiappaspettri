@@ -56,6 +56,8 @@ p.hint{color:var(--muted);margin:0 0 14px}
 .btn:active{transform:scale(.97)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.07)}
+#dlgSettings .ibfields{align-items:flex-end}
+.pktab:not(:has(.sgp)) th:nth-child(5),.pktab:not(:has(.sgp)) td:nth-child(5){display:none}
 .btn.primary:disabled,.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);cursor:default;filter:none}
 .btn.big{padding:13px 22px;font-size:16px;border-radius:14px}
 .btn.small{padding:5px 11px;font-size:13px;border-radius:9px}
@@ -5860,7 +5862,7 @@ function renderSummary(){
   else {
     items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>`);
     if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 <span>${S.orient==='landscape'?'orizzontale':'verticale'}</span>, <span>${S.perPage===1?'1 grafico per pagina':S.perPage+' grafici per pagina'}</span>, <span>${pages===1?'circa 1 pagina':'circa '+pages+' pagine'}</span>${ov?`, <span>${ov===1?'1 pagina di confronto':ov+' pagine di confronto'}</span>`:''}</li>`);
-    if (zipParts.length) items.push(`<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
+    if (zipParts.length) items.push(S.oneFile && (S.outPdf||originAlone) ? `<li>🗜️ nello ZIP anche ${zipParts.join(', ')}</li>` : `<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
     if (originAlone) items.push('<li>📈 <b>1 file Excel per Origin</b>: un foglio per spettro e i fogli con gli spettri affiancati</li>');
     const halfCmp = COMPS.filter(c=>c.out && members(c).length===1).length;
     if (halfCmp) items.push(`<li>ℹ️ ${halfCmp} confront${halfCmp===1?'o ha':'i hanno'} un solo spettro e non ${halfCmp===1?'verrà stampato':'verranno stampati'}: servono almeno 2 spettri.</li>`);

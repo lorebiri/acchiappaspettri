@@ -416,6 +416,7 @@
 "massimo spostato rispetto agli standard: altro composto?": "maximum shifted from the standards: another compound?",
 "medio": "medium",
 "medio (15)": "medium (15)",
+"nello ZIP anche {0}": "also in the ZIP: {0}",
 "nessun dato nella zona": "no data in the region",
 "nessun picco nella zona": "no peak in the region",
 "nessuna": "none",
@@ -562,6 +563,8 @@
 "🔍 Di che materiale si tratta?": "🔍 What material is it?",
 "🔎 Comandi": "🔎 Commands",
 "🖥️ Scarica Acchiappaspettri Desktop": "🖥️ Download Acchiappaspettri Desktop",
+"🗜️ nello ZIP anche": "🗜️ also in the ZIP:",
+"🗜️ nello ZIP anche {0}": "🗜️ also in the ZIP: {0}",
 "😕 Non riesco a leggere questa immagine:": "😕 I cannot read this image:",
 "🙈 Ho saltato {0} di formato non riconosciuto: {1}.": "🙈 I skipped {0} of unrecognised format: {1}.",
 "🧪 Taratura con standard di composizione nota (XRF)": "🧪 Calibration with standards of known composition (XRF)"

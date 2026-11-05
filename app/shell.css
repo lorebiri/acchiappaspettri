@@ -180,5 +180,11 @@ html.shell[data-doc=start] #v1 .card{border:0;background:none;box-shadow:none}
 html.shell .stgrid{align-items:end}
 @media (max-width:1199px){html.shell #shTabs #pvTitle{display:none} html.shell #tabs .tab span{font-size:10.5px}}
 html.shell .shtab:focus-visible,html.shell .shrt:focus-visible,html.shell #tabs .tab:focus-visible{outline:2px solid var(--sh-acc);outline-offset:-2px}
-html.shell .toast{bottom:auto;top:calc(var(--T) + var(--D) + 8px)}
+html.shell #toast,html.shell .toast{bottom:auto!important;top:calc(var(--T) + var(--D) + 8px);height:auto;max-height:40vh}
 html.shell[data-theme=dark] .tab:focus-visible,html.shell[data-theme=dark] .btn:focus-visible,html.shell[data-theme=dark] .pill:focus-visible,html.shell[data-theme=dark] .shtab:focus-visible,html.shell[data-theme=dark] .shrt:focus-visible,html.shell[data-theme=dark] #tabs .tab:focus-visible{outline:2px solid #9cc0ff;outline-offset:-2px}
+html.shell .shres .pktools .btn{white-space:nowrap;flex:none}
+html.shell .btn:disabled,html.shell .btn.primary:disabled{background:var(--sh-hover)!important;border-color:var(--sh-border)!important;color:var(--sh-sec)!important;cursor:default}
+html.shell:not(.hasfiles) #workCard .wkR > *{display:none!important}
+html.shell:not(.hasfiles) #workCard .wkR::before{content:"Carica uno spettro: qui compariranno i suoi controlli.";display:block;padding:16px;color:var(--sh-sec);font-size:12px}
+html.shell .choicegrid .choice,html.shell .perpage .choice{border-radius:3px;padding:6px 10px}
+html.shell #shProject.dirty::after{content:" · modificato";color:var(--sh-sec);font-weight:400}
