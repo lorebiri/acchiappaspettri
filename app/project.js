@@ -21,7 +21,7 @@
       tx=async(mode,fn)=>{ const d=await open(); try{ return await new Promise((res,rej)=>{ const t=d.transaction(T,mode), r=fn(t.objectStore(T)); t.oncomplete=()=>res(r&&r.result); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); }); } finally { d.close(); } };
     return { async put(){ if (busy || !files.length || !isDirty()) return false; const b=await build(); if (b.bytes.length>200*1048576) return false; await tx('readwrite',s=>s.put({bytes:b.bytes, at:new Date().toISOString(), name:displayName(), lang:null},'last')); return true; },
       get(){ return tx('readonly',s=>s.get('last')).catch(()=>null); }, clear(){ try{ return tx('readwrite',s=>s.delete('last')).catch(()=>{}); }catch(e){ return Promise.resolve(); } } }; })();
-  async function offerRecovery(){ const r=await autosave.get(); if (!r || !r.bytes || files.length) return false; if (win.ACCH_TEST) return false; const when=new Date(r.at).toLocaleString(); const yes=await win.uiConfirm(`C'è un lavoro non salvato del ${when} («${r.name}»). Vuoi recuperarlo?`); if (!yes){ await autosave.clear(); return false; } const ok=await openBytes(r.bytes,'recuperato.acchspettri',null); if (ok){ name=null; path=null; baseline=null; notify(); await autosave.put(); } return ok; }
+  async function offerRecovery(){ const r=await autosave.get(); if (!r || !r.bytes || files.length) return false; if (win.ACCH_TEST) return false; const when=new Date(r.at).toLocaleString(); const yes=await win.uiConfirm(`C'è un lavoro non salvato del ${when} («${r.name}»). Vuoi recuperarlo? Se rispondi no, la copia viene cancellata.`); if (!yes){ await autosave.clear(); return false; } const ok=await openBytes(r.bytes,'recuperato.acchspettri',null); if (ok){ name=null; path=null; baseline=null; notify(); await autosave.put(); } return ok; }
   function isDirty(){ if (busy) return false; if (!files.length && !path) return false; return baseline==null || sig()!==baseline; }
   function notify(){ const d=isDirty(), info={name:displayName(), path, dirty:d, hasFiles:files.length>0}; listeners.forEach(fn=>{ try{ fn(info); }catch(e){} }); }
   function touch(){ clearTimeout(sigTimer); sigTimer=setTimeout(notify, 400); }
@@ -96,13 +96,14 @@
       // la memoria di ogni spettro torna prima di ricaricarlo; va riconosciuta anche se la chiave interna dipende dal numero di punti
       win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>win.ACCH_PENDING_MEM.set(s.path, s.memory||null));
       const ents=P.spectra.map(s=>({file:new File([s.bytes], s.name), path:s.path}));
+      prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
       if (ents.length && !files.length) throw new (F().ProjectError)('corrupted','nessuno spettro leggibile');
       const lost=ents.length-files.length;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));
       syncControls(); resetCaches(); refreshAll(); if (files.length) go(2);
-      createdAt=P.manifest.createdAt||null; prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
+      createdAt=P.manifest.createdAt||null;
       if (legacy){ name=null; path=null; } else { name=fileName||null; path=filePath||null; }
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
@@ -115,14 +116,14 @@
     finally{ win.ACCH_PENDING_MEM=null; busy=false; loader(false); notify(); }
   }
   function init(){
-    if (win.indexedDB && !win.ACCH_TEST){ let lastPut=null; win.setInterval(()=>{ if (busy || !files.length || !isDirty()) return; const q=sig(); if (q===lastPut) return; lastPut=q; autosave.put().catch(e=>console.error(e)); },30000); win.setTimeout(()=>{ offerRecovery().catch(e=>console.error(e)); },800); }
+    if (win.indexedDB && !win.ACCH_TEST){ let lastPut=null, nextAt=0; win.setInterval(()=>{ if (busy || !files.length || !isDirty() || Date.now()<nextAt) return; const q=sig(); if (q===lastPut) return; lastPut=q; const t0=Date.now(); autosave.put().catch(e=>console.error(e)).finally(()=>{ nextAt=Date.now()+20*(Date.now()-t0); }); },30000); win.setTimeout(()=>{ offerRecovery().catch(e=>console.error(e)); },800); }
     const hook=n=>{ const o=win[n]; if (typeof o==='function') win[n]=function(){ const r=o.apply(this,arguments); touch(); return r; }; };
     ['persist','saveS','mvSave','saveCmps','saveRefs'].forEach(hook);
     const ae=win.addEntries; win.addEntries=async function(){ const r=await ae.apply(this,arguments); touch(); return r; };
     baseline=sig();
     win.addEventListener('beforeunload', e=>{ if (api.host===hostDefault && isDirty()){ e.preventDefault(); e.returnValue=''; } });
   }
-  Object.assign(api,{autosave, offerRecovery, init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, _build:build, _sig:sig, MSG});
+  Object.assign(api,{prevResults:()=>prevResults, autosave, offerRecovery, init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, _build:build, _sig:sig, MSG});
   api.lock=v=>{ busy=!!v; };
   Object.defineProperty(api,'path',{get:()=>path}); Object.defineProperty(api,'busy',{get:()=>busy});
   win.AcchProject=api;

@@ -20,7 +20,7 @@ Online e desktop eseguono lo stesso `index.html`. La versione online è pensata 
 | Composizione XRF, spessori, standard | «Mostra qui» | in vista |
 | Immagini multibanda | «Mostra qui» | in vista |
 
-Un progetto che usa queste funzioni le mostra da solo all'apertura, e una foto trascinata apre comunque il suo pannello. I risultati calcolati in una sessione precedente e non rifatti si conservano in `results/precedenti/` al salvataggio.
+Un progetto che usa queste funzioni le mostra da solo all'apertura, e una foto trascinata apre comunque il suo pannello. I risultati calcolati in una sessione precedente e non rifatti si conservano in `results/precedenti_…` al salvataggio.
 
 ## Regole
 

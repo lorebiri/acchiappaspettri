@@ -15,7 +15,7 @@
   function applyTheme(){ const t=lsG('acch.ui.theme')||'auto', dark=t==='dark'||(t==='auto'&&win.matchMedia&&win.matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme=dark?'dark':'light'; }
   function setLang(l){ win.AcchI18n.setLang(l); const lab=$('#langLab'); if (lab) lab.textContent=l.toUpperCase(); if (typeof S!=='undefined' && S.lang!==l){ S.lang=l; saveS(); if (typeof syncControls==='function') syncControls(); if (files.length) refreshAll(); } }
   function openSettings(){ const d=$('#dlgSettings'); $('#stLang').value=win.AcchI18n.lang; $('#stTheme').value=lsG('acch.ui.theme')||'auto'; $('#stVer').textContent=APP_VERSION_FULL();
-    $('#stKind').textContent=win.AcchI18n.tr(isDesktop()?'Applicazione desktop':'Versione online'); $('#stDesktop').hidden=!isDesktop(); $('#stWeb').hidden=isDesktop(); if (!d.open) d.showModal(); if (win.AcchDesktop) win.AcchDesktop.syncSettings(); }
+    $('#stKind').textContent=isDesktop()?'Applicazione desktop':'Versione online'; $('#stDesktop').hidden=!isDesktop(); $('#stWeb').hidden=isDesktop(); if (!d.open) d.showModal(); if (win.AcchDesktop) win.AcchDesktop.syncSettings(); }
 
   /* collegamenti reali: si chiede a GitHub l'ultima versione stabile (non include le beta) soltanto quando l'utente apre la finestra */
   function detectOs(){ const u=(navigator.userAgent||'')+' '+(navigator.platform||''); if (/Win/i.test(u)) return 'windows'; if (/Mac/i.test(u)) return 'macos'; if (/Linux|X11/i.test(u)) return 'linux'; return null; }
