@@ -12,6 +12,16 @@
 - **Motori web diversi**: WebKit su macOS e Linux, WebView2 su Windows. HEIC/TIFF si aprono solo dove il motore li supporta.
 - **Grafici**: il tema scuro non cambia i grafici, che restano bianchi come nei file esportati. Alcuni piccoli elementi colorati a mano nell'interfaccia possono essere meno curati in tema scuro.
 - **Inglese**: traduzione a livello di testo mostrato. Nomi di alcuni file esportati e nomi tecnici restano in italiano. Il testo costruito da pezzi molto dinamici può risultare meno naturale.
-- **Dati scientifici**: vedi [SCIENZA.md](SCIENZA.md).
+- **Dati scientifici**: vedi [SCIENZA.md](SCIENZA.md). In breve, quelli trovati dai collaudi:
+  - **XRF, elementi minori**: un elemento sotto la soglia di rivelazione dei picchi (per esempio Sn al 3% in un bronzo simulato) non entra nell'elenco automatico, e la stima FP lo ridistribuisce sugli altri. Le note elencano gli elementi considerati: aggiungilo a mano.
+  - **XRF, asse spostato**: se la riga diffusa del tubo è spostata di oltre 80 eV, non viene proposto nessun elemento finché l'asse non è allineato.
+  - **XRF, oltre 50 kV**: il modello del tubo arriva a 50 kV, e una misura a 60 kV viene calcolata a 50 con un avviso.
+  - **XRF, righe coincidenti**: As e Pb, As e Hg, W e Au, S e Mo L restano «non distinguibili» quando manca una riga libera. Un ottone può risultare con Cu «a una riga sola».
+  - **Dati calcolati**: nessun allargamento dei bastoncini, nessuna conversione nm ↔ eV ↔ cm⁻¹. Uno spettro in eV va scelto a mano come UV, e l'asse resta etichettato in nm.
+  - **NMR**: integrali dei soli picchi in elenco, quindi i multipletti risultano sottostimati. Formati Bruker `fid` e `1r`, BES3T e JCAMP NTUPLES non sono letti.
+  - **EPR**: se il campo è in gauss ma etichettato mT, viene segnalato solo quando è nota la frequenza. Il doppio integrale non ha un'incertezza.
+  - **HPLC e tarature**: niente integrazione manuale, niente sequenze, niente repliche né diluizioni. Una coeluizione con Δt molto piccolo può non essere segnalata. Standard e campioni con elaborazioni diverse non vengono confrontati.
+  - **Separatori**: un file con tutti i valori nel formato `40.000`, o con le migliaia all'americana `12,345` in una colonna, viene letto con la virgola o il punto come decimale senza avviso.
+  - **Riferimenti**: senza linea di base un fondo di fluorescenza alza il punteggio: c'è un avviso, ma il punteggio resta.
 - **Progetti**: niente foto del falso colore; zoom e scheda aperta non vengono ripristinati.
 - **File grandi**: i progetti sono caricati interamente in memoria; limite di sicurezza 2 GB.
