@@ -950,7 +950,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
           <label class="ibf"><span>Quali spettri</span><select id="mvWhich"><option value="inc">solo quelli spuntati</option><option value="all">tutti quelli caricati</option></select></label>
         </div>
         <div id="xqBox"></div>
-        <h4 class="anh">📏 Misura di banda e retta di taratura <button type="button" class="gl" data-gl="cal" title="Cosa vuol dire?">?</button><button type="button" class="gl" data-gl="lod" title="Cosa vuol dire?">?</button></h4>
+        <h4 class="anh"><span id="mvHead">📏 Misura di banda e retta di taratura</span> <button type="button" class="gl" data-gl="cal" title="Cosa vuol dire?">?</button><button type="button" class="gl" data-gl="lod" title="Cosa vuol dire?">?</button></h4>
         <div class="ibfields" id="mvBand"></div>
         <div id="mvOut"></div>
         <h4 class="anh">🧭 PCA e gruppi di campioni <button type="button" class="gl" data-gl="pca" title="Cosa vuol dire?">?</button></h4>
@@ -5402,6 +5402,7 @@ pv.addEventListener('mousemove', e=>{
   const hp = pkHit(mx,my), inside = mx>=geo.px0 && mx<=geo.px0+geo.pw && my>=geo.py0 && my<=geo.py0+geo.ph;
   pv.style.cursor = hp ? 'pointer' : 'crosshair';
   const unit=INSTR[pvView.instr].xPdf.replace('cm-1','cm⁻¹'), dec=T_().dec;
+  pv.title = hp && hp.custom ? `${hp.num} · ${hp.nameUi||hp.name}` : '';   // il nome intero del picco, anche quando sul grafico è accorciato
   if (hp){ pvHover={peak:hp};
     $('#readout').textContent = `Picco ${hp.num} ${unit}${hp.custom?' · «'+(hp.nameUi||hp.name)+'»':''}   ·   clic: nome · clic destro: menu · Maiusc+clic: toglilo`; }
   else if (inside && S.showPeaks!==false){
@@ -6215,7 +6216,7 @@ async function buildPdf(){
   const total=doc.getNumberOfPages();
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text(pdfText([title, date, S.docAuthor].filter(Boolean).join('  ·  ')), M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
-  { const tot=doc.internal.getNumberOfPages(); for (let i=1;i<=tot;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(140); doc.text('Acchiappaspettri '+APP_VERSION_FULL(), doc.internal.pageSize.getWidth()-4, doc.internal.pageSize.getHeight()-2.5, {align:'right'}); } doc.setProperties({creator:'Acchiappaspettri '+APP_VERSION_FULL()}); }
+  { const tot=doc.internal.getNumberOfPages(); for (let i=1;i<=tot;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(140); doc.text('Acchiappaspettri '+APP_VERSION_FULL(), doc.internal.pageSize.getWidth()/2, doc.internal.pageSize.getHeight()-2, {align:'center'}); } doc.setProperties({creator:'Acchiappaspettri '+APP_VERSION_FULL()}); }
   return doc.output('blob');
 }
 
@@ -6506,14 +6507,16 @@ function hypotheses(f, d){
 /* livello dichiarato: una banda sola è inconclusiva, qualunque sia il punteggio. «Supportata da più tecniche» non esiste: il programma non correla tecniche diverse */
 const uiEn=()=>!!(window.AcchI18n&&window.AcchI18n.lang==='en');
 function hypGot(h){ return h.ev ? h.ev.filter(e=>e.hit!=null).length : 0; }
-function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, part=g>=2 && g<Math.ceil(m/2), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
+function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, part=g>=2 && (g<Math.ceil(m/2) || m<3), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
 /* due ipotesi che si reggono sulle stesse bande non si confermano a vicenda: lo si dichiara */
 function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
 function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2]; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=noiseSigma(y)||0; if (!(h>0) || h<20*sg) return {};
   const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
-  const W5=xs[a.r]-xs[a.l], W1=xs[b.r]-xs[b.l], L=xs[k]-xs[b.l], Rr=xs[b.r]-xs[k]; return {flat:W1/W5<1.55, asym:L>0&&Rr>0&&(Rr/L>2.5||L/Rr>2.5)}; }
+  // posizioni dei fianchi interpolate tra i due punti a cavallo della soglia: con picchi stretti l'arrotondamento al punto intero falsava il rapporto
+  const at=(i,j,q)=>{ const t=base+q*h, d=y[j]-y[i]; return xs[i]+(d? (t-y[i])/d : 0.5)*(xs[j]-xs[i]); };
+  const W5=Math.abs(at(a.r,a.r-1,0.5)-at(a.l,a.l+1,0.5)), W1=Math.abs(at(b.r,b.r-1,0.1)-at(b.l,b.l+1,0.1)), L=xs[k]-xs[b.l], Rr=xs[b.r]-xs[k]; return {flat:W5>0&&W1/W5<1.55, asym:L>0&&Rr>0&&(Rr/L>2.5||L/Rr>2.5)}; }
 function flatTopPeaks(xs, y, peaks){ return peaks.filter(p=>peakShape(xs,y,p.x).flat); }
 function peakFwhmPts(xs, y, x0){ let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2], t=base+(y[k]-base)/2; if (!(y[k]>base)) return 0; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return r-l; }
 function renderAnHyp(f, d){
@@ -6786,13 +6789,16 @@ function mvFlag(f, a, b, meas){
   { const ys=f.ys, X=f.xs; let run=0, best=0, mx=-Infinity; for (let i=0;i<X.length;i++) if (X[i]>=lo&&X[i]<=hi&&ys[i]>mx) mx=ys[i]; for (let i=0;i<X.length;i++){ if (X[i]>=lo&&X[i]<=hi&&ys[i]===mx){ run++; best=Math.max(best,run); } else run=0; } const sgR=noiseSigma(ys)||0; if (best>=3 && mx>0 && mx>10*sgR) return 'cima tagliata o piatta: rivelatore saturo o due composti'; }
   { if (Math.max(eL,eR)-bot>(f.instr==='hplc'?0.03:0.10)*(top-bot) && Math.max(eL,eR)-bot>3*sg) return f.instr==='hplc' ? 'bordi della zona lontani dalla linea di base: zona da allargare o interferente' : 'bordi della zona lontani dalla linea di base: allarga la zona'; }
   const sh=peakShape(P.xs,U.y,P.xs[k]); if (sh.flat) return 'cima piatta: rivelatore saturo o due composti';
-  if (f.instr==='hplc' && sg>0 && top-bot>100*sg){ try{ const hb=hiddenBands(P.xs,U.y).filter(h=>h.x>lo&&h.x<hi&&Math.abs(h.x-P.xs[k])>0.0); if (hb.length) return 'spalla o coda (derivata seconda): possibile coeluito'; }catch(e){} } if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
+  if (f.instr==='hplc' && sg>0 && top-bot>100*sg){ try{ // il minimo della derivata seconda del picco stesso cade a pochi punti dall'apice (coda, rumore): una spalla vera è lontana almeno 0,4 FWHM, più piccola del picco e dentro il suo profilo
+    let L=k, Rr=k; const half=bot+(top-bot)/2; while (L>0 && U.y[L]>half) L--; while (Rr<U.y.length-1 && U.y[Rr]>half) Rr++; const fw=Math.abs(P.xs[Rr]-P.xs[L]);
+    const all=hiddenBands(P.xs,U.y).filter(h=>h.x>lo&&h.x<hi), main=all.reduce((m,h)=>!m||Math.abs(h.x-P.xs[k])<Math.abs(m.x-P.xs[k])?h:m,null);
+    const near=main && Math.abs(main.x-P.xs[k])<0.4*fw, hb=all.filter(h=>Math.abs(h.x-P.xs[k])>=0.4*fw && (!near || h.prom<main.prom) && U.y[h.i]-bot>0.05*(top-bot)); if (hb.length) return 'spalla o coda (derivata seconda): possibile coeluito'; }catch(e){} } if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
   return ''; }
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
-function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, box=act&&act.closest&&act.closest('#xqBox,#mvOut');
+function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, box=act&&act.closest&&act.closest('#xqBox,#mvOut,#mvBand');
   // si sta ancora scrivendo nella stessa tabella: niente ridisegno, che cancellerebbe ciò che si digita; si aggiorna quando si esce dalla tabella
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; fn(); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
@@ -6801,7 +6807,8 @@ function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, bo
 document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
   let w10=null, as=null; if (k>=0 && top>bot){ const t=bot+0.1*(top-bot); let l=k, r=k; while (l>0&&P.xs[l]>lo&&U.y[l]>t) l--; while (r<P.xs.length-1&&P.xs[r]<hi&&U.y[r]>t) r++; w10=P.xs[r]-P.xs[l]; const L=P.xs[k]-P.xs[l], Rr=P.xs[r]-P.xs[k]; as=L>0?Rr/L:null; }
-  return {w:m.fwhm, x:k>=0?P.xs[k]:null, w10, as}; }
+  let sh=null; if (f.instr==='hplc' && k>=0){ try{ const hb=hiddenBands(P.xs,U.y).filter(h=>h.x>lo&&h.x<hi); if (hb.length){ const h=hb.sort((a,b)=>Math.abs(a.x-P.xs[k])-Math.abs(b.x-P.xs[k]))[0]; sh=h.x-P.xs[k]; } }catch(e){} }
+  return {w:m.fwhm, x:k>=0?P.xs[k]:null, w10, as, sh}; }
 function mvTable(instr){
   const c=mvCfg(instr), list=mvFiles(instr, c), R=c.c!=null && c.d!=null;
   if (c.a==null || c.b==null) return null;
@@ -6811,7 +6818,8 @@ function mvTable(instr){
   // rispetto agli standard: un picco più largo nasconde un coeluito, uno spostato può essere un altro composto
   const st=T.filter(o=>o.role==='std'&&o.conc!=null&&o.shape&&o.shape.w>0), med=a=>{ const v=a.slice().sort((p,q)=>p-q); return v.length?v[v.length>>1]:null; }, mw=med(st.map(o=>o.shape.w)), mx=med(st.map(o=>o.shape.x)), m10=med(st.map(o=>o.shape.w10).filter(v=>v>0)), mas=med(st.map(o=>o.shape.as).filter(v=>v>0));
   // una «spalla» che è solo la stessa coda degli standard non è un coeluito
-  if (instr==='hplc' && mas>0) T.forEach(o=>{ if (/^spalla o coda/.test(o.flag||'') && o.shape && o.shape.as!=null && Math.abs(o.shape.as-mas)<=0.1*mas && !(o.shape.w>1.15*mw)) o.flag=''; });
+  // una «spalla» che compare anche negli standard nella stessa posizione rispetto all'apice è la forma del picco, non un coeluito
+  if (instr==='hplc' && mw>0){ const stSh=st.map(o=>o.shape&&o.shape.sh).filter(v=>v!=null); T.forEach(o=>{ if (/^spalla o coda/.test(o.flag||'') && o.shape && o.shape.sh!=null && stSh.some(v=>Math.abs(v-o.shape.sh)<=0.3*mw)) o.flag=''; }); }
   if (instr==='hplc' && st.length>=3 && mw>0) T.forEach(o=>{ if (o.flag||!o.shape||!(o.shape.w>0)) return; if (Math.abs(o.shape.x-mx)>0.5*mw) o.flag='massimo spostato rispetto agli standard: altro composto?'; else if (o.shape.w>1.15*mw) o.flag='più largo degli standard: coeluito o coda'; else if (m10>0 && o.shape.w10>1.12*m10) o.flag='forma diversa dagli standard alla base: coeluito o coda'; else if (mas>0 && o.shape.as!=null && Math.abs(o.shape.as-mas)>0.35*mas) o.flag='forma diversa dagli standard alla base: coeluito o coda'; });
   T.weight=c.weight; T.trend=c.model==='trend'; return T;
 }
@@ -6830,7 +6838,7 @@ function renderMulti(){
     <label class="ibf"><span>Cosa misuro</span><select id="mvMeas">${Object.entries(MEAS_NAME).map(([k,t])=>`<option value="${k}" ${c.meas===k?'selected':''}>${t}</option>`).join('')}</select></label>
     <label class="ibf ${c.c!=null?'':'adv'}"><span>Rapporto con la banda (standard interno): da</span><input type="number" step="any" id="mvC" value="${v('c')}" placeholder="facoltativo" style="min-width:90px;width:110px"></label><label class="ibf ${c.c!=null?'':'adv'}"><span>a</span><input type="number" step="any" id="mvD" value="${v('d')}" style="min-width:90px;width:100px"></label>
     <label class="ibf"><span>Che cosa fare con la misura</span><select id="mvModel"><option value="line" ${c.model!=='pls'?'selected':''}>una banda, retta (classico)</option><option value="pls" ${c.model==='pls'?'selected':''}>tutto lo spettro, PLS (multivariato)</option><option value="trend" ${c.model==='trend'?'selected':''}>andamento: x = tempo, dose… (nessuna taratura)</option></select></label>
-    <label class="ibf"><span>${c.model==='trend'?'Unità di x':'Unità di concentrazione'}</span><input type="text" id="mvUnit" value="${esc(c.unit||'')}" placeholder="es. mg/L" style="min-width:90px;width:100px"></label>`;
+    <label class="ibf"><span>${c.model==='trend'?'Unità di x':'Unità di concentrazione'}</span><input type="text" id="mvUnit" value="${esc(c.unit||'')}" placeholder="${c.model==='trend'?'es. h':'es. mg/L'}" style="min-width:90px;width:100px"></label>`;
   const rows=mvTable(instr), cal=mvCalib(rows), xu=(INSTR[instr].xPdf||'').replace('cm-1','cm⁻¹');
   let html='';
   if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="number" step="any" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?f.an.conc:''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
@@ -6872,7 +6880,8 @@ function renderMulti(){
   ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); renderMulti(); };
   $('#mvModel').onchange=e=>{ c.model=e.target.value; mvSave(); renderMulti(); if (c.model==='pls') say('#tip2','PLS: uso tutto lo spettro (con il pretrattamento scelto sotto, nella PCA) e la validazione incrociata per scegliere quante componenti tenere. 📈'); };
-  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); renderMulti(); };
+  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti); };
+  { const hd=$('#mvHead'); if (hd) hd.textContent=c.model==='trend'?'📏 Misura di banda e andamento':'📏 Misura di banda e retta di taratura'; }
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.preset=+e.target.value; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⤢ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
   $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); anSet(o.f, 'concK', c.a+'|'+c.b); rerenderKeep(renderMulti); });
@@ -7331,7 +7340,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (c.a==null || c.b==null) continue;
     if (c.model==='trend'){ const rows=mvTable(instr)||[], pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length<2) continue; head(T('Andamento · ','Trend · ')+T_().nome[instr]);
       line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''}`, 9.5);
-      try{ const cv=document.createElement('canvas'); cv.width=1200; cv.height=600; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w/2; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unità di x, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unit of x, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
+      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unità di x, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unit of x, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
       pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}`, 9)); continue; }
     const rows=mvTable(instr), cal=mvCalib(rows); if (!cal || cal.b==null) continue;
     head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]);
@@ -7523,9 +7532,9 @@ function recipesFor(f){
   if (it==='ftir'){
     R.push(['🔍','Di che materiale si tratta?','gruppi chimici, leganti, cariche e prodotti di alterazione', ()=>go2('#anHyp')]);
     R.push(['📉','Quanto è degradato?','indice di carbonile (ossidazione di polimeri, vernici, oli)', ()=>{ const c=mvCfg('ftir'), pr=BAND_PRESETS.ftir[0]; c.a=pr[1]; c.b=pr[2]; c.c=pr[3]; c.d=pr[4]; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='ftir'; renderMulti(); go2('#mvOut'); }]);
-    if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); go2('#mvOut'); }]);
   }
   if (it==='hplc') R.push(['📋','Valuta la separazione','piatti teorici, coda e risoluzione di ogni picco', ()=>go2('#anTech')]);
+  if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); go2('#mvOut'); }]);
   if (it==='uv') R.push(['⚡','Calcola il band gap','grafico di Tauc per semiconduttori e pigmenti', ()=>go2('#anTech')]);
   if (['dsc','tga'].includes(it)) R.push(['🌡️','Temperature caratteristiche','onset, endset ed entalpie degli eventi termici', ()=>go2('#anTech')]);
   if (['nmr','epr','fluo'].includes(it)) R.push(['🧮','Valori quantitativi','integrali, quantità relative, resa quantica', ()=>go2('#anTech')]);

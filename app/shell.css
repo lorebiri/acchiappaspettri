@@ -34,7 +34,7 @@ html.shell #shSplitB{left:var(--L);right:var(--R);bottom:calc(var(--S) + var(--B
 html.shell .shsplit::after{content:"";position:absolute}
 html.shell .shsplit.v::after{inset:0 -3px}html.shell .shsplit.h::after{inset:-3px 0}
 html.shell.no-left #filesCard,html.shell.no-left #shSplitL,html.shell.no-right #workCard .wkR,html.shell.no-right #shSplitR{display:none!important}
-html.shell.no-bottom #shResBody,html.shell.no-bottom #shSplitB,html.shell.focus #shBottom{display:none!important}
+html.shell.no-bottom #shResBody,html.shell.no-bottom #shSplitB,html.shell.focus #shBottom,html.shell.cmp-off #shBottom{display:none!important}
 html.shell.focus #shTabs,html.shell.focus .shsplit{display:none!important}
 html.shell.focus{--D:0px}
 /* controlli */
@@ -208,3 +208,5 @@ html.shell #workCard .wkR .areawrap{overflow-x:auto;max-width:100%}
 html.shell .layoutpick .lp{border-width:1px;border-radius:3px;padding:4px;background:var(--sh-field)}
 html.shell .layoutpick .lp.on{background:var(--sh-sel)}
 html.shell #shProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.shell .seg,html.shell .seg button{border-radius:3px}
+html.shell .shres .pktools{padding-right:18px}

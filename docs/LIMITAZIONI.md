@@ -15,7 +15,7 @@
 - **Dati scientifici**: vedi [SCIENZA.md](SCIENZA.md). In breve, quelli trovati dai collaudi:
   - **XRF, elementi minori**: un elemento sotto la soglia di rivelazione dei picchi (per esempio Sn al 3% in un bronzo simulato) non entra nell'elenco automatico, e la stima FP lo ridistribuisce sugli altri. Le note elencano gli elementi considerati: aggiungilo a mano.
   - **XRF, asse spostato**: se la riga diffusa del tubo è spostata di oltre 80 eV, non viene proposto nessun elemento finché l'asse non è allineato. Lo spostamento indicato è una stima (±50 eV), e «Allinea» non sempre riesce oltre i 100 eV.
-  - **HPLC, coeluizioni molto strette**: due composti a meno di circa 0,1 minuti con rapporti 4:1–20:1 non si distinguono dalla forma del picco; servirebbe la purezza spettrale di un rivelatore a serie di diodi, che il programma non legge.
+  - **HPLC, coeluizioni molto strette**: due composti a meno di circa due deviazioni standard del picco (0,1 minuti per picchi larghi), con rapporti da 2:1 a 20:1, non si distinguono dalla forma del picco. L'avviso di spalla considera solo bande lontane almeno 0,4 FWHM dall'apice, così una coda normale non viene scambiata per un coeluito; servirebbe la purezza spettrale di un rivelatore a serie di diodi, che il programma non legge.
   - **Raman, calibrazione**: uno spettro spostato di qualche cm⁻¹ può non dare nessun pigmento, senza un avviso specifico.
   - **Serie di spettri**: se tutti i file di una serie sono riconosciuti nella stessa tecnica sbagliata (per esempio LIBS deboli letti come Raman), non c'è un avviso di serie: va corretta la tecnica.
   - **XRF, oltre 50 kV**: il modello del tubo arriva a 50 kV, e una misura a 60 kV viene calcolata a 50 con un avviso.

@@ -66,3 +66,7 @@ html.web .brand{flex-wrap:nowrap;min-width:0;gap:4px} html.web .brand>div{min-wi
 html.web .pktab td:nth-child(5) .sgp:nth-child(n+2){display:none}
 html.web .pktab .sgp{word-break:keep-all;font-size:12px}
 }
+@media (max-width:560px){
+html.web .pktab .sgp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
+html.web .pkwrap .pktab td:last-child{position:static}
+}
