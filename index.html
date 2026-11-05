@@ -2279,6 +2279,8 @@ function detectInstrument(p, name){
   if (/ultraviolet|\buv\b|visible|uv.?vis/.test(ty)) return {instr:'uv', reason:'intestazione: spettro UV-Vis'+by};
   if (/chromatogram/.test(ty)) return {instr:'hplc', reason:'intestazione: cromatogramma'+by};
   if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|value|intens|counts|dad|uv\b|fld|vwd/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
+  // intestazione di colonna con il tempo in minuti e un segnale da rivelatore: cromatogramma anche se non parte da 0
+  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(min|minutes?|minuti)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|dad|uv\b|fld|vwd|\bau\b/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in minuti e segnale del rivelatore'};
   if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
   if (/nanomet|^nm/.test(xu)) return {instr:'uv', reason:'asse X in nm (intestazione)'+by};
   if (/minute|^min/.test(xu)) return {instr:'hplc', reason:'asse X in minuti (intestazione)'+by};
@@ -5037,9 +5039,10 @@ function renderCompare(){
     : n===0 ? '<b>Confronto vuoto.</b> Spunta nella lista a sinistra gli spettri da sovrapporre.' : '<b>Manca ancora uno spettro.</b> Spuntane almeno un altro dello stesso strumento per sovrapporli.';
   if (!v){
     geo=null; pvView=null; renderInsetBar(null); $('.preview').classList.remove('zoomed'); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
-    ctx.fillStyle='#8a94a6'; ctx.font=`${Math.round(15*(window.devicePixelRatio||1))}px Nunito, sans-serif`; ctx.textAlign='center';
-    ctx.fillText('Spunta gli spettri da sovrapporre nella lista a sinistra 👈', pv.width/2, pv.height/2);
-    $('#pvTitle').textContent = c ? cmpTitle(c) : 'Confronta grafici';
+    const trX=x=>window.AcchI18n&&AcchI18n.lang==='en'?AcchI18n.tr(x):x, shellUi=!!window.ACCH_SHELL;
+    ctx.fillStyle='#8a94a6'; ctx.font=`${Math.round(15*(window.devicePixelRatio||1))}px ${shellUi?'system-ui, -apple-system, "Segoe UI", sans-serif':'Nunito, sans-serif'}`; ctx.textAlign='center';
+    ctx.fillText(shellUi?trX('Spunta gli spettri da sovrapporre nella lista a sinistra'):trX('Spunta gli spettri da sovrapporre nella lista a sinistra 👈'), pv.width/2, pv.height/2);
+    $('#pvTitle').textContent = c ? cmpTitle(c) : trX('Confronta grafici');
   } else {
     v.fontPt = big ? 10 : 9;
     const d = zoomView(v, c, true); pvView=d;
@@ -6507,7 +6510,7 @@ function hypotheses(f, d){
 /* livello dichiarato: una banda sola è inconclusiva, qualunque sia il punteggio. «Supportata da più tecniche» non esiste: il programma non correla tecniche diverse */
 const uiEn=()=>!!(window.AcchI18n&&window.AcchI18n.lang==='en');
 function hypGot(h){ return h.ev ? h.ev.filter(e=>e.hit!=null).length : 0; }
-function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, few=g>=2 && m<3 && g===m, part=g>=2 && !few && g<Math.ceil(m/2), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':few?'only two bands, not enough to decide':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : few ? `${g} bande su ${m}: solo due bande, poche per decidere` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
+function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, few=g>=2 && m<3 && g===m, part=g>=2 && !few && g<Math.ceil(m/2), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.map(x=>window.AcchI18n?AcchI18n.tr(x):x).join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':few?'only two bands, not enough to decide':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : few ? `${g} bande su ${m}: solo due bande, poche per decidere` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
 /* due ipotesi che si reggono sulle stesse bande non si confermano a vicenda: lo si dichiara */
 function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
@@ -6789,7 +6792,12 @@ function mvFlag(f, a, b, meas){
   const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; const iz=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi) iz.push(i); const e3=a=>a.reduce((t,i)=>t+U.y[i],0)/a.length, eL=e3(iz.slice(0,3)), eR=e3(iz.slice(-3)); const med=Array.from(U.y).sort((a,b)=>a-b)[U.y.length>>1]; if (sg>0 && top-Math.min((eL+eR)/2, med)<5*sg) return 'nessun picco nella zona';
   if (Math.min(P.xs[k]-lo, hi-P.xs[k])<0.03*(hi-lo)) return 'massimo al bordo della zona: picco tagliato o spostato';
   { const ys=f.ys, X=f.xs; let run=0, best=0, mx=-Infinity; for (let i=0;i<X.length;i++) if (X[i]>=lo&&X[i]<=hi&&ys[i]>mx) mx=ys[i]; for (let i=0;i<X.length;i++){ if (X[i]>=lo&&X[i]<=hi&&ys[i]===mx){ run++; best=Math.max(best,run); } else run=0; } const sgR=noiseSigma(ys)||0; if (best>=3 && mx>0 && mx>10*sgR) return 'cima tagliata o piatta: rivelatore saturo o due composti'; }
-  { if (Math.max(eL,eR)-bot>(f.instr==='hplc'?0.03:0.10)*(top-bot) && Math.max(eL,eR)-bot>3*sg) return f.instr==='hplc' ? 'bordi della zona lontani dalla linea di base: zona da allargare o interferente' : 'bordi della zona lontani dalla linea di base: allarga la zona'; }
+  { let dE=Math.max(eL,eR)-bot, hh=top-bot;
+    if (f.instr==='hplc'){ const w=0.25*(hi-lo), oL=[], oR=[]; for (let i=0;i<P.xs.length;i++){ const x=P.xs[i]; if (x>=lo-w&&x<lo) oL.push(i); else if (x>hi&&x<=hi+w) oR.push(i); }
+      // deriva: la retta per le mediane dei tratti appena fuori dalla zona fa da linea di base; se i bordi stanno su quella retta la zona è giusta
+      if (oL.length>=3 && oR.length>=3){ const md=a=>{ const v=a.map(i=>U.y[i]).sort((p,q)=>p-q); return v[v.length>>1]; }, mx=a=>a.reduce((t,i)=>t+P.xs[i],0)/a.length, x1=mx(oL), x2=mx(oR), y1=md(oL), y2=md(oR), ln=x=>y1+(y2-y1)*(x-x1)/((x2-x1)||1), xL=P.xs[iz[0]], xR=P.xs[iz[iz.length-1]];
+        const d2=Math.max(eL-ln(xL), eR-ln(xR)), h2=top-ln(P.xs[k]); if (h2>0 && d2<dE){ dE=d2; hh=h2; } } }
+    if (dE>(f.instr==='hplc'?0.03:0.10)*hh && dE>3*sg) return f.instr==='hplc' ? 'bordi della zona lontani dalla linea di base: zona da allargare o interferente' : 'bordi della zona lontani dalla linea di base: allarga la zona'; }
   const sh=peakShape(P.xs,U.y,P.xs[k]); if (sh.flat) return 'cima piatta: rivelatore saturo o due composti';
   if (f.instr==='hplc' && sg>0 && top-bot>100*sg){ try{ // il minimo della derivata seconda del picco stesso cade a pochi punti dall'apice (coda, rumore): una spalla vera è lontana almeno 0,4 FWHM, più piccola del picco e dentro il suo profilo
     let L=k, Rr=k; const half=bot+(top-bot)/2; while (L>0 && U.y[L]>half) L--; while (Rr<U.y.length-1 && U.y[Rr]>half) Rr++; const fw=Math.abs(P.xs[Rr]-P.xs[L]);
@@ -6800,7 +6808,7 @@ const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
-function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, box=act&&act.closest&&act.closest('#xqBox,#mvOut');
+function rerenderKeep(fn, now){ setTimeout(()=>{ const act=document.activeElement, box=!now&&act&&act.closest&&act.closest('#xqBox,#mvOut');
   // si sta ancora scrivendo nella stessa tabella: niente ridisegno, che cancellerebbe ciò che si digita; si aggiorna quando si esce dalla tabella
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; fn(); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
@@ -6808,7 +6816,9 @@ function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, bo
   if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!==''){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
 document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
-  let w10=null, as=null; if (k>=0 && top>bot){ const t=bot+0.1*(top-bot); let l=k, r=k; while (l>0&&P.xs[l]>lo&&U.y[l]>t) l--; while (r<P.xs.length-1&&P.xs[r]<hi&&U.y[r]>t) r++; w10=P.xs[r]-P.xs[l]; const L=P.xs[k]-P.xs[l], Rr=P.xs[r]-P.xs[k]; as=L>0?Rr/L:null; }
+  // larghezza al 10% sopra la retta tra i bordi della zona: con una deriva il minimo sta da un lato e falserebbe la forma
+  let w10=null, as=null; if (k>=0 && top>bot){ const iz=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi) iz.push(i); const e=Math.max(2,Math.round(iz.length*0.03)), av=a=>a.reduce((t,i)=>t+U.y[i],0)/a.length, A=iz.slice(0,e), B=iz.slice(-e), xa=P.xs[A[0]], xb=P.xs[B[B.length-1]], ya=av(A), yb=av(B), ln=x=>ya+(yb-ya)*(x-xa)/((xb-xa)||1), d=i=>U.y[i]-ln(P.xs[i]), hk=d(k);
+    const t=0.1*hk; let l=k, r=k; while (l>0&&P.xs[l]>lo&&d(l)>t) l--; while (r<P.xs.length-1&&P.xs[r]<hi&&d(r)>t) r++; w10=P.xs[r]-P.xs[l]; const L=P.xs[k]-P.xs[l], Rr=P.xs[r]-P.xs[k]; as=L>0?Rr/L:null; }
   let sh=null; if (f.instr==='hplc' && k>=0){ try{ const hb=hiddenBands(P.xs,U.y).filter(h=>h.x>lo&&h.x<hi); if (hb.length){ const h=hb.sort((a,b)=>Math.abs(a.x-P.xs[k])-Math.abs(b.x-P.xs[k]))[0]; sh=h.x-P.xs[k]; } }catch(e){} }
   return {w:m.fwhm, x:k>=0?P.xs[k]:null, w10, as, sh}; }
 function mvTable(instr){
@@ -6839,13 +6849,15 @@ function mvProfileCheck(T, st, mw, a, b){
     const g=new Float64Array(N); let j=0; for (let q=0;q<N;q++){ const x=xa-Z+2*Z*q/(N-1); if (x<x0||x>x1){ g[q]=NaN; continue; } while (j<xs.length-2&&xs[j+1]<x) j++; const t=(x-xs[j])/((xs[j+1]-xs[j])||1); g[q]=(z[j]+(z[j+1]-z[j])*t)/h; }
     return {g, nz:(noiseSigma(ys)||0)/h}; };
   const rms=(p,r)=>{ let s=0,n=0; for (let q=0;q<N;q++) if (isFinite(p[q])&&isFinite(r[q])){ s+=(p[q]-r[q])**2; n++; } return n>N/2?Math.sqrt(s/n):null; };
+  const adiff=(p,r)=>{ let a=0,b=0; for (let q=0;q<N;q++) if (isFinite(p[q])&&isFinite(r[q])){ a+=p[q]; b+=r[q]; } return b>0?a/b-1:0; };
   const SP=st.map(o=>prof(o.f)).filter(Boolean); if (SP.length<2) return;
   const ref=new Float64Array(N); for (let q=0;q<N;q++){ let s=0,n=0; for (const p of SP) if (isFinite(p.g[q])){ s+=p.g[q]; n++; } ref[q]=n?s/n:NaN; }
   // dispersione tra gli standard: ciascuno contro la media degli altri
   const spread=SP.map((p,i)=>{ const o=new Float64Array(N); for (let q=0;q<N;q++){ let s=0,n=0; SP.forEach((r,j)=>{ if (j!==i&&isFinite(r.g[q])){ s+=r.g[q]; n++; } }); o[q]=n?s/n:NaN; } return rms(p.g,o); }).filter(v=>v!=null).sort((x,y)=>x-y);
   const sd=spread.length?spread[spread.length>>1]:0;
   T.forEach(o=>{ if (o.flag || o.role==='blank' || (o.role==='std'&&o.conc!=null)) return; const p=prof(o.f); if (!p) return; const r=rms(p.g,ref); if (r==null) return;
-    if (r>Math.max(3*sd, 4*p.nz, 0.012)) o.flag='profilo diverso dagli standard: possibile coeluito'; });
+    o.prof={r, ad:adiff(p.g,ref), thr:Math.max(3*sd, 10*p.nz, 0.012)};
+    if (r>Math.max(3*sd, 10*p.nz, 0.012)) o.flag='profilo diverso dagli standard: coda, coeluito o impurezza'; });
 }
 function mvCalib(rows){ if (rows && rows.trend) return null; const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y) && o.role==='std' && !mvNoEstimate(o)).map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts}) : null; }
 function renderMulti(){
@@ -6886,7 +6898,7 @@ function renderMulti(){
     setTimeout(()=>{ const w=$('#mvW'); if (w) w.onchange=e=>{ c.weight=e.target.value||undefined; mvSave(); renderMulti(); }; },0);
     if (c.model==='pls') html+='<div id="plsOut"></div>';
     else if (c.model==='trend'){ const pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); html+=`<p class="why">Andamento della misura con la grandezza che scrivi (ore, dose, temperatura…). Nessuna retta di taratura, nessun LOD: solo i punti e, se vuoi un'indicazione, la pendenza.</p>`;
-      if (pts.length>=2){ const L=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); html+=`<canvas id="trendCv" width="640" height="300" style="width:100%;max-width:640px;margin-top:6px"></canvas>${L&&pts.length>=3?`<div class="opt-l">Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+esc(c.unit):'per unità di x'} · R² ${fmtN(L.r2,3)} (solo descrittiva: l'andamento può non essere lineare)</div>`:''}`;
+      if (pts.length>=2){ const L=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); html+=`<canvas id="trendCv" width="640" height="300" style="width:100%;max-width:640px;margin-top:6px"></canvas>${L&&pts.length>=3?`<div class="opt-l">Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+esc(c.unit):'per unità di x'} · R² ${fmtN(L.r2,3)} (solo descrittiva: l'andamento può non essere lineare)</div>`:''}`;
         setTimeout(()=>{ const cv=$('#trendCv'); if (!cv) return; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs); miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L&&pts.length>=3?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:yl}); },0); } }
     else if (cal && cal.b!=null && cal.n>=3){
       const u=c.unit?' '+esc(c.unit):'';
@@ -6904,7 +6916,7 @@ function renderMulti(){
   ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); renderMulti(); };
   $('#mvModel').onchange=e=>{ c.model=e.target.value; mvSave(); renderMulti(); if (c.model==='pls') say('#tip2','PLS: uso tutto lo spettro (con il pretrattamento scelto sotto, nella PCA) e la validazione incrociata per scegliere quante componenti tenere. 📈'); };
-  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti); };
+  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti, true); };
   { const hd=$('#mvHead'); if (hd) hd.textContent=c.model==='trend'?'📏 Misura di banda e andamento':'📏 Misura di banda e retta di taratura'; }
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.preset=+e.target.value; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⤢ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
@@ -7364,7 +7376,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (c.a==null || c.b==null) continue;
     if (c.model==='trend'){ const rows=mvTable(instr)||[], pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length<2) continue; head(T('Andamento · ','Trend · ')+T_().nome[instr]);
       line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''}`, 9.5);
-      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
+      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
       pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}`, 9)); continue; }
     const rows=mvTable(instr), cal=mvCalib(rows); if (!cal || cal.b==null) continue;
     head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]);

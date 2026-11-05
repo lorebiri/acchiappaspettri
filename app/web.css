@@ -56,6 +56,7 @@ html.web #mvBand .ibf{min-width:0;max-width:100%}
 html.web .pktab th:nth-child(3),html.web .pktab td:nth-child(3){display:none}
 html.web .pktab th:nth-child(1){width:22px} html.web .pktab th:nth-child(2){width:56px} html.web .pktab th:nth-child(4){width:64px} html.web .pktab th:nth-child(6){width:40px}
 html.web .pktab td:nth-child(4) input{font-size:12px;padding:0 4px}
+html.web .pktab th:nth-child(4){font-size:0} html.web .pktab th:nth-child(4)::after{content:'Nome';font-size:12px} html.web:lang(en) .pktab th:nth-child(4)::after{content:'Name'}
 html.web .brand{flex-wrap:nowrap}
 html.web #soberBtn{font-size:0;min-width:36px;min-height:36px} html.web #soberBtn::before{content:'◐';font-size:16px}
 }

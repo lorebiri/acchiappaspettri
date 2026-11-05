@@ -23,6 +23,9 @@
   - **Dati calcolati**: nessun allargamento dei bastoncini, nessuna conversione nm ↔ eV ↔ cm⁻¹. Uno spettro in eV va scelto a mano come UV, e l'asse resta etichettato in nm.
   - **NMR**: integrali dei soli picchi in elenco, quindi i multipletti risultano sottostimati. Formati Bruker `fid` e `1r`, BES3T e JCAMP NTUPLES non sono letti.
   - **EPR**: un campo in gauss etichettato mT viene segnalato (con la frequenza dal fattore g, senza dal valore oltre 1000), non corretto da solo. Il doppio integrale non ha un'incertezza.
+  - **Cime sature**: un picco tagliato a due terzi dell'altezza viene riconosciuto quasi sempre se il segnale è alto (S/N oltre 50); un taglio più lieve (80–95%) o con molto rumore spesso no, perché la forma resta vicina a quella di un picco normale.
+  - **HPLC, sovraccarico della colonna**: se il picco si allarga con la concentrazione, lo standard più concentrato può ricevere «più largo degli standard». È un'indicazione reale (il picco non è più lineare), non un coeluito.
+  - **HPLC, profilo rispetto agli standard**: con almeno due standard ogni campione viene confrontato con la loro forma media. Una coda diversa da quella degli standard, un coeluito o un'impurezza presente solo negli standard danno lo stesso avviso, che non distingue tra le tre cause.
   - **HPLC e tarature**: niente integrazione manuale, niente sequenze, niente repliche né diluizioni. Una coeluizione con Δt molto piccolo può non essere segnalata. Se standard e campioni hanno elaborazioni diverse c'è un avviso, ma non vengono rielaborati.
   - **Separatori**: un file con tutti i valori nel formato `40.000`, o con le migliaia all'americana `12,345` in una colonna, viene letto con la virgola o il punto come decimale senza avviso.
   - **Riferimenti**: per Raman e fluorescenza senza linea di base il confronto si fa dopo una linea di base arPLS su campione e riferimento; per FTIR e UV un fondo può ancora alzare il punteggio, con un avviso.
