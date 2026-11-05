@@ -74,5 +74,7 @@
 "use strict",
 "{0}=\"rgb({1},{2},{3})\" {4}-opacity=\"{5}\"",
 "{0}px Nunito, sans-serif",
-"btn small"
+"btn small",
+"Fai clic su",
+"pulsante principale"
 ]

@@ -56,6 +56,7 @@ p.hint{color:var(--muted);margin:0 0 14px}
 .btn:active{transform:scale(.97)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.07)}
+.btn.primary:disabled,.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);cursor:default;filter:none}
 .btn.big{padding:13px 22px;font-size:16px;border-radius:14px}
 .btn.small{padding:5px 11px;font-size:13px;border-radius:9px}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--accent)}
@@ -5665,7 +5666,8 @@ $('#xrApply').onclick=()=>{ const f=files[cur]; if(!f) return; let n=0; files.fo
 $('#prevF').onclick=()=>{ if (viewMode==='cmp'){ const v=visibleCmps(), i=v.findIndex(c=>c.id===curCmpId); if (i>0){ curCmpId=v[i-1].id; renderCmp(); } return; } if(cur>0){cur--; renderList(); renderPreview();} };
 $('#nextF').onclick=()=>{ if (viewMode==='cmp'){ const v=visibleCmps(), i=v.findIndex(c=>c.id===curCmpId); if (i<v.length-1){ curCmpId=v[i+1].id; renderCmp(); } return; } if(cur<files.length-1){cur++; renderList(); renderPreview();} };
 document.addEventListener('keydown', e=>{
-  if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (curView!==2 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable || document.querySelector('dialog[open]')) return;
+  if ((e.ctrlKey||e.metaKey||e.altKey) && !/^[zZ]$/.test(e.key)) return;
   if (e.key==='ArrowLeft') $('#prevF').click(); if (e.key==='ArrowRight') $('#nextF').click();
   if ((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='z'||e.key==='Z') && viewMode==='one'){ e.preventDefault(); pkUndo(); return; }
   if ((e.key==='Delete'||e.key==='Backspace') && viewMode==='one'){ const f=files[cur]; if (f && f._sel!=null && pvView){ const p=pvView.peaks.find(q=>Math.abs(q.x-f._sel)<1e-9); if (p){ e.preventDefault(); removePeak(f, p.x, p.manual); return; } } }
@@ -5866,7 +5868,7 @@ function renderSummary(){
   $('#sumList').innerHTML = items.join('');
   let what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null, originAlone?'Excel':null].filter(Boolean);
   $('#oneFileRow').hidden = what.length<2;
-  if (what.length>1 && S.oneFile){ what=['tutto in un file ZIP']; if (inc.length) items.push('<li>📦 Arriva <b>un solo file ZIP</b> con dentro tutto quanto sopra</li>'); $('#sumList').innerHTML = items.join(''); }
+  if (what.length>1 && S.oneFile){ what=['tutto in un file ZIP']; if (inc.length) items.push('<li>📦 Tutto quanto sopra arriva dentro <b>un solo file ZIP</b></li>'); $('#sumList').innerHTML = items.join(''); }
   const btn=$('#doDl');
   btn.disabled = !inc.length || !what.length;
   btn.textContent = !what.length ? 'Spunta almeno una cosa da scaricare' : `⬇️ Scarica ${what.join(' + ')}`;
@@ -6764,6 +6766,11 @@ function mvFlag(f, a, b, meas){
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
+/* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
+function rerenderKeep(fn){ setTimeout(()=>{ const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null; fn();
+  if (!key) return; let q=key.id?document.getElementById(key.id):null; if (!q && key.cls){ q=document.querySelector('.'+CSS.escape(key.cls)+(key.i!=null?`[data-i="${key.i}"]`:'')+(key.e!=null?`[data-e="${key.e}"]`:'')+(key.f!=null?`[data-f="${key.f}"]`:'')); }
+  if (q && q.focus){ q.focus(); try{ if (q.select && q.type!=='range') q.select(); }catch(e){} } },0); }
+document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
   let w10=null, as=null; if (k>=0 && top>bot){ const t=bot+0.1*(top-bot); let l=k, r=k; while (l>0&&P.xs[l]>lo&&U.y[l]>t) l--; while (r<P.xs.length-1&&P.xs[r]<hi&&U.y[r]>t) r++; w10=P.xs[r]-P.xs[l]; const L=P.xs[k]-P.xs[l], Rr=P.xs[r]-P.xs[k]; as=L>0?Rr/L:null; }
   return {w:m.fwhm, x:k>=0?P.xs[k]:null, w10, as}; }
@@ -6797,7 +6804,7 @@ function renderMulti(){
   const rows=mvTable(instr), cal=mvCalib(rows), xu=(INSTR[instr].xPdf||'').replace('cm-1','cm⁻¹');
   let html='';
   if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="number" step="any" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?f.an.conc:''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
-    setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>{ anSet(list[+el.dataset.f], 'conc', numIn(el.value)); renderMulti(); }), 0); }
+    setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>{ anSet(list[+el.dataset.f], 'conc', numIn(el.value)); rerenderKeep(renderMulti); }), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
     const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : MEAS_NAME[c.meas];
@@ -6834,8 +6841,8 @@ function renderMulti(){
   $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); renderMulti(); };
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⬚ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
-  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); anSet(o.f, 'concK', c.a+'|'+c.b); renderMulti(); });
-  $$('#mvOut .rolein').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'role', el.value==='std'?null:el.value); renderMulti(); });
+  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); anSet(o.f, 'concK', c.a+'|'+c.b); rerenderKeep(renderMulti); });
+  $$('#mvOut .rolein').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'role', el.value==='std'?null:el.value); rerenderKeep(renderMulti); });
   if ($('#mvCsv')) $('#mvCsv').onclick=()=>download(new Blob(['﻿'+mvCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `misure_${instr}.csv`);
   if (c.model!=='pls' && cal && cal.b!=null && $('#calC')) drawCalChart($('#calC'), instr, rows, cal);
   if (c.model==='pls') renderPLS(instr);
@@ -7093,7 +7100,7 @@ function renderXrfQuant(instr){
   $('#xqAdd').onchange=e=>{ const v=e.target.value.trim(); const el=v.charAt(0).toUpperCase()+v.slice(1).toLowerCase(); if (XRF_LINES[el] && !c.qEls.includes(el)){ c.qEls.push(el); mvSave(); renderXrfQuant(instr); } else if (v) toast(`«${v}» non è un elemento che conosco.`); };
   $('#xq100').onchange=e=>{ c.q100=e.target.checked; mvSave(); renderXrfQuant(instr); };
   $('#xqModel').onchange=e=>{ c.qModel=e.target.value; mvSave(); renderXrfQuant(instr); };
-  $$('#xqBox .xq').forEach(el=>el.onchange=()=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); const v=numIn(el.value); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); renderXrfQuant(instr); });
+  $$('#xqBox .xq').forEach(el=>el.onchange=()=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); const v=numIn(el.value); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); rerenderKeep(()=>renderXrfQuant(instr)); });
   if ($('#xqCsv')) $('#xqCsv').onclick=()=>download(new Blob(['\ufeff'+xqCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), 'composizione_xrf.csv');
 }
 function xqCsvRows(instr){ const M=xqModel(instr); if (!M || !M.fit) return []; const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec);

@@ -27,7 +27,7 @@
   const multi=$('.panel[data-panel="multi"]'); study.append(multi); $('#secMulti').open=true;
 
   /* ispettore: le schede esistenti con icone e nomi brevi */
-  const tabIcon={peaks:'peak',proc:'process',zone:'info',refs:'ref',an:'analyse'}, tabLabel={peaks:'Picchi',proc:'Elabora',zone:'Dati',refs:'Riferimenti',an:'Analisi'};
+  const tabIcon={peaks:'peak',proc:'process',zone:'info',refs:'ref',an:'analyse'}, tabLabel={peaks:'Picchi',proc:'Ritocca',zone:'Dati',refs:'Riferimenti',an:'Analisi'};
   $$('#tabs .tab').forEach(t=>{ const k=t.dataset.tab; t.innerHTML=ic(tabIcon[k]||'info')+`<span>${tabLabel[k]||t.textContent}</span>`; t.title=tabLabel[k]||''; });
   $('#saveProjBtn').hidden=true;
 
@@ -87,7 +87,7 @@
 
   /* ---- pannelli ---- */
   const PANES={left:{v:'--L',def:250,min:180,max:420},right:{v:'--R',def:340,min:280,max:560},bottom:{v:'--B',def:210,min:90,max:700}};
-  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; return fitPane(k,lsG('acch.sh.'+k,d),d); };
+  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; if (w>=1920){ if (k==='left') d=280; if (k==='right') d=380; } if (k==='bottom' && h>=1200) d=Math.round(Math.min(700,h*0.28)); if (k==='bottom' && h<700) d=Math.max(d,190); return fitPane(k,lsG('acch.sh.'+k,d),d); };
   const paneOn=k=>!lsG('acch.sh.'+k+'.off',false);
   const fitPane=(k,v)=>{ const p=PANES[k], w=win.innerWidth, h=win.innerHeight; if (k==='bottom') return Math.max(p.min,Math.min(v,h-94-220)); const o=k==='left'?'right':'left', ov=paneOn(o)?Math.min(lsG('acch.sh.'+o,PANES[o].def),PANES[o].max):0; return Math.max(p.min,Math.min(v,w-ov-440)); };
   function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const off=foc||lsG('acch.sh.'+k+'.off',false); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); } resize(); }
@@ -100,19 +100,26 @@
       const up=()=>{ s.removeEventListener('pointermove',mv); s.removeEventListener('pointerup',up); lsS('acch.sh.'+k,Math.round(v)); resize(); }; s.addEventListener('pointermove',mv); s.addEventListener('pointerup',up); });
     s.addEventListener('dblclick',()=>{ try{ localStorage.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
   win.addEventListener('resize',applySizes);
+  /* schede da tastiera: frecce sinistra e destra */
+  win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   bindSplit(splitL,'left','x',1); bindSplit(splitR,'right','x',-1); bindSplit(splitB,'bottom','y',-1);
   new ResizeObserver(()=>resize()).observe($('#pvWrap'));
   win.addEventListener('resize',applySizes);
+  /* schede da tastiera: frecce sinistra e destra */
+  win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   win.setBig=function(){ toggleFocus(); };
   win.addEventListener('keydown',e=>{ if (e.key==='Escape'&&app.classList.contains('focus')&&!document.querySelector('dialog[open]')) toggleFocus(false); });
 
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
-  const cleanMsg=t=>tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim();
+  /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
+  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/^Tocca\b/,'Fai clic su'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
+  const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;
   win.say=function(sel,txt){ oSay(sel,txt); if (!/^Sotto al grafico trovi/.test(String(txt))) pushMsg(txt); };
-  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt))){ lastWarn=txt; oToast(txt); } };
+  // un avviso o un errore si vede anche senza emoji: «non è», «non riesco», «non si può», «manca»…
+  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt)) || /\b(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible))\b/i.test(String(txt))){ lastWarn=txt; oToast(txt); } };
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;

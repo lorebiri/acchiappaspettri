@@ -163,3 +163,22 @@ html.shell .ansec>summary .secsum{margin-left:auto;font-size:11px;color:var(--sh
 html.shell #workCard .wkR select{max-width:100%}html.shell .ibf{min-width:0}
 html.shell #shStatus{padding:0}
 html.shell .navrow{display:none!important}
+/* rifinitura dalla revisione dell'architetto */
+html.shell .outgrid{gap:8px}
+html.shell .outcard{border:1px solid var(--sh-border);border-radius:3px;background:var(--sh-field);box-shadow:none}
+html.shell .outcard.on{border-color:var(--sh-acc);box-shadow:inset 3px 0 0 var(--sh-acc);background:var(--sh-field)}
+html.shell .outcard .ohead{padding:8px 12px}
+html.shell .outcard .ohead b,html.shell .outcard h3,html.shell .outcard h4{font-size:13px;font-weight:600}
+html.shell .shres .pktools{flex-wrap:nowrap;overflow-x:auto}
+html.shell .pktab th{white-space:nowrap}
+html.shell .pktab input{max-width:260px}
+html.shell [data-panel=peaks] > .why:first-of-type{display:none}
+html.shell select{font-weight:400}
+html.shell .ibf input,html.shell .ibf select{min-width:0}
+html.shell .shres .why{max-width:none}
+html.shell[data-doc=start] #v1 .card{border:0;background:none;box-shadow:none}
+html.shell .stgrid{align-items:end}
+@media (max-width:1199px){html.shell #shTabs #pvTitle{display:none} html.shell #tabs .tab span{font-size:10.5px}}
+html.shell .shtab:focus-visible,html.shell .shrt:focus-visible,html.shell #tabs .tab:focus-visible{outline:2px solid var(--sh-acc);outline-offset:-2px}
+html.shell .toast{bottom:auto;top:calc(var(--T) + var(--D) + 8px)}
+html.shell[data-theme=dark] .tab:focus-visible,html.shell[data-theme=dark] .btn:focus-visible,html.shell[data-theme=dark] .pill:focus-visible,html.shell[data-theme=dark] .shtab:focus-visible,html.shell[data-theme=dark] .shrt:focus-visible,html.shell[data-theme=dark] #tabs .tab:focus-visible{outline:2px solid #9cc0ff;outline-offset:-2px}

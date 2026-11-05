@@ -534,7 +534,7 @@
 "Fatto! Il riquadro ingrandito è nel grafico e finirà anche nel PDF e nelle immagini. 📌": "Done! The enlarged inset is in the plot and will also end up in the PDF and the images. 📌",
 "Fatto! Spostamento di": "Done! Shift of",
 "Fatto! Stesso intervallo su {0} file {1}. 📏": "Done! Same range on {0} files {1}. 📏",
-"Fatto! {0} confront{1}, uno per strumento. 🔀": "Done! {0} comparisons, one per instrument. 🔀",
+"Fatto! {0} confront{1}, uno per strumento. 🔀": "Done! {0} comparison(s), one per instrument. 🔀",
 "Fatto! {0} nom{1} sul grafico. Se uno non ti convince, clic sul picco per cambiarlo; Ctrl+Z annulla tutto. 🏷️": "Done! {0} name(s) on the plot. If one doesn't convince you, click on the peak to change it; Ctrl+Z undoes everything. 🏷️",
 "Fatto! {0} nom{1} sul grafico{2}. 🏷️": "Done! {0} name(s) on the plot{2}. 🏷️",
 "Fatto! {0} spettri rinominati. Se non ti piace: «✏️ Rinomina in blocco» → «↶ Annulla l'ultima rinomina». ✏️": "Done! {0} spectra renamed. If you don't like it: «✏️ Batch rename» → «↶ Undo the last rename». ✏️",
