@@ -3,6 +3,7 @@
   const root=win.document.documentElement; if (!root.classList.contains('web')) return;
   const $=s=>win.document.querySelector(s), KEY='acch.web.full', full=()=>root.classList.contains('web-full');
   const lsS=v=>{ try{ win.localStorage.setItem(KEY,JSON.stringify(v)); }catch(e){} };
+  win.AcchWebShow=()=>{ if (!full()){ root.classList.add('web-full'); sync(); } };   // per questa sessione, senza cambiare la preferenza
   const TXT=[]; function sync(){ const c=$('#stWebFull'); if (c) c.checked=full(); TXT.forEach(([e,a,b])=>{ e.textContent=full()?a:b; }); }
   function show(on){ root.classList.toggle('web-full',on); lsS(on); sync(); if (typeof win.refreshAll==='function' && files.length) win.refreshAll(); }
   const MOVED=/falso colore|composizione xrf|spessore di uno strato|scomponi come miscela|composizione in %|raggruppa i campioni|stima della composizione|taratura|\bpca\b/i;

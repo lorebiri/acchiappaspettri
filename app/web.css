@@ -50,3 +50,5 @@ html.web .pktab td input{width:100%;max-width:none;border:1px solid var(--line)}
 html.web .pktab .sgp{overflow:visible;text-overflow:clip;display:inline-block;max-width:100%}
 html.web .bench{grid-template-columns:240px minmax(0,1fr)}
 @media (max-width:560px){html.web .bar{display:grid;grid-template-columns:1fr auto;row-gap:6px} html.web .steps{grid-column:1/-1} html.web .infobtn{white-space:nowrap}}
+html.web #mvPreset,html.web #mvBand select{max-width:100%}
+html.web #mvBand .ibf{min-width:0;max-width:100%}

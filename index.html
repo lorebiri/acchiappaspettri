@@ -2166,11 +2166,12 @@ function parseBinary(buf, name){
   if (buf.byteLength>4 && new DataView(buf).getUint32(0, true)===0xFEFE0A0A) return parseOPUS(buf);
   return null;
 }
+function colNamesOf(meta, n){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=String(meta[k]).replace(/^#\s*/,''), t=/[\t;,]/.test(h) ? h.split(/[\t;,]/).map(x=>x.trim()).filter(Boolean) : (splitLine(h)||[]); if (t.length===n && !t.some(x=>isFinite(toNum(x)))) return t.map(x=>x.slice(0,30)); } return null; }
 function guessYCol(meta, nData){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=meta[k].replace(/^#\s*/,''), n=/[\t;,]/.test(h) ? h.split(/[\t;,]/).map(t=>t.trim()).filter(Boolean) : (splitLine(h)||[]); if (n.length<3 || (nData && n.length!==nData) || n.some(t=>isFinite(toNum(t)))) continue;   /* solo la riga dei nomi delle colonne, non le righe informative */ const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
-function parseText(text, opt){
+function parseText(text, opt){ const P0=parseText0(text,opt); if (!opt || opt.ycol==null){ try{ if (P0 && P0.nCols>2 && P0.ycol===1 && P0.ys.length>100 && new Set(Array.from(P0.ys)).size<=20){ const P1=parseText0(text,{ycol:2}); if (P1 && P1.ys.length>=0.9*P0.ys.length && new Set(Array.from(P1.ys)).size>50) return P1; } }catch(e){} } return P0; }
+function parseText0(text, opt){
   const jc = parseJcamp(text); if (jc) return jc;
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
-  if (false){ const q=parseText(text.replace(/##\s*(NTUPLES|DATA\s*CLASS)/gi,'##X'),opt); if (q){ q.importNotes=(q.importNotes||[]).concat(['JCAMP NTUPLES non è supportato: parte reale e immaginaria si mescolano e questi dati sono probabilmente sbagliati. Esporta lo spettro come testo o come JCAMP semplice']); q.importIssue=Object.assign({dropped:0,thou:0,after:0,midText:false,total:q.xs.length},q.importIssue||{},{ntuples:true}); } return q; }
   const ts = parseTopSpin(text); if (ts) return ts;
   const nc = parseNamedColumns(text);
   if (nc){ const th=parseThermal(nc); if (th) return th; const ep=parseEPRCols(nc); if (ep) return ep; }
@@ -2188,7 +2189,7 @@ function parseText(text, opt){
     start = iData>=0 ? iData+1 : 0;
     for (let i=0;i<start;i++) meta.push(lines[i]);
   }
-  const tail=[]; let extraCols=0, dropped=0, pending=0, thou=0, after=0, midText=false, gap0=null; const firstData=lines.slice(start).map(l=>l.trim()).find(l=>l&&parseLine(l)), ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,lines.indexOf(lines.slice(start).find(l=>l.trim()===firstData))).map(l=>l.trim()).filter(Boolean)), firstData?(splitLine(firstData)||[]).length:0);
+  const tail=[]; let extraCols=0, dropped=0, pending=0, headBad=0, thou=0, after=0, midText=false, gap0=null; const firstData=lines.slice(start).map(l=>l.trim()).find(l=>l&&parseLine(l)), ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,lines.indexOf(lines.slice(start).find(l=>l.trim()===firstData))).map(l=>l.trim()).filter(Boolean)), firstData?(splitLine(firstData)||[]).length:0);
   const THOU=/^[-+]?(\d{1,3}(\.\d{3})+,\d+|\d{1,3}(\.\d{3}){2,}|\d{1,3}(,\d{3})+\.\d+)$/, DOT3=/^[-+]?[1-9]\d{0,2}\.\d{3}$/, COMMA=/^[-+]?\d+,\d+$/;
   const newB=()=>({xs:[],ys:[],extra:0,textBefore:0,cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
   // quante celle vuote ci sono fra i valori: se cambia da una riga all'altra una colonna è saltata, e la riga non si può leggere
@@ -2209,10 +2210,10 @@ function parseText(text, opt){
       if (!/[\t;\s]/.test(l) && tk.some((t,k)=>k>=2 && /^\d{3}$/.test(t) && /^\d{1,3}$/.test(tk[k-1]))) thou++;   // 3.00,1,800: la virgola può essere un separatore delle migliaia
       }
     if (cur.xs.length>=3 && !p && (/^"?[-+]?\d/.test(l) || /^[,;]\s*[-+]?\d/.test(l))) pending++;
-    if (p){ dropped+=pending; pending=0;   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
+    if (p){ dropped+=pending; pending=0; if (cur.xs.length===2){ dropped+=headBad; headBad=0; }   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
       [0,ycol].forEach((c,k)=>{ const t=tk[c], C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)) C.other++; });
       cur.xs.push(p[0]); cur.ys.push(p[1]); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
-    else if (cur.xs.length < 3){ if (cur.xs.length) cur=newB(); if (blocks.length){ if (tail.length<120) tail.push(l); } else meta.push(l); }
+    else if (cur.xs.length < 3){ if (/^"?[-+]?\d/.test(l) && /[\t;,]/.test(l) && !p) headBad++; if (cur.xs.length) cur=newB(); if (blocks.length){ if (tail.length<120) tail.push(l); } else meta.push(l); }
     else if (tail.length < 120) tail.push(l);
   }
   if (cur.xs.length>=3 || !blocks.length) blocks.push(cur); else after+=cur.xs.length;
@@ -2222,13 +2223,13 @@ function parseText(text, opt){
   const left=blocks.map((q,k)=>k).filter(k=>k!==mainIx); let grew=true;
   while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=Math.min(...q.xs), qhi=Math.max(...q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
       if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.int+=q.cols[u].int; C.other+=q.cols[u].other; }); left.splice(t,1); t--; grew=true; } } }
-  left.forEach(k=>{ after+=blocks[k].xs.length; });
+  let channel=false; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && Math.min(...q.xs)<=hi && Math.max(...q.xs)>=lo) channel=true; });
   const cols=M.cols;
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
   for (const c of cols) if (c.dot && c.int && !c.other) thou+=c.dot;
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, total:xs.length+dropped} : null, nCols:extraCols+2, ycol};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2)};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -2275,7 +2276,7 @@ function detectInstrument(p, name){
   if (/raman/.test(ty)) return {instr:'raman', reason:'intestazione: spettro Raman'+by};
   if (/ultraviolet|\buv\b|visible|uv.?vis/.test(ty)) return {instr:'uv', reason:'intestazione: spettro UV-Vis'+by};
   if (/chromatogram/.test(ty)) return {instr:'hplc', reason:'intestazione: cromatogramma'+by};
-  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
+  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|signal|segnale|response|value|intens|counts|dad|uv\b|fld|vwd/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
   if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
   if (/nanomet|^nm/.test(xu)) return {instr:'uv', reason:'asse X in nm (intestazione)'+by};
   if (/minute|^min/.test(xu)) return {instr:'hplc', reason:'asse X in minuti (intestazione)'+by};
@@ -2847,7 +2848,7 @@ function calibrateW(pts, kind){ const k=kind==='1/x2'?2:1, x=pts.map(p=>p.x), y=
   if (!(sxx>0)) return null; const b=sxy/sxx, a=ym-b*xm, res=x.map((v,i)=>y[i]-(a+b*v)); let ssr=0; res.forEach((r,i)=>ssr+=w[i]*r*r);
   const df=n-2, s=Math.sqrt(ssr/df), t=tInv(0.975,df), sb=s/Math.sqrt(sxx), sa=s*Math.sqrt(1/sw+xm*xm/sxx), sLow=s/Math.sqrt(W(low));
   const out={a,b,sa,sb,n,df,t,r2:syy>0?1-ssr/syy:1,syx:s,ym,xm,sxx,res,weight:kind,ciA:[a-t*sa,a+t*sa],ciB:[b-t*sb,b+t*sb],lod:3.3*sLow/Math.abs(b),loq:10*sLow/Math.abs(b),stdRes:res.map((r,i)=>s>0?r*Math.sqrt(w[i])/s:0)};
-  out.predict=(y0,m)=>{ m=m||1; const x0=(y0-a)/b, sx0=s/Math.abs(b)*Math.sqrt(1/(m*W(Math.max(x0,low)))+1/sw+(y0-ym)**2/(b*b*sxx)); const mn=Math.min(...x), mx=Math.max(...x), tl=1e-6*(mx-mn); return {x:x0,s:sx0,ci:t*sx0,inRange:x0>=mn-tl&&x0<=mx+tl,belowLoq:x0<out.loq,belowLod:x0<out.lod}; };
+  out.predict=(y0,m)=>{ m=m||1; const x0=(y0-a)/b, sx0=s/Math.abs(b)*Math.sqrt(1/(m*W(Math.max(x0,low)))+1/sw+(y0-ym)**2/(b*b*sxx)); const mn=Math.min(...x), mx=Math.max(...x), tl=1e-3*(mx-mn); return {x:x0,s:sx0,ci:t*sx0,inRange:x0>=mn-tl&&x0<=mx+tl,belowLoq:x0<out.loq,belowLod:x0<out.lod}; };
   return out; }
 function calibrate(pts, opt){   // pts: [{x: concentrazione, y: risposta}]
   opt=opt||{}; if ((opt.weight==='1/x'||opt.weight==='1/x2') && pts.length>=3){ const W=calibrateW(pts,opt.weight); if (W) return W; }
@@ -2860,7 +2861,7 @@ function calibrate(pts, opt){   // pts: [{x: concentrazione, y: risposta}]
   if (Q && R.n>=5){ const ds2=(R.n-2)*R.syx*R.syx-(R.n-3)*Q.s*Q.s, PG=Q.s>0 ? ds2/(Q.s*Q.s) : 0, Fc=fInv(0.99,1,R.n-3);
     out.mandel={PG, F:Fc, nonlinear: PG>Fc, quad:Q.c}; }
   out.predict=(y0, m)=>{ m=m||1; const x0=(y0-R.a)/R.b, sx0=R.syx/Math.abs(R.b)*Math.sqrt(1/m+1/R.n+(y0-R.ym)**2/(R.b*R.b*R.sxx));
-    const lo=Math.min(...x), hi=Math.max(...x), tol=1e-6*(hi-lo); return {x:x0, s:sx0, ci:t*sx0, inRange: x0>=lo-tol && x0<=hi+tol, belowLoq: x0<out.loq, belowLod: x0<out.lod}; };
+    const lo=Math.min(...x), hi=Math.max(...x), tol=1e-3*(hi-lo); return {x:x0, s:sx0, ci:t*sx0, inRange: x0>=lo-tol && x0<=hi+tol, belowLoq: x0<out.loq, belowLod: x0<out.lod}; };
   return out;
 }
 /* misura una banda: altezza, area, baricentro e FWHM sopra una base retta tra i bordi (media di pochi punti) */
@@ -4278,7 +4279,7 @@ function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {aut
 function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; f.xs0=p.xs; f.xs=f.ecal?Float64Array.from(p.xs,x=>f.ecal.a+f.ecal.b*x):p.xs; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.removed=[]; f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
 function kindOf(f){ return (f.an&&f.an.ykind) || (f.an&&f.an.calc&&['ftir','uv'].includes(f.instr) ? 'U' : yKindFor(f.instr, f._p)); }
 function bindAxisFields(){
-  const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; $('#pBmSel').value=(f.an&&f.an.pBm)||''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
+  const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; $('#pBmSel').value=(f.an&&f.an.pBm)||''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1)+(f.colNames&&f.colNames[c]?' · '+f.colNames[c]:''); o.setAttribute('data-noi18n',''); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
   const redo=f=>{ f._pk=null; f._autoKey=null; f._areaKey=null; persist(f); syncDerived(f); refreshAll(); };
   $('#ykindSel').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'ykind',e.target.value||null); f.kind=kindOf(f); redo(f); };
   $('#calcChk').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'calc',e.target.checked||null); f.kind=kindOf(f); redo(f); };
@@ -4569,10 +4570,15 @@ function refScoreDeriv(xs, ys, kind, r){
   let ab=0, aa=0, bb=0; for (let i=0;i<n;i++){ const p=dA[i]-ma, q=dB[i]-mb; ab+=p*q; aa+=p*p; bb+=q*q; }
   if (!(aa>0 && bb>0)) return null; const c=ab/Math.sqrt(aa*bb); return 100*Math.max(0,c)*Math.max(0,c);
 }
+const REF_BL=new Map();
 function refMatches(f){
-  const P=processed(f), kind = P.deriv ? f.kind : P.kind, xs = P.deriv ? f.xs : P.xs, ys = P.deriv ? f.ys : P.ys;
-  return REFS.filter(r=>compatible(r.i, f.instr)).map(r=>{ const s=refScore(xs, ys, kind==='N'?'U':kind, r); if (s==null) return null; const sd=refScoreDeriv(xs, ys, kind==='N'?'U':kind, r);
-    return {r, s, sd, c: sd!=null ? (s+sd)/2 : s}; }).filter(Boolean).sort((a,b)=>b.c-a.c);
+  const P=processed(f), kind = P.deriv ? f.kind : P.kind, xs = P.deriv ? f.xs : P.xs; let ys = P.deriv ? f.ys : P.ys;
+  // senza linea di base un fondo di fluorescenza «somiglia» a qualunque riferimento con lo stesso fondo: si confrontano entrambi dopo arPLS
+  const bl = pBase(f)==='none' && !P.deriv && kind!=='T' && ['raman','fluo','gen'].includes(f.instr);
+  if (bl){ try{ const b=baselineArPLS(Float64Array.from(xs), Float64Array.from(ys)); ys=Float64Array.from(ys,(v,i)=>v-b[i]); }catch(e){} }
+  const refOf=r=>{ if (!bl) return r; const key=r.id+'|'+r.y.length; if (!REF_BL.has(key)){ try{ const b=baselineArPLS(Float64Array.from(r.x), Float64Array.from(r.y)); REF_BL.set(key, Object.assign({}, r, {y:Array.from(r.y,(v,i)=>v-b[i])})); }catch(e){ REF_BL.set(key, r); } } return REF_BL.get(key); };
+  return REFS.filter(r=>compatible(r.i, f.instr)).map(r0=>{ const r=refOf(r0), s=refScore(xs, ys, kind==='N'?'U':kind, r); if (s==null) return null; const sd=refScoreDeriv(xs, ys, kind==='N'?'U':kind, r);
+    return {r:r0, s, sd, c: sd!=null ? (s+sd)/2 : s}; }).filter(Boolean).sort((a,b)=>b.c-a.c);
 }
 function refOverlay(f, P){
   if (!f.refShow) return null; const r=REFS.find(q=>q.id===f.refShow); if (!r) return null;
@@ -4589,7 +4595,7 @@ function renderRefs(){
     const m=refMatches(f).slice(0,8);
     box.innerHTML = !REFS.length ? '<div class="pkempty">Nessun riferimento salvato: aggiungine qui sotto (anche da questo spettro).</div>'
       : !m.length ? `<div class="pkempty">Nessun riferimento ${esc(NOME_IT[f.instr])} con un intervallo X compatibile.</div>`
-      : `${pBase(f)==='none'?'<p class="why">⚠️ Confronto senza linea di base: un fondo di fluorescenza può dare da solo un punteggio alto.</p>':''}<div class="refbox">${m.map(o=>`<div class="refrow"><b title="${esc(o.r.n)}">${esc(o.r.n)}</b><span class="sc" title="${fmtN(o.c,1)} %"><i style="width:${Math.round(o.c)}%"></i></span><span title="forma: ${Math.round(o.s)} % · derivata prima: ${o.sd!=null?Math.round(o.sd)+' %':'—'}">${Math.round(o.c)} %</span><span class="sc2 adv">forma ${Math.round(o.s)} · deriv. ${o.sd!=null?Math.round(o.sd):'—'}</span><button data-show="${esc(o.r.id)}" class="${f.refShow===o.r.id?'on':''}" title="Sovrapponi al grafico (anche nel PDF e nelle immagini)">👁</button></div>`).join('')}</div>`;
+      : `${pBase(f)==='none'?(['raman','fluo','gen'].includes(f.instr)?'<p class="why">Senza linea di base il confronto si fa dopo una linea di base arPLS su campione e riferimento, perché il fondo non conti.</p>':'<p class="why">⚠️ Confronto senza linea di base: un fondo può dare da solo un punteggio alto.</p>'):''}<div class="refbox">${m.map(o=>`<div class="refrow"><b title="${esc(o.r.n)}">${esc(o.r.n)}</b><span class="sc" title="${fmtN(o.c,1)} %"><i style="width:${Math.round(o.c)}%"></i></span><span title="forma: ${Math.round(o.s)} % · derivata prima: ${o.sd!=null?Math.round(o.sd)+' %':'—'}">${Math.round(o.c)} %</span><span class="sc2 adv">forma ${Math.round(o.s)} · deriv. ${o.sd!=null?Math.round(o.sd):'—'}</span><button data-show="${esc(o.r.id)}" class="${f.refShow===o.r.id?'on':''}" title="Sovrapponi al grafico (anche nel PDF e nelle immagini)">👁</button></div>`).join('')}</div>`;
     $$('#refMatches [data-show]').forEach(b=>b.onclick=()=>{ f.refShow = f.refShow===b.dataset.show ? null : b.dataset.show; persist(f); renderPreview(); renderRefs(); });
   }
   $('#refList').innerHTML = REFS.length ? REFS.map(r=>`<div class="libitem"><span class="badge b-${r.i}">${esc(NOME_IT[r.i].split(' ')[0])}</span><span title="${esc(r.n)}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(r.n)}</b> · ${fmtTick(r.x[0],0)}–${fmtTick(r.x[r.x.length-1],0)}</span><button class="btn small ghost" data-rdel="${esc(r.id)}" title="Elimina">×</button></div>`).join('') : '';
@@ -4721,7 +4727,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.nCols=p.nCols||2; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=!!det.xSeconds; postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=!!det.xSeconds; postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -5660,7 +5666,7 @@ $('#xrfAlignAll').onclick=()=>{ let ok=0, tot=0; files.forEach(g=>{ if (g.instr=
 $('#xrfReset').onclick=()=>{ const f=files[cur]; if(!f) return; setEcal(f, null); persist(f); $('#xrfMsg').hidden=true; changed(f); renderList(); };
 $('#resetFile').onclick=async ()=>{ const f=files[cur]; if(!f) return; if(!await uiConfirm('Annullare nome, descrizione, picchi e intervallo di questo file?')) return;
   if (f.ecal) setEcal(f, null);
-  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr,sample:null,inset:null,_zoom:null,_yzoom:null,fit:null,an:null}); f.kind=kindOf(f); f._pk=null; xrForce=true; changed(f); };
+  Object.assign(f,{title:'',desc:'',xr:null,labels:{},removed:[],added:[],include:true,instr:f.autoInstr,sample:null,inset:null,_zoom:null,_yzoom:null,fit:null,an:null}); f.kind=kindOf(f); f._pk=null; setTimeout(()=>{ if (window.ACCH_AXSYNC) window.ACCH_AXSYNC(); },0); xrForce=true; changed(f); };
 function readXR(){ const a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value); return (isFinite(a)&&isFinite(b)&&a!==b)?[Math.min(a,b),Math.max(a,b)]:null; }
 ['#xrA','#xrB'].forEach(s=>$(s).addEventListener('change', ()=>{ const f=files[cur]; if(!f) return;
   let a=parseFloat($('#xrA').value), b=parseFloat($('#xrB').value);
@@ -6370,14 +6376,15 @@ function assess(f, d){
   if (/^(asse X in minuti|intervallo 150|intervallo IR|shift cm|conteggi interi)/.test(f.reason||'') && f.instr===f.autoInstr) add('info', `Tecnica dedotta solo dagli intervalli dei numeri (${f.reason}): controlla che sia giusta in «Dati dello spettro».`);
   if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.');
   if (it==='xrf'){ let neg=0; for (const v of f.ys) if (v<0) neg++; if (neg) add('warn',`${neg} canali con conteggi negativi: i conteggi veri non sono mai negativi, lo spettro è già stato elaborato e l'incertezza di conteggio non vale.`); }
-  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare il punto come separatore delle migliaia (${q.thou} righe, es. 12.355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
+  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare il punto come separatore delle migliaia (${q.thou} righe, es. 12.355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after && q.channel) add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${q.after} righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato.`); else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
   if (f.nCols>2) add('info', `Il file ha ${f.nCols} colonne: Y è la colonna ${(f.an&&f.an.ycol||1)+1}. La puoi cambiare in «Dati dello spettro».`);
   if (f.xSeconds && !f.ecal) add('warn', 'L\'asse X sembra in secondi, ma è etichettato in minuti: in «Dati dello spettro» metti scala 0,016667 e cambia l\'etichetta.');
   if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
   if (it==='epr' && f.freq>0 && P.xs.length){ const B=(P.xs[0]+P.xs[P.xs.length-1])/2, g=B>0?71.4477*f.freq/B:0; if (g<1.2||g>12) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss letti come mT?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
+  if (it==='nmr' && d.peaks.some(p=>p.area!=null)){ const an=f.an||{}; if (an.nmrX!=null && !d.peaks.some(p=>p.area!=null && Math.abs(p.x-an.nmrX)<0.02)) add('warn',`Il picco di riferimento degli integrali (${fmtN(an.nmrX,2)} ppm) non è più nell'elenco: gli integrali sono riferiti al primo picco.`); add('info','Integrali dei soli picchi in elenco: i multipletti risultano sottostimati. Per regioni intere usa la misura di banda in «Più campioni».'); }
   if (it==='epr' && !(f.freq>0) && P.xs[P.xs.length-1]>1000 && !(f.epr&&f.epr.unitK===0.1)) add('warn','Campo oltre 1000 senza unità dichiarata e senza frequenza: potrebbe essere in gauss. Controlla l\'unità prima di confrontare doppi integrali.');
-  if (it==='epr'){ const v=Array.from(f.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(f.ys); if (sg>0 && v[v.length-1]/sg<200) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
+  if (it==='epr'){ const v=Array.from(f.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(f.ys); if (sg>0 && v[v.length-1]/sg<200 && (peakFwhmPts(P.xs,Float64Array.from(f.ys,Math.abs),P.xs[f.ys.reduce((k,y,i,a)=>Math.abs(y)>Math.abs(a[k])?i:k,0)])||0)<0.1*f.ys.length) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
   { const sw=pSmooth(f); if (sw && d.peaks.length){ const up=upData(P), w=d.peaks.map(p=>peakFwhmPts(P.xs,up.y,p.x)).filter(v=>v>0).sort((a,b)=>a-b); if (w.length && w[0]<sw) add('warn',`Lo smoothing (${sw} punti) è più largo del picco più stretto (circa ${Math.round(w[0])} punti): altezze e aree si abbassano. Riducilo o scegline uno per questo spettro.`); } }
   if (['hplc','raman','fluo','ftir','uv','xrf'].includes(it) && !P.deriv && S.showPeaks!==false){ try{ const up=upData(P), low=findPeaks(P.xs, up.y, 1, 0.3, 200), st=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, miss=low.filter(q=>!d.peaks.some(p=>Math.abs(p.x-q.x)<=6*st) && !(f.removed||[]).some(x=>Math.abs(x-q.x)<=6*st));
       if (miss.length) add('warn', `${miss.length} segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a ${miss.slice(0,3).map(q=>fmtTick(q.x,2)).join(', ')}).${it==='hplc'?' Le percentuali di area non li contano.':''} Abbassa «Quanti picchi cerco» o aggiungili con un clic.`); }catch(e){} }
@@ -6439,7 +6446,9 @@ function renderAnQual(f, d){
 function xrfElements(f, d){
   const mp=Math.max(1e-30, ...d.peaks.map(p=>p.prom||0)), by={}, lineOf=id=>{ const m=/^x_([A-Z][a-z]?)_([A-Za-z0-9]+?)(?:_c)?$/.exec(id||''); return m ? {el:m[1], ln:m[2]} : null; };
   const freeLine=t=>{ const m=/^([A-Z][a-z]?)\s*(K|L)\s*(α|a|β|b)/.exec(t); return m ? `x_${m[1]}_${m[2]}${/[αa]/.test(m[3])?'a':'b'}` : t; };
-  d.peaks.forEach(p=>{ const rawL=p.custom ? String(f.labels[lblKey(p.x)]||'') : '', SG=(p.suggAll||p.sugg), autoIds=SG.slice(0,3).filter((g,i)=>i===0 || g.coherent).map(g=>g.id);
+  const tubeE=(()=>{ try{ const an=f.xrf&&f.xrf.tube; return an&&FP.el[an] ? fpLineE(an, ['W','Au','Pt'].includes(an)?'La':'Ka') : null; }catch(e){ return null; } })();
+  d.peaks.forEach(p=>{ if (tubeE && p.x>tubeE-1.2 && p.x<tubeE-0.15 && !p.custom) return;   // diffusione Compton del tubo: non conferma nessun elemento
+    const rawL=p.custom ? String(f.labels[lblKey(p.x)]||'') : '', SG=(p.suggAll||p.sugg), autoIds=SG.slice(0,3).filter((g,i)=>i===0 || g.coherent).map(g=>g.id);
     // «Accetta i suggerimenti» non deve cambiare l'esito: un nome della banca dati si aggiunge alle alternative, non le cancella. Un nome scritto a mano conta da solo
     const ids = !p.custom ? autoIds : rawL[0]==='@' ? [...new Set(autoIds.concat([rawL.slice(1)]))] : [freeLine(rawL)];
     const all = !p.custom || rawL[0]==='@' ? SG.slice(0,3).map(g=>g.id).concat(ids) : ids, altEls=SG.slice(0,3).map(g=>lineOf(g.id)).filter(Boolean).map(L=>L.el);
@@ -6458,14 +6467,14 @@ function xrfElements(f, d){
   if (els.includes('Se') && els.includes('Pb') && !hasLine('Pb',/^L[gl]/)) drop('Pb');
   { const an=f.xrf&&f.xrf.tube; if (an==='Rh') ['Ru','Pd'].forEach(e=>{ if (els.includes(e) && !hasLine(e,/^L/)) drop(e); }); }
   { const kv=fpNum((f.xrf||{}).kv)||40; els.slice().forEach(e=>{ let Ek=null; try{ Ek=fpLineE(e,'Ka'); }catch(err){} if (Ek && Ek<0.6*kv && !hasLine(e,/^K/) && hasLine(e,/^L/)) drop(e); }); }
-  const oneLine=els.filter(e=>by[e].lines.size<2), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
+  const oneLine=els.filter(e=>by[e].lines.size<2 && !by[e].strong), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
   const over=[];   // picchi dove due elementi presenti hanno righe sovrapposte
   d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg; if (p.custom && !p.suggAll) return; const es=[...new Set(SG.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
     if (es.length>=2) over.push({x:p.x, num:p.num, names:SG.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });
   const assigned=d.peaks.filter(p=>p.custom||((p.suggAll||p.sugg)&&(p.suggAll||p.sugg).length)).length;
   // la riga diffusa del tubo deve stare dove dice la fisica: se è spostata di oltre 80 eV, l'asse è spostato e gli elementi proposti non valgono
   let tubeOff=null; try{ const an=f.xrf&&f.xrf.tube; if (an && FP.el[an]){ const E=fpLineE(an, ['W','Au','Pt'].includes(an)?'La':'Ka'); let best=null; for (const p of d.peaks){ const dx=p.x-E; if (Math.abs(dx)<=0.4 && (best==null || Math.abs(dx)<Math.abs(best))) best=dx; } tubeOff=best; } }catch(e){}
-  if (tubeOff!=null && Math.abs(tubeOff)>0.08) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true};
+  if (tubeOff!=null && Math.abs(tubeOff)>0.08) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true, tubeOff};
   if (d.peaks.length>=5 && assigned<0.5*d.peaks.length) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true};
   return {els, over, unsure, oneLine, cands};
 }
@@ -6489,7 +6498,7 @@ function hypotheses(f, d){
     return {kind:'bands', list:markShared(groupHypotheses(it, pk, f.sample||S.sample)), pig:markShared(pig)};
   }
   if ((it==='xrf' && !f.uncal) || it==='libs'){ const xe=it==='xrf' ? xrfElements(f, d) : null, unsure=xe?xe.unsure:[], els=probableElements(f, d).filter(e=>!unsure.includes(e)), col=f.an&&f.an.color, over = xe ? xe.over : [], oneLine=xe?xe.oneLine:[];
-    return {kind:'els', els, col, over, unsure, oneLine, shifted:!!(xe&&xe.shifted), list:elementHypotheses(els).map(h=>Object.assign({},h,{lvl:(h.els||[]).some(e=>oneLine.includes(e))?'una riga sola: inconclusiva':'plausibile'})), pig: col ? xrfPigments(els, col) : []}; }
+    return {kind:'els', els, col, over, unsure, oneLine, shifted:!!(xe&&xe.shifted), tubeOff:xe&&xe.tubeOff, list:elementHypotheses(els).map(h=>Object.assign({},h,{lvl:(h.els||[]).some(e=>oneLine.includes(e))?'una riga sola: inconclusiva':'plausibile'})), pig: col ? xrfPigments(els, col) : []}; }
   return null;
 }
 /* livello dichiarato: una banda sola è inconclusiva, qualunque sia il punteggio. «Supportata da più tecniche» non esiste: il programma non correla tecniche diverse */
@@ -6501,7 +6510,7 @@ function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
 function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2]; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=noiseSigma(y)||0; if (!(h>0) || h<20*sg) return {};
-  const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<8) return {};
+  const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
   const W5=xs[a.r]-xs[a.l], W1=xs[b.r]-xs[b.l], L=xs[k]-xs[b.l], Rr=xs[b.r]-xs[k]; return {flat:W1/W5<1.55, asym:L>0&&Rr>0&&(Rr/L>2.5||L/Rr>2.5)}; }
 function flatTopPeaks(xs, y, peaks){ return peaks.filter(p=>peakShape(xs,y,p.x).flat); }
 function peakFwhmPts(xs, y, x0){ let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2], t=base+(y[k]-base)/2; if (!(y[k]>base)) return 0; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return r-l; }
@@ -6522,7 +6531,7 @@ function renderAnHyp(f, d){
     if (pigHtml) box.innerHTML = pigHtml + (H.list.length ? '<h4 class="anh">🧪 Gruppi chimici</h4>'+box.innerHTML : '');
   } else {
     why.innerHTML='Dagli elementi con una riga principale intensa o almeno due righe riconosciute ricavo i materiali compatibili, con l\'epoca d\'uso quando è un indizio di datazione (Eastaugh et al. 2008). Pensato per i beni culturali: <b>verifica sempre con altre tecniche</b> (Raman, FTIR, stratigrafia).';
-    box.innerHTML = H.shifted ? '<div class="pkempty">⚠️ La riga diffusa del tubo è spostata di oltre 80 eV: l\'asse in energia è spostato e non propongo elementi. Usa «Allinea sulle righe note» o correggi la calibrazione in «Dati dello spettro».</div>' : !H.els.length ? '<div class="pkempty">Nessun elemento con una riga principale intensa o due righe riconosciute. Dai un nome ai picchi o accetta i suggerimenti nella scheda «Picchi».</div>'
+    box.innerHTML = H.shifted ? `<div class="pkempty">⚠️ La riga diffusa del tubo è spostata di circa ${Math.round(Math.abs(H.tubeOff||0)*1000)} eV ${(H.tubeOff||0)>0?'in più':'in meno'}: l'asse in energia è spostato e non propongo elementi. Prova «Allinea sulle righe note»; se non basta, metti spostamento ${fmtN(-(H.tubeOff||0),3)} keV in «Dati dello spettro».</div>` : !H.els.length ? '<div class="pkempty">Nessun elemento con una riga principale intensa o due righe riconosciute. Dai un nome ai picchi o accetta i suggerimenti nella scheda «Picchi».</div>'
       : `<div class="elrow"><b>Elementi:</b> ${H.els.map(e=>`<span class="pill on">${e}</span>`).join(' ')}</div>${H.shifted?`<p class="why" style="margin:4px 0">⚠️ Più di metà delle righe non ha un'assegnazione: l'asse in energia sembra spostato e non propongo elementi. Allinealo o calibralo prima.</p>`:''}${(H.unsure||[]).length?`<p class="why" style="margin:4px 0">⚠️ Non distinguibili da questo spettro: ${H.unsure.map(esc).join(', ')}. As Kα coincide con Pb Lα, As Kβ è vicina a Hg Lβ, W è coperto dalle righe di Au: non si possono né affermare né escludere.</p>`:''}${(H.oneLine||[]).length?`<p class="why" style="margin:4px 0">⚠️ Una riga sola per ${H.oneLine.map(esc).join(', ')}: l'ipotesi è inconclusiva.</p>`:''}${(H.over||[]).length?`<p class="why" style="margin:4px 0">⚠️ Righe sovrapposte: ${H.over.map(o=>`${esc(o.num)} keV = ${esc(o.names.join(' + '))}`).join(' · ')}. L'area di questi picchi è la somma dei due elementi.</p>`:''}`;
     const cp=`<div class="colpick"><b>Di che colore è il punto misurato?</b> <span class="opt-l">così restringo le ipotesi</span><div class="pills">${Object.entries(COLOURS).filter(([k])=>k!=='orange').map(([k,[e,t]])=>`<button class="pill ${H.col===k?'on':''}" data-col="${k}">${e} ${t}</button>`).join('')}</div></div>`;
     let list='';
@@ -6632,7 +6641,8 @@ function techMetrics(f, d){   // restituisce {title, why, head:[], rows:[[]], ex
     const all=files.filter(g=>g.instr==='epr').map(g=>{ const Q=processed(g); return {g, di: Q.kind==='E' && !Q.deriv ? eprDoubleIntegral(Q.xs, Q.ys) : null}; }).filter(o=>o.di);
     const mx=Math.max(...all.map(o=>Math.abs(o.di.di)), 1e-300);
     o.head=['Spettro','Doppio integrale','Relativo al massimo (%)'];
-    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1)]);
+    const odd=g=>{ if (!(g.freq>0)) return g.xs[g.xs.length-1]>1000; const B=(g.xs[0]+g.xs[g.xs.length-1])/2, gg=B>0?71.4477*g.freq/B:0; return gg<1.2||gg>12; };
+    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g)+(odd(o.g)?' ⚠️ unità del campo da controllare':''), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1)]);
   }
   if (it==='nmr'){
     o.title='🧮 Integrali relativi (NMR)'; o.why='Scegli il picco di riferimento e quanti nuclei rappresenta: gli altri integrali vengono scalati di conseguenza (qNMR: Bharti & Roy 2012). Per una purezza assoluta servono uno standard interno pesato, D1 ≥ 5·T₁ e una fase/base corrette.';
@@ -6769,10 +6779,11 @@ function mvFlag(f, a, b, meas){
   for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo && P.xs[i]<=hi && U.y[i]>top){ top=U.y[i]; k=i; }
   if (k<0) return 'nessun dato nella zona'; const m=bandMeasure(P.xs, U.y, a, b);
   if (meas==='area' && m && m.area<=0) return 'area negativa o nulla';
-  const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; const iz=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi) iz.push(i); const e3=a=>a.reduce((t,i)=>t+U.y[i],0)/a.length, eL=e3(iz.slice(0,3)), eR=e3(iz.slice(-3)); if (sg>0 && top-(eL+eR)/2<5*sg) return 'nessun picco nella zona';
+  const sg=noiseSigma(U.y)||0; let bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi&&U.y[i]<bot) bot=U.y[i]; const iz=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi) iz.push(i); const e3=a=>a.reduce((t,i)=>t+U.y[i],0)/a.length, eL=e3(iz.slice(0,3)), eR=e3(iz.slice(-3)); const med=Array.from(U.y).sort((a,b)=>a-b)[U.y.length>>1]; if (sg>0 && top-Math.min((eL+eR)/2, med)<5*sg) return 'nessun picco nella zona';
   if (Math.min(P.xs[k]-lo, hi-P.xs[k])<0.03*(hi-lo)) return 'massimo al bordo della zona: picco tagliato o spostato';
   { const ys=f.ys, X=f.xs; let run=0, best=0, mx=-Infinity; for (let i=0;i<X.length;i++) if (X[i]>=lo&&X[i]<=hi&&ys[i]>mx) mx=ys[i]; for (let i=0;i<X.length;i++){ if (X[i]>=lo&&X[i]<=hi&&ys[i]===mx){ run++; best=Math.max(best,run); } else run=0; } const sgR=noiseSigma(ys)||0; if (best>=3 && mx>0 && mx>10*sgR) return 'cima tagliata o piatta: rivelatore saturo o due composti'; }
   { if (Math.max(eL,eR)-bot>0.03*(top-bot) && Math.max(eL,eR)-bot>3*sg) return 'bordi della zona lontani dalla linea di base: zona da allargare o interferente'; }
+  if (f.instr==='hplc'){ try{ const hb=hiddenBands(P.xs,U.y).filter(h=>h.x>lo&&h.x<hi&&Math.abs(h.x-P.xs[k])>0.0); if (hb.length) return 'spalla nascosta (derivata seconda): possibile coeluito'; }catch(e){} }
   const sh=peakShape(P.xs,U.y,P.xs[k]); if (sh.flat) return 'cima piatta: rivelatore saturo o due composti'; if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
   return ''; }
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
@@ -6928,6 +6939,7 @@ function renderCult(f){
       ${c.mode==='compton'?`<tr><td colspan="2">resto (${esc(c.bal==='custom'?(c.balTxt||'formula'):(fpMat(c.bal)||{}).it||'')})</td><td>${fmtN(Q.rest,1)}</td><td></td></tr>`:''}</tbody></table></div>`;
     const notes=[];
     if (fpNum(x.kv)!=null && fpNum(x.kv)!==S.kv) notes.unshift(`⚠️ Il file dichiara ${esc(String(x.kv))} kV, ma il calcolo usa ${S.kv} kV: il modello arriva a 50 kV, quindi la stima è meno affidabile.`);
+    if (R.els.includes('Cu') && !R.els.includes('Sn') && (Q.res.Cu&&Q.res.Cu.w>50)) notes.unshift('Lega di rame senza Sn nell\'elenco: la riga Sn Kα (25,3 keV) è poco sensibile e sotto il 5% può non essere rilevata. Se il manufatto può essere un bronzo, aggiungi Sn e confronta.');
     if (R.els.includes('W') && R.els.includes('Au')) notes.unshift('⚠️ W e Au hanno righe sovrapposte (W Lα / Au Lℓ, W Lβ / Au Lα): la quota di W non è affidabile.');
     if (!R.S.filt) notes.push('Nessun filtro primario sul fascio: se lo strumento ne usa uno, dichiaralo nelle condizioni (avanzate) perché le stime cambiano molto.');
     if (c.mode==='norm') notes.push('Pitture, vetri e materiali con elementi leggeri invisibili (H, C, O, Na…): con la somma a 100% questi numeri non sono concentrazioni del materiale, ma solo proporzioni fra gli elementi visti.');
@@ -7158,7 +7170,7 @@ function drawPlsChart(cv, instr, R){
 function mvCsvRows(instr){
   const c=mvCfg(instr), rows=mvTable(instr)||[], cal=mvCalib(rows), dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec);
   const out=[['File','Nome','Strumento','Banda da','Banda a','Misura','Rif. da','Rif. a','Valore','Concentrazione nota','Concentrazione stimata','IC 95%','Unità','Stato']];
-  rows.forEach(o=>{ const pr=cal&&cal.predict&&o.y!=null&&!mvNoEstimate(o)&&((o.role==='std'&&o.conc==null)||o.role==='qc') ? cal.predict(o.y,1) : null, rec=o.role==='qc'&&pr&&o.conc>0?`recupero ${fmtN(100*pr.x/o.conc,1)}%`:''; out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), pr?n(pr.x):'', pr?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', rec, mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
+  rows.forEach(o=>{ const pr=cal&&cal.predict&&o.y!=null&&!mvNoEstimate(o)&&((o.role==='std'&&o.conc==null)||o.role==='qc') ? cal.predict(o.y,1) : null, rq=o.role==='qc'&&pr&&o.conc>0?100*pr.x/o.conc:null, rec=rq!=null?`recupero ${fmtN(rq,1)}%${rq<80||rq>120?' (fuori 80–120%)':''}`:'', pb=o.role==='blank'&&cal&&cal.predict&&o.y!=null?cal.predict(o.y,1):null, blk=pb&&pb.x>cal.lod?`sopra il LOD (${fmtG(pb.x,3)})`:''; out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), pr?n(pr.x):'', pr?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', rec, blk, mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
   if (cal && cal.b!=null){ out.push([]); out.push(['Retta','pesi',cal.weight||'nessuno','n',cal.n,'IC95 a',n(cal.ciA&&cal.ciA[0])+' / '+n(cal.ciA&&cal.ciA[1]),'IC95 b',n(cal.ciB&&cal.ciB[0])+' / '+n(cal.ciB&&cal.ciB[1]),'a',n(cal.a),'b',n(cal.b),'R2',n(cal.r2),'syx',n(cal.syx),'LOD',n(cal.lod),'LOQ',n(cal.loq)]);
     if (cal.mandel) out.push(['Mandel','PG',n(cal.mandel.PG),'F99',n(cal.mandel.F),'non lineare',cal.mandel.nonlinear?'sì':'no']); }
   return out;
@@ -7291,7 +7303,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
   for (const f of inc){ const d=viewOf(f), Q=assess(f,d).filter(o=>o.lv==='warn'||o.lv==='bad'), H=hypotheses(f,d);
     line(`${dispTitle(f)} · ${T_().nome[f.instr]}`, 10, true); y+=0.5;
     if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili (ipotesi): ','Compatible pigments/materials (hypotheses): ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${hypTag(h,en)})`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
-    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${R.S.atm}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
+    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${R.S.atm}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.els.includes('Cu')&&!R.els.includes('Sn')&&R.Q.res.Cu&&R.Q.res.Cu.w>50?T(' · Sn sotto il 5% può non essere rilevato',' · Sn below 5% may not be detected'):'')+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
     if (fitValid(f)) line(T('Deconvoluzione: ','Deconvolution: ')+f.fit.peaks.map(q=>`${fmtPeak(f.instr,q.c)} (${fmtN(q.pct,q.pct<1?3:1)}%)`).join(', ')+` · R² ${fmtN(f.fit.r2,4)}`, 8.5);
@@ -7485,8 +7497,8 @@ function recipesFor(f){
   if (it==='xrf' && !f.uncal){
     R.push(['🎯','Riconosci elementi e pigmenti','allineo la calibrazione, poi ti chiedo il colore del punto misurato', ()=>{ cult(); if (!f.ecal){ const r=alignXrf(f); if (r) persist(f); } renderPreview(); go2('#anHyp'); say('#tip2','Scegli il colore del punto misurato: restringo i pigmenti possibili. 🎨'); }]);
     R.push(['⚖️','Confronta più punti tra loro','misuro un elemento su tutti gli spettri, diviso per il picco Compton (corregge distanza e geometria)', ()=>{ openTab('multi'); $('#mvInstr').value='xrf'; renderMulti(); go2('#mvBand'); say('#tip2','Scegli l\'elemento nell\'elenco «Indici e misure dalla letteratura». ⚖️'); }]);
-    R.push(['🏛️','Stima della composizione in % senza standard','parametri fondamentali: leghe, vetri e ceramiche, strati pittorici; righe sovrapposte separate', ()=>{ $('#secCult').open=true; renderCult(f); go2('#secCult'); }]);
-    R.push(['🧱','Spessore di uno strato','doratura sul rame, vernice o gesso sulla biacca: dal rapporto tra due righe dell\'elemento sotto', ()=>{ $('#secCult').open=true; renderCult(f); setTimeout(()=>go2('#lyEl'), 60); }]);
+    R.push(['🏛️','Stima della composizione in % senza standard','parametri fondamentali: leghe, vetri e ceramiche, strati pittorici; righe sovrapposte separate', ()=>{ if (window.AcchWebShow) window.AcchWebShow(); $('#secCult').open=true; renderCult(f); go2('#secCult'); }]);
+    R.push(['🧱','Spessore di uno strato','doratura sul rame, vernice o gesso sulla biacca: dal rapporto tra due righe dell\'elemento sotto', ()=>{ if (window.AcchWebShow) window.AcchWebShow(); $('#secCult').open=true; renderCult(f); setTimeout(()=>go2('#lyEl'), 60); }]);
     R.push(['🧪','Composizione in % (leghe, con standard)','con almeno 3 standard di composizione nota stimo le percentuali in peso, con la correzione degli effetti di matrice', ()=>{ openTab('multi'); $('#mvInstr').value='xrf'; renderMulti(); go2('#xqBox'); }]);
     R.push(['🖼️','Falso colore delle foto','componi IR e visibile per distinguere i pigmenti blu e rossi', ()=>$('#imgBtn').click()]);
   }
@@ -7526,7 +7538,7 @@ const NOVITA=[
     ['🌙','Tema scuro','Nelle impostazioni puoi scegliere il tema chiaro, scuro o quello del sistema. I grafici restano su fondo bianco, come nei file esportati.', ()=>AcchUi.openSettings()],
     ['🔒','Funziona offline, più sicuro','Librerie e caratteri ora sono inclusi: nessun collegamento a siti esterni per usare lo strumento. Corretti alcuni problemi: «Sobrio» non scarta più gli spettri, e un progetto non può più eseguire codice nella pagina.']]},
   {v:'2.1', data:'ottobre 2026', voci:[
-    ['🏛️','Composizione XRF anche senza standard','Nuovo motore a parametri fondamentali (costanti fisiche di xraylib): percentuali in peso per leghe, vetri e ceramiche, strati pittorici. Le righe sovrapposte (Pb/As, Pb/S…) sono separate da sole. In Analisi → «Concentrazioni XRF».', ()=>{ const k=files.findIndex(g=>g.instr==='xrf' && !g.uncal); if (k<0){ toast('Carica uno spettro XRF per provarlo.'); return; } cur=k; go(2); openTab('an'); $('#secCult').open=true; refreshAll(); setTimeout(()=>reveal('#secCult'), 120); }],
+    ['🏛️','Composizione XRF anche senza standard','Nuovo motore a parametri fondamentali (costanti fisiche di xraylib): percentuali in peso per leghe, vetri e ceramiche, strati pittorici. Le righe sovrapposte (Pb/As, Pb/S…) sono separate da sole. In Analisi → «Concentrazioni XRF».', ()=>{ if (window.AcchWebShow) window.AcchWebShow();  const k=files.findIndex(g=>g.instr==='xrf' && !g.uncal); if (k<0){ toast('Carica uno spettro XRF per provarlo.'); return; } cur=k; go(2); openTab('an'); $('#secCult').open=true; refreshAll(); setTimeout(()=>reveal('#secCult'), 120); }],
     ['🧱','Spessore degli strati','Doratura sul rame o sull\'argento, vernice o gesso sulla biacca: massa per area (mg/cm²) e spessore in µm dal rapporto tra due righe o dall\'attenuazione rispetto a una zona scoperta.'],
     ['🎯','Standard: ne basta uno','Nella composizione XRF con standard (Più campioni) c\'è il modello «parametri fondamentali»: funziona con 0, 1 o più standard.'],
     ['⚖️','Miscele in % in peso (Raman, FTIR)','In Riferimenti → «È una miscela?»: scrivi la composizione di qualche miscela nota e le quote spettrali diventano percentuali in peso.']]},
