@@ -2279,8 +2279,12 @@ function detectInstrument(p, name){
   if (/ultraviolet|\buv\b|visible|uv.?vis/.test(ty)) return {instr:'uv', reason:'intestazione: spettro UV-Vis'+by};
   if (/chromatogram/.test(ty)) return {instr:'hplc', reason:'intestazione: cromatogramma'+by};
   if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|value|intens|counts|dad|uv\b|fld|vwd/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in secondi', xSeconds:true};
+  // massa in percentuale (anche contro il tempo): termogravimetria, non cromatogramma
+  if (p.meta.some(l=>/\b(weight|mass|massa|peso)\s*[(\[]\s*(%|wt\s*%|mg)\s*[)\]]/i.test(l))) return {instr:'tga', reason:'intestazione: massa (TGA)'};
+  // tempo e temperatura senza altre indicazioni: misura termica non riconosciuta, meglio far scegliere che indovinare
+  if (p.meta.some(l=>/\b(time|tempo)\b/i.test(l) && /\b(temperat\w*|temp\.?)\s*[(\[]|°c\b/i.test(l))) return {instr:'gen', reason:'tempo e temperatura: scegli la tecnica'};
   // intestazione di colonna con il tempo in minuti e un segnale da rivelatore: cromatogramma anche se non parte da 0
-  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(min|minutes?|minuti)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|dad|uv\b|fld|vwd|\bau\b/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in minuti e segnale del rivelatore'};
+  if (p.meta.some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(min|minutes?|minuti)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|intens|counts|dad|uv\b|fld|vwd|\bau\b/i.test(l)))) return {instr:'hplc', reason:'intestazione: tempo in minuti e segnale del rivelatore'};
   if (/1\/cm|cm-1|cm\^-1|wavenumber/.test(xu) && !/raman/.test(head)) return {instr:'ftir', reason:'asse X in cm⁻¹ (intestazione)'+by};
   if (/nanomet|^nm/.test(xu)) return {instr:'uv', reason:'asse X in nm (intestazione)'+by};
   if (/minute|^min/.test(xu)) return {instr:'hplc', reason:'asse X in minuti (intestazione)'+by};
@@ -6808,12 +6812,12 @@ const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
-function rerenderKeep(fn, now){ setTimeout(()=>{ const act=document.activeElement, box=!now&&act&&act.closest&&act.closest('#xqBox,#mvOut');
+function rerenderKeep(fn, now, origin){ setTimeout(()=>{ const act=document.activeElement, box=!now&&act&&act.closest&&act.closest('#xqBox,#mvOut');
   // si sta ancora scrivendo nella stessa tabella: niente ridisegno, che cancellerebbe ciò che si digita; si aggiorna quando si esce dalla tabella
-  if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; fn(); }; box.addEventListener('focusout',out); } return; }
+  if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; setTimeout(()=>rerenderKeep(fn, true, document.activeElement),0); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
   if (!key) return; let q=key.id?document.getElementById(key.id):null; if (!q && key.cls){ q=document.querySelector('.'+CSS.escape(key.cls)+(key.i!=null?`[data-i="${key.i}"]`:'')+(key.e!=null?`[data-e="${key.e}"]`:'')+(key.f!=null?`[data-f="${key.f}"]`:'')); }
-  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!==''){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
+  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!=='' && (!origin || origin===a)){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
 document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
   // larghezza al 10% sopra la retta tra i bordi della zona: con una deriva il minimo sta da un lato e falserebbe la forma
@@ -6886,7 +6890,7 @@ function renderMulti(){
     if (rows.some(o=>o.stale)) html+='<p class="why">⚠️ Hai cambiato zona: le concentrazioni scritte erano per un\'altra banda. Controllale: con più composti ognuno ha le sue.</p>';
     if (cal && cal.weight) html+='<p class="why">Con i pesi LOD e LOQ dipendono dalla dispersione allo standard più basso e possono essere ottimistici: verificali con bianchi replicati.</p>';
     if (rows.length && (S.conv[instr]==='norm' || processed(rows[0].f).deriv)) html+='<p class="why">⚠️ Lo spettro è normalizzato o in derivata: questa retta non misura le quantità. Per la taratura usa i dati originali.</p>';
-    html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>${esc(yl)}</th><th>${c.model==='trend'?'Valore di x':'Concentrazione nota'}${c.unit?` (${esc(c.unit)})`:''}</th><th>${c.model==='trend'?'':cal&&cal.b?'Concentrazione stimata ± IC 95%':'Residuo'}</th></tr></thead><tbody>${rows.map((o,i)=>{
+    html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>${esc(yl)}</th><th><span>${c.model==='trend'?'Valore di x':'Concentrazione nota'}</span>${c.unit?` (${esc(c.unit)})`:''}</th><th>${c.model==='trend'?'':cal&&cal.b?'Concentrazione stimata ± IC 95%':'Residuo'}</th></tr></thead><tbody>${rows.map((o,i)=>{
       let pred='';
       if (cal && cal.predict && o.y!=null && o.role==='blank'){ const pb=cal.predict(o.y,1); pred='bianco: fuori dalla retta'+(pb.x>cal.lod?` · ⚠️ sopra il LOD (${fmtG(pb.x,3)}): contaminazione?`:''); }
       else if (cal && cal.predict && o.y!=null && mvNoEstimate(o)) pred='nessuna stima';
@@ -6916,7 +6920,7 @@ function renderMulti(){
   ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); renderMulti(); };
   $('#mvModel').onchange=e=>{ c.model=e.target.value; mvSave(); renderMulti(); if (c.model==='pls') say('#tip2','PLS: uso tutto lo spettro (con il pretrattamento scelto sotto, nella PCA) e la validazione incrociata per scegliere quante componenti tenere. 📈'); };
-  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti, true); };
+  $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti, true, e.target); };
   { const hd=$('#mvHead'); if (hd) hd.textContent=c.model==='trend'?'📏 Misura di banda e andamento':'📏 Misura di banda e retta di taratura'; }
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.preset=+e.target.value; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⤢ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };

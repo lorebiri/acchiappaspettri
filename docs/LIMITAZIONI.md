@@ -23,6 +23,7 @@
   - **Dati calcolati**: nessun allargamento dei bastoncini, nessuna conversione nm ↔ eV ↔ cm⁻¹. Uno spettro in eV va scelto a mano come UV, e l'asse resta etichettato in nm.
   - **NMR**: integrali dei soli picchi in elenco, quindi i multipletti risultano sottostimati. Formati Bruker `fid` e `1r`, BES3T e JCAMP NTUPLES non sono letti.
   - **EPR**: un campo in gauss etichettato mT viene segnalato (con la frequenza dal fattore g, senza dal valore oltre 1000), non corretto da solo. Il doppio integrale non ha un'incertezza.
+  - **Cinetiche UV contro il tempo**: un file «Time (min) / Abs» viene letto come cromatogramma. Va scelta a mano la tecnica UV-Vis.
   - **Cime sature**: un picco tagliato a due terzi dell'altezza viene riconosciuto quasi sempre se il segnale è alto (S/N oltre 50); un taglio più lieve (80–95%) o con molto rumore spesso no, perché la forma resta vicina a quella di un picco normale.
   - **HPLC, sovraccarico della colonna**: se il picco si allarga con la concentrazione, lo standard più concentrato può ricevere «più largo degli standard». È un'indicazione reale (il picco non è più lineare), non un coeluito.
   - **HPLC, profilo rispetto agli standard**: con almeno due standard ogni campione viene confrontato con la loro forma media. Una coda diversa da quella degli standard, un coeluito o un'impurezza presente solo negli standard danno lo stesso avviso, che non distingue tra le tre cause.

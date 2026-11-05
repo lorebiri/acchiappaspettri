@@ -211,3 +211,4 @@ html.shell #shProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html.shell .seg,html.shell .seg button{border-radius:3px}
 html.shell .shres .pktools{padding-right:18px}
 html.shell .shsplit::after{background:transparent}
+html.shell .shres .pktab td:nth-child(5){overflow:hidden} html.shell .shres .pktab .sgp{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
