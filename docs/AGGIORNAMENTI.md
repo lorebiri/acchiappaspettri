@@ -9,6 +9,9 @@
 ## Privacy
 La richiesta è un normale download di un file pubblico: nessun dato, nome di file o progetto viene inviato. GitHub vede l'indirizzo di rete come per ogni sito. Nessuna telemetria.
 
+## Architettura del Mac
+`latest.json` ha una voce per `darwin-aarch64` (Apple Silicon) e una per `darwin-x86_64` (Intel). L'app sceglie quella del processore per cui è stata compilata: un Mac Intel riceve il pacchetto Intel, un Mac Apple Silicon quello ARM. `scripts/publish-release.js` rifiuta di pubblicare se una delle due manca. Entrambe sono compilate e provate su Mac veri nella pipeline: `macos-latest` per ARM, `macos-15-intel` per Intel.
+
 ## Per piattaforma
 | Installazione | Aggiornamento |
 |---|---|

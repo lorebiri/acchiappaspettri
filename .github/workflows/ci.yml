@@ -46,6 +46,7 @@ jobs:
           - { os: ubuntu-22.04, name: linux }
           - { os: windows-latest, name: windows }
           - { os: macos-latest, name: macos }
+          - { os: macos-15-intel, name: macos-intel }   # Mac Intel (x86_64): compilato e provato nativamente
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -75,7 +76,7 @@ jobs:
         if: matrix.name == 'windows'
         run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
       - name: Collaudo dentro l'app vera (macOS)
-        if: matrix.name == 'macos'
+        if: startsWith(matrix.name, 'macos')
         run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
       - name: Costruisce gli installer veri e li controlla
         shell: bash
