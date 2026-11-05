@@ -46,7 +46,7 @@
   bottom.append(resTabs,resBody);
 
   /* barra di stato */
-  const stMsg=el('div',{id:'shMsg',class:'st grow',title:'Clic: tutti i messaggi',on:()=>{ showPane('bottom',true); showRes('log'); }}), stXY=el('div',{id:'shXY',class:'st num','data-noi18n':''}), stRange=el('div',{id:'shRange',class:'st'}), stChain=el('div',{id:'shChain',class:'st','data-noi18n':''}), stIncl=el('div',{id:'shIncl',class:'st'}), stSave=el('div',{id:'shSaved',class:'st'});
+  const stMsg=el('div',{id:'shMsg',class:'st grow',title:'Clic: tutti i messaggi',on:()=>{ if (typeof viewMode!=='undefined' && viewMode==='cmp' && win.setView) win.setView('one'); showPane('bottom',true); showRes('log'); }}), stXY=el('div',{id:'shXY',class:'st num','data-noi18n':''}), stRange=el('div',{id:'shRange',class:'st'}), stChain=el('div',{id:'shChain',class:'st','data-noi18n':''}), stIncl=el('div',{id:'shIncl',class:'st'}), stSave=el('div',{id:'shSaved',class:'st'});
   status.append(stMsg,stXY,stRange,stChain,stIncl,stSave);
 
   /* barra degli strumenti: comandi e, a destra, ricerca e pannelli */
@@ -61,7 +61,7 @@
     btn('tbZin','zin','Ingrandisci',()=>$('#zIn').click()),btn('tbZout','zout','Rimpicciolisci',()=>$('#zOut').click()),btn('tbZfit','zfit','Mostra tutto (0)',()=>$('#zReset').click()),btn('tbZrect','zrect','Ingrandisci una zona (R)',()=>$('#lassoBtn').click()),sep(),
     btn('tbFocus','focus','Solo il grafico (F)',()=>toggleFocus()),
     el('span',{class:'spacer'}),$('#cmdBtn'),sep(),
-    btn('tbLeft','panelL','Mostra o nascondi gli spettri',()=>togglePane('left')),btn('tbBottom','panelB','Mostra o nascondi i risultati',()=>togglePane('bottom')),btn('tbRight','panelR','Mostra o nascondi l\'ispettore',()=>togglePane('right')),sep(),
+    btn('tbLeft','panelL','Mostra o nascondi gli spettri',()=>togglePane('left')),btn('tbBottom','panelB','Mostra o nascondi i risultati',()=>{ if (typeof viewMode!=='undefined' && viewMode==='cmp') return; togglePane('bottom'); }),btn('tbRight','panelR','Mostra o nascondi l\'ispettore',()=>togglePane('right')),sep(),
     btn('tbSettings','settings','Impostazioni',()=>win.AcchUi.openSettings()));
 
   /* ---- documenti ---- */
@@ -90,7 +90,7 @@
   const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; if (w>=1920){ if (k==='left') d=280; if (k==='right') d=380; } if (k==='bottom' && h>=1200) d=Math.round(Math.min(700,h*0.28)); if (k==='bottom' && h<700) d=150; return fitPane(k,lsG('acch.sh.'+k,d),d); };
   const paneOn=k=>!lsG('acch.sh.'+k+'.off',false);
   const fitPane=(k,v)=>{ const p=PANES[k], w=win.innerWidth, h=win.innerHeight; if (k==='bottom') return Math.max(p.min,Math.min(v,h-94-220)); const o=k==='left'?'right':'left', ov=paneOn(o)?Math.min(lsG('acch.sh.'+o,PANES[o].def),PANES[o].max):0; return Math.max(p.min,Math.min(v,w-ov-440)); };
-  function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const cmpOff=k==='bottom'&&typeof viewMode!=='undefined'&&viewMode==='cmp', off=foc||cmpOff||lsG('acch.sh.'+k+'.off',false); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc&&!cmpOff?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); if (k==='bottom') root.classList.toggle('cmp-off',!!cmpOff); } resize(); }
+  function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const cmpOff=k==='bottom'&&typeof viewMode!=='undefined'&&viewMode==='cmp', off=foc||cmpOff||lsG('acch.sh.'+k+'.off',false); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc&&!cmpOff?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); if (k==='bottom'){ root.classList.toggle('cmp-off',!!cmpOff); const tb=$('#tbBottom'); if (tb){ if (cmpOff){ if (!tb.dataset.cmpTitle) tb.dataset.cmpTitle=tb.title; tb.disabled=true; tb.title=tr('I risultati riguardano un solo spettro: passa a «Singolo»'); } else if (tb.dataset.cmpTitle){ tb.title=tb.dataset.cmpTitle; delete tb.dataset.cmpTitle; tb.disabled=false; } } } } resize(); }
   function showPane(k,on){ lsS('acch.sh.'+k+'.off',!on); applySizes(); }
   function togglePane(k){ showPane(k,!!lsG('acch.sh.'+k+'.off',false)); }
   function toggleFocus(on){ const v=on==null?!app.classList.contains('focus'):on; app.classList.toggle('focus',v); root.classList.toggle('focus',v); $('#tbFocus').classList.toggle('on',v); applySizes(); }
@@ -106,14 +106,15 @@
   win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   bindSplit(splitL,'left','x',1); bindSplit(splitR,'right','x',-1); bindSplit(splitB,'bottom','y',-1);
   new ResizeObserver(()=>resize()).observe($('#pvWrap'));
-  /* schede da tastiera: frecce sinistra e destra */
-  win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   win.setBig=function(){ toggleFocus(); };
+  /* schede: a quale riquadro portano, per i lettori di schermo */
+  { const map={sheet:'shSheet',study:'shStudy'}; win.document.querySelectorAll('.shtab').forEach(b=>{ const id=map[b.dataset.doc]||'workCard'; if (win.document.getElementById(id)) b.setAttribute('aria-controls',id); });
+    win.document.querySelectorAll('#tabs .tab').forEach(t=>{ const p=win.document.querySelector(`.panel[data-panel="${t.dataset.tab}"]`); if (p){ if (!p.id) p.id='panel-'+t.dataset.tab; p.setAttribute('role','tabpanel'); t.setAttribute('aria-controls',p.id); } if (!t.hasAttribute('aria-selected')) t.setAttribute('aria-selected',t.classList.contains('on')); }); }
   win.addEventListener('keydown',e=>{ if (e.key==='Escape'&&app.classList.contains('focus')&&!document.querySelector('dialog[open]')) toggleFocus(false); });
 
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
   /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
-  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
+  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^(\d+) spectra caught!/,'$1 spectra loaded.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
   const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }

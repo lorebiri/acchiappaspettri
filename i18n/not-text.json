@@ -84,5 +84,9 @@
 "«Dati»",
 "«Ritocca lo spettro»",
 "«Ritocca»",
-"Ctrl+K"
+"Ctrl+K",
+"$1 spectra loaded.",
+"Slope {0} ± {1} {2}, R² {3} (descriptive only)",
+"only two bands, not enough to decide",
+"per unit of x"
 ]

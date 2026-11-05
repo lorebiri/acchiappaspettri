@@ -850,7 +850,7 @@
 "Miscele in % in peso (Raman, FTIR)": "Mixtures in wt % (Raman, FTIR)",
 "Missione compiuta, nessuno spettro è sfuggito! 🚀": "Mission accomplished, no spectrum got away! 🚀",
 "Misura": "Measure",
-"Misura la stessa banda su tutti gli spettri di uno strumento, costruisci una retta di taratura e stima le concentrazioni incognite, oppure guarda come si raggruppano i campioni con la PCA. Si usano gli spettri come li vedi, con le elaborazioni scelte in «Ritocca lo spettro».": "Measure the same band on all the spectra of an instrument, build a calibration line and estimate the unknown concentrations, or see how the samples group together with PCA. The spectra are used as you see them, with the processing chosen in «Adjust the spectrum».",
+"Misura la stessa banda su tutti gli spettri di uno strumento, costruisci una retta di taratura e stima le concentrazioni incognite, segui un andamento nel tempo o con la dose, oppure guarda come si raggruppano i campioni con la PCA. Si usano gli spettri come li vedi, con le elaborazioni scelte in «Ritocca lo spettro».": "Measure the same band on all the spectra of an instrument, build a calibration line and estimate the unknown concentrations, follow a trend over time or dose, or see how the samples group together with PCA. The spectra are used as you see them, with the processing chosen in «Adjust the spectrum».",
 "Misura la stessa banda su tutti gli spettri, retta di taratura con LOD e LOQ, taratura PLS, PCA e gruppi di campioni.": "Measure the same band on all spectra, calibration line with LOD and LOQ, PLS calibration, PCA and groups of samples.",
 "Misura la zona visibile su tutti gli spettri": "Measure the visible region on all spectra",
 "Misura le bande con precisione": "Measure the bands precisely",

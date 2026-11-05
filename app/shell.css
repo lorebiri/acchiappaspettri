@@ -192,7 +192,7 @@ html.shell[data-doc=export] #v3.on,html.shell[data-doc=study] #shStudy{right:0!i
 html.shell #cmpName{min-width:0;width:100%}
 html.shell:not(.hasfiles) #prevF,html.shell:not(.hasfiles) #nextF,html.shell:not(.hasfiles) #viewSeg,html.shell:not(.hasfiles) #renameBtn{opacity:.4;pointer-events:none}
 html.shell #shEmpty{display:none}
-html.shell:not(.hasfiles) #shEmpty{display:block;position:fixed;right:0;top:var(--T);width:var(--R);padding:16px;color:var(--sh-sec);font-size:12px}
+html.shell:not(.hasfiles) #shEmpty{display:block;z-index:3;position:fixed;right:0;top:var(--T);width:var(--R);padding:16px;color:var(--sh-sec);font-size:12px}
 html.shell[data-doc=export] #shTabs,html.shell[data-doc=study] #shTabs{right:0}
 html.shell[data-doc=export] #pvTitle,html.shell[data-doc=study] #pvTitle{display:none}
 html.shell .rbtn{color:var(--sh-acc)} html.shell .rbtn::before{content:'› '}

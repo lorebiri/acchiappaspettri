@@ -944,7 +944,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
       <!-- PIÙ CAMPIONI (dentro «Analisi») -->
       <div class="panel" data-panel="multi">
         <details class="ansec" id="secMulti"><summary><b>📊 Più campioni: misure, taratura, PCA e gruppi</b><span class="secsum" id="sumMulti"></span><span class="scope s-instr" id="mvScope">tutti gli spettri</span></summary><div class="in">
-        <p class="why">Misura la stessa banda su tutti gli spettri di uno strumento, costruisci una retta di taratura e stima le concentrazioni incognite, oppure guarda come si raggruppano i campioni con la PCA. Si usano gli spettri come li vedi, con le elaborazioni scelte in «Ritocca lo spettro».</p>
+        <p class="why">Misura la stessa banda su tutti gli spettri di uno strumento, costruisci una retta di taratura e stima le concentrazioni incognite, segui un andamento nel tempo o con la dose, oppure guarda come si raggruppano i campioni con la PCA. Si usano gli spettri come li vedi, con le elaborazioni scelte in «Ritocca lo spettro».</p>
         <div class="ibfields">
           <label class="ibf"><span>Strumento</span><select id="mvInstr"></select></label>
           <label class="ibf"><span>Quali spettri</span><select id="mvWhich"><option value="inc">solo quelli spuntati</option><option value="all">tutti quelli caricati</option></select></label>
@@ -6507,7 +6507,7 @@ function hypotheses(f, d){
 /* livello dichiarato: una banda sola è inconclusiva, qualunque sia il punteggio. «Supportata da più tecniche» non esiste: il programma non correla tecniche diverse */
 const uiEn=()=>!!(window.AcchI18n&&window.AcchI18n.lang==='en');
 function hypGot(h){ return h.ev ? h.ev.filter(e=>e.hit!=null).length : 0; }
-function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, part=g>=2 && (g<Math.ceil(m/2) || m<3), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
+function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+'%':''; const g=hypGot(h), m=h.ev.length, few=g>=2 && m<3 && g===m, part=g>=2 && !few && g<Math.ceil(m/2), sh=(h.shared||[]).length?(en?' (bands shared with '+h.shared.join(', ')+')':' (bande in comune con '+h.shared.join(', ')+')'):''; return (en ? `${g}/${m} ${g===1?'band':'bands'}: ${g<=1?'inconclusive':few?'only two bands, not enough to decide':part?'partial':'plausible'}` : g<=1 ? `${g} banda su ${m}: inconclusiva` : few ? `${g} bande su ${m}: solo due bande, poche per decidere` : part ? `${g} bande su ${m}: parziale` : `${g} bande su ${m}: plausibile`)+sh; }
 /* due ipotesi che si reggono sulle stesse bande non si confermano a vicenda: lo si dichiara */
 function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
@@ -6516,7 +6516,9 @@ function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.
   const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
   // posizioni dei fianchi interpolate tra i due punti a cavallo della soglia: con picchi stretti l'arrotondamento al punto intero falsava il rapporto
   const at=(i,j,q)=>{ const t=base+q*h, d=y[j]-y[i]; return xs[i]+(d? (t-y[i])/d : 0.5)*(xs[j]-xs[i]); };
-  const W5=Math.abs(at(a.r,a.r-1,0.5)-at(a.l,a.l+1,0.5)), W1=Math.abs(at(b.r,b.r-1,0.1)-at(b.l,b.l+1,0.1)), L=xs[k]-xs[b.l], Rr=xs[b.r]-xs[k]; return {flat:W5>0&&W1/W5<1.55, asym:L>0&&Rr>0&&(Rr/L>2.5||L/Rr>2.5)}; }
+  const W5=Math.abs(at(a.r,a.r-1,0.5)-at(a.l,a.l+1,0.5)), W1=Math.abs(at(b.r,b.r-1,0.1)-at(b.l,b.l+1,0.1)), L=xs[k]-xs[b.l], Rr=xs[b.r]-xs[k]; // cima satura: troppi punti entro il rumore dal massimo rispetto alla larghezza a metà altezza (una gaussiana ne ha circa un terzo, con il rumore)
+  const tops=[]; for (let i=a.l;i<=a.r;i++) tops.push(y[i]); tops.sort((p,q)=>q-p); const yt=tops[Math.min(4,tops.length-1)], tol=Math.max(2*sg,0.02*h); let np=0; for (let i=a.l;i<=a.r;i++) if (y[i]>=yt-tol) np++; const plat=np/Math.max(1,a.r-a.l);
+  return {flat:W5>0&&(W1/W5<1.55||(h>50*sg&&plat>0.5+3*sg/h)), asym:L>0&&Rr>0&&(Rr/L>2.5||L/Rr>2.5)}; }
 function flatTopPeaks(xs, y, peaks){ return peaks.filter(p=>peakShape(xs,y,p.x).flat); }
 function peakFwhmPts(xs, y, x0){ let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2], t=base+(y[k]-base)/2; if (!(y[k]>base)) return 0; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return r-l; }
 function renderAnHyp(f, d){
@@ -6798,7 +6800,7 @@ const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
-function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, box=act&&act.closest&&act.closest('#xqBox,#mvOut,#mvBand');
+function rerenderKeep(fn){ setTimeout(()=>{ const act=document.activeElement, box=act&&act.closest&&act.closest('#xqBox,#mvOut');
   // si sta ancora scrivendo nella stessa tabella: niente ridisegno, che cancellerebbe ciò che si digita; si aggiorna quando si esce dalla tabella
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; fn(); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
@@ -6821,7 +6823,29 @@ function mvTable(instr){
   // una «spalla» che compare anche negli standard nella stessa posizione rispetto all'apice è la forma del picco, non un coeluito
   if (instr==='hplc' && mw>0){ const stSh=st.map(o=>o.shape&&o.shape.sh).filter(v=>v!=null); T.forEach(o=>{ if (/^spalla o coda/.test(o.flag||'') && o.shape && o.shape.sh!=null && stSh.some(v=>Math.abs(v-o.shape.sh)<=0.3*mw)) o.flag=''; }); }
   if (instr==='hplc' && st.length>=3 && mw>0) T.forEach(o=>{ if (o.flag||!o.shape||!(o.shape.w>0)) return; if (Math.abs(o.shape.x-mx)>0.5*mw) o.flag='massimo spostato rispetto agli standard: altro composto?'; else if (o.shape.w>1.15*mw) o.flag='più largo degli standard: coeluito o coda'; else if (m10>0 && o.shape.w10>1.12*m10) o.flag='forma diversa dagli standard alla base: coeluito o coda'; else if (mas>0 && o.shape.as!=null && Math.abs(o.shape.as-mas)>0.35*mas) o.flag='forma diversa dagli standard alla base: coeluito o coda'; });
+  if (instr==='hplc' && st.length>=2 && mw>0){ try{ mvProfileCheck(T, st, mw, c.a, c.b); }catch(e){} }
   T.weight=c.weight; T.trend=c.model==='trend'; return T;
+}
+/* HPLC: profilo del picco (allineato all'apice, normalizzato all'altezza, linea di base tra i bordi della zona) confrontato con il profilo medio degli standard.
+   Una coda comune a standard e campioni non conta; un coeluito cambia il profilo oltre la dispersione tra gli standard e oltre il rumore */
+function mvProfileCheck(T, st, mw, a, b){
+  const lo=Math.min(a,b), hi=Math.max(a,b), N=81, Z=2.5*mw;
+  const prof=f=>{ const P=processed(f), U=upData(P), xs=[], ys=[]; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ xs.push(P.xs[i]); ys.push(U.y[i]); }
+    if (xs.length<15) return null; if (xs[0]>xs[xs.length-1]){ xs.reverse(); ys.reverse(); }
+    const e=Math.max(2,Math.round(xs.length*0.03)), avg=(i,j)=>{ let s=0; for (let q=i;q<j;q++) s+=ys[q]; return s/(j-i); }, y0=avg(0,e), y1=avg(xs.length-e,xs.length), x0=xs[0], x1=xs[xs.length-1];
+    const z=ys.map((v,i)=>v-(y0+(y1-y0)*(xs[i]-x0)/((x1-x0)||1))); let k=0; for (let i=1;i<z.length;i++) if (z[i]>z[k]) k=i; const h=z[k]; if (!(h>0)) return null;
+    // apice raffinato con la parabola sui tre punti centrali: l'allineamento al punto intero sporcherebbe il confronto
+    let xa=xs[k]; if (k>0&&k<z.length-1){ const d=z[k-1]-2*z[k]+z[k+1]; if (d<0) xa=xs[k]+0.5*(z[k-1]-z[k+1])/d*((xs[k+1]-xs[k-1])/2); }
+    const g=new Float64Array(N); let j=0; for (let q=0;q<N;q++){ const x=xa-Z+2*Z*q/(N-1); if (x<x0||x>x1){ g[q]=NaN; continue; } while (j<xs.length-2&&xs[j+1]<x) j++; const t=(x-xs[j])/((xs[j+1]-xs[j])||1); g[q]=(z[j]+(z[j+1]-z[j])*t)/h; }
+    return {g, nz:(noiseSigma(ys)||0)/h}; };
+  const rms=(p,r)=>{ let s=0,n=0; for (let q=0;q<N;q++) if (isFinite(p[q])&&isFinite(r[q])){ s+=(p[q]-r[q])**2; n++; } return n>N/2?Math.sqrt(s/n):null; };
+  const SP=st.map(o=>prof(o.f)).filter(Boolean); if (SP.length<2) return;
+  const ref=new Float64Array(N); for (let q=0;q<N;q++){ let s=0,n=0; for (const p of SP) if (isFinite(p.g[q])){ s+=p.g[q]; n++; } ref[q]=n?s/n:NaN; }
+  // dispersione tra gli standard: ciascuno contro la media degli altri
+  const spread=SP.map((p,i)=>{ const o=new Float64Array(N); for (let q=0;q<N;q++){ let s=0,n=0; SP.forEach((r,j)=>{ if (j!==i&&isFinite(r.g[q])){ s+=r.g[q]; n++; } }); o[q]=n?s/n:NaN; } return rms(p.g,o); }).filter(v=>v!=null).sort((x,y)=>x-y);
+  const sd=spread.length?spread[spread.length>>1]:0;
+  T.forEach(o=>{ if (o.flag || o.role==='blank' || (o.role==='std'&&o.conc!=null)) return; const p=prof(o.f); if (!p) return; const r=rms(p.g,ref); if (r==null) return;
+    if (r>Math.max(3*sd, 4*p.nz, 0.012)) o.flag='profilo diverso dagli standard: possibile coeluito'; });
 }
 function mvCalib(rows){ if (rows && rows.trend) return null; const pts=(rows||[]).filter(o=>o.conc!=null && o.y!=null && isFinite(o.y) && o.role==='std' && !mvNoEstimate(o)).map(o=>({x:o.conc, y:o.y, f:o.f})); return pts.length>=3 ? Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts}) : null; }
 function renderMulti(){
@@ -6845,7 +6869,7 @@ function renderMulti(){
     setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>{ anSet(list[+el.dataset.f], 'conc', numIn(el.value)); rerenderKeep(renderMulti); }), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
-    const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : MEAS_NAME[c.meas];
+    const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : c.meas==='value' && instr==='uv' ? `A (${fmtN(c.a,0)} nm)` : MEAS_NAME[c.meas];
     { const ps=new Set(rows.filter(o=>o.y!=null).map(o=>pSmooth(o.f)+'|'+pBase(o.f))); if (ps.size>1) html+='<p class="why">⚠️ Gli spettri della tabella hanno elaborazioni diverse (smoothing o linea di base per singolo spettro): standard e campioni vanno elaborati allo stesso modo.</p>'; }
     if (rows.some(o=>o.stale)) html+='<p class="why">⚠️ Hai cambiato zona: le concentrazioni scritte erano per un\'altra banda. Controllale: con più composti ognuno ha le sue.</p>';
     if (cal && cal.weight) html+='<p class="why">Con i pesi LOD e LOQ dipendono dalla dispersione allo standard più basso e possono essere ottimistici: verificali con bianchi replicati.</p>';
@@ -6862,7 +6886,7 @@ function renderMulti(){
     setTimeout(()=>{ const w=$('#mvW'); if (w) w.onchange=e=>{ c.weight=e.target.value||undefined; mvSave(); renderMulti(); }; },0);
     if (c.model==='pls') html+='<div id="plsOut"></div>';
     else if (c.model==='trend'){ const pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); html+=`<p class="why">Andamento della misura con la grandezza che scrivi (ore, dose, temperatura…). Nessuna retta di taratura, nessun LOD: solo i punti e, se vuoi un'indicazione, la pendenza.</p>`;
-      if (pts.length>=2){ const L=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); html+=`<canvas id="trendCv" width="640" height="300" style="width:100%;max-width:640px;margin-top:6px"></canvas>${L&&pts.length>=3?`<div class="opt-l">Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unità di x · R² ${fmtN(L.r2,3)} (solo descrittiva: l'andamento può non essere lineare)</div>`:''}`;
+      if (pts.length>=2){ const L=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); html+=`<canvas id="trendCv" width="640" height="300" style="width:100%;max-width:640px;margin-top:6px"></canvas>${L&&pts.length>=3?`<div class="opt-l">Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+esc(c.unit):'per unità di x'} · R² ${fmtN(L.r2,3)} (solo descrittiva: l'andamento può non essere lineare)</div>`:''}`;
         setTimeout(()=>{ const cv=$('#trendCv'); if (!cv) return; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs); miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L&&pts.length>=3?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:yl}); },0); } }
     else if (cal && cal.b!=null && cal.n>=3){
       const u=c.unit?' '+esc(c.unit):'';
@@ -7340,7 +7364,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (c.a==null || c.b==null) continue;
     if (c.model==='trend'){ const rows=mvTable(instr)||[], pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length<2) continue; head(T('Andamento · ','Trend · ')+T_().nome[instr]);
       line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''}`, 9.5);
-      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unità di x, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} per unit of x, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
+      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:MEAS_NAME[c.meas]}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)} ± ${fmtG(L.sb,2)} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
       pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}`, 9)); continue; }
     const rows=mvTable(instr), cal=mvCalib(rows); if (!cal || cal.b==null) continue;
     head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]);
@@ -7534,7 +7558,7 @@ function recipesFor(f){
     R.push(['📉','Quanto è degradato?','indice di carbonile (ossidazione di polimeri, vernici, oli)', ()=>{ const c=mvCfg('ftir'), pr=BAND_PRESETS.ftir[0]; c.a=pr[1]; c.b=pr[2]; c.c=pr[3]; c.d=pr[4]; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='ftir'; renderMulti(); go2('#mvOut'); }]);
   }
   if (it==='hplc') R.push(['📋','Valuta la separazione','piatti teorici, coda e risoluzione di ogni picco', ()=>go2('#anTech')]);
-  if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); go2('#mvOut'); }]);
+  if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); if (window.AcchWebShow) AcchWebShow(); go2('#mvOut'); }]);
   if (it==='uv') R.push(['⚡','Calcola il band gap','grafico di Tauc per semiconduttori e pigmenti', ()=>go2('#anTech')]);
   if (['dsc','tga'].includes(it)) R.push(['🌡️','Temperature caratteristiche','onset, endset ed entalpie degli eventi termici', ()=>go2('#anTech')]);
   if (['nmr','epr','fluo'].includes(it)) R.push(['🧮','Valori quantitativi','integrali, quantità relative, resa quantica', ()=>go2('#anTech')]);
