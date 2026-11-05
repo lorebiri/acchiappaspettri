@@ -87,6 +87,27 @@ jobs:
           # senza il segreto (prima configurazione, rami di altri) si costruisce senza i file per l'updater
           if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then npx tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'; else npx tauri build; fi
           node scripts/check-packages.js
+      - name: Installa, avvia e disinstalla l'installer vero (Windows)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          Write-Host "Installer: $($exe.Name)"
+          Start-Process $exe.FullName -ArgumentList '/S' -Wait
+          $cands = @("$env:LOCALAPPDATA\Acchiappaspettri", "$env:LOCALAPPDATA\Programs\Acchiappaspettri")
+          $dir = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $dir) { throw "non installato in $($cands -join ', ')" }
+          $app = Get-ChildItem $dir -Filter *.exe | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1
+          Write-Host "Installato in $dir : $($app.Name)"
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk | Where-Object { $_.Name -match 'Acchiappaspettri' }
+          if (-not $lnk) { throw 'manca la voce nel menu Start' }
+          $p = Start-Process $app.FullName -PassThru; Start-Sleep 20
+          if ($p.HasExited) { throw "l'app si è chiusa all'avvio (codice $($p.ExitCode))" }
+          Write-Host 'Avviata e ancora aperta dopo 20 s'
+          Stop-Process $p.Id -Force; Start-Sleep 3
+          Start-Process (Join-Path $dir 'uninstall.exe') -ArgumentList '/S' -Wait; Start-Sleep 8
+          if (Test-Path $app.FullName) { throw 'disinstallazione incompleta' }
+          Write-Host 'Disinstallata'
       - uses: actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.name }}
