@@ -16,7 +16,7 @@
   /* ---- elementi nuovi: tutti fuori da <main> ---- */
   const app=el('div',{id:'shApp'}), tool=el('div',{id:'shTool',role:'toolbar'}), tabsBar=el('div',{id:'shTabs',role:'tablist'}), bottom=el('section',{id:'shBottom','aria-label':'Risultati'}), status=el('footer',{id:'shStatus'}), sheet=el('div',{id:'shSheet',class:'shcenter'}), study=el('div',{id:'shStudy',class:'shcenter'});
   const splitL=el('div',{id:'shSplitL',class:'shsplit v',role:'separator'}), splitR=el('div',{id:'shSplitR',class:'shsplit v',role:'separator'}), splitB=el('div',{id:'shSplitB',class:'shsplit h',role:'separator'});
-  app.append(tool,tabsBar,bottom,status,sheet,study,splitL,splitR,splitB); document.body.insertBefore(app,document.body.firstChild);
+  app.append(tool,tabsBar,bottom,status,sheet,study,splitL,splitR,splitB,el('div',{id:'shEmpty'})); document.body.insertBefore(app,document.body.firstChild);
 
   /* schede dei documenti al centro */
   const DOC={}, addDoc=(id,icon,label)=>{ const b=el('button',{type:'button',class:'shtab',role:'tab','data-doc':id,html:ic(icon)+`<span>${label}</span>`,on:()=>showDoc(id)}); tabsBar.append(b); DOC[id]=b; };
@@ -66,7 +66,7 @@
 
   /* ---- documenti ---- */
   const root=document.documentElement; let docNow='start';
-  function mark(){ root.dataset.doc=docNow; for (const k in DOC){ DOC[k].classList.toggle('on',k===docNow); DOC[k].setAttribute('aria-selected',k===docNow); DOC[k].disabled=k!=='start'&&!files.length; } multi.classList.toggle('on',docNow==='study'); $('#tbExport').disabled=!files.length; root.classList.toggle('hasfiles',files.length>0); ['#prevF','#nextF'].forEach(q=>{ const b=$(q); if (b) b.disabled=files.length<2; }); }
+  function mark(){ root.dataset.doc=docNow; for (const k in DOC){ DOC[k].classList.toggle('on',k===docNow); DOC[k].setAttribute('aria-selected',k===docNow); DOC[k].disabled=k!=='start'&&!files.length; } multi.classList.toggle('on',docNow==='study'); $('#tbExport').disabled=!files.length; root.classList.toggle('hasfiles',files.length>0); ['#prevF','#nextF'].forEach(q=>{ const b=$(q); if (b) b.disabled=files.length<2; }); win.document.querySelectorAll('#shTool button').forEach(b=>{ if (b.id==='tbLoad'||b.id==='tbOpen'||b.id==='tbNew'||b.id==='tbFocus'||b.id==='tbSettings'||b.id==='tbHelp') return; if (!files.length){ b.dataset.wasTitle=b.dataset.wasTitle||b.title; b.disabled=true; b.title=tr('Carica prima degli spettri'); } else if (b.dataset.wasTitle!=null){ b.disabled=false; b.title=b.dataset.wasTitle; delete b.dataset.wasTitle; } }); for (const k in DOC){ DOC[k].title=DOC[k].disabled?tr('Carica prima degli spettri'):''; } const em=$('#shEmpty'); if (em) em.textContent=tr('Carica uno spettro: qui compariranno i suoi controlli.'); }
   const oGo=win.go;
   win.go=function(n){ oGo(n); if (curView===1) docNow='start'; else if (curView===3) docNow='export'; else if (docNow==='start'||docNow==='export') docNow='graph'; mark(); if (curView===2) resize(); };
   function showDoc(id){ if (id!=='start'&&!files.length) return; if (id==='start'){ go(1); return; } if (id==='export'){ go(3); return; } docNow=id; if (curView!==2) go(2); docNow=id; mark();
@@ -78,7 +78,7 @@
   const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
   /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
-  const oFit=win.runFitUI; win.runFitUI=async function(fromAssist){ const f=files[cur], before=f&&f.fit; const r=await oFit(fromAssist); if (f&&f.fit&&f.fit!==before&&f.fit.range&&viewMode!=='cmp'){ f._zoom=[Math.min(...f.fit.range),Math.max(...f.fit.range)]; showPane('bottom',true); showRes('fit'); renderPreview(); } return r; };
+  const oFit=win.runFitUI; win.runFitUI=async function(fromAssist){ const f=files[cur], before=f&&f.fit; const r=await oFit(fromAssist); if (f&&f.fit&&f.fit!==before&&f.fit.range&&viewMode!=='cmp'){ { const lo=Math.min(...f.fit.range), hi=Math.max(...f.fit.range), x0=Math.min(f.xs[0],f.xs[f.xs.length-1]), x1=Math.max(f.xs[0],f.xs[f.xs.length-1]); if (hi-lo<0.95*(x1-x0)) f._zoom=[lo,hi]; } showPane('bottom',true); showRes('fit'); renderPreview(); } return r; };
   win.startTour=function(){ if (typeof showKeys==='function') showKeys(); };   // il giro della pagina indica elementi che qui non esistono
 
   /* ---- risultati ---- */

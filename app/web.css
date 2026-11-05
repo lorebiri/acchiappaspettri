@@ -40,9 +40,13 @@ html.web .pvwrap{overflow-x:auto;max-width:100%} html.web .bench > *,html.web #w
 @media (max-width:1199px){html.web .brand small{display:none}}
 html.web[data-theme=dark] .btn.primary{background:#2f6fd6;border-color:#2f6fd6;color:#fff}
 html.web .pktab .sgp{white-space:normal;word-break:normal;overflow-wrap:normal;max-width:100%}
-html.web .pktab td:has(.sgp){min-width:180px}
-html.web .pktab td input{max-width:130px}
 html.web .pkwrap .pktab td:last-child{position:sticky;right:0;background:var(--panel)}
 html.web #cmpName{min-width:220px}
 html.web[data-theme=dark] .tab:focus-visible,html.web[data-theme=dark] .btn:focus-visible,html.web[data-theme=dark] .pill:focus-visible,html.web[data-theme=dark] .choice:focus-visible{outline-color:#9cc0ff}
 html.web .btn:disabled,html.web .btn.primary:disabled{background:var(--line)!important;border-color:var(--line)!important;color:var(--muted)!important;cursor:default}
+html.web .pktab{table-layout:fixed}
+html.web .pktab th:nth-child(1){width:26px} html.web .pktab th:nth-child(2),html.web .pktab th:nth-child(3){width:70px} html.web .pktab th:nth-child(4){width:120px} html.web .pktab th:nth-child(6){width:52px}
+html.web .pktab td input{width:100%;max-width:none;border:1px solid var(--line)}
+html.web .pktab .sgp{overflow:visible;text-overflow:clip;display:inline-block;max-width:100%}
+html.web .bench{grid-template-columns:240px minmax(0,1fr)}
+@media (max-width:560px){html.web .bar{display:grid;grid-template-columns:1fr auto;row-gap:6px} html.web .steps{grid-column:1/-1} html.web .infobtn{white-space:nowrap}}
