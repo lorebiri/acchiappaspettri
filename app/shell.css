@@ -6,7 +6,7 @@ html.shell{--sh-app:#E9EBEE;--sh-pane:#F5F6F7;--sh-field:#FFF;--sh-hover:#E3E6EA
 html.shell[data-theme=dark]{--sh-app:#14171B;--sh-pane:#1B1F24;--sh-field:#111418;--sh-hover:#262B31;--sh-sel:#1F3A5C;--sh-border:#2E343B;--sh-ctl:#6B7480;--sh-text:#E4E7EB;--sh-sec:#A2ABB6;--sh-acc:#5B9CF0;--sh-onacc:#0B1118;--sh-ok:#4FBF87;--sh-warn:#E0A23C;--sh-err:#F0807A;--sh-matte:#2A2F36}
 html.shell,html.shell body{height:100%;overflow:hidden;font:13px/18px -apple-system,"Segoe UI Variable Text","Segoe UI","Noto Sans",Cantarell,sans-serif;background:var(--sh-app);color:var(--sh-text)}
 /* ciò che appartiene solo alla pagina online */
-html.shell body>header,html.shell .stephead,html.shell body>footer,html.shell .viewbar,html.shell .pvtools,html.shell #entryBox,html.shell #confetti,html.shell .howto,html.shell #loaded,html.shell #workCard .wkL>.row,html.shell #readout,html.shell #secQual,html.shell #secHyp,html.shell #secTech,html.shell #secMulti>summary,html.shell #tourBtn,html.shell #v1 .sci,html.shell #v1 .bubble,html.shell #v1 .gino,html.shell #v1 .mascot{display:none!important}
+html.shell body>header,html.shell .stephead,html.shell body>footer:not(#shStatus),html.shell .viewbar,html.shell .pvtools,html.shell #entryBox,html.shell #confetti,html.shell .howto,html.shell #loaded,html.shell #workCard .wkL>.row,html.shell #readout,html.shell #secQual,html.shell #secHyp,html.shell #secTech,html.shell #secMulti>summary,html.shell #tourBtn,html.shell #v1 .sci,html.shell #v1 .bubble,html.shell #v1 .gino,html.shell #v1 .mascot{display:none!important}
 /* struttura */
 html.shell main{display:block;margin:0;padding:0;max-width:none}
 html.shell .view{display:none}
@@ -205,3 +205,6 @@ html.shell #pv:focus-visible{outline:2px solid var(--sh-acc);outline-offset:-2px
 html.shell #oneFileRow small{display:none}
 html.shell #shTabs{overflow-x:auto;scrollbar-width:none}
 html.shell #workCard .wkR .areawrap{overflow-x:auto;max-width:100%}
+html.shell .layoutpick .lp{border-width:1px;border-radius:3px;padding:4px;background:var(--sh-field)}
+html.shell .layoutpick .lp.on{background:var(--sh-sel)}
+html.shell #shProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

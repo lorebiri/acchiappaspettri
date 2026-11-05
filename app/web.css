@@ -60,3 +60,9 @@ html.web #soberBtn{font-size:0;min-width:36px;min-height:36px} html.web #soberBt
 }
 html.web .pktab .sgp{border-radius:8px}
 html.web .pktab td:last-child{padding-right:6px}
+@media (max-width:560px){
+html.web .bar{grid-template-columns:minmax(0,1fr) auto}
+html.web .brand{flex-wrap:nowrap;min-width:0;gap:4px} html.web .brand>div{min-width:0;overflow:hidden;text-overflow:ellipsis}
+html.web .pktab td:nth-child(5) .sgp:nth-child(n+2){display:none}
+html.web .pktab .sgp{word-break:keep-all;font-size:12px}
+}
