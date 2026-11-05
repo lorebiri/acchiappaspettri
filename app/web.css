@@ -52,3 +52,11 @@ html.web .bench{grid-template-columns:240px minmax(0,1fr)}
 @media (max-width:560px){html.web .bar{display:grid;grid-template-columns:1fr auto;row-gap:6px} html.web .steps{grid-column:1/-1} html.web .infobtn{white-space:nowrap}}
 html.web #mvPreset,html.web #mvBand select{max-width:100%}
 html.web #mvBand .ibf{min-width:0;max-width:100%}
+@media (max-width:560px){
+html.web .pktab th:nth-child(3),html.web .pktab td:nth-child(3){display:none}
+html.web .pktab th:nth-child(1){width:22px} html.web .pktab th:nth-child(2){width:56px} html.web .pktab th:nth-child(4){width:92px} html.web .pktab th:nth-child(6){width:40px}
+html.web .brand{flex-wrap:nowrap}
+html.web #soberBtn{font-size:0;min-width:36px;min-height:36px} html.web #soberBtn::before{content:'◐';font-size:16px}
+}
+html.web .pktab .sgp{border-radius:8px}
+html.web .pktab td:last-child{padding-right:6px}

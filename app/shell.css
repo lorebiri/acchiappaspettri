@@ -186,11 +186,10 @@ html.shell .shres .pktools .btn{white-space:nowrap;flex:none}
 html.shell .btn:disabled,html.shell .btn.primary:disabled{background:var(--sh-hover)!important;border-color:var(--sh-border)!important;color:var(--sh-sec)!important;cursor:default}
 html.shell:not(.hasfiles) #workCard .wkR > *{display:none!important}
 html.shell .choicegrid .choice,html.shell .perpage .choice{border-radius:3px;padding:6px 10px}
-html.shell #shProject.dirty::after{content:" · modificato";color:var(--sh-sec);font-weight:400}
 html.shell .shres .pktools{overflow-x:auto;scrollbar-width:thin}
 html.shell[data-doc=export] #workCard .wkR,html.shell[data-doc=study] #workCard .wkR,html.shell[data-doc=export] #shSplitR,html.shell[data-doc=study] #shSplitR{display:none!important}
 html.shell[data-doc=export] #v3.on,html.shell[data-doc=study] #shStudy{right:0!important}
-html.shell #cmpName{min-width:200px}
+html.shell #cmpName{min-width:0;width:100%}
 html.shell:not(.hasfiles) #prevF,html.shell:not(.hasfiles) #nextF,html.shell:not(.hasfiles) #viewSeg,html.shell:not(.hasfiles) #renameBtn{opacity:.4;pointer-events:none}
 html.shell #shEmpty{display:none}
 html.shell:not(.hasfiles) #shEmpty{display:block;position:fixed;right:0;top:var(--T);width:var(--R);padding:16px;color:var(--sh-sec);font-size:12px}
@@ -200,3 +199,9 @@ html.shell .rbtn{color:var(--sh-acc)} html.shell .rbtn::before{content:'› '}
 html.shell .shres .pktools{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
 html.shell #shSheet .shrow{grid-template-columns:56px repeat(3,minmax(110px,180px))}
 html.shell .choice{border-radius:3px}
+html.shell .editgrid{grid-template-columns:minmax(0,1fr) auto}
+html.shell .lpick button,html.shell .lpick .choice{border-radius:3px;border-width:1px}
+html.shell #pv:focus-visible{outline:2px solid var(--sh-acc);outline-offset:-2px}
+html.shell #oneFileRow small{display:none}
+html.shell #shTabs{overflow-x:auto;scrollbar-width:none}
+html.shell #workCard .wkR .areawrap{overflow-x:auto;max-width:100%}

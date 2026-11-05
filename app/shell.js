@@ -16,7 +16,7 @@
   /* ---- elementi nuovi: tutti fuori da <main> ---- */
   const app=el('div',{id:'shApp'}), tool=el('div',{id:'shTool',role:'toolbar'}), tabsBar=el('div',{id:'shTabs',role:'tablist'}), bottom=el('section',{id:'shBottom','aria-label':'Risultati'}), status=el('footer',{id:'shStatus'}), sheet=el('div',{id:'shSheet',class:'shcenter'}), study=el('div',{id:'shStudy',class:'shcenter'});
   const splitL=el('div',{id:'shSplitL',class:'shsplit v',role:'separator'}), splitR=el('div',{id:'shSplitR',class:'shsplit v',role:'separator'}), splitB=el('div',{id:'shSplitB',class:'shsplit h',role:'separator'});
-  app.append(tool,tabsBar,bottom,status,sheet,study,splitL,splitR,splitB,el('div',{id:'shEmpty'})); document.body.insertBefore(app,document.body.firstChild);
+  app.append(tool,tabsBar,bottom,status,sheet,study,splitL,splitR,splitB,el('div',{id:'shEmpty'})); document.body.insertBefore(app,document.body.firstChild); document.body.appendChild(bottom); document.body.appendChild(status); const pvC=$('#pv'); if (pvC) pvC.tabIndex=0;
 
   /* schede dei documenti al centro */
   const DOC={}, addDoc=(id,icon,label)=>{ const b=el('button',{type:'button',class:'shtab',role:'tab','data-doc':id,html:ic(icon)+`<span>${label}</span>`,on:()=>showDoc(id)}); tabsBar.append(b); DOC[id]=b; };
@@ -74,8 +74,8 @@
     if (id==='sheet') renderSheet(); if (id==='graph') resize(); }
   $$('[data-go]').forEach(b=>{ const n=+b.dataset.go; b.addEventListener('click',()=>{ if (curView===n) mark(); }); });
   const oOpen=win.openTab; win.openTab=function(name){ const r=oOpen(name); if (name==='multi') showDoc('study'); else { if (docNow==='start'&&files.length) showDoc('graph'); multi.classList.toggle('on',docNow==='study'); } return r; };
-  const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; const r=await oAdd.apply(this,arguments); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
-  const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
+  const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; const r=await oAdd.apply(this,arguments); mark(); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
+  const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); applySizes(); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
   /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
   const oFit=win.runFitUI; win.runFitUI=async function(fromAssist){ const f=files[cur], before=f&&f.fit; const r=await oFit(fromAssist); if (f&&f.fit&&f.fit!==before&&f.fit.range&&viewMode!=='cmp'){ { const lo=Math.min(...f.fit.range), hi=Math.max(...f.fit.range), x0=Math.min(f.xs[0],f.xs[f.xs.length-1]), x1=Math.max(f.xs[0],f.xs[f.xs.length-1]); if (hi-lo<0.95*(x1-x0)) f._zoom=[lo,hi]; } showPane('bottom',true); showRes('fit'); renderPreview(); } return r; };
@@ -87,10 +87,10 @@
 
   /* ---- pannelli ---- */
   const PANES={left:{v:'--L',def:250,min:180,max:420},right:{v:'--R',def:340,min:280,max:560},bottom:{v:'--B',def:210,min:90,max:700}};
-  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; if (w>=1920){ if (k==='left') d=280; if (k==='right') d=380; } if (k==='bottom' && h>=1200) d=Math.round(Math.min(700,h*0.28)); if (k==='bottom' && h<700) d=Math.max(d,190); return fitPane(k,lsG('acch.sh.'+k,d),d); };
+  const sizeOf=k=>{ const w=win.innerWidth,h=win.innerHeight,p=PANES[k]; let d=p.def; if (k==='left'&&w<1440) d=w<1320?200:240; if (k==='right'&&w<1440) d=w<1320?280:320; if (k==='bottom') d=h<860?160:h<1000?200:240; if (w>=1920){ if (k==='left') d=280; if (k==='right') d=380; } if (k==='bottom' && h>=1200) d=Math.round(Math.min(700,h*0.28)); if (k==='bottom' && h<700) d=150; return fitPane(k,lsG('acch.sh.'+k,d),d); };
   const paneOn=k=>!lsG('acch.sh.'+k+'.off',false);
   const fitPane=(k,v)=>{ const p=PANES[k], w=win.innerWidth, h=win.innerHeight; if (k==='bottom') return Math.max(p.min,Math.min(v,h-94-220)); const o=k==='left'?'right':'left', ov=paneOn(o)?Math.min(lsG('acch.sh.'+o,PANES[o].def),PANES[o].max):0; return Math.max(p.min,Math.min(v,w-ov-440)); };
-  function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const off=foc||lsG('acch.sh.'+k+'.off',false); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); } resize(); }
+  function applySizes(){ const foc=app.classList.contains('focus'); for (const k in PANES){ const off=foc||lsG('acch.sh.'+k+'.off',false)||(k==='bottom'&&typeof viewMode!=='undefined'&&viewMode==='cmp'); root.style.setProperty(PANES[k].v,(k==='bottom'&&off&&!foc?28:off?0:sizeOf(k))+'px'); app.classList.toggle('no-'+k,!!off); root.classList.toggle('no-'+k,!!off); } resize(); }
   function showPane(k,on){ lsS('acch.sh.'+k+'.off',!on); applySizes(); }
   function togglePane(k){ showPane(k,!!lsG('acch.sh.'+k+'.off',false)); }
   function toggleFocus(on){ const v=on==null?!app.classList.contains('focus'):on; app.classList.toggle('focus',v); root.classList.toggle('focus',v); $('#tbFocus').classList.toggle('on',v); applySizes(); }
@@ -100,6 +100,7 @@
       const up=()=>{ s.removeEventListener('pointermove',mv); s.removeEventListener('pointerup',up); lsS('acch.sh.'+k,Math.round(v)); resize(); }; s.addEventListener('pointermove',mv); s.addEventListener('pointerup',up); });
     s.addEventListener('dblclick',()=>{ try{ localStorage.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
   win.addEventListener('resize',applySizes);
+  { const fix=[['«Dati dello spettro»','«Dati»'],['«Ritocca lo spettro»','«Ritocca»']], walk=n=>{ for (const c of n.childNodes){ if (c.nodeType===3){ let v=c.nodeValue; for (const [a,b] of fix) v=v.split(a).join(b); if (v!==c.nodeValue) c.nodeValue=v; } else if (c.nodeType===1 && !/SCRIPT|STYLE/.test(c.tagName)) walk(c); } }; walk(win.document.body); new MutationObserver(ms=>{ for (const m of ms) for (const n of m.addedNodes) if (n.nodeType===1) walk(n); else if (n.nodeType===3) walk(n.parentNode||win.document.body); }).observe(win.document.body,{childList:true,subtree:true}); }
   /* schede da tastiera: frecce sinistra e destra */
   win.document.addEventListener('keydown',e=>{ if (e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; const t=e.target; if (!t||!t.matches||!t.matches('.shtab,.shrt,#tabs .tab')) return; const L=[...t.parentElement.querySelectorAll(':scope > .shtab, :scope > .shrt, :scope > .tab')].filter(b=>b.offsetParent); const i=L.indexOf(t); if (i<0) return; const n=L[(i+(e.key==='ArrowRight'?1:-1)+L.length)%L.length]; n.focus(); n.click(); e.preventDefault(); });
   bindSplit(splitL,'left','x',1); bindSplit(splitR,'right','x',-1); bindSplit(splitB,'bottom','y',-1);
@@ -111,7 +112,7 @@
 
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
   /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
-  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
+  const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
   const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
@@ -124,12 +125,12 @@
   const oPrev=win.renderPreview; let aT=null;
   win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ qualBadge(); refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
   function qualBadge(){ const f=files[cur]; let n=0; if (f&&viewMode!=='cmp'){ try{ n=assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){} } RES.qual.b.dataset.n=n||''; }
-  function saveState(){ const P=win.AcchProject; if (!P) return; const dirty=P.isDirty(), has=files.length>0; stSave.textContent=has?(dirty?tr('Modificato'):tr('Salvato')):''; stSave.classList.toggle('warn',dirty); const n=$('#shProject'); if (n){ n.textContent=P.displayName(); n.classList.toggle('dirty',dirty); } }
+  function saveState(){ const P=win.AcchProject; if (!P) return; const dirty=P.isDirty(), has=files.length>0; stSave.textContent=has?(dirty?tr('Modificato'):tr('Salvato')):''; stSave.classList.toggle('warn',dirty); const n=$('#shProject'); if (n){ n.textContent=P.displayName()+(dirty?' · '+tr('modificato'):''); } }
   function updateStatus(){ saveState(); const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
     if (!f||viewMode==='cmp'){ stChain.textContent=''; stRange.textContent=''; return; }
     const it=f.instr; stChain.textContent=[NOME_IT[it]||it, S.conv[it]&&S.conv[it]!=='orig'?S.conv[it]:null, S.base[it]&&S.base[it]!=='none'?S.base[it]:null, +S.smooth[it]?'SG'+S.smooth[it]:null, +S.deriv[it]?'d'+S.deriv[it]:null, S.spike[it]?'despike':null].filter(Boolean).join(' · ');
     const z=f._zoom; stRange.textContent=z?`${tr('Vista')}: ${fmtV(z[0])} – ${fmtV(z[1])} (${tr('solo anteprima')})`:''; }
-  win.AcchProject.onChange(i=>{ stSave.textContent=i.hasFiles||i.path?(i.dirty?tr('Modificato'):(i.path?tr('Salvato'):tr('Non salvato'))):''; stSave.classList.toggle('warn',i.dirty); const n=$('#shProject'); if (n){ n.textContent=i.name; n.classList.toggle('dirty',!!i.dirty); n.title=i.path||''; } });
+  win.AcchProject.onChange(i=>{ stSave.textContent=i.hasFiles||i.path?(i.dirty?tr('Modificato'):(i.path?tr('Salvato'):tr('Non salvato'))):''; stSave.classList.toggle('warn',i.dirty); const n=$('#shProject'); if (n){ n.textContent=i.name+(i.dirty?' · '+tr('modificato'):''); n.title=i.path||''; } });
   $('#filesCard').prepend(el('div',{class:'shhead'},'Progetto'),el('div',{id:'shProject','data-noi18n':''}));
   $('#filesCard').insertBefore(el('div',{class:'shhead'},'Spettri'),$('#filesCard').querySelector('.row'));
 

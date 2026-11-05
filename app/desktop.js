@@ -86,7 +86,7 @@
       if (msg) msg.textContent='';
       const later=lsG(LATER_KEY); if (!manual && later && later.v===up.version && Date.now()-later.t<24*3600*1000) return up;
       showUpdate(up.version, up.body, !canSelfUpdate()); return up;
-    }catch(e){ console.warn('update check',e); win.AcchDesktop.lastError=String(e); if (manual) say('Non riesco a controllare gli aggiornamenti: controlla la connessione e riprova.'); return null; } }
+    }catch(e){ console.warn('update check',e); win.AcchDesktop.lastError=String(e); if (manual) say(/valid release JSON|404/i.test(String(e)) ? 'Non c\'è ancora nessuna versione pubblicata da scaricare.' : 'Non riesco a controllare gli aggiornamenti: controlla la connessione e riprova.'); return null; } }
   async function installUpdate(){ const up=curUpdate; if (!up) return; const go=$('#upGo'), lt=$('#upLater'), box=$('#upBarBox'), bar=$('#upBar'), m=$('#upMsg');
     // prima di riavviare: l'utente salva o decide
     $('#dlgUpdate').close(); const okSave=await win.AcchProject.guard(); $('#dlgUpdate').showModal(); if (!okSave) return;
