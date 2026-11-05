@@ -4863,7 +4863,7 @@ function say(sel, txt){ const b=$(sel); if (!b) return; b.textContent=txt;
   if (performance.now()<3000) return;   // i saluti all'apertura della pagina restano nel fumetto
   const r=b.getBoundingClientRect(), z=zf(), shown=b.offsetParent!==null && r.bottom>70*z && r.top<innerHeight-40; if (!shown) toast(txt); }
 let toastT=null;
-function toast(txt){ const t=$('#toast'); if (!t) return; t.textContent=txt; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), Math.max(3200, String(txt).length*55)); }
+function toast(txt){ const t=$('#toast'); if (!t) return; t.textContent=txt; t.classList.toggle('warn', /⚠️|😕/.test(String(txt))); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), Math.max(3200, String(txt).length*55)); }
 function zf(){ return parseFloat(document.body.style.zoom)||1; }   // con il testo ingrandito le coordinate dello schermo vanno divise per lo zoom
 function happy(){ const b=$('#buddy'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); }
 const GREET = ['Ciao! 👋 Io e Gino 👻 acchiappiamo i tuoi spettri e li trasformiamo in grafici.',
@@ -6812,7 +6812,7 @@ const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
 const mvNoEstimate=o=>/area negativa|nessun picco/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
-function rerenderKeep(fn, now, origin){ setTimeout(()=>{ const act=document.activeElement, box=!now&&act&&act.closest&&act.closest('#xqBox,#mvOut');
+function rerenderKeep(fn, now, origin, boxes){ setTimeout(()=>{ const act=document.activeElement, box=!now&&act&&act.closest&&act.closest(boxes||'#xqBox,#mvOut');
   // si sta ancora scrivendo nella stessa tabella: niente ridisegno, che cancellerebbe ciò che si digita; si aggiorna quando si esce dalla tabella
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; setTimeout(()=>rerenderKeep(fn, true, document.activeElement),0); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
@@ -6920,13 +6920,11 @@ function renderMulti(){
   const setNum=(k,el)=>{ const x=numIn(el.value);
     // un limite fuori dall'asse degli spettri (per esempio due numeri attaccati) non viene accettato
     if (x!=null){ let lo=Infinity, hi=-Infinity; files.forEach(f=>{ if (f.instr!==instr || !f.xs || !f.xs.length) return; lo=Math.min(lo,f.xs[0],f.xs[f.xs.length-1]); hi=Math.max(hi,f.xs[0],f.xs[f.xs.length-1]); }); const m=(hi-lo)*0.05;
-      if (isFinite(lo) && (x<lo-m || x>hi+m)){
-        // tutta la coppia torna com'era prima di cominciare a scriverla: niente zona applicata a metà
-        const sn=window._mvBandSnap; if (sn && sn.instr===instr && (k==='a'||k==='b')){ ['a','b'].forEach(q=>{ if (sn[q]==null) delete c[q]; else c[q]=sn[q]; }); const msg=`⚠️ ${fmtN(x,2)} è fuori dall'asse degli spettri (${fmtN(lo,2)}–${fmtN(hi,2)}): la banda torna a ${fmtN(c.a,2)}–${fmtN(c.b,2)}.`; mvSave(); rerenderKeep(renderMulti, true); toast(msg); mvMarkBad(k, msg); return; }
-        const msg=`⚠️ ${fmtN(x,2)} è fuori dall'asse degli spettri (${fmtN(lo,2)}–${fmtN(hi,2)}): valore non accettato.`; el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; } }
-    if (x==null) delete c[k]; else c[k]=x; mvSave(); rerenderKeep(renderMulti, true, el); };
-  ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); if (k==='a'||k==='b') el.addEventListener('focus',()=>{ if (!window._mvBandSnap || window._mvBandSnap.instr!==instr) window._mvBandSnap={instr, a:c.a, b:c.b}; }); });
-  if (!window._mvBandSnapL){ window._mvBandSnapL=true; document.addEventListener('focusin',e=>{ if (!/^mv[AB]$/.test(e.target&&e.target.id||'')) window._mvBandSnap=null; }); }
+      if (isFinite(lo) && (x<lo-m || x>hi+m)){   // la banda già impostata non si tocca: si rifiuta solo il valore nuovo
+        const dg=hi-lo>=100?0:hi-lo>=1?2:3, ok=c.a!=null&&c.b!=null&&isFinite(c.a)&&isFinite(c.b), msg=ok ? `⚠️ ${fmtN(x,dg)} è fuori dall'asse degli spettri (${fmtN(lo,dg)}–${fmtN(hi,dg)}): la banda resta ${fmtN(c.a,dg)}–${fmtN(c.b,dg)}.` : `⚠️ ${fmtN(x,dg)} è fuori dall'asse degli spettri (${fmtN(lo,dg)}–${fmtN(hi,dg)}): valore non accettato.`;
+        el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; } }
+    if (x==null) delete c[k]; else c[k]=x; mvSave(); const ent=el._enter; el._enter=false; rerenderKeep(renderMulti, !!ent, el, '#mvBand'); };
+  ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); el.addEventListener('keydown',e=>{ if (e.key==='Enter') el._enter=true; }); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); rerenderKeep(renderMulti, true, e.target); };
   $('#mvModel').onchange=e=>{ c.model=e.target.value; mvSave(); renderMulti(); if (c.model==='pls') say('#tip2','PLS: uso tutto lo spettro (con il pretrattamento scelto sotto, nella PCA) e la validazione incrociata per scegliere quante componenti tenere. 📈'); };
   $('#mvUnit').onchange=e=>{ c.unit=e.target.value.trim().slice(0,20); mvSave(); rerenderKeep(renderMulti, true, e.target); };

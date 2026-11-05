@@ -218,3 +218,5 @@ html.shell .shres .pktab td{overflow:hidden}
 html.shell .shres .pktab td:nth-child(4) input{width:100%;max-width:260px;box-sizing:border-box}
 html.shell .shres .pktab .sgp{display:inline-block;vertical-align:middle;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:1199px){html.shell .shres .pktab th:nth-child(2){width:72px} html.shell .shres .pktab th:nth-child(3){width:80px} html.shell .shres .pktab th:nth-child(4){width:120px} html.shell .shres .pktab th:nth-child(6){width:48px}}
+html.shell #toast.warn{border-left:4px solid #e0a800;padding-left:10px}
+@media (max-width:1199px){html.shell .shres .pktab th{white-space:normal;line-height:13px;vertical-align:bottom}}
