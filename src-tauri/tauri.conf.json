@@ -91,8 +91,7 @@
       "../LICENSE": "LICENSE",
       "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
     },
-    "license": "GPL-3.0-or-later",
-    "licenseFile": "../LICENSE"
+    "license": "GPL-3.0-or-later"
   },
   "plugins": {
     "updater": {
