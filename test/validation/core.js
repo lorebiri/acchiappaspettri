@@ -21,7 +21,7 @@ for (const n of need){ if (typeof ctx[n]!=='function') throw new Error('funzione
 function inlineMeanSd(){
   const m=/function mixResponse[\s\S]*?\n\}/.exec(src); if (!m) throw new Error('mixResponse non trovata');
   const body=m[0];
-  const mean=/m=(v\.reduce\(\(a,b\)=>a\+b,0\)\/v\.length)/.exec(body), sd=/sd\[id\]=v\.length>1 \? (Math\.sqrt\(v\.reduce\(\(a,b\)=>a\+\(b-m\)\*\*2,0\)\/\(v\.length-1\)\)) : null/.exec(body);
+  const mean=/m=(v\.reduce\(\(a,b\)=>a\+b,0\)\/v\.length)/.exec(body), sd=/sd\[id\]=v\.length>1 \? (Math\.sqrt\([^;]*?\)) : null/.exec(body);
   if (!mean || !sd) throw new Error('formula di media/deviazione standard in mixResponse cambiata: aggiornare il test');
   return new Function('v', `const m=${mean[1]}; return {mean:m, sd:${sd[1]}};`);
 }

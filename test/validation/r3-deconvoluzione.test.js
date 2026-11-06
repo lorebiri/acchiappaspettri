@@ -52,6 +52,10 @@ if (require.main===module){
       for (const [j,q] of r.semi.entries()) for (const k of ['s_c','s_w','s_area','s_eta']) if (q.lre[k]!=null) assert.ok(q.lre[k]>=2, `${r.caso} comp. ${j+1} ${k}: LRE ${q.lre[k].toFixed(2)} (app ${JSON.stringify(q.calc)}, scipy ${JSON.stringify(q.rif)})`);
     }
   });
+  test('R3 con rumore (più stretto della richiesta): errori standard con LRE ≥ 4', ()=>{
+    // con LRE ≥ 2 un errore sui gradi di libertà (SSR/n invece di SSR/(n−p), 0,8% con n = 600) passerebbe: verificato con una copia sabotata
+    for (const r of noisyRows()) for (const [j,q] of r.semi.entries()) for (const k of ['s_c','s_w','s_area','s_eta']) if (q.lre[k]!=null) assert.ok(q.lre[k]>=4, `${r.caso} comp. ${j+1} ${k}: LRE ${q.lre[k].toFixed(2)}`);
+  });
   test('R3 con rumore: la deconvoluzione automatica trova il numero giusto di componenti e le stesse incertezze', ()=>{
     for (const r of noisyRows()){ assert.equal(r.auto.trovati, r.componenti, r.caso);
       for (const q of r.auto.comp) for (const k of ['s_c','s_w','s_area']) assert.ok(q.lre[k]>=2, `${r.caso} ${k} ${q.lre[k]}`); }
