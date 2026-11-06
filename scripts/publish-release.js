@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Ultimo passo della pipeline: pubblica la bozza solo se contiene tutti i pacchetti e un latest.json che l'app può davvero usare
 // (ogni firma verificata con la chiave pubblica di tauri.conf.json sul file scaricato), poi scrive le note da CHANGELOG.md.
 // Uso: node scripts/publish-release.js vX.Y.Z [--check-only DIR]  (DIR: cartella con latest.json e i pacchetti, per provarlo senza GitHub)

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Regressioni scientifiche: ogni test corrisponde a un errore trovato nella revisione (docs/SCIENZA.md)
 const test=require('node:test'), assert=require('node:assert'); const C=require('./load-core.js');
 const near=(a,b,t,m)=>assert.ok(Math.abs(a-b)<=t, `${m||''} ${a} ≠ ${b} ± ${t}`);

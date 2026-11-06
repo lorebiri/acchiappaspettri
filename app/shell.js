@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Interfaccia dell'app desktop: spazio di lavoro scientifico. Attiva solo con html.shell (vedi shell-boot.js): la pagina online non cambia.
    Criterio (docs/ARCHITETTURA.md): i blocchi principali restano al loro posto nel documento e vengono collocati dal CSS, così selettori, modalità di confronto,
    rendering pigro e tre viste restano quelli della pagina; si spostano solo elementi foglia per id. Nessun calcolo è qui. */

@@ -5,6 +5,9 @@ description = "Acchiappaspettri: spectra and chromatograms to clean plots and sc
 authors = ["Lorenzo Birindelli"]
 edition = "2021"
 rust-version = "1.77"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/lorebiri/acchiappaspettri"
+homepage = "https://lorebiri.github.io/acchiappaspettri/"
 
 [lib]
 name = "acchiappaspettri_lib"

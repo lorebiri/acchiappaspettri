@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Controllo della firma minisign usato prima di pubblicare (scripts/minisign-verify.js): accetta solo il file firmato con la chiave giusta
 const test=require('node:test'), assert=require('node:assert'), crypto=require('crypto'), {verify}=require('../../scripts/minisign-verify');
 const b64=s=>Buffer.from(s).toString('base64');

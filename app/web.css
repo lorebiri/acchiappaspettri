@@ -1,3 +1,5 @@
+/* SPDX-FileCopyrightText: 2026 Lorenzo Birindelli */
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Versione online: Fast-Plotting e Fast-Consulting. Nasconde, non toglie: il codice resta, «Mostra qui» riporta tutto. Mai attivo nell'app desktop.
    Non toccare picchi, riferimenti, ipotesi e assegnazioni: docs/WEB-LEGGERA.md */
 html:not(.web) .webinv{display:none}

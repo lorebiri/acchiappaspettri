@@ -42,7 +42,7 @@
     "category": "Education",
     "shortDescription": "Spectra and chromatograms: clean plots and scientific analysis",
     "longDescription": "Acchiappaspettri turns spectra and chromatograms (FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) saved as files into clean plots and scientific analysis. Data stay on your computer.",
-    "copyright": "© Lorenzo Birindelli, CNR-ICCOM",
+    "copyright": "© 2026 Lorenzo Birindelli. Software libero: GPL-3.0-or-later",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -81,14 +81,18 @@
         "section": "science",
         "desktopTemplate": "linux/acchiappaspettri.desktop",
         "files": {
-          "/usr/share/mime/packages/acchiappaspettri.xml": "linux/acchiappaspettri-mime.xml"
+          "/usr/share/mime/packages/acchiappaspettri.xml": "linux/acchiappaspettri-mime.xml",
+          "/usr/share/doc/acchiappaspettri/copyright": "linux/copyright"
         }
       }
     },
     "publisher": "CNR-ICCOM",
     "resources": {
+      "../LICENSE": "LICENSE",
       "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
-    }
+    },
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE"
   },
   "plugins": {
     "updater": {

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Verifica che tutte le versioni coincidano (e con il tag, se dato): la pipeline si ferma se non è così.
 const fs=require('fs'), path=require('path'), root=path.join(__dirname,'..'); const rd=f=>fs.readFileSync(path.join(root,f),'utf8');
 const pkg=JSON.parse(rd('package.json')).version, conf=JSON.parse(rd('src-tauri/tauri.conf.json')).version, cargo=/^version = "([^"]+)"/m.exec(rd('src-tauri/Cargo.toml'))[1], html=rd('index.html'), full=/APP_VERSION_FULL=\(\)=>'([^']+)'/.exec(html)[1], short=/const APP_VERSION='([^']+)'/.exec(html)[1], news=/const NOVITA=\[\s*\{v:'([^']+)'/.exec(html)[1];

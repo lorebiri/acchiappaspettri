@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Lato nativo di Acchiappaspettri: finestre di dialogo per i file, lettura e scrittura sicure dei file che l'utente ha scelto,
 //! apertura dei progetti dal sistema operativo. Tutta la scienza resta nella pagina web, identica a quella online.
 //! La pagina può leggere o scrivere solo i percorsi scelti dall'utente in una finestra di dialogo (o passati dal sistema operativo),

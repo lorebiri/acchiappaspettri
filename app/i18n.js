@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Lingua dell'interfaccia (italiano / inglese). Il sorgente della pagina è in italiano: in inglese ogni testo mostrato passa da un dizionario
    (i18n/en.js, generato da i18n/en.json) a livello di DOM, così le migliaia di modelli HTML restano invariati.
    Testi spezzati dai tag si traducono pezzo per pezzo; i valori dinamici (numeri, nomi) sono i segnaposto {0}, {1}… dei modelli.

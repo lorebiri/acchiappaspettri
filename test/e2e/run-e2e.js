@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Avvia l'app desktop compilata con la feature e2e e controlla il rapporto. Uso: node test/e2e/run-e2e.js <eseguibile> [scenario] [--update-url URL]
 const {spawn}=require('child_process'), fs=require('fs'), os=require('os'), path=require('path');
 const exe=process.argv[2], scenario=process.argv[3]||'full', url=process.argv[4]||''; const dir=fs.mkdtempSync(path.join(os.tmpdir(),'acch-e2e-'));

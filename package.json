@@ -2,6 +2,12 @@
   "name": "acchiappaspettri",
   "version": "2.2.0",
   "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Lorenzo Birindelli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lorebiri/acchiappaspettri.git"
+  },
   "description": "Acchiappaspettri: spectra and chromatograms to clean plots and scientific analysis (web and desktop)",
   "type": "commonjs",
   "scripts": {

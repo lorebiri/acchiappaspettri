@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Aggiornamento dalla finestra dell'app (stesso codice dell'utente): controlla, firma, installa, riavvia.
 // Uso: node test/e2e/update-ui-test.js <eseguibile-A> <platform-key> <pacchetto-B> <firma-B> <versione-B> <porta>
 const http=require('http'), fs=require('fs'), {spawn}=require('child_process'), path=require('path'), os=require('os');

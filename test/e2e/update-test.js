@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Prova reale dell'aggiornamento: l'app di collaudo (versione A) contro un server locale che offre la versione B firmata.
 // Uso: node test/e2e/update-test.js <eseguibile-A> <platform-key> <pacchetto-B> <firma-B> <versione-B> <versione-A>
 const http=require('http'), fs=require('fs'), {spawnSync}=require('child_process'), path=require('path'), os=require('os');

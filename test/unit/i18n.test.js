@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Dizionario inglese: completezza rispetto al sorgente, segnaposto coerenti, traduttore
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path'), {execFileSync}=require('child_process');
 const root=path.join(__dirname,'..','..'); const dict=JSON.parse(fs.readFileSync(path.join(root,'i18n/en.json'),'utf8'));

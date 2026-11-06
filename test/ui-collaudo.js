@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Collaudo automatico dell'interfaccia di Acchiappaspettri: carica spettri sintetici di tutti gli strumenti (più eventuali file veri),
 // esercita schede, elaborazioni, deconvoluzione, menu del clic destro, ricette, riferimenti, più campioni, confronti, esportazioni
 // (PDF, ZIP con PNG/SVG/CSV, Excel per Origin, risultati delle analisi), rinomina, preset, modalità, falso colore, ogni comando della barra ⌘K,

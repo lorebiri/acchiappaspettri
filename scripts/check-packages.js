@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Controlla i pacchetti appena costruiti: esistono, hanno la versione e l'architettura giuste, contengono l'app e le risorse;
 // su Windows installa e disinstalla davvero, aspettando che la disinstallazione sia finita.
 // Cerca in src-tauri/target/release/bundle e in src-tauri/target/<architettura>/release/bundle (build della pubblicazione).
@@ -20,6 +22,7 @@ if (process.platform==='win32'){ const exes=list('nsis',/-setup\.exe$/); need(ex
   run(exe,['/S'],{timeout:180000});
   need(until(()=>app.some(fs.existsSync),30),'installato senza privilegi di amministratore in '+dir);
   need(fs.existsSync(path.join(dir,'installer-language.txt')),'lingua dell\'installer registrata');
+  need(fs.existsSync(path.join(dir,'LICENSE')) && fs.existsSync(path.join(dir,'THIRD-PARTY-NOTICES.md')),'licenza e avvisi di terze parti installati');
   need(until(lnk,30),'voce nel menu Start');
   need(fs.existsSync(un),'disinstallazione presente');
   // _?= fa girare il disinstallatore sul posto e attendere la sua fine (senza, NSIS si copia altrove e torna subito)
@@ -35,6 +38,7 @@ if (process.platform==='darwin'){ const arch=process.env.EXPECT_ARCH || (process
   try{ const app=path.join(mnt,'Acchiappaspettri.app'); need(fs.existsSync(path.join(app,'Contents/MacOS'))&&fs.existsSync(path.join(mnt,'Applications')),'la .app e il collegamento ad Applicazioni');
     const plist=fs.readFileSync(path.join(app,'Contents/Info.plist'),'utf8'); need(/acchspettri/.test(plist),'associazione dei file .acchspettri'); need(plist.includes('<string>'+ver+'</string>'),'versione '+ver+' in Info.plist');
     const bin=path.join(app,'Contents/MacOS',fs.readdirSync(path.join(app,'Contents/MacOS'))[0]), li=run('lipo',['-archs',bin]).trim(); need(li===arch,'architettura '+arch+' (trovata: '+li+')');
+    need(fs.existsSync(path.join(app,'Contents/Resources/LICENSE')) && fs.existsSync(path.join(app,'Contents/Resources/THIRD-PARTY-NOTICES.md')),'licenza e avvisi di terze parti nella .app');
     run('codesign',['--verify','--deep',app]); console.log('✓ firma ad hoc coerente'); }
   finally{ run('hdiutil',['detach',mnt]); }
   if (process.env.TAURI_SIGNING_PRIVATE_KEY){ const t=list('macos',/\.app\.tar\.gz$/); need(t.length && fs.existsSync(t[0]+'.sig'),'pacchetto firmato per l\'updater'); } }
@@ -42,8 +46,10 @@ if (process.platform==='darwin'){ const arch=process.env.EXPECT_ARCH || (process
 if (process.platform==='linux'){ const [deb]=list('deb',/\.deb$/), [ai]=list('appimage',/\.AppImage$/);
   need(deb&&big(deb,1)&&hasVer(deb),'pacchetto .deb della versione '+ver); const c=run('dpkg-deb',['-c',deb]);
   need(/usr\/bin\/acchiappaspettri/.test(c),'il .deb contiene il programma'); need(/usr\/share\/mime\/packages\/acchiappaspettri\.xml/.test(c),'il .deb dichiara il tipo dei progetti .acchspettri');
+  need(/usr\/share\/doc\/acchiappaspettri\/copyright/.test(c) && /usr\/lib\/[^/\n]+\/LICENSE/.test(c) && /THIRD-PARTY-NOTICES\.md/.test(c),'il .deb contiene copyright, licenza e avvisi di terze parti');
   const x=fs.mkdtempSync(path.join(os.tmpdir(),'deb-')); run('dpkg-deb',['-x',deb,x]); const dd=path.join(x,'usr/share/applications'), df=fs.existsSync(dd)?fs.readdirSync(dd).find(f=>f.endsWith('.desktop')):null;
   const de=df?fs.readFileSync(path.join(dd,df),'utf8'):''; need(/^Exec=.*%[fFuU]/m.test(de),'la voce di menu passa i file al programma (doppio clic su un progetto)'); need(/^MimeType=.*acchiappaspettri/m.test(de),'la voce di menu apre i progetti .acchspettri');
   need(/Architecture: amd64/.test(run('dpkg-deb',['-f',deb])) || /amd64/.test(path.basename(deb)),'architettura amd64');
   need(ai&&big(ai,20)&&hasVer(ai),'AppImage della versione '+ver); const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ai-')); fs.chmodSync(ai,0o755); run(ai,['--appimage-extract'],{cwd:tmp,maxBuffer:1<<28});
-  need(fs.existsSync(path.join(tmp,'squashfs-root/usr/bin/acchiappaspettri')),'l\'AppImage contiene il programma'); }
+  need(fs.existsSync(path.join(tmp,'squashfs-root/usr/bin/acchiappaspettri')),'l\'AppImage contiene il programma');
+  { const lib=path.join(tmp,'squashfs-root/usr/lib'), has=fs.existsSync(lib) && fs.readdirSync(lib).some(d=>fs.existsSync(path.join(lib,d,'LICENSE'))&&fs.existsSync(path.join(lib,d,'THIRD-PARTY-NOTICES.md'))); need(has,'l\'AppImage contiene licenza e avvisi di terze parti'); } }

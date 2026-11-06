@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Carica il nucleo scientifico di index.html per i test (come i benchmark)
 const fs=require('fs'), path=require('path'), vm=require('vm');
 const html=fs.readFileSync(path.join(__dirname,'..','..','index.html'),'utf8');

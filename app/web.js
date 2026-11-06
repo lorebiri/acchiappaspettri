@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Versione online più leggera. Chiude gli accessi che il CSS non può chiudere (palette, ricette, foto) e invita a mostrare il resto. Nessuna funzione rimossa. */
 (function(win){ 'use strict';
   const root=win.document.documentElement; if (!root.classList.contains('web')) return;

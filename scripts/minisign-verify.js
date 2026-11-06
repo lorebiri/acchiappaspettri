@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Verifica una firma minisign (quella dell'updater di Tauri) con la chiave pubblica di tauri.conf.json.
 // Formato: https://jedisct1.github.io/minisign/ — firma «Ed» sul file, «ED» sull'hash BLAKE2b-512 del file.
 const crypto=require('crypto');

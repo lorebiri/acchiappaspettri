@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Collaudo dell'interfaccia in un browser vero (Chromium, senza finestra): collaudo completo, lingua inglese, progetto, file ostili, download, offline.
 // Uso: npx playwright install chromium; node test/ui-run.js [--quick] [--lang en|it] [--real file1 file2]
 const http=require('http'), fs=require('fs'), path=require('path'), {chromium}=require('playwright'), root=path.join(__dirname,'..');

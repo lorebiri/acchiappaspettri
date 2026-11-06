@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Porta tutti i file alla stessa versione: node scripts/set-version.js 2.3.0   (oppure 2.3.0-beta.1)
 const fs=require('fs'), path=require('path'), root=path.join(__dirname,'..'), v=process.argv[2];
 if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v||'')) { console.error('Uso: node scripts/set-version.js X.Y.Z[-beta.N]'); process.exit(1); }

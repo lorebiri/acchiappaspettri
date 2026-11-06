@@ -1,3 +1,5 @@
+/* SPDX-FileCopyrightText: 2026 Lorenzo Birindelli */
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Spazio di lavoro dell'app desktop. Ogni regola inizia con html.shell: la pagina online non cambia (c'è un test). Scelte: docs/DESIGN-DESKTOP.md
    Geometria: posizioni fisse da variabili; #v2, .bench e #workCard restano nel documento con display:contents. Fissi, non 100vh, perché il testo ingrandito usa body zoom. */
 html.shell{--sh-app:#E9EBEE;--sh-pane:#F5F6F7;--sh-field:#FFF;--sh-hover:#E3E6EA;--sh-sel:#D6E4F5;--sh-border:#CDD2D8;--sh-ctl:#7F8792;--sh-text:#1A1E24;--sh-sec:#4E5763;--sh-acc:#1457B8;--sh-onacc:#FFF;--sh-ok:#1B7A47;--sh-warn:#8A5200;--sh-err:#B3261E;--sh-matte:#E9EBEE;

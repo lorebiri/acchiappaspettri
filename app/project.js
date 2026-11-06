@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Ciclo di vita del progetto: nuovo, apri, salva, salva con nome, chiudi, modifiche non salvate.
    Vale per la pagina e per l'app desktop: cambia solo come si leggono e scrivono i byte (AcchProject.host). */
 (function(win){

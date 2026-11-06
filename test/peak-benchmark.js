@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Benchmark della ricerca automatica dei picchi di Acchiappaspettri.
 // Genera spettri sintetici con picchi noti (FTIR in A e %T, Raman con fluorescenza, HPLC con gamma dinamica 1:100, UV-Vis)
 // e misura recall (picchi veri trovati), precisione (picchi segnalati che sono veri), spettri perfetti ed errore di posizione (in FWHM).

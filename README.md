@@ -412,6 +412,11 @@ As in the software on the instruments, peaks with long tails are underestimated 
 
 The LIBS, TGA, DSC, fluorescence, NMR and EPR readers were tested on synthetic files that follow the common export formats: TA/Mettler-style TGA and DSC tables, PerkinElmer `PE FL`, TopSpin `totxt`, Bruker Xenon EPR tables and SciAps-style LIBS. Real exports from the institute's instruments may need small adjustments: if a file is not recognised, send it and it will be added.
 
+## License
+
+Acchiappaspettri is free software, free of charge for everyone: © 2026 Lorenzo Birindelli, released under the **GNU General Public License, version 3 or (at your option) any later version** ([LICENSE](LICENSE)). You may use, study, share and modify it; anyone who distributes a modified version must release it under the same licence. It comes with no warranty.
+Third-party components keep their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)); documentation and data tables are also available under CC BY 4.0 ([LICENSES/](LICENSES/)). To cite Acchiappaspettri in a publication, see [CITATION.cff](CITATION.cff).
+
 ## Author
 
 Idea by **Lorenzo Birindelli** (CNR-ICCOM, Pisa). For ideas or criticism: [lorenzo.birindelli@cnr.it](mailto:lorenzo.birindelli@cnr.it).

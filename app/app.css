@@ -1,3 +1,5 @@
+/* SPDX-FileCopyrightText: 2026 Lorenzo Birindelli */
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Aggiunte all'interfaccia: punto di accesso, download, aggiornamenti */
 .entry{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px}
 .entrytxt{flex:1 1 320px;min-width:0}

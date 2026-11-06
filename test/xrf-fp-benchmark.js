@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Benchmark dei motori di concentrazione per i beni culturali: XRF a parametri fondamentali (senza standard e con uno standard),
 // spessore degli strati dai rapporti di riga e dall'attenuazione, percentuali in peso delle miscele (Raman/FTIR) con fattori di risposta.
 // Gli spettri XRF sintetici sono generati con il modello FP di Acchiappaspettri, ma con una «realtà» volutamente diversa da quella che

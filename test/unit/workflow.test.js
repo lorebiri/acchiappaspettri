@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Regressioni trovate provando il programma: bande strette e raggi cosmici
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path'), vm=require('vm');
 const html=fs.readFileSync(path.join(__dirname,'..','..','index.html'),'utf8');

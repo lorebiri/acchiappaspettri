@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Copia in dist-desktop/ solo ciò che serve all'app: pagina, librerie, moduli. Niente test né sorgenti nativi.
 const fs=require('fs'), path=require('path'); const root=path.join(__dirname,'..'), out=path.join(root,'dist-desktop');
 fs.rmSync(out,{recursive:true,force:true}); fs.mkdirSync(out,{recursive:true});

@@ -1,3 +1,5 @@
+/* SPDX-FileCopyrightText: 2026 Lorenzo Birindelli */
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /* generato da scripts/gen-dark-theme.js: non modificare a mano */
 html[data-theme=dark]{color-scheme:dark;--bg:#12161d;--panel:#1b212b;--ink:#e6eaf0;--muted:#a3adbb;--line:#333c49;--accent:#6ea0f0;--accent-soft:#233450;--ok:#58c08b;--danger:#ef7f77;--sun:#ffc84a}
 html[data-theme=dark] select,html[data-theme=dark] input,html[data-theme=dark] textarea{background:#12161d;color:var(--ink);border-color:var(--line)}

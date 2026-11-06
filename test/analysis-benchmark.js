@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Benchmark degli strumenti di analisi di Acchiappaspettri: dati sintetici con verità nota.
 // Deconvoluzione (Levenberg–Marquardt, pseudo-Voigt), linee di base arPLS e SNIP, rimozione dei raggi cosmici,
 // calibrazione (copertura degli intervalli di confidenza, LOD, test di Mandel), PCA + cluster di Ward, miscele (NNLS),

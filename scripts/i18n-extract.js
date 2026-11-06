@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Estrae dal sorgente i testi italiani visibili (HTML statico e letterali JS) e li confronta col dizionario i18n/en.json.
 // Uso: node scripts/i18n-extract.js [--write]   → i18n/_todo.json (testi senza traduzione), i18n/_pairs.json (coppie già presenti nel codice)
 const fs=require('fs'), path=require('path'), acorn=require('acorn');

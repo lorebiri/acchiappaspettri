@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Formato di progetto .acchspettri — archivio ZIP documentato e versionato (vedi docs/FORMATO-ACCHSPETTRI.md).
    Modulo senza dipendenze dall'interfaccia: funziona nel browser, nell'app desktop e in Node (per i test).
    Sicurezza: si leggono solo i percorsi previsti, nessun contenuto viene mai eseguito né scritto su disco. */

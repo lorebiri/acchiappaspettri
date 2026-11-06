@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Parti comuni a pagina e app desktop: conferme, impostazioni, lingua, tema, pagina di download */
 (function(win){
   'use strict';

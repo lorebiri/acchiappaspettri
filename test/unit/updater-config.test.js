@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Configurazione di aggiornamenti, pacchetti e versione: errori qui romperebbero gli utenti già installati
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path'), {execFileSync}=require('child_process');
 const root=path.join(__dirname,'..','..'); const conf=JSON.parse(fs.readFileSync(path.join(root,'src-tauri/tauri.conf.json'),'utf8'));

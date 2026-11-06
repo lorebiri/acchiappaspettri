@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // i18n/en.json + coppie già nel codice → i18n/en.js (caricato dalla pagina)
 const fs=require('fs'), path=require('path'), d=path.join(__dirname,'..','i18n');
 const dict=JSON.parse(fs.readFileSync(path.join(d,'en.json'),'utf8')); let pairs={}; try{ pairs=JSON.parse(fs.readFileSync(path.join(d,'_pairs.json'),'utf8')); }catch(e){}

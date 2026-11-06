@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Ponte con l'app desktop (Tauri): menu, file nativi, progetto, chiusura sicura, aggiornamenti firmati.
    Nella pagina online window.__TAURI__ non c'è e questo file non fa nulla. */
 (function(win){

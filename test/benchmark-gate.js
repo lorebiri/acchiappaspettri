@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Esegue i benchmark scientifici e li fa FALLIRE se un risultato esce dalle soglie: senza questo controllo un calcolo rotto
 // (pendenza raddoppiata, LOD sbagliato, picchi persi) lascerebbe la pipeline verde. Uso: N=20 node test/benchmark-gate.js
 // Le soglie hanno un margine rispetto ai valori attuali (N=20) per non dipendere dal caso, ma sono strette abbastanza da vedere un errore vero.

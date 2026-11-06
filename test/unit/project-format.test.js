@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Formato .acchspettri: salvataggio e riapertura, integrità, file danneggiati o ostili, migrazioni
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path'); const JSZip=require('jszip'), F=require('../../app/project-format.js');
 const crypto=require('crypto');

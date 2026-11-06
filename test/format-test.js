@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Prova dei lettori di formato: JCAMP-DX (AFFN, SQZ, DIF/DUP con controllo Y, XY..XY), Thermo .spa e Bruker OPUS
 // costruiti secondo le specifiche pubblicate. Uso: node test/format-test.js
 const fs=require('fs'), path=require('path');

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Genera le tabelle fisiche FP_DATA incorporate in index.html, da xraylib (Schoonjans et al. 2011).
 Uso:  python3 -m venv /tmp/v && /tmp/v/bin/pip install xraylib && /tmp/v/bin/python scripts/gen-fp-data.py fp_data.json
 Poi:  node scripts/embed-fp-data.js fp_data.json

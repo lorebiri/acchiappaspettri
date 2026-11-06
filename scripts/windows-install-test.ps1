@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Installa l'installer vero per l'utente, controlla menu Start e avvio, poi disinstalla aspettando la fine.
 # Uso: pwsh scripts/windows-install-test.ps1 <cartella con *-setup.exe>
 param([string]$Bundle = 'src-tauri/target/release/bundle/nsis')

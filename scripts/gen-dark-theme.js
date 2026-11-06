@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Genera app/theme-dark.css dalle regole CSS di index.html: ogni colore fisso viene convertito in uno adatto al fondo scuro,
 // con la stessa tinta e la luminosità invertita. I grafici restano su fondo bianco, come nei file esportati.
 const fs=require('fs'), path=require('path'), root=path.join(__dirname,'..'); const html=fs.readFileSync(path.join(root,'index.html'),'utf8');

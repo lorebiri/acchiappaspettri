@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Benchmark dell'area dei picchi di Acchiappaspettri: picchi sintetici di area nota (gaussiani, lorentziani, misti),
 // con rumore, linea di base inclinata o curva e picchi vicini. Uso:  node test/area-benchmark.js
 const fs=require('fs'), path=require('path');
