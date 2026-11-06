@@ -1,9 +1,0 @@
-.DS_Store
-node_modules/
-dist-desktop/
-src-tauri/target/
-src-tauri/gen/
-*.key
-*.key.pub
-i18n/_todo.json
-test/i18n-missing.json

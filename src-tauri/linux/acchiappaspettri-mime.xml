@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="application/vnd.acchiappaspettri.project+zip">
-    <comment>Acchiappaspettri project</comment>
-    <comment xml:lang="it">Progetto di Acchiappaspettri</comment>
-    <sub-class-of type="application/zip"/>
-    <glob pattern="*.acchspettri"/>
-  </mime-type>
-</mime-info>
