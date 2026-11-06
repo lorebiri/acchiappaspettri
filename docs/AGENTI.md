@@ -37,9 +37,23 @@ Fondamenta per ogni ciclo di collaudo con agenti virtuali. Ogni istruzione data 
 | Ricercatore senior Windows 10 | percorso di un non informatico, dalla pagina online al PDF |
 | Architetto | qualità visiva, coerenza, accessibilità |
 | UI/UX | usabilità, comportamenti, messaggi, tastiera, prestazioni |
-| Ingegnere di rilascio | pipeline, script, pacchetti veri, `latest.json`, aggiornamenti, stabilità dei controlli |
-| Revisore dei documenti | ogni affermazione dei documenti confrontata con la realtà |
-| Capo Progetto | rappresenta il committente; decide se si pubblica |
+| Ingegnere di rilascio | pipeline, script, pacchetti veri, `latest.json`, aggiornamenti, stabilità dei controlli; release candidata; identità dei risultati tra i motori web (R4); licenze nei pacchetti |
+| Revisore dei documenti | ogni affermazione dei documenti confrontata con la realtà; VALIDAZIONE.md, licenza, visione, ROADMAP, tutorial |
+| Implementatore della validazione | **scrive** solo in `test/strd/`, `test/fixtures/`, `test/corpus/`, `test/validation/`, `scripts/gen-validazione.js`, sul ramo `agente/validazione`: prove automatiche R1–R9 (NIST StRD, fixture R/scipy, corpus di file avversi, fedeltà delle esportazioni, casi limite, riferimenti golden) |
+| Validatore numerico indipendente | ricalcola le prove R1–R9 con strumenti propri (mpmath, scipy, R) e dimostra che falliscono su copie sabotate |
+| Licenze e conformità open source | licenze di tutte le dipendenze, avvisi nei pacchetti, LICENSE, CITATION.cff; ciò che richiede un parere legale resta NON VERIFICATO |
+| Documentazione per gli utenti | **scrive** solo in `docs/tutorial/` e `examples/`, sul ramo `agente/tutorial`: tutorial veri nel programma, con dati sintetici |
+| Capo Progetto | rappresenta il committente; decide priorità, squadra degli agenti e pubblicazione |
+
+Architetto e UI/UX lavorano come un solo agente «esperienza d'uso». Rinviati alla 2.3: prestazioni e grandi dati, accessibilità, sviluppatore delle funzioni avanzate (moduli nuovi), statistico.
+
+**Chi scrive codice.** Solo il coordinatore modifica `index.html`, `app/`, `src-tauri/`, `.github/` e gli script di rilascio, e unisce i rami degli agenti dopo la revisione. Gli agenti che scrivono lavorano nel proprio ramo e solo nei file del loro perimetro. Chi costruisce una prova non è chi la verifica.
+
+## Visione e affidabilità (committente)
+Software open source **gratuito per tutti**, con elaborazione **più avanzata di Origin** e **più intuitiva e semplice**. Affidabilità almeno al livello di OriginLab, misurata dalle prove R1–R9 del Capo Progetto (validazione su dati certificati NIST con LRE, ripetibilità, identità tra motori, nessun numero sbagliato senza avviso, esportazioni uguali allo schermo, casi limite, stabilità tra versioni, rapporto di validazione pubblicato).
+
+## Criterio di uscita per pubblicare (approvato dal committente)
+Zero CRITICI e zero ALTI realizzabili aperti; ogni MEDIO corretto con prova o scritto in LIMITAZIONI/ROADMAP con l'approvazione del Capo Progetto; BASSI in ROADMAP; prove R1–R9 verdi. Gli agenti segnalano comunque tutto (regola 7); un difetto grave nuovo va al triage del Capo Progetto.
 
 ## Fine di ogni ciclo
 1. Tutti gli agenti consegnano il rapporto; il coordinatore corregge e fa riverificare a chi aveva segnalato.
@@ -48,3 +62,6 @@ Fondamenta per ogni ciclo di collaudo con agenti virtuali. Ogni istruzione data 
 
 ## Formato del rapporto
 Italiano, al massimo 600 parole: (1) difetti per gravità, ognuno con passi, prova, file:riga, correzione proposta; (2) che cosa hai provato, con i numeri; (3) che cosa non hai potuto verificare; (4) una riga finale: «RESTANO DIFETTI REALIZZABILI: sì/no».
+
+## Numerazione dei cicli
+Cicli 1–23 fino al 6 novembre 2026; ciclo 24 con queste regole (11 agenti); ciclo 25 di riverifica, ultimo ciclo completo prima della 2.2.0.

@@ -6,7 +6,7 @@
 - **Aggiornamento .deb**: manuale, con avviso.
 - **Linux ARM e Windows ARM**: nessun pacchetto.
 - **Doppio clic su `.acchspettri` in Linux**: il tipo di file non viene registrato, quindi può non aprirsi con l'app: usa *File → Apri progetto*. Su Windows e macOS l'associazione è configurata.
-- **macOS, «Esci» dal Dock o spegnimento**: il sistema chiude l'app senza passare dalla domanda sulle modifiche non salvate. *File → Esci* e ⌘Q chiedono sempre.
+- **macOS, «Esci» dal Dock o spegnimento**: il sistema chiude l'app senza passare dalla domanda sulle modifiche non salvate. *Acchiappaspettri → Esci da Acchiappaspettri* e ⌘Q chiedono sempre.
 - **Compilazione Linux**: su Ubuntu 22.04 per la compatibilità con sistemi più vecchi; GitHub ritirerà quell'ambiente e allora andrà aggiornato.
 - **Archivi ostili**: i limiti si basano sulle dimensioni dichiarate dallo ZIP; un archivio che mente viene riconosciuto solo dopo la decompressione, e può usare molta memoria.
 - **Progetti e preferenze**: aprire un progetto applica le sue impostazioni (lingua dei grafici compresa) e aggiunge i suoi riferimenti e voci di libreria a quelli dell'utente.
@@ -32,7 +32,20 @@
   - **HPLC, sovraccarico della colonna**: se il picco si allarga con la concentrazione, lo standard più concentrato può ricevere «più largo degli standard». È un'indicazione reale (il picco non è più lineare), non un coeluito.
   - **HPLC, profilo rispetto agli standard**: con almeno due standard ogni campione viene confrontato con la loro forma media. Una coda diversa da quella degli standard, un coeluito o un'impurezza presente solo negli standard danno lo stesso avviso, che non distingue tra le tre cause.
   - **HPLC e tarature**: niente integrazione manuale, niente sequenze, niente repliche né diluizioni. Una coeluizione con Δt molto piccolo può non essere segnalata. Se standard e campioni hanno elaborazioni diverse c'è un avviso, ma non vengono rielaborati.
-  - **Separatori**: un file con tutti i valori nel formato `40.000`, o con le migliaia all'americana `12,345` in una colonna, viene letto con la virgola o il punto come decimale senza avviso.
+  - **Separatori**: un file con tutti i valori nel formato `40.000` o `12,345` (con tre cifre dopo il separatore e senza altri numeri che lo chiariscano) è ambiguo per costruzione: viene letto con il separatore come decimale. Quando nella stessa colonna ci sono anche interi come `991`, il programma lo segnala con un avviso grave.
   - **Riferimenti**: per Raman e fluorescenza senza linea di base il confronto si fa dopo una linea di base arPLS su campione e riferimento; per FTIR e UV un fondo può ancora alzare il punteggio, con un avviso.
 - **Progetti**: niente foto del falso colore; zoom e scheda aperta non vengono ripristinati.
 - **File grandi**: i progetti sono caricati interamente in memoria; limite di sicurezza 2 GB.
+
+## Dopo il ciclo di collaudo 24 (decisioni del Capo Progetto)
+- **Coeluizioni HPLC rispetto agli standard**: con variabilità tra iniezioni (larghezza ±3%, tempo ±0,01 min) o standard con coda, coeluiti da 2:1 a 10:1 separati di 1–1,5σ possono non essere segnalati (in simulazione 2–6 casi su 20); senza variabilità sono segnalati tutti. Una soglia ricavata dalla dispersione degli standard è prevista nella 2.2.x.
+- **HPLC**: un piccolo picco pulito accanto a uno grande può essere descritto come «spalla»; l'avviso di polarità invertita non inverte il segnale da solo.
+- **Deconvoluzione**: su dati lisciati il programma avvisa ma non impedisce il fit; un raggio cosmico sulla cima di una banda viene segnalato, non ricostruito.
+- **EPR**: con righe di larghezza molto diversa il doppio integrale su una finestra stretta può sbagliare di circa il 6% (avviso in tabella); spettri calcolati a bastoncini non vengono allargati.
+- **Conversioni di unità** (eV → nm, µm → cm⁻¹, Raman in nm → cm⁻¹): si converte l'asse, non l'intensità (niente correzione con lo jacobiano). Va bene per posizioni e confronti, non per aree in un'unità diversa da quella misurata.
+- **Diffrazione (XRD)** e altre tecniche non previste: il file si apre e si disegna, ma senza assegnazioni né controlli specifici.
+- **Ipotesi FTIR e Raman con «Tutti i tipi» di campione**: le regole dei gruppi funzionali valgono per molte classi di materiali e possono dare ipotesi poco adatte (per esempio uretani su olio con biacca): scegli il tipo di campione.
+- **Menu desktop *Modifica → Ripeti***: vale nei campi di testo; per picchi ed elaborazioni c'è solo *Annulla*.
+- **Precisione delle esportazioni**: i dati elaborati sono scritti con 8 cifre significative, oltre la precisione di qualsiasi strumento; i dati originali restano intatti nel progetto.
+- **Accessibilità**: tastiera e fuoco visibile sono provati; i lettori di schermo (NVDA, VoiceOver) non sono ancora stati provati davvero (previsto nella 2.3).
+- **Validazione**: i calcoli sono provati su dati sintetici e, dove esistono, su dati di riferimento pubblici (NIST); non su materiali certificati né su file reali di strumenti per la versione 2.2.

@@ -18,7 +18,7 @@ La pagina resta una sola: nessuna riscrittura e nessuna seconda copia del codice
 | Criterio | Tauri 2 (scelto) | Electron | Python + Qt |
 |---|---|---|---|
 | Riuso della pagina esistente | totale | totale | parziale (WebEngine) o riscrittura |
-| Dimensione dell'installer | circa 5–15 MB, usa la webview di sistema | circa 90–150 MB | circa 100+ MB |
+| Dimensione dell'installer | 2,6–3,6 MB (.exe, .dmg, .deb), 82 MB l'AppImage che include le librerie; usa la webview di sistema | circa 90–150 MB | circa 100+ MB |
 | Aggiornamenti firmati senza certificati del sistema | sì: firma propria (minisign), anche su macOS | su macOS l'aggiornamento automatico richiede la firma Apple | da costruire |
 | Installer `.exe` con scelta della lingua, `.dmg`, AppImage, `.deb` | sì, integrati | sì | da costruire |
 | Accesso ai file | permessi espliciti e comandi nativi minimi | Node completo, da limitare | completo |

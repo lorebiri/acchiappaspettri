@@ -8,19 +8,19 @@ Per ogni prova è indicato *dove* è stata eseguita: sul Mac di sviluppo (Apple 
 | Prova | Comando | Dove | Esito |
 |---|---|---|---|
 | Test unitari: regressioni scientifiche, riconoscimento della tecnica, formato `.acchspettri` (anche ogni byte alterato), lingua, configurazione, importazione | `npm test` | Mac e GitHub | 82 su 82 |
-| Test del codice nativo | `cargo test` | GitHub (tre sistemi) | superati |
+| Test del codice nativo | `cargo test` | GitHub: Linux, macOS Apple Silicon, macOS Intel (su Windows no, tauri#13419) | superati |
 | Collaudo dell'interfaccia: pagina in italiano e in inglese (1290 operazioni), spazio di lavoro desktop (1511 operazioni), versione online leggera, identità dei risultati fra online e desktop | `PW_CHANNEL=chrome node test/ui-run.js` | Mac e GitHub | 38 su 38 |
-| Benchmark picchi | `node test/peak-benchmark.js` | Mac e GitHub | recall e precisione 100% su FTIR, Raman, HPLC e UV (200 spettri simulati ciascuno) |
+| Benchmark picchi | `node test/peak-benchmark.js` | Mac e GitHub | recall e precisione 100% su FTIR, Raman, HPLC e UV (200 spettri simulati ciascuno sul Mac; 20 nella pipeline, con soglie che la fanno fallire: `test/benchmark-gate.js`) |
 | Benchmark aree e analisi | `node test/area-benchmark.js`, `node test/analysis-benchmark.js` | Mac e GitHub | uguali alla versione di riferimento (commit 70fad80); i falsi raggi cosmici scendono da 4 a 0 |
 | Formati binari | `node test/format-test.js` | Mac e GitHub | 6 su 6, su file costruiti dalle specifiche pubbliche |
 | Collaudo dentro l'app nativa (WebView del sistema) | `node test/e2e/run-e2e.js` | GitHub: Windows Server 2025, macOS Apple Silicon, macOS Intel (macchina Intel nativa), Ubuntu 22.04 | superato sui quattro |
-| Installazione reale su Windows | passo della pipeline | GitHub: Windows Server 2025 | installazione per l'utente, avvio e app ancora aperta dopo 20 s, voce nel menu Start, disinstallazione, voce del menu Start rimossa |
+| Installazione reale su Windows | `scripts/windows-install-test.ps1` | GitHub: Windows Server 2025 (prima 1 volta su 2 con il controllo vecchio, che non aspettava la fine della disinstallazione; con lo script corretto verde su 7e9f598; prova finale nella release candidata) | installazione per l'utente, avvio e app ancora aperta dopo 20 s, voce nel menu Start, disinstallazione, voce del menu Start rimossa |
 | Pacchetti costruiti | pipeline | GitHub | `.exe` (NSIS), `.dmg` Apple Silicon, `.dmg` Intel, AppImage, `.deb` |
 | Aggiornamento firmato | `test/e2e/update-test.js`, `update-ui-test.js` | Mac | firma valida installata (2.2.0 → 2.2.1 di prova); rifiutati firma alterata, pacchetto alterato e download interrotto |
 
 ## Cicli con i tester virtuali
 
-Diciassette cicli di prova, correzione e nuova prova. I tester sono **sub-agenti con un profilo**, non persone reali, e non rappresentano né i ricercatori a cui i profili si ispirano né una validazione dell'ICCOM. Hanno usato solo dati sintetici, generati con una verità nota.
+Ventitré cicli di prova, correzione e nuova prova, poi il ciclo 24 con le regole più severe di [AGENTI.md](AGENTI.md) (11 agenti, con ingegnere di rilascio e revisore dei documenti) e il ciclo 25 di riverifica. I tester sono **sub-agenti con un profilo**, non persone reali, e non rappresentano né i ricercatori a cui i profili si ispirano né una validazione dell'ICCOM. Hanno usato solo dati sintetici, generati con una verità nota.
 
 | Profilo | Che cosa ha provato |
 |---|---|

@@ -14,7 +14,7 @@ Le formule sono citate nell'interfaccia e nel README; il paragrafo «Metodi» es
 | Testi | «affidabile», «modello predittivo affidabile», La > 2 nm | Più certezza di quanta dimostrata | Testi corretti; Cançado: La ~20–500 nm |
 
 ## Verificato dalla revisione
-Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Klein–Nishina, N, T, As, Rs, retta di taratura, LOD/LOQ, Mandel, PLS, PCA, Tauc, onset, costante g (71,4477), Stokes, resa quantica. μ/ρ entro lo 0,5% da xraylib. Dettagli e limiti in [COLLAUDO.md](COLLAUDO.md).
+Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Klein–Nishina, N, T, As, Rs, retta di taratura, LOD/LOQ, Mandel, PLS, PCA, Tauc, onset, costante g (71,4477), Stokes, resa quantica. μ/ρ entro lo 0,5% da xraylib. Come sono provati in [COLLAUDO.md](COLLAUDO.md); i limiti in [LIMITAZIONI.md](LIMITAZIONI.md).
 
 ## Approssimazioni dichiarate del motore FP
 - Spettro del tubo: Kramers con autoassorbimento e righe caratteristiche. Costanti **empiriche, non dalla letteratura**: intensità delle righe 1100, fattore L 0,25, profondità 0,7·R (Kanaya–Okayama), angolo d'uscita 20°. Per questo senza standard l'errore relativo in simulazione ha mediana di circa 3–4% (fino al 7% secondo il modello del tubo) e 90° percentile di 20–30%, di più sugli elementi sotto il 2–3% (benchmark `test/xrf-fp-benchmark.js` e prove dei tester virtuali); nella realtà può essere maggiore.

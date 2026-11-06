@@ -153,5 +153,12 @@
 "descriptive only",
 "estimate {0} below LOD",
 "no estimate",
-"standards with a clipped top (saturated detector) excluded from the line"
+"standards with a clipped top (saturated detector) excluded from the line",
+"Gaussian",
+"Lorentzian",
+"Overlapping bands were resolved with",
+"profiles on a polynomial baseline by Levenberg–Marquardt non-linear least squares (Levenberg, 1944; Marquardt, 1963).",
+"pseudo-Voigt (Wertheim et al., 1974)",
+"{0} spectra without an x value or a measurement are not in the chart:",
+"{0}{1} {2}–{3} ({4}){5}"
 ]

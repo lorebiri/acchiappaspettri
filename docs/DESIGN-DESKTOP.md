@@ -24,7 +24,7 @@ La versione online resta com'è: guidata, un passo alla volta, adatta a chi la a
 |---|---|
 | **Tema chiaro come predefinito**, scuro a scelta | Nei laboratori si lavora spesso in stanze illuminate e sulle stampe; lo scuro resta disponibile |
 | **I grafici restano bianchi anche nel tema scuro** | Ciò che si vede è ciò che finisce nell'articolo |
-| **13/12/11 px, controlli da 26 px, angoli di 3 px** | Densità da strumento di lavoro: più dati sullo schermo, poche decorazioni |
+| **13/12/11 px, controlli da 28 px, angoli di 3 px** | Densità da strumento di lavoro: più dati sullo schermo, poche decorazioni |
 | **Niente mascotte, coriandoli né istruzioni passo per passo** | Restano nella pagina online, dove servono a chi inizia |
 | **Risultati sotto il grafico, proprietà a destra** | Si guarda il picco e il suo numero insieme, senza cambiare scheda |
 | **Barra di stato con la catena di elaborazione** | Si vede sempre che cosa è stato fatto al dato |

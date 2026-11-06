@@ -85,7 +85,10 @@
         }
       }
     },
-    "publisher": "CNR-ICCOM"
+    "publisher": "CNR-ICCOM",
+    "resources": {
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
+    }
   },
   "plugins": {
     "updater": {

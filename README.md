@@ -137,9 +137,9 @@ In step 2 the tools sit in five tabs named after what you want to do (Picchi, Ri
   - the PDF footer shows only the document title, date and page number;
   - the default document title is "Report spettri" / "Spectra report".
 
-## Tested on real data
+## Tested on real data (versions 2.0–2.1)
 
-Besides the synthetic benchmarks, the tool was run on spectra from the institute's instruments:
+Besides the synthetic benchmarks, versions 2.0 and 2.1 were run on spectra from the institute's instruments. These checks were not repeated on version 2.2, whose tests use synthetic data only ([docs/COLLAUDO.md](docs/COLLAUDO.md)):
 
 - **XRF** (LIDAQ `.spt` and `.mca`, Rh tube, 4096 channels): calibration off by 45–49 eV detected and corrected; elements Ag, Cu, Pb in a metal reliquary; Pb, Ca, Ba, Cu, As in a green paint layer, with the Pb Lα/As Kα and Ba Lα/Ti Kα overlaps flagged and Cu + As → emerald/Scheele's green proposed. Fundamental parameters without standards: the reliquary reads **Ag 83 %, Cu 17 %** (silver alloy; geometry 68°/63.5° from the header, energy offset of 48 eV corrected by the fit); for the green paint (`.spt` without geometry) the scattering angle is estimated from the Compton peak.
 - **HPLC** (plain CSV, 33 000 points, 55 min): recognised from the time axis; seven peaks with plate number, tailing, resolution and S/N.
@@ -157,7 +157,7 @@ Besides the synthetic benchmarks, the tool was run on spectra from the institute
 - **Messages where you are looking**: when Gino's speech bubble is out of view, the same message appears briefly at the bottom of the screen; changes that apply to every spectrum of an instrument say so («Applicato a tutti i 7 spettri FTIR»).
 - **Analysis in collapsible sections**, each with a one-line summary («⚠️ 1 avviso», «verde smeraldo o di Scheele», «4 componenti · R² 0,998»); when you move to another spectrum, only the sections with something to show open by themselves.
 - **◐ Sobrio** in the header hides the mascot, confetti and emoji (✓ and ✗ stay), for a more formal look.
-- **Short guided tour** (7 steps) whose highlight follows the element even when the page scrolls.
+- **Short guided tour** (8 steps) whose highlight follows the element even when the page scrolls.
 
 - **«Cosa vuoi fare con questo spettro?»**: at the top of the *Analisi* tab, one-click recipes for the most common tasks of each technique (e.g. *Riconosci il pigmento* for Raman: removes cosmic rays and background and searches the pigment database; *Riconosci elementi e pigmenti* for XRF: aligns the energy scale and asks the colour of the measured spot; *Quanto è degradato?* for FTIR: carbonyl index).
 - **Simple mode by default**: technical choices (fit profile and baseline, PCA scaling, internal-standard ratio, derivatives, log X…) are hidden and the recommended settings are used; *⚙️ Opzioni avanzate* shows them.
@@ -174,7 +174,7 @@ Besides the synthetic benchmarks, the tool was run on spectra from the institute
   - **overlapping lines** are flagged (e.g. Pb Lα + As Kα at 10.5 keV, Ba Lα + Ti Kα at 4.5 keV);
   - choosing the **colour of the measured spot** narrows the pigment hypotheses (e.g. green + Cu + As → emerald or Scheele's green; blue with no heavy element → ultramarine or indigo, to check with Raman; red with no heavy element → organic lake);
   - **composition in weight %** with standards (*Analisi → Più campioni*, or the recipe *Composizione in %*): net line areas in a ±1 FWHM window (silicon-detector resolution model), SNIP background, normalisation to the Compton peak, one calibration per element — linear, or with the **Lucas-Tooth & Price** inter-element correction when there are enough standards —, optional normalisation to 100 % for alloys, uncertainties from leave-one-out cross-validation, as in the CHARM protocols for copper alloys (Heginbotham et al. 2010, 2015). On simulated Cu–Zn–Sn–Pb alloys with matrix effects and 12 standards the median error is 0.47 % (Cu), 0.18 % (Zn), 0.15 % (Sn), 0.12 % (Pb) by weight, against 3.7 % for Cu with straight lines. Without standards, use the fundamental-parameters engine below;
-  - **🏛️ Composition without standards — fundamental parameters** (*Analisi → Concentrazioni XRF*, recipe *Composizione in % senza standard*, ⌘K «fp»). Physical constants from **xraylib 4.2** (Schoonjans et al. 2011) are built into the page (≈115 kB: photoelectric and scattering cross sections, edges, line-production cross sections with cascades, relative line intensities of the K, L and M families, Z = 4–92; agreement with xraylib within 0.5 %). The tube spectrum is a Kramers continuum with anode self-absorption plus characteristic lines (simplified Ebel 1999), filtered by the Be window and air; the detector efficiency includes its Be window and Si thickness. Intensities follow **Sherman (1955)** for primary and **Shiraiwa & Fujino (1966)** for secondary fluorescence. Anode, kV, incidence and take-off angles and air path are read from the `.mca` header (e.g. «Incident beam angle», «Fluorescence beam», «Sample to detector distance»); when the header has no geometry, the scattering angle is estimated from the position of the **Compton peak**.
+  - **🏛️ Composition without standards — fundamental parameters** (*Analisi → Concentrazioni XRF*, recipe *Stima della composizione in % senza standard*, ⌘K «fp»; online after «Mostra qui»). Physical constants from **xraylib 4.2** (Schoonjans et al. 2011) are built into the page (≈115 kB: photoelectric and scattering cross sections, edges, line-production cross sections with cascades, relative line intensities of the K, L and M families, Z = 4–92; agreement with xraylib within 0.5 %). The tube spectrum is a Kramers continuum with anode self-absorption plus characteristic lines (simplified Ebel 1999), filtered by the Be window and air; the detector efficiency includes its Be window and Si thickness. Intensities follow **Sherman (1955)** for primary and **Shiraiwa & Fujino (1966)** for secondary fluorescence. Anode, kV, incidence and take-off angles and air path are read from the `.mca` header (e.g. «Incident beam angle», «Fluorescence beam», «Sample to detector distance»); when the header has no geometry, the scattering angle is estimated from the position of the **Compton peak**.
     - **Line areas** come from a fit of all K, L and M lines of every element at once (Gaussians with the detector resolution, Si escape peaks, Rayleigh and Compton tube lines, non-negative cubic B-spline background, weighted NNLS), with small energy-offset, gain and resolution corrections chosen by χ². The Kβ/Kα and Lβ/Lα ratios are recomputed for the current matrix and the fit is repeated, so overlaps such as **Pb Lα / As Kα** and **Pb Mα / S Kα** are resolved.
     - Three kinds of sample: **metal alloy** (sum = 100 %), **glass, ceramic, stone** (elements counted as oxides, oxides = 100 %), **paint layer or ground** (absolute scale from the Compton peak, Klein–Nishina × Z/A; the invisible part — oil, glue, gypsum, calcite or any formula — is the balance). Weak Compton peaks (lead white, vermilion, metals) are flagged and the result is not trusted.
     - **FP with standards** (*Più campioni → Composizione*, model «parametri fondamentali»): one standard is enough; each element gets a sensitivity factor (elements without a standard use the median factor), with leave-one-out errors from two standards on.
@@ -194,7 +194,7 @@ Everything below is computed in the browser, on the spectrum as processed in *Ri
 - HPLC peak pairs with Rs < 1.5 and tailing factors > 2 (USP <621>); TGA mass loss below 150 °C; missing DSC scan rate or EPR frequency; inner-filter reminder for fluorescence.
 
 **What could be there (qualitative hypotheses).**
-- FTIR and Raman: about 45 rules of characteristic band combinations (Socrates 2001; Larkin 2011): esters, acids, carboxylates and metal soaps, amides/proteins, alcohols, aliphatic chains, aromatics, nitriles, nitro, sulfonates, metal carbonyls, water, atmospheric CO₂, carbonates, sulfates, oxalates, silicates, phosphates, nitrates, polysaccharides, drying oils, silicones, urethanes; calcite, aragonite, gypsum, anatase, rutile, hematite, quartz, cinnabar, lead white, lazurite, carotenoids, carbon D/G bands… A hypothesis appears only if all required bands are present; diagnostic bands must also be among the strong ones (≥ 20% of the most prominent peak), and shoulders from the second derivative count as confirmations. Each hypothesis shows the bands found (✓) and missing (✗).
+- FTIR and Raman: 36 rules of characteristic band combinations (29 FTIR, 7 Raman) (Socrates 2001; Larkin 2011): esters, acids, carboxylates and metal soaps, amides/proteins, alcohols, aliphatic chains, aromatics, nitriles, nitro, sulfonates, metal carbonyls, water, atmospheric CO₂, carbonates, sulfates, oxalates, silicates, phosphates, nitrates, polysaccharides, drying oils, silicones, urethanes; calcite, aragonite, gypsum, anatase, rutile, hematite, quartz, cinnabar, lead white, lazurite, carotenoids, carbon D/G bands… A hypothesis appears only if all required bands are present; diagnostic bands must also be among the strong ones (≥ 20% of the most prominent peak), and shoulders from the second derivative count as confirmations. Each hypothesis shows the bands found (✓) and missing (✗).
 - XRF and LIBS: elements with at least two identified lines are combined into material/pigment hypotheses, with dating hints where relevant (e.g. titanium white from ~1920, zinc white from 1834, Scheele's/emerald green, cadmium pigments; Eastaugh et al. 2008).
 - These are hints, not identifications.
 
@@ -215,12 +215,12 @@ Everything below is computed in the browser, on the spectrum as processed in *Ri
 | **FTIR (proteins)** | when amide I and II are present: secondary structure from the amide I band (1600–1700 cm⁻¹), components located by the second derivative, Gaussian fit, assignment to β-sheet, random coil, α-helix, turns and antiparallel β/aggregates (Byler & Susi 1986; Barth 2007); useful for proteins, wool, silk, collagen and protein binders |
 | **Fluorescence** | relative quantum yield against a loaded standard (Brouwer 2011, IUPAC) |
 
-## Several samples (📊 Più campioni tab)
+## Several samples (📊 Più campioni, a section of the Analysis tab)
 
 - **Band measurement on all spectra** of one instrument: height, area, value at one point, centroid or FWHM of a band, optionally as a ratio to a reference band (internal standard). Ready-made indices from the literature: carbonyl index (SAUB, Almond et al. 2020), cellulose LOI and TCI crystallinity indices (Nelson & O'Connor 1964), amide I/II, ester/carboxylate, Raman I(D)/I(G), A260/A280.
 - **Calibration line**: type the concentration of the standards; with three or more, ordinary least squares gives slope and intercept with 95% confidence intervals, s_y/x, **LOD = 3.3 s/b and LOQ = 10 s/b** (ICH Q2(R2)), standardised residuals with outlier flags, **Mandel's linearity test** (from five standards, ISO 8466-1), and the concentration of every unknown with its 95% confidence interval (Miller & Miller), flagged when extrapolated or below the LOQ. The plot shows standards, unknowns, the line and its confidence band.
 - **PCA and clustering**: spectra interpolated on their common range (or on the band), pre-treated with SNV (Barnes et al. 1989), MSC (Geladi et al. 1985) or first/second derivative, mean-centred, autoscaled or Pareto-scaled; NIPALS PCA with explained variance, score plot with the 95% Hotelling T² ellipse, loadings, and Ward hierarchical clustering with a dendrogram and a suggested number of groups.
-- **PLS calibration** (*Modello di taratura → tutto lo spettro, PLS*): PLS1 regression (NIPALS; Wold et al. 2001) on the pre-treated spectra, with the number of latent variables chosen by leave-one-out cross-validation; reports R², Q², RMSEC and RMSECV, and predicts the unknowns ± RMSECV, flagging extrapolations. Useful when the analyte band overlaps other components.
+- **PLS calibration** (*Che cosa fare con la misura → tutto lo spettro, PLS (multivariato)*): PLS1 regression (NIPALS; Wold et al. 2001) on the pre-treated spectra, with the number of latent variables chosen by leave-one-out cross-validation; reports R², Q², RMSEC and RMSECV, and predicts the unknowns ± RMSECV, flagging extrapolations. Useful when the analyte band overlaps other components.
 - **Same deconvolution on all spectra**: after fitting one spectrum, *📑 Stessa deconvoluzione su tutti gli spettri* applies the same components to every spectrum of that instrument and shows a table of the component areas.
 - Every table can be saved as CSV.
 
@@ -236,11 +236,11 @@ The *🔬 Risultati delle analisi* option (step 3) also adds **analysis pages to
 
 ## Instrument-specific tools
 
-Instrument parameters are set per spectrum in *Zona e strumento*. Calculated values appear in a small box on the plot, which can be switched off in *Picchi → Altre opzioni*.
+Instrument parameters are set per spectrum in *🏷️ Dati dello spettro*. Calculated values appear in a small box on the plot, which can be switched off in *Altre opzioni sui picchi* (visible with ⚙️ Opzioni avanzate).
 
 | Instrument | What the tool adds |
 |---|---|
-| **LIBS** | Database of the strongest atomic lines (NIST, I/II) for about 50 elements, plus CN and C₂ bands. The ✓ mark and the cross-check list each element's other lines. Heritage and materials hints are included. The plot shows «elementi probabili» (elements with at least 2 lines); XRF gets the same list. |
+| **LIBS** | Database of the strongest atomic lines (NIST, I/II) for 41 elements, plus CN and C₂ bands. The ✓ mark and the cross-check list each element's other lines. Heritage and materials hints are included. The plot shows «elementi probabili» (elements with at least 2 lines); XRF gets the same list. |
 | **TGA** | Mass %, DTG (−dm/dT) only, or mass + DTG on a right-hand axis. Peaks are the DTG maxima. The box shows T₅%, T₁₀%, residue and each step (range, DTG max, mass loss in %). The database covers typical degradation ranges: water, gypsum, cellulose, hemicellulose, lignin, common polymers and carbonates. |
 | **DSC** | Peaks in both directions, called endo or exo according to the instrument convention (endo down / endo up), with a «Ribaltato» option to flip the plot. ΔH is calculated as area ÷ scan rate; the rate comes from the time column, the header or the user, and the result is in J/g with W/g or mW/mg data, or with mW plus the sample mass. A possible Tg (midpoint of a baseline step) is flagged «da verificare». The heating/cooling segment can be chosen. |
 | **Fluorescence** | Fluorophore database (Trp, Tyr, NADH, fluorescein, rhodamine B…). From λex it recognises Rayleigh scattering (λex and 2·λex) and the water Raman band. A comparison of UV-Vis + fluorescence gives the **Stokes shift** (nm and cm⁻¹). |
@@ -251,7 +251,7 @@ Instrument parameters are set per spectrum in *Zona e strumento*. Calculated val
 
 - **Derivatives** (*Ritocca lo spettro*): first or second derivative, computed by local least-squares slope, so it also works with non-uniform spacing. The 2nd derivative turns overlapping bands into narrow peaks (downward), and peak detection follows them.
 - **Logarithmic X axis**, for data spanning several decades, for example NMR relaxometry profiles.
-- **Difference spectrum** (*Zona e strumento*):
+- **Difference spectrum** (*🏷️ Dati dello spettro*):
   - sample − k × reference, where the reference is another loaded file from the same instrument;
   - %T spectra are subtracted in absorbance;
   - «Scala automatica» chooses k by least squares;
@@ -321,7 +321,7 @@ Median position error is under 1 % of the peak width. Limits: shoulders with no 
 | Protein secondary structure from a synthetic amide I with known fractions | median error 0.2 percentage points (90 % within 5.8) |
 | XRF composition of simulated copper alloys (12 standards, matrix effects, Poisson noise) | Lucas-Tooth & Price + 100 %: Cu 0.47, Zn 0.18, Sn 0.15, Pb 0.12 wt % (median); linear Cu 3.7 |
 
-`node test/xrf-fp-benchmark.js` checks the cultural-heritage concentration engines. The synthetic XRF spectra (bronzes, brasses, silver and gold alloys; Rh tube, 40 kV; Poisson noise, escape peaks, scattered tube lines) are generated with a **deliberately different «reality»** from what the inversion assumes — characteristic/continuum ratio of the tube ×0.6 or ×1.5, steeper or flatter continuum, detector Be window 25 instead of 12.5 µm and Si 300 instead of 500 µm, angles 40°/50° instead of 45°/45° — so the numbers include model error, not only self-consistency (N = 20 per case):
+`node test/xrf-fp-benchmark.js` checks the cultural-heritage concentration engines. The synthetic XRF spectra (bronzes, brasses, silver and gold alloys; Rh tube, 40 kV; Poisson noise, escape peaks, scattered tube lines) are generated with a **deliberately different «reality»** from what the inversion assumes — characteristic/continuum ratio of the tube ×0.6 or ×1.5, steeper or flatter continuum, detector Be window 25 instead of 12.5 µm and Si 300 instead of 500 µm, angles 40°/50° instead of 45°/45° — so the numbers include model error, not only self-consistency (N = 30 per case, the script default):
 
 | Test | Result |
 |---|---|
@@ -340,7 +340,7 @@ These are synthetic tests: validation on certified reference materials (e.g. CHA
 
 `node test/format-test.js` checks the JCAMP-DX, `.spa` and OPUS readers.
 
-`test/ui-collaudo.js` is an automatic test of the whole interface, to run in the browser (instructions at the top of the file): it loads synthetic spectra of every instrument plus malformed files (empty, text only, two points, constant, NaN/inf, negative values in log scale, decreasing and duplicated X, comma decimals, uncalibrated XRF), and exercises every tab, processing combination, deconvolution, right-click menu item, recipe, reference and mixture tool, multi-sample analysis, comparison, export (PDF, ZIP with PNG/SVG/CSV, Origin workbook, analysis results, in both languages), renaming, presets, modes and false colour. Last run: 1604 operations, no errors, also with the institute's HPLC, FTIR, Raman and XRF files; for version 2.1 it also exercises the XRF concentration section (all sample kinds, custom balance, measurement conditions, layer methods and covers), the fundamental-parameters model with standards and the mixture weight percentages — 1412 operations, no errors, with the two XRF example files.
+`test/ui-collaudo.js` is an automatic test of the whole interface, to run in the browser (instructions at the top of the file): it loads synthetic spectra of every instrument plus malformed files (empty, text only, two points, constant, NaN/inf, negative values in log scale, decreasing and duplicated X, comma decimals, uncalibrated XRF), and exercises every tab, processing combination, deconvolution, right-click menu item, recipe, reference and mixture tool, multi-sample analysis, comparison, export (PDF, ZIP with PNG/SVG/CSV, Origin workbook, analysis results, in both languages), renaming, presets, modes and false colour. In version 2.1 it ran 1604 operations without errors, also with the institute's HPLC, FTIR, Raman and XRF files; in version 2.2 it runs 1290 operations per language plus 1511 in the desktop interface, on synthetic files only. For version 2.1 it also exercises the XRF concentration section (all sample kinds, custom balance, measurement conditions, layer methods and covers), the fundamental-parameters model with standards and the mixture weight percentages — 1412 operations, no errors, with the two XRF example files.
 
 `npm test` runs the unit tests (science regressions, `.acchspettri` format, i18n, configuration); `npm run test:ui` runs the whole interface in a real browser in both languages; `test/e2e/` runs inside the real desktop app. See [docs/COLLAUDO.md](docs/COLLAUDO.md).
 
@@ -360,7 +360,7 @@ These are synthetic tests: validation on certified reference materials (e.g. CHA
   - argon from air.
 - **Calibration alignment**:
   - many portable instruments drift by a few tens of eV;
-  - *Zona e strumento → 🎯 Allinea sulle righe note* fits a small offset/gain correction using the strongest identified lines (Cu, Fe, Pb…) and reports the shift and residual;
+  - *🏷️ Dati dello spettro → 🎯 Allinea sulle righe note* fits a small offset/gain correction using the strongest identified lines (Cu, Fe, Pb…) and reports the shift and residual;
   - it can be applied to all XRF files or undone;
   - peak labels follow the corrected axis.
 - **Peak areas** are given in **net counts** (above the local background).
@@ -416,14 +416,6 @@ The LIBS, TGA, DSC, fluorescence, NMR and EPR readers were tested on synthetic f
 
 Idea by **Lorenzo Birindelli** (CNR-ICCOM, Pisa). For ideas or criticism: [lorenzo.birindelli@cnr.it](mailto:lorenzo.birindelli@cnr.it).
 
-## Publishing on GitHub Pages
+## Publishing
 
-1. Create the `acchiappaspettri` repository on GitHub.
-2. Upload `index.html`, `README.md`, `apple-touch-icon.png` and the `test/` folder (`peak-benchmark.js`, `area-benchmark.js`, `analysis-benchmark.js`, `format-test.js`, `ui-collaudo.js`).
-3. Open *Settings → Pages*, set *Source: Deploy from a branch*, then choose branch `main` and folder `/ (root)`, and click *Save*.
-4. After about a minute the tool is online at `https://lorebiri.github.io/acchiappaspettri/`.
-
-The PDF and ZIP libraries (jsPDF 2.5.1 and JSZip 3.10.1) load from cdnjs. If the institute network blocks them:
-
-1. Download the two files into a `lib/` folder in the repository.
-2. Change the two `<script src=…>` lines in `index.html` to point to those files.
+The online version is served by GitHub Pages from the `main` branch and loads only files from the repository (`index.html`, `app/`, `vendor/`, `i18n/`): no external libraries or CDNs. The desktop packages are built and published by the release pipeline. The full procedure is in [docs/PUBBLICARE.md](docs/PUBBLICARE.md).

@@ -18,8 +18,8 @@ Riferimento unico fino alla pubblicazione. Legenda: ✅ fatto e verificato · �
 ## Distribuzioni
 | Pacchetto | Stato | Come è verificato |
 |---|---|---|
-| Online (GitHub Pages da `main`) | ⬜ | da pubblicare con il merge |
-| Windows `.exe` (NSIS), Windows 10 e 11 | 🟡 | CI su Windows Server 2025: installazione, avvio 20 s, menu Start, disinstallazione. Windows 10 reale non disponibile |
+| Online (GitHub Pages da `main`) | 🟡 | pubblicata la 2.2 (9bc535e); le correzioni del ciclo 24 vanno su `main` con la 2.2.0 |
+| Windows `.exe` (NSIS), Windows 10 e 11 | 🟡 | CI su Windows Server 2025: installazione, avvio 20 s, menu Start, disinstallazione (controllo corretto dopo il fallimento della prima release; verde su 7e9f598). Windows 10 reale non disponibile |
 | macOS Apple Silicon `.dmg` | 🟡 | CI su macos-latest (ARM): build e collaudo dentro l'app. Mac reale: prova a mano |
 | macOS Intel `.dmg` | 🟡 | CI su macos-15-intel: build nativa e collaudo dentro l'app |
 | Linux AppImage e `.deb` | 🟡 | CI su Ubuntu 22.04: build e collaudo dentro l'app |
@@ -29,15 +29,7 @@ Riferimento unico fino alla pubblicazione. Legenda: ✅ fatto e verificato · �
 ## Ciclo di collaudo (criterio di uscita)
 | Agente | Ultimo esito |
 |---|---|
-| C (scientifico) | nulla di realizzabile (ciclo 15) |
-| D (QA web e desktop) | nulla di realizzabile (ciclo 10) |
-| HPLC | in corso |
-| NMR/EPR e chimica teorica | in corso |
-| Generale e chimico analitico | in corso |
-| Beni culturali, XRF senza standard, qualitativa multi-tecnica | in corso |
-| Architetto | in corso |
-| UI/UX | in corso |
-| Ricercatore senior Windows 10 | in corso (in Chrome con Windows simulato; Windows 10 reale non disponibile) |
+| Tutti gli 11 agenti del ciclo 24 | difetti trovati e corretti o documentati: rapporti integrali e decisione del Capo Progetto in `~/build/fin-reports/`; riverifica nel ciclo 25 |
 
 ## Non verificabile in questo ambiente
 - Windows 10 reale (SmartScreen, finestra della lingua dell'installer, DPI reale, WebView2 mancante, antivirus): lista di controllo in [COLLAUDO.md](COLLAUDO.md), da eseguire a mano.

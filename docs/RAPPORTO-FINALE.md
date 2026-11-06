@@ -35,7 +35,7 @@ Collegamenti: versione online <https://lorebiri.github.io/acchiappaspettri/> · 
 ## Come è stato verificato
 
 - **Test automatici**: 82 test unitari, 38 test di interfaccia (oltre 2800 operazioni), benchmark di picchi, aree e analisi, formati binari, collaudo dentro l'app nativa sui quattro sistemi della CI e installazione reale su Windows Server 2025 ([COLLAUDO.md](COLLAUDO.md)).
-- **Tester virtuali**: venti cicli di prova, correzione e nuova prova. I tester sono sub-agenti con un profilo, **non persone reali**: non rappresentano i ricercatori a cui si ispirano e non costituiscono una validazione dell'ICCOM. Hanno usato solo dati sintetici.
+- **Tester virtuali**: ventitré cicli di prova, correzione e nuova prova, poi il ciclo 24 con regole più severe e il ciclo 25 di riverifica. I tester sono sub-agenti con un profilo, **non persone reali**: non rappresentano i ricercatori a cui si ispirano e non costituiscono una validazione dell'ICCOM. Hanno usato solo dati sintetici.
 - **Agente Capo Progetto**: ha rappresentato il committente, valutato le proposte e posto le condizioni di rilascio C1–C7.
 
 ## Esiti per agente (ultimo ciclo)

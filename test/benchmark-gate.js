@@ -27,7 +27,7 @@ function gate(out, label, re, test, what){ const line=out.split('\n').find(l=>l.
   gate(o,'IC della pendenza',/([\d.]+)% \(atteso/,v=>v>=85,'copertura IC pendenza');
   gate(o,'IC della concentrazione predetta',/([\d.]+)% \(atteso/,v=>v>=85,'copertura IC concentrazione');
   gate(o,'rette dichiarate non lineari',/([\d.]+)% \(atteso/,v=>v<=10,'Mandel falsi allarmi');
-  gate(o,'curvatura del 4%',/([\d.]+)%/,v=>v>=80,'Mandel curvatura');
+  gate(o,'curvatura del 4%',/riconosciuta\s+([\d.]+)%/,v=>v>=80,'Mandel curvatura');
   gate(o,'Gruppi ritrovati senza errori',/(\d+)\/(\d+)/,(a,b)=>a/b>=0.9,'PCA e cluster');
   gate(o,'Errore sulla frazione',/mediano ([\d.]+) punti/,v=>v<=0.5,'miscele NNLS');
   gate(o,'Piatti teorici',/errore mediano ([-+\d.]+)%/,v=>Math.abs(v)<=2,'piatti teorici');

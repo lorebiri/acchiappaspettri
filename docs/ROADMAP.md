@@ -19,7 +19,7 @@ Ogni ciclo ha seguito gli stessi passi:
 3. si corregge;
 4. chi aveva segnalato riprova.
 
-Diciassette cicli, fermi solo quando nessun profilo trovava più problemi medi o superiori realizzabili. Quelli che restano sono qui e in [LIMITAZIONI.md](LIMITAZIONI.md). Le proposte sono state valutate dall'Agente Capo Progetto, che rappresenta il committente.
+Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe ([AGENTI.md](AGENTI.md)) e il ciclo 25 di riverifica prima della 2.2.0. Quelli che restano sono qui e in [LIMITAZIONI.md](LIMITAZIONI.md). Le proposte sono state valutate dall'Agente Capo Progetto, che rappresenta il committente.
 
 ## Già corretto o aggiunto nei cicli
 
