@@ -17,7 +17,7 @@ Le formule sono citate nell'interfaccia e nel README; il paragrafo «Metodi» es
 Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Klein–Nishina, N, T, As, Rs, retta di taratura, LOD/LOQ, Mandel, PLS, PCA, Tauc, onset, costante g (71,4477), Stokes, resa quantica. μ/ρ entro lo 0,5% da xraylib. Dettagli e limiti in [COLLAUDO.md](COLLAUDO.md).
 
 ## Approssimazioni dichiarate del motore FP
-- Spettro del tubo: Kramers con autoassorbimento e righe caratteristiche. Costanti **empiriche, non dalla letteratura**: intensità delle righe 1100, fattore L 0,25, profondità 0,7·R (Kanaya–Okayama), angolo d'uscita 20°. Per questo senza standard l'errore è del 3–9% relativo in simulazione, e può essere maggiore nella realtà.
+- Spettro del tubo: Kramers con autoassorbimento e righe caratteristiche. Costanti **empiriche, non dalla letteratura**: intensità delle righe 1100, fattore L 0,25, profondità 0,7·R (Kanaya–Okayama), angolo d'uscita 20°. Per questo senza standard l'errore relativo in simulazione ha mediana di circa 3–4% (fino al 7% secondo il modello del tubo) e 90° percentile di 20–30%, di più sugli elementi sotto il 2–3% (benchmark `test/xrf-fp-benchmark.js` e prove dei tester virtuali); nella realtà può essere maggiore.
 - Rese ω: forma Z⁴/(Z⁴+A) approssimata (usata solo per il tubo). Compton: S ≈ 0,92·Z.
 - Rivelatore: Be 12,5 µm, Si 500 µm, 1 cm d'aria se non dichiarati. Picchi somma assenti; le fughe si aggiungono ma non si tolgono dal picco principale (1,4% a 2,3 keV, 0,2% a 8 keV).
 - Spessori: nessuna fluorescenza fra strati; lo strato deve essere uniforme.

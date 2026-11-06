@@ -4,7 +4,7 @@ window.AcchE2E=async function(info){
   const pageErrors=[]; window.addEventListener('error',e=>pageErrors.push(String(e.message))); window.addEventListener('unhandledrejection',e=>pageErrors.push(String(e.reason)));
   const check=(n,v,d)=>{ res.checks[n]=v?'ok':('FALLITO '+(d||'')); if (!v) ok=false; };
   try{
-    const cfg=await inv('e2e_config'), sep=info.os==='windows'?'\\':'/', dir=cfg.dir, sleep=ms=>new Promise(r=>setTimeout(r,ms));
+    const cfg=await inv('e2e_config'), sep=info.os==='windows'?'\\':'/', dir=cfg.dir, sleep=ms=>new Promise(r=>setTimeout(r,ms)), until=async(f,ms=5000)=>{ for (let t=0;t<ms;t+=50){ try{ if (f()) return true; }catch(e){} await sleep(50); } return !!f(); };
     window.ACCH_TEST=true;
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
@@ -46,7 +46,7 @@ window.AcchE2E=async function(info){
       const R=fpRun(files[0]); check('calcolo FP', R && R.Q && R.Q.res && R.Q.res.Cu && R.Q.res.Cu.w>50, JSON.stringify(R&&R.Q&&R.Q.res));
       const doc=await buildPdf().catch(e=>{ throw new Error('pdf '+e); }); check('PDF', !!doc);
       // chiusura con modifiche non salvate: si chiede, e «Annulla» lascia tutto com'è
-      files[0].title='Non salvato'; persist(files[0]); await T.window.getCurrentWindow().close(); await sleep(400); check('chiusura: domanda se salvare', document.querySelector('#dlgConfirm').open); const cancel=[...document.querySelectorAll('#cfBtns button')].find(b=>/Annulla/.test(b.textContent)); cancel&&cancel.click(); await sleep(200); check('chiusura annullata: lavoro intatto', files[0].title==='Non salvato');
+      files[0].title='Non salvato'; persist(files[0]); await T.window.getCurrentWindow().close(); check('chiusura: domanda se salvare', await until(()=>document.querySelector('#dlgConfirm').open)); const cancel=[...document.querySelectorAll('#cfBtns button')].find(b=>/Annulla/.test(b.textContent)); cancel&&cancel.click(); await sleep(200); check('chiusura annullata: lavoro intatto', files[0].title==='Non salvato');
       files[0].title='Prova 2'; persist(files[0]); await AcchProject.save();
       // collegamento a un file appena prodotto (blob): passa dal salvataggio nativo
       { const orig=window.download; let got=null; window.download=(b,n)=>{ got=n; }; setReady([{name:'prova.txt',blob:new Blob(['x'])}]); document.querySelector('#readyList a').click(); await sleep(500); window.download=orig; check('file pronti: salvataggio dal collegamento (CSP blob)', got==='prova.txt', String(got)); setReady([]); }
@@ -55,7 +55,7 @@ window.AcchE2E=async function(info){
       AcchUi.openSettings(); await sleep(50); check('impostazioni: sezione aggiornamenti', !document.querySelector('#stDesktop').hidden); document.querySelector('#dlgSettings').close();
       await AcchDesktop.checkUpdate(true); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
       // lingua e menu
-      AcchUi.setLang('en'); await sleep(300); check('inglese', /Settings/.test(document.querySelector('#settingsBtn').textContent)); AcchUi.setLang('it'); await sleep(300); check('italiano', /Impostazioni/.test(document.querySelector('#settingsBtn').textContent));
+      AcchUi.setLang('en'); check('inglese', await until(()=>/Settings/.test(document.querySelector('#settingsBtn').textContent))); AcchUi.setLang('it'); check('italiano', await until(()=>/Impostazioni/.test(document.querySelector('#settingsBtn').textContent)));
       check('barra degli strumenti', !!document.querySelector('#tbSave'));
       const cs=getComputedStyle(document.querySelector('.btn')); check('fogli di stile applicati (CSP)', getComputedStyle(document.querySelector('#shTool')).position==='fixed', cs.borderRadius); check('spazio di lavoro desktop attivo', document.documentElement.classList.contains('shell') && document.querySelector('#pv').clientWidth>500, String(document.querySelector('#pv').clientWidth)); check('carattere locale caricato', await document.fonts.load('16px Nunito').then(l=>l.length>0));
       const st=document.createElement('div'); st.innerHTML='<span id="cspS" style="color:rgb(1,2,3)"></span>'; document.body.appendChild(st); check('stili in linea permessi', getComputedStyle(document.querySelector('#cspS')).color==='rgb(1, 2, 3)'); st.remove();

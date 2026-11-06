@@ -124,9 +124,11 @@
     if (!err && sticky!=null && !isWarnMsg(t)){ const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); return; }
     stMsg.textContent=clean; stMsg.title=clean; stMsg.classList.toggle('warn', isWarnMsg(t) && !err); stMsg.classList.toggle('err', err); const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;
-  win.say=function(sel,txt){ oSay(sel,txt); if (!/^Sotto al grafico trovi/.test(String(txt))) pushMsg(txt); };
+  // i consigli d'uso della pagina online (strumenti «sotto al grafico», «Vediamo i grafici», clic destro…) non valgono qui: non vanno nella barra di stato
+  const webOnly=t=>{ const s=String(t); return (win.TIPS2||[]).includes(s) || /Sotto al grafico|Vediamo i grafici|qui sotto|Clic destro lo toglie|etichetta colorata/i.test(s); };
+  win.say=function(sel,txt){ oSay(sel,txt); if (!webOnly(txt)) pushMsg(txt); };
   // un avviso o un errore si vede anche senza emoji: «non è», «non riesco», «non si può», «manca»…
-  win.toast=function(txt){ pushMsg(txt); if (isWarnMsg(txt)){ lastWarn=txt; oToast(txt); } };
+  win.toast=function(txt){ if (webOnly(txt)) return; pushMsg(txt); if (isWarnMsg(txt)){ lastWarn=txt; oToast(txt); } };
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;

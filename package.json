@@ -8,7 +8,7 @@
     "prepare:desktop": "node scripts/prepare-desktop.js",
     "tauri": "tauri",
     "test": "node --test \"test/unit/*.test.js\"",
-    "test:benchmarks": "node test/analysis-benchmark.js && node test/peak-benchmark.js && node test/area-benchmark.js && node test/format-test.js && node test/xrf-fp-benchmark.js",
+    "test:benchmarks": "node test/benchmark-gate.js",
     "test:ui": "node test/ui-run.js"
   },
   "devDependencies": {

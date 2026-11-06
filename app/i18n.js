@@ -27,8 +27,10 @@
   Object.keys(dict).forEach(k=>addEntry(k, dict[k]));
   for (const list of byWord.values()) list.sort((a,b)=>b.len-a.len);
   /* traduce una stringa già ripulita dagli spazi di contorno; restituisce null se non la conosce */
+  let protect=null;   // durante un'esportazione: testi dell'utente da lasciare come sono
   function lookup(s){
-    if (cache.has(s)) return cache.get(s);
+    if (protect && protect.has(s)) return null;
+    if (!protect && cache.has(s)) return cache.get(s);
     let r=exact.has(s) ? exact.get(s) : null;
     const fits=(m,t)=>{ let cap=0; for (let i=1;i<m.length;i++) cap+=m[i].length; return cap<=Math.max(24,3*t.len) && (cap<=60 || cap<=0.6*s.length || (t.len>=20 && cap<=140)); };   // un modello quasi tutto segnaposto non deve «inghiottire» frasi intere
     const fill=(t,m)=>{ const vals=[]; t.order.forEach((n,i)=>vals[n]=m[i+1]); return t.tr.replace(/\{(\d+)\}/g,(_,n)=>{ const v=vals[+n]; return v==null?'':(lookup(v)||v); }); };
@@ -38,7 +40,7 @@
       for (const t of cand){ const m=t.re.exec(s); if (m && fits(m,t)){ r=fill(t,m); break; } } }
     if (r==null && noEmoji.size){ const v=noEmoji.get(deEmoji(s)); if (v!=null) r=v; }
     if (r==null){ // testi composti in modo dinamico: «Etichetta: spiegazione», «Nome — nota», frasi di seguito, simboli attorno
-      cache.set(s,null);
+      if (!protect) cache.set(s,null);
       const pair=(sep,any)=>{ const i=s.indexOf(sep); if (i<=0) return null; const A=s.slice(0,i), B=s.slice(i+sep.length), TA=lookup(A), TB=lookup(B); return (TA!=null&&TB!=null)||(any&&(TA!=null||TB!=null)) ? (TA!=null?TA:A)+sep+(TB!=null?TB:B) : null; };
       const list=(re,glue,any)=>{ const P=s.split(re); if (P.length<2) return null; const T=P.map(x=>lookup(x)); return (any?T.some(x=>x!=null):T.every(x=>x!=null)) ? T.map((x,i)=>x!=null?x:P[i]).join(glue) : null; };
       const SENT=/(?<=[.!?…])\s+(?=[\p{Lu}«])/u;
@@ -49,7 +51,7 @@
       if (r==null) r=pair(' — ',1)||pair(': ',1)||list(SENT,' ',1)||list(' · ',' · ',1)||list(', ',', ',1);
     }
     if (r!=null && r.includes('spectrum/spectra')) r=r.replace(/\b1 spectrum\/spectra\b/g,'1 spectrum').replace(/spectrum\/spectra/g,'spectra');
-    if (cache.size>40000) cache.clear(); cache.set(s,r); return r;
+    if (!protect){ if (cache.size>40000) cache.clear(); cache.set(s,r); } return r;
   }
   function tr(text){ if (text==null) return text; const s=String(text); if (!/\p{L}/u.test(s)) return s; const n=norm(s); if (!n) return s; const r=lookup(n); if (r==null) return s;
     const lead=/^\s*/.exec(s)[0], tail=/\s*$/.exec(s)[0]; return lead+r+tail; }
@@ -94,8 +96,10 @@
   function patchApp(){
     const wrap=(name, fn)=>{ const o=win[name]; if (typeof o==='function') win[name]=fn(o); };
     wrap('commands', o=>function(){ const L=o.apply(this,arguments); if (lang==='en') L.forEach(c=>{ c.kw=[c.kw||'',tr(c.kw||''),tr(c.label),c.sub?tr(c.sub):''].join(' '); }); return L; });   // i testi mostrati li traduce il DOM; qui serve solo la ricerca
-    wrap('csvCell', o=>function(c,sep){ return o.call(this, win.LANG_EN_OUT&&win.LANG_EN_OUT() && typeof c==='string' ? tr(c) : c, sep); });
-    wrap('pdfText', o=>function(t){ return o.call(this, win.LANG_EN_OUT&&win.LANG_EN_OUT() && typeof t==='string' ? tr(t) : t); });
+    let pt=0, pset=null; const user=()=>{ const now=Date.now(); if (!pset || now-pt>1000){ pset=new Set((win.ACCH_USER_TEXTS?win.ACCH_USER_TEXTS():[]).map(norm)); pt=now; } return pset; };
+    const outTr=t=>{ protect=user(); try{ return tr(t); } finally{ protect=null; } };
+    wrap('csvCell', o=>function(c,sep){ return o.call(this, win.LANG_EN_OUT&&win.LANG_EN_OUT() && typeof c==='string' ? outTr(c) : c, sep); });
+    wrap('pdfText', o=>function(t){ return o.call(this, win.LANG_EN_OUT&&win.LANG_EN_OUT() && typeof t==='string' ? outTr(t) : t); });
   }
   function setLang(l, opt){ opt=opt||{}; if (l!=='it' && l!=='en') return; const prev=lang; lang=l;
     try{ win.localStorage.setItem(KEY, JSON.stringify(l)); }catch(e){}

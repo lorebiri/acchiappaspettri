@@ -28,4 +28,5 @@ check('JCAMP (XY..XY)', xy && xy.xs.length===6 && xy.ys[5]===0.6, JSON.stringify
   par('NPT',0,n); par('FXV',1,3999.5); par('LXV',1,600.25); par('CSF',1,1); 'END'.split('').forEach((c,k)=>dv.setUint8(p+k,c.charCodeAt(0)));
   for (let i=0;i<n;i++) dv.setFloat32(1000+4*i, 0.5+i/1000, true);
   const q=C.parseBinary(buf,'campione.0'); check('Bruker OPUS', q && q.xs.length===n && Math.abs(q.xs[0]-600.25)<1e-9 && Math.abs(q.ys[n-1]-0.5)<1e-6 && C.detectInstrument(q,'campione.0').instr==='ftir', JSON.stringify(q && {n:q.xs.length, x0:q.xs[0], y:q.ys[n-1]})); }
+if (ko) process.exitCode=1;
 console.log(`\n${ok} riuscite, ${ko} fallite. Nota: .spa e OPUS sono provati su file costruiti secondo le specifiche pubbliche, non ancora su file veri.`);

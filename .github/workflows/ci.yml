@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: node scripts/check-version.js
@@ -34,7 +34,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Collaudo dell'interfaccia in italiano e inglese
         run: npm run test:ui
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with: { name: i18n-missing, path: test/i18n-missing.json, if-no-files-found: ignore }
   native:
@@ -50,11 +50,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 22, cache: npm }
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with: { workspaces: src-tauri }
       - name: Librerie di sistema (Linux)
         if: matrix.name == 'linux'
@@ -80,37 +80,15 @@ jobs:
         run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
       - name: Costruisce gli installer veri e li controlla
         shell: bash
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        # niente chiave di firma qui: la CI gira su ogni ramo e non pubblica; i pacchetti firmati si costruiscono e controllano in release.yml
         run: |
-          # senza il segreto (prima configurazione, rami di altri) si costruisce senza i file per l'updater
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then npx tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'; else npx tauri build; fi
+          npx tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
           node scripts/check-packages.js
       - name: Installa, avvia e disinstalla l'installer vero (Windows)
         if: matrix.name == 'windows'
         shell: pwsh
-        run: |
-          $exe = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
-          Write-Host "Installer: $($exe.Name)"
-          Start-Process $exe.FullName -ArgumentList '/S' -Wait
-          $cands = @("$env:LOCALAPPDATA\Acchiappaspettri", "$env:LOCALAPPDATA\Programs\Acchiappaspettri")
-          $dir = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $dir) { throw "non installato in $($cands -join ', ')" }
-          $app = Get-ChildItem $dir -Filter *.exe | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1
-          Write-Host "Installato in $dir : $($app.Name)"
-          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk | Where-Object { $_.Name -match 'Acchiappaspettri' }
-          if (-not $lnk) { throw 'manca la voce nel menu Start' }
-          $p = Start-Process $app.FullName -PassThru; Start-Sleep 20
-          if ($p.HasExited) { throw "l'app si è chiusa all'avvio (codice $($p.ExitCode))" }
-          Write-Host 'Avviata e ancora aperta dopo 20 s'
-          Stop-Process $p.Id -Force; Start-Sleep 3
-          Start-Process (Join-Path $dir 'uninstall.exe') -ArgumentList '/S' -Wait; Start-Sleep 8
-          if (Test-Path $app.FullName) { throw 'disinstallazione incompleta' }
-          $left = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk | Where-Object { $_.Name -match 'Acchiappaspettri' }
-          if ($left) { throw 'voce del menu Start rimasta dopo la disinstallazione' }
-          Write-Host 'Disinstallata'
-      - uses: actions/upload-artifact@v7
+        run: ./scripts/windows-install-test.ps1 src-tauri/target/release/bundle/nsis
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: installer-${{ matrix.name }}
           retention-days: 14

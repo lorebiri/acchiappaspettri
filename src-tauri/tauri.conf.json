@@ -14,30 +14,47 @@
       {
         "label": "main",
         "title": "Acchiappaspettri",
-        "width": 1440,
-        "height": 900,
-        "minWidth": 1024,
-        "minHeight": 640,
-        "dragDropEnabled": false
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 560,
+        "dragDropEnabled": false,
+        "center": true
       }
     ],
     "security": {
-      "dangerousDisableAssetCspModification": ["style-src"],
+      "dangerousDisableAssetCspModification": [
+        "style-src"
+      ],
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "app", "dmg", "appimage", "deb"],
+    "targets": [
+      "nsis",
+      "app",
+      "dmg",
+      "appimage",
+      "deb"
+    ],
     "createUpdaterArtifacts": true,
     "category": "Education",
     "shortDescription": "Spectra and chromatograms: clean plots and scientific analysis",
     "longDescription": "Acchiappaspettri turns spectra and chromatograms (FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) saved as files into clean plots and scientific analysis. Data stay on your computer.",
     "copyright": "© Lorenzo Birindelli, CNR-ICCOM",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "fileAssociations": [
       {
-        "ext": ["acchspettri"],
+        "ext": [
+          "acchspettri"
+        ],
         "name": "Acchiappaspettri project",
         "description": "Acchiappaspettri project",
         "role": "Editor",
@@ -47,7 +64,10 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["Italian", "English"],
+        "languages": [
+          "Italian",
+          "English"
+        ],
         "displayLanguageSelector": true,
         "installerHooks": "windows/installer-hooks.nsh"
       }
@@ -57,14 +77,23 @@
       "signingIdentity": "-"
     },
     "linux": {
-      "deb": { "section": "science" }
-    }
+      "deb": {
+        "section": "science",
+        "desktopTemplate": "linux/acchiappaspettri.desktop",
+        "files": {
+          "/usr/share/mime/packages/acchiappaspettri.xml": "linux/acchiappaspettri-mime.xml"
+        }
+      }
+    },
+    "publisher": "CNR-ICCOM"
   },
   "plugins": {
     "updater": {
       "active": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNDQkQ0MzAxMjFFQjJCMjcKUldRbksrc2hBVU85UFBLVmFETkh1a2lPRU1BM1FKMFpwRmhYcVhTSE1mYnpGZUhUVFMwQi9iVEQK",
-      "endpoints": ["https://github.com/lorebiri/acchiappaspettri/releases/latest/download/latest.json"]
+      "endpoints": [
+        "https://github.com/lorebiri/acchiappaspettri/releases/latest/download/latest.json"
+      ]
     }
   }
 }

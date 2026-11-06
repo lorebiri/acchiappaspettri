@@ -287,6 +287,17 @@ mod e2e {
     }
 }
 
+/// Su schermi piccoli o ingranditi (per esempio 1366×768 al 125%) la finestra predefinita non entra:
+/// in quel caso si apre ingrandita sull'area utile del monitor, senza superarne i bordi.
+fn fit_to_screen(app: &tauri::AppHandle) {
+    let Some(w) = app.get_webview_window("main") else { return };
+    let (Ok(Some(m)), Ok(size)) = (w.current_monitor(), w.outer_size()) else { return };
+    let area = m.work_area().size;
+    if size.width > area.width || size.height > area.height {
+        let _ = w.maximize();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -304,6 +315,7 @@ pub fn run() {
         .manage(Grants::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
+            fit_to_screen(app.handle());
             Ok(())
         });
     #[cfg(not(feature = "e2e"))]
