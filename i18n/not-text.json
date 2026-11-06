@@ -117,5 +117,15 @@
 "{0}: {1} at {2} {3}, no baseline correction{4}{5}{6}.",
 "Note",
 "saturated band: position and intensity not reliable",
-"gold / metal"
+"gold / metal",
+"⚠️ Data to check: unread rows or thousands separators in «{0}». See «Data check».",
+"from ",
+"to ",
+"Composition in",
+"weight % without standards",
+"by",
+"fundamental parameters",
+": from the tube spectrum, the geometry and the physical constants (xraylib) I compute how much signal each element would give in that matrix, and I look for the composition that reproduces the measured areas. Overlapping lines (Pb Lα / As Kα, Pb Mα / S Kα…) are separated by fitting all the lines of each element.",
+"Click",
+"from the tube spectrum, the geometry and the physical constants (xraylib) I compute how much signal each element would give in that matrix, and I look for the composition that reproduces the measured areas. Overlapping lines (Pb Lα / As Kα, Pb Mα / S Kα…) are separated by fitting all the lines of each element."
 ]

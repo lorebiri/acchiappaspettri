@@ -4782,7 +4782,7 @@ async function addEntries(entries){
   if (rejected.length) msgs.push(`⛔ Non letto: ${rejected.slice(0,3).map(esc).join('; ')}.`);
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato due colonne di numeri: ${list(errors)}. Se è un formato particolare mandamelo e lo aggiungo.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
-  { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true); toast('⚠️ Dati da controllare: righe non lette o separatori delle migliaia in «'+bad[0].name+'». Vedi «Controllo del dato».'); msgs.push(`⚠️ Righe non lette o separatori delle migliaia in: ${list(bad.map(f=>f.path))}. I numeri possono essere sbagliati.`); } }
+  { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true); toast(uiEn() ? `⚠️ Data to check: unread rows or thousands separators in «${bad[0].name}». See «Data check».` : `⚠️ Dati da controllare: righe non lette o separatori delle migliaia in «${bad[0].name}». Vedi «Controllo del dato».`); msgs.push(`⚠️ Righe non lette o separatori delle migliaia in: ${list(bad.map(f=>f.path))}. I numeri possono essere sbagliati.`); } }
   if (extra.length){ msgs.push(`⚠️ In ${extra.length===1?'questo file ci sono':'questi file ci sono'} altre colonne di valori, che non ho letto (Y è la seconda colonna: si cambia in «Dati dello spettro»): ${list(extra)}.`); toast(`⚠️ Alcuni file hanno altre colonne di valori, che non ho letto: uso solo le prime due.`); }
   if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=Math.round(f.xs.length/Math.max(1,f.xs.length*0.01))+'|'+Math.round(f.xs[0]*2)/2+'|'+Math.round(f.xs[f.xs.length-1]*2)/2; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
@@ -5161,7 +5161,7 @@ function renderPreview(){
   if (xrShownFor!==f.id || xrForce){
     xrShownFor=f.id; xrForce=false;
     $('#xrA').value = f.xr ? Math.min(...f.xr) : ''; $('#xrB').value = f.xr ? Math.max(...f.xr) : '';
-    $('#xrA').placeholder = 'da '+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = 'a '+(+f.xs[f.xs.length-1].toPrecision(5));
+    $('#xrA').placeholder = (uiEn()?'from ':'da ')+(+f.xs[0].toPrecision(5)); $('#xrB').placeholder = (uiEn()?'to ':'a ')+(+f.xs[f.xs.length-1].toPrecision(5));
   }
   $('#areaBox').hidden = !S.showArea;
   if (S.showArea){
@@ -6287,11 +6287,14 @@ async function buildZip(extra){
     if (S.outPng){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
     if (S.outSvg) folder.file(uniq('svg/'+dir, base, '.svg'), renderSvg(viewOf(f), wmm, hmm, fontPt));
     // picchi su una banda tagliata (saturazione segnalata dal controllo del dato): nota nell'elenco esportato
-    const satMax = S.showPeaks && badItems(f).some(t=>/massimo è piatto/.test(t)) && view.peaks.length ? Math.max(...view.peaks.map(p=>p.y)) : null;
+    // sui dati orientati come nel controllo del dato (in %T le bande sature sono minimi): FTIR oltre A = 2, oppure picchi sul tratto piatto segnalato
+    let satOf=()=>false; if (S.showPeaks && view.peaks.length){ try{ const P=processed(f), U=upData(P), uAt=x=>interpY(P.xs,U.y,x), flat=badItems(f).some(t=>/massimo è piatto/.test(t)), uMax=Math.max(...U.y);
+      const absLike = f.instr==='ftir' && (P.kind==='A' || P.kind==='T') && !P.deriv;
+      satOf=p=>{ const u=uAt(p.x); return (absLike && u>2) || (flat && u>=uMax-Math.abs(uMax)*0.005); }; }catch(e){} }
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], INSTR[f.instr].xPdf,
       String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?(String(f.labels[lblKey(p.x)]||'').startsWith('@')?Lx.csvOrig[0]:Lx.csvOrig[1]):'']
       .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
-        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satMax!=null && p.y>=satMax-Math.abs(satMax)*0.005 ? Lx.satNote : '']));
+        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satOf(p) ? Lx.satNote : '']));
     if (S.csvData){
       const P=processed(f), extra = P.y2 || (f.instr==='tga' && P.kind==='W' ? P.dtg : null);
       const lines=[[Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[P.kind]||'Y')+(P.kind==='HF'&&f.therm&&f.therm.yUnit?` (${f.therm.yUnit})`:'')].concat(extra?[Lx.y.DTG]:[]).map(c=>csvCell(c.replace('−','-'),csep)).join(csep)];
@@ -6768,7 +6771,7 @@ function renderAnalysis(){
   secSummaries(f, d);
   if (anFitFor!==f.id){ anFitFor=f.id; const r=f.fit ? f.fit.range : null; $('#fitA').value = r ? +r[0].toPrecision(6) : ''; $('#fitB').value = r ? +r[1].toPrecision(6) : '';
     if (f.fit){ $('#fitProf').value=f.fit.profile; $('#fitBase').value=f.fit.bm; $('#fitMode').value=f.fit.auto===false?'fixed':'auto'; } $('#fitMsg').hidden=true; }
-  const P=processed(f); $('#fitA').placeholder='da '+(+P.xs[0].toPrecision(5)); $('#fitB').placeholder='a '+(+P.xs[P.xs.length-1].toPrecision(5));
+  const P=processed(f); $('#fitA').placeholder=(uiEn()?'from ':'da ')+(+P.xs[0].toPrecision(5)); $('#fitB').placeholder=(uiEn()?'to ':'a ')+(+P.xs[P.xs.length-1].toPrecision(5));
   renderFitOut(f); renderAnTech(f, d); renderCult(f);
 }
 let anFitFor=null, anOpenFor=null;
@@ -6777,6 +6780,7 @@ const QBAD=new Map();
 function badItems(f){ let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0); const c=QBAD.get(f.id); if (c && c.sig===sig) return c.bad;
   let bad=[]; try{ bad=assess(f,d).filter(o=>o.lv==='bad' && !(f.instr==='gen' && /segnale\/rumore|S\/N/.test(o.t))).map(o=>String(o.t)); }catch(e){} QBAD.set(f.id,{sig,bad}); return bad; }
 /* un problema grave sul dato (⛔) non resta nascosto nella scheda: riga sotto il grafico e, nel desktop, nella barra di stato */
+window.qualBannerRefresh=()=>{ const b=$('#qualBanner'); if (b) b._h=null; if (files[cur]) qualBanner(files[cur]); };
 function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true;
   (window.requestIdleCallback||((fn)=>setTimeout(fn,200)))(()=>{ let any=false; for (const f of todo) if (files.includes(f) && badItems(f).length) any=true; qbadScan.busy=false; if (any) renderList(); }, {timeout:1500}); }
 function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');
@@ -7020,7 +7024,7 @@ function renderCult(f){
   const fromFile=(v)=>v!=null && v!=='' ? ' <small class="opt-l">dal file</small>' : '';
   const chips=[...new Set(['Cu','Zn','Sn','Pb','Ag','Au','Fe','Ca','Hg','As','Sb','Ni'].concat(els))].map(e=>`<button class="pill ${els.includes(e)?'on':''}" data-fe="${e}">${e}</button>`).join(' ');
   const sumNow=()=>{ $('#sumCult').textContent = fpSummary(f) || 'composizione senza standard e spessore degli strati'; }; setTimeout(sumNow, 0);
-  let h=`<p class="why">Composizione in <b>% in peso senza standard</b> con i <b>parametri fondamentali</b>: dallo spettro del tubo, dalla geometria e dalle costanti fisiche (xraylib) calcolo quanto segnale darebbe ogni elemento in quella matrice, e cerco la composizione che riproduce le aree misurate. Le righe sovrapposte (Pb Lα / As Kα, Pb Mα / S Kα…) sono separate adattando tutte le righe di ogni elemento.</p>
+  let h=uiEn() ? `<p class="why">Composition in <b>weight % without standards</b> by <b>fundamental parameters</b>: from the tube spectrum, the geometry and the physical constants (xraylib) I compute how much signal each element would give in that matrix, and I look for the composition that reproduces the measured areas. Overlapping lines (Pb Lα / As Kα, Pb Mα / S Kα…) are separated by fitting all the lines of each element.</p>` : `<p class="why">Composizione in <b>% in peso senza standard</b> con i <b>parametri fondamentali</b>: dallo spettro del tubo, dalla geometria e dalle costanti fisiche (xraylib) calcolo quanto segnale darebbe ogni elemento in quella matrice, e cerco la composizione che riproduce le aree misurate. Le righe sovrapposte (Pb Lα / As Kα, Pb Mα / S Kα…) sono separate adattando tutte le righe di ogni elemento.</p>`; h+=`
     <div class="ibfields">
       <label class="ibf"><span>Che cos'è il campione</span><select id="fpMode">${FP_MODES.map(([v,t])=>`<option value="${v}" ${c.mode===v?'selected':''}>${t}</option>`).join('')}</select><small>${esc((FP_MODES.find(m=>m[0]===c.mode)||FP_MODES[0])[2])}</small></label>
       ${c.mode==='compton'?`<label class="ibf"><span>Parte invisibile (resto)</span><select id="fpBal">${FP_MATS.filter(m=>['org','colla','gesso','calcite'].includes(m[0])).map(m=>`<option value="${m[0]}" ${c.bal===m[0]?'selected':''}>${m[1]}</option>`).join('')}<option value="custom" ${c.bal==='custom'?'selected':''}>altro (formula)…</option></select>${c.bal==='custom'?`<input type="text" id="fpBalTxt" value="${esc(c.balTxt||'')}" placeholder="es. CaCO3 oppure C 60 H 8 O 32" style="margin-top:4px">`:''}</label>`:''}
