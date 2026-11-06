@@ -160,7 +160,8 @@
   function sheetText(sp){ const c=shData.cols,L=[c.map(x=>x[0]).join(sp)]; for (let i=0;i<shData.n;i++) L.push(c.map(x=>{ const v=x[1](i); return v==null?'':String(v); }).join(sp)); return L.join('\n'); }
   async function copySheet(){ try{ await navigator.clipboard.writeText(sheetText('\t')); pushMsg(tr('Dati copiati negli appunti.')); }catch(e){ pushMsg(tr('Non riesco a copiare negli appunti.')); } }
 
-  win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,get doc(){ return docNow; },act};
+  function clearErr(){ if (stMsg.classList.contains('err')){ stMsg.classList.remove('err'); stMsg.textContent=''; stMsg.title=''; lastMsg=''; } sticky=null; }
+  win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,clearErr,get doc(){ return docNow; },act};
   /* avvio */
   applySizes(); mark(); showRes(lsG('acch.sh.res','peaks')); updateStatus(); pushMsg('Pronto');
 })(window);

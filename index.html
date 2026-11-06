@@ -1606,6 +1606,8 @@ BANDS.libs = (()=>{
   return out;
 })();
 const EL_IT = Object.assign({H:'idrogeno', Li:'litio', Be:'berillio', B:'boro', C:'carbonio', N:'azoto', O:'ossigeno'}, XRF_EL_IT);
+const EL_EN = {"H": "hydrogen", "Li": "lithium", "Be": "beryllium", "B": "boron", "C": "carbon", "N": "nitrogen", "O": "oxygen", "Ag": "silver", "Al": "aluminium", "Ar": "argon", "As": "arsenic", "Au": "gold", "Ba": "barium", "Bi": "bismuth", "Br": "bromine", "Ca": "calcium", "Cd": "cadmium", "Ce": "cerium", "Cl": "chlorine", "Co": "cobalt", "Cr": "chromium", "Cs": "caesium", "Cu": "copper", "Fe": "iron", "Ga": "gallium", "Ge": "germanium", "Hf": "hafnium", "Hg": "mercury", "I": "iodine", "In": "indium", "Ir": "iridium", "K": "potassium", "La": "lanthanum", "Mg": "magnesium", "Mn": "manganese", "Mo": "molybdenum", "Na": "sodium", "Nb": "niobium", "Nd": "neodymium", "Ni": "nickel", "Os": "osmium", "P": "phosphorus", "Pb": "lead", "Pd": "palladium", "Pt": "platinum", "Rb": "rubidium", "Re": "rhenium", "Rh": "rhodium", "Ru": "ruthenium", "S": "sulfur", "Sb": "antimony", "Se": "selenium", "Si": "silicon", "Sn": "tin", "Sr": "strontium", "Ta": "tantalum", "Te": "tellurium", "Th": "thorium", "Ti": "titanium", "Tl": "thallium", "U": "uranium", "V": "vanadium", "W": "tungsten", "Y": "yttrium", "Zn": "zinc", "Zr": "zirconium"};
+const elName = sym => (typeof uiEn==='function' && uiEn() ? EL_EN[sym] : EL_IT[sym]) || EL_IT[sym] || '';
 /* NMR: intervalli tipici di spostamento chimico (ppm) per ¹³C e ¹H, più i segnali residui dei solventi deuterati */
 BANDS.nmr = [
   ['n13_ket',190,215,'C=O chetoni / aldeidi','C=O ketones / aldehydes',null,null,{nuc:'13C'}],
@@ -1726,7 +1728,7 @@ function dbEntries(instr){
 /* nell'interfaccia (in italiano) i nomi sono sempre in italiano; sul grafico seguono la lingua scelta per i grafici */
 function uiName(g){ return g ? g.it : ''; }
 function uiSub(g){
-  const sym=elOf(g.id), el = sym && EL_IT[sym];
+  const sym=elOf(g.id), el = sym && elName(sym);
   const parts=[];
   if (el) parts.push(el);
   if (LANG==='en' && g.en && g.en!==g.it) parts.push('sul grafico in inglese: «'+g.en+'»');
@@ -5175,7 +5177,8 @@ function renderPreview(){
   let msg='';
   if (S.showPeaks && d.peaks.length && !nSug && nLab<d.peaks.length){
     const st=f.sample||S.sample, mine=LIB.filter(e=>e.i===f.instr).length;
-    if (f.instr==='xrf' && f.uncal) msg = `<b>Perché non ci sono nomi?</b> Questo file XRF non contiene la calibrazione in energia, quindi l'asse X è in canali e non so a quali elementi corrispondono i picchi. Esporta lo spettro con la calibrazione dal software dello strumento.`;
+    if (f.instr==='xrf' && f.uncal && badItems(f).length) msg = `<b>Perché non ci sono nomi?</b> Asse in canali: vedi l'avviso sotto il grafico.`;
+    else if (f.instr==='xrf' && f.uncal) msg = `<b>Perché non ci sono nomi?</b> Questo file XRF non contiene la calibrazione in energia, quindi l'asse X è in canali e non so a quali elementi corrispondono i picchi. Esporta lo spettro con la calibrazione dal software dello strumento.`;
     else if (f.instr==='hplc') msg = `<b>Perché non ci sono nomi?</b> Nell'HPLC il tempo di ritenzione dipende dal metodo (colonna, eluente, gradiente, flusso), quindi non esiste un database valido per tutti. Puoi insegnarmeli tu: clic su un picco, scrivi il composto e lascia spuntato <b>«Ricordalo nella mia libreria»</b>. Dalla volta dopo li riconosco da solo sugli altri cromatogrammi.${mine?` Nella tua libreria ci sono ${mine} tempi HPLC, ma nessuno cade vicino a questi picchi.`:''}`;
     else if (f.instr==='gen') msg = `<b>Strumento non riconosciuto</b>, quindi non so che nomi proporre. Sceglilo in «Dati dello spettro» e i suggerimenti compariranno.`;
     else if (st!=='all') msg = `Nessun nome nel database per questi picchi con il tipo «${SAMPLE_TYPES[st]}». <button class="linkbtn" id="trySampleAll">Prova con «Tutti i tipi»</button> oppure scrivi tu il nome con un clic sul picco.`;
@@ -5282,7 +5285,7 @@ function xrfCrossCheck(sug, peaks, x, instr){
   const rows=els.map(el=>{
     const others=(tab[el]||[]).filter(([ln,E])=>Math.abs(E-x)>tolFor(instr,x) && E>=minE);
     if (!others.length) return '';
-    return `<div><b>${el}</b> <small>${esc(EL_IT[el]||'')}</small>: ${others.map(([ln,E])=>{ const ok=peaks.some(q=>Math.abs(q.x-E)<=tolFor(instr,E)); return `${ln} ${E.toFixed(dec).replace('.',',')}${ok?' ✓':''}`; }).join(' · ')}</div>`;
+    return `<div><b>${el}</b> <small>${esc(elName(el))}</small>: ${others.map(([ln,E])=>{ const ok=peaks.some(q=>Math.abs(q.x-E)<=tolFor(instr,E)); return `${ln} ${E.toFixed(dec).replace('.',',')}${ok?' ✓':''}`; }).join(' · ')}</div>`;
   }).filter(Boolean);
   return rows.length ? `<div class="note" style="margin-bottom:6px">🔎 <b>Per distinguere elementi con righe vicine</b>, guarda le altre righe di ciascuno (✓ = c'è un picco lì):${rows.join('')}</div>` : '';
 }
@@ -5335,7 +5338,7 @@ $('#suggestAll').onclick=()=>{
   $('#daSample').innerHTML = Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${(f.sample||S.sample)===k?'selected':''}>${v}</option>`).join('');
   $('#daSample').onchange=e=>{ f.sample = e.target.value===S.sample ? null : e.target.value; persist(f); $('#dlgAll').close(); renderPreview(); $('#suggestAll').click(); };
   $('#daRows').innerHTML = rows.map((p,i)=>`<div class="allrow"><input type="checkbox" data-i="${i}" checked><b>${esc(p.num)}</b>
-     <select data-i="${i}">${p.sugg.map(g=>`<option value="${g.id}">${esc(uiName(g))}${elOf(g.id)&&EL_IT[elOf(g.id)]&&!/·/.test(g.it)?' ('+EL_IT[elOf(g.id)]+')':''}${g.coherent?' ✓':''}${g.mine?' (mia)':''}</option>`).join('')}</select></div>`).join('');
+     <select data-i="${i}">${p.sugg.map(g=>`<option value="${g.id}">${esc(uiName(g))}${elOf(g.id)&&elName(elOf(g.id))&&!/·/.test(g.it)?' ('+elName(elOf(g.id))+')':''}${g.coherent?' ✓':''}${g.mine?' (mia)':''}</option>`).join('')}</select></div>`).join('');
   $('#daOthers').checked=false;
   daState={f, rows};
   $('#dlgAll').showModal();
@@ -5477,7 +5480,7 @@ function nameToRaw(f, p, v, sug){
 }
 function setPeakName(f, x, raw){ const k=lblKey(x), old=f.labels[k]||''; if (old===raw) return false;
   pkSnap(f); if (raw) f.labels[k]=raw; else delete f.labels[k]; changed(f); return true; }
-function pillHtml(g){ const sy=elOf(g.id), el=sy&&EL_IT[sy], sub=uiSub(g);
+function pillHtml(g){ const sy=elOf(g.id), el=sy&&elName(sy), sub=uiSub(g);
   return `<button type="button" class="sgp" data-id="${esc(g.id)}" title="${esc(uiName(g)+(sub?' — '+sub:''))}">💡 ${esc(uiName(g))}${el&&!/·/.test(g.it)?` <small>${esc(el)}</small>`:''}${g.coherent?' ✓':''}</button>`; }
 let pop=null;
 function openPop(f, x){
@@ -5529,7 +5532,7 @@ $('#ppMore').onclick=()=>{ const P=pop; closePop(true); if (P) editLabel(P.f, P.
 /* tabella dei picchi */
 let pkFocusX=null, pkSig='';
 function renderPkTable(f, d){
-  const tb=$('#pkTable'), unit=f.uncal ? 'canale' : (INSTR[f.instr].xPdf||'x').replace('cm-1','cm⁻¹');
+  const tb=$('#pkTable'), unit=f.uncal ? (uiEn()?'channel':'canale') : (INSTR[f.instr].xPdf||'x').replace('cm-1','cm⁻¹');
   const rows=d.peaks.slice(); if (INSTR[f.instr].invertX) rows.reverse();
   const sig=f.id+'|'+rows.map(p=>p.x+':'+(p.nameUi||'')+':'+(p.sugg[0]?p.sugg[0].id:'')).join(',');
   if (tb.contains(document.activeElement) && sig===pkSig && pkFocusX==null){ markRow(); return; }   // non disturbo chi sta scrivendo
@@ -6030,7 +6033,7 @@ async function buildXlsx(sheets, props){
 }
 /* unità degli assi, nella forma che Origin mostra tra parentesi */
 function originUnits(f, P){
-  const xu = f.uncal ? 'canale' : (INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
+  const xu = f.uncal ? (uiEn()?'channel':'canale') : (INSTR[f.instr].xPdf||'').replace('cm-1','cm⁻¹');
   const yu = ({T:'%', A:'', I:'conteggi', mAU:'mAU', N:'u.n.', U:'u.a.', FL:'u.a.', W:'%', DTG:'%/°C', HF:(f.therm&&f.therm.yUnit)||'', E:'u.a.', D1:'', D2:''})[P.kind] ?? '';
   return {xu, yu};
 }
@@ -6388,12 +6391,12 @@ function numIn(v){ const x=parseFloat(String(v).replace(',', '.')); return isFin
    Ciò che non è chiaramente un numero viene rifiutato con un avviso e il campo torna al valore di prima (mai troncato in silenzio). */
 const NUM_STRICT=/^[-+]?(\d+([.,]\d*)?|[.,]\d+)(e[-+]?\d+)?$/i;
 function numField(el, ok, opt){ const raw=String(el.value).trim(); if (!raw) return ok(null);
-  if (opt&&opt.pos && NUM_STRICT.test(raw) && parseFloat(raw.replace(',', '.'))<0){ const msg=`⚠️ ${raw}: una concentrazione non può essere negativa. Valore non accettato.`; el.select(); toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); return; }
+  if (opt&&opt.pos && NUM_STRICT.test(raw) && parseFloat(raw.replace(',', '.'))<0){ const msg=`⚠️ ${raw}: una concentrazione non può essere negativa. Valore non accettato.`; el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); return; }
   // «1.000» o «2,500»: migliaia o decimali? Non si indovina: si chiede di scriverlo senza ambiguità
-  if (/^[-+]?[1-9]\d{0,2}[.,]\d{3}$/.test(raw)){ const msg=`⚠️ «${raw}» è ambiguo: per mille scrivi ${raw.replace(/[.,]/,'')}, per un decimale scrivi meno cifre o più cifre dopo la virgola (per esempio ${(()=>{ const [ip,fp]=raw.split(/[.,]/); const t=fp.replace(/0+$/,''); return ip+','+(t||'0'); })()}). Valore non accettato.`; el.select(); toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); return; }
+  if (/^[-+]?[1-9]\d{0,2}[.,]\d{3}$/.test(raw)){ const msg=`⚠️ «${raw}» è ambiguo: per mille scrivi ${raw.replace(/[.,]/,'')}, per un decimale scrivi meno cifre o più cifre dopo la virgola (per esempio ${(()=>{ const [ip,fp]=raw.split(/[.,]/); const t=fp.replace(/0+$/,''); return ip+','+(t||'0'); })()}). Valore non accettato.`; el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); return; }
   if (NUM_STRICT.test(raw)) return ok(parseFloat(raw.replace(',', '.')));
   const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`;
-  el.select(); toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); }
+  el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); }
 const fmtG = (v, d) => v==null || !isFinite(v) ? '—' : (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) ? v.toExponential(d==null?3:d-1).replace('.',T_().dec) : (+v.toPrecision(d||4)).toString().replace('.',T_().dec);
 const fmtSN = v => v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
 const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla cifra della seconda cifra significativa dell'incertezza (GUM)
@@ -6435,7 +6438,8 @@ function assess(f, d){
     else if (q.snr<50) add('warn', `S/N ≈ ${fmtSN(q.snr)}: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).`);
     else add('ok', `Buon rapporto segnale/rumore (S/N ≈ ${fmtSN(q.snr)}).`);
     if (q.flat>=3 && q.flat>=0.5*raw.length) add('warn', `Segnale costante su ${q.flat} punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».`);
-    else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen','ftir'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
+    else if (q.flat>=3 && it==='ftir') add('bad', `Il massimo è piatto su ${q.flat} punti: banda satura (assorbanza troppo alta). Posizione e area delle bande tagliate non sono affidabili: usa un film più sottile, l'ATR invece della trasmissione, oppure diluisci il campione.`);
+    else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
     if (q.bgRatio>0.3 && pBase(f)==='none' && ['raman','fluo','ftir','uv','xrf','libs','gen'].includes(it)){
       const m = (it==='xrf'||it==='libs') ? 'snip' : 'arpls';
       add('warn', `Il fondo pesa circa il ${Math.round(q.bgRatio*100)}% del segnale${it==='raman'?' (tipico della fluorescenza)':''}: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.`, {lab:`Applica ${m==='snip'?'SNIP':'arPLS'}`, fn:()=>{ S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
@@ -6773,9 +6777,10 @@ function badItems(f){ let d; try{ d=viewOf(f); }catch(e){ return []; } const sig
 function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true;
   (window.requestIdleCallback||((fn)=>setTimeout(fn,200)))(()=>{ let any=false; for (const f of todo) if (files.includes(f) && badItems(f).length) any=true; qbadScan.busy=false; if (any) renderList(); }, {timeout:1500}); }
 function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');
-  if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; ($('#pvWrap')||pv).insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
+  if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; ((window.ACCH_SHELL?null:$('.pvtools'))||$('#pvWrap')||pv).insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
   const bad=(!f||viewMode==='cmp') ? [] : badItems(f); b.hidden=!bad.length;
-  if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span class="qbt">${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span class="qbgo">Controllo del dato ›</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; const cc=cur; setTimeout(()=>{ b.title=b.textContent; if (window.AcchShell&&AcchShell.pushMsg && cc===cur) AcchShell.pushMsg('⛔ '+b.textContent, cc); }, 60); } }
+  if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span class="qbt">${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span class="qbgo">Controllo del dato ›</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; const cc=cur, nm=dispTitle(f); setTimeout(()=>{ b.title=b.textContent; if (window.AcchShell&&AcchShell.pushMsg && cc===cur) AcchShell.pushMsg('⛔ «'+nm+'» · '+b.textContent, cc); }, 60); } }
+  else { b._h=null; if (window.AcchShell&&AcchShell.clearErr) AcchShell.clearErr(); }
   const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
 function secSummaries(f, d){
   const Q=assess(f, d), bad=Q.filter(o=>o.lv==='bad').length, warn=Q.filter(o=>o.lv==='warn').length, H=hypotheses(f, d);
@@ -6955,13 +6960,13 @@ function renderMulti(){
   $('#mvOut').innerHTML=html;
   // eventi
   const mvMarkBad=(k,msg)=>setTimeout(()=>{ const r=$('#mv'+k.toUpperCase()); if (!r) return; r.setAttribute('aria-invalid','true'); r.title=msg; setTimeout(()=>{ const q=$('#mv'+k.toUpperCase()); if (q){ q.removeAttribute('aria-invalid'); q.title=''; } },5000); },40);
-  const setNum=(k,el)=>{ const raw=String(el.value).trim(); if (raw && !NUM_STRICT.test(raw)){ const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`; el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; }
+  const setNum=(k,el)=>{ const raw=String(el.value).trim(); if (raw && !NUM_STRICT.test(raw)){ const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`; el.value=c[k]!=null?numOut(c[k]):''; toast(msg); mvMarkBad(k, msg); return; }
     const x=numIn(el.value);
     // un limite fuori dall'asse degli spettri (per esempio due numeri attaccati) non viene accettato
     if (x!=null){ let lo=Infinity, hi=-Infinity; files.forEach(f=>{ if (f.instr!==instr || !f.xs || !f.xs.length) return; lo=Math.min(lo,f.xs[0],f.xs[f.xs.length-1]); hi=Math.max(hi,f.xs[0],f.xs[f.xs.length-1]); }); const m=(hi-lo)*0.05;
       if (isFinite(lo) && (x<lo-m || x>hi+m)){   // la banda già impostata non si tocca: si rifiuta solo il valore nuovo
         const dg=hi-lo>=100?0:hi-lo>=1?2:3, ok=c.a!=null&&c.b!=null&&isFinite(c.a)&&isFinite(c.b), msg=ok ? `⚠️ ${fmtN(x,dg)} è fuori dall'asse degli spettri (${fmtN(lo,dg)}–${fmtN(hi,dg)}): la banda resta ${fmtN(Math.min(c.a,c.b),dg)}–${fmtN(Math.max(c.a,c.b),dg)}.` : `⚠️ ${fmtN(x,dg)} è fuori dall'asse degli spettri (${fmtN(lo,dg)}–${fmtN(hi,dg)}): valore non accettato.`;
-        el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; } }
+        el.value=c[k]!=null?numOut(c[k]):''; toast(msg); mvMarkBad(k, msg); return; } }
     if (x==null) delete c[k]; else c[k]=x; mvSave(); el._enter=false; rerenderKeep(renderMulti, true, el); };
   ['a','b','c','d'].forEach(k=>{ const el=$('#mv'+k.toUpperCase()); el.onchange=()=>setNum(k,el); el.addEventListener('keydown',e=>{ if (e.key==='Enter') el._enter=true; }); });
   $('#mvMeas').onchange=e=>{ c.meas=e.target.value; mvSave(); rerenderKeep(renderMulti, true, e.target); };
@@ -7040,7 +7045,7 @@ function renderCult(f){
     const Q=R.Q, rows=Object.entries(Q.res).sort((a,b)=>b[1].w-a[1].w), light=els.filter(e=>FP.el[e].Z<19), ox=c.mode==='oxides';
     h+=`<p class="why"><b>⚠️ Stima senza standard${c.mode==='norm'?', somma forzata a 100%':''}:</b> non è una concentrazione validata. Dipende da matrice, geometria, superficie e condizioni che qui sono presunte; il ± è solo statistica di conteggio.</p>`;
     h+=`<div class="areawrap" style="margin-top:8px"><table class="areatab"><thead><tr><th>Elemento</th><th>Riga</th><th>% in peso (stima)</th>${ox?'<th>come ossido</th>':''}<th title="area netta della riga dall'adattamento">Conteggi netti</th></tr></thead><tbody>${rows.map(([e,o])=>{ const m=R.meas[e]||{};
-        return `<tr><td><b>${e}</b> <small class="opt-l">${esc(XRF_EL_IT[e]||'')}</small></td><td>${esc(e+' '+o.line.replace('Ka','Kα').replace('La','Lα'))}</td><td><b>${fmtN(o.w, o.w<1?2:o.w<10?1:1)}</b> ± ${fmtN(o.sw, o.sw<0.1?2:1)}</td>${ox?`<td>${o.ox?`${esc(o.ox.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]))} ${fmtN(o.wox,1)}`:'—'}</td>`:''}<td>${m.I?fmtG(m.I,4):'—'}</td></tr>`; }).join('')}
+        return `<tr><td><b>${e}</b> <small class="opt-l">${esc(elName(e))}</small></td><td>${esc(e+' '+o.line.replace('Ka','Kα').replace('La','Lα'))}</td><td><b>${fmtN(o.w, o.w<1?2:o.w<10?1:1)}</b> ± ${fmtN(o.sw, o.sw<0.1?2:1)}</td>${ox?`<td>${o.ox?`${esc(o.ox.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]))} ${fmtN(o.wox,1)}`:'—'}</td>`:''}<td>${m.I?fmtG(m.I,4):'—'}</td></tr>`; }).join('')}
       ${c.mode==='compton'?`<tr><td colspan="2">resto (${esc(c.bal==='custom'?(c.balTxt||'formula'):(fpMat(c.bal)||{}).it||'')})</td><td>${fmtN(Q.rest,1)}</td><td></td></tr>`:''}</tbody></table></div>`;
     const notes=[];
     if (fpNum(x.kv)!=null && fpNum(x.kv)!==S.kv) notes.unshift(`⚠️ Il file dichiara ${esc(String(x.kv))} kV, ma il calcolo usa ${S.kv} kV: il modello arriva a 50 kV, quindi la stima è meno affidabile.`);
@@ -7518,7 +7523,7 @@ function methodsText(inc, used){
   { const L_=T_(), bl=[]; for (const ins of Object.keys(MV||{})){ const c=MV[ins]; if (!c || c.a==null || c.b==null || !inc.some(f=>f.instr===ins) || c.model==='pls') continue; const u=(INSTR[ins]&&INSTR[ins].xPdf)||'', dg=Math.abs(c.b-c.a)>=50?0:Math.abs(c.b-c.a)>=1?2:3, m=MEAS_NAME[c.meas]||c.meas, pr=(BAND_PRESETS[ins]||[])[c.preset], prOk=pr&&pr[1]===c.a&&pr[2]===c.b;
       const pt=c.meas==='value'||c.a===c.b, saub=ins==='ftir'&&prOk&&c.preset===0, inT=inc.some(f=>f.instr===ins&&f.kind==='T');
       if (saub) cite.add('saub');
-      if (pt){ bl.push(T(`${L_.nome[ins]}: ${m} a ${fmtN(c.a,dg)} ${u} (valore puntuale, senza correzione della linea di base)${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; non è l\'indice di ingiallimento colorimetrico (ASTM E313)':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`, `${L_.nome[ins]}: ${m} at ${fmtN(c.a,dg)} ${u} (point value, no baseline correction)${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; this is not the colorimetric yellowness index (ASTM E313)':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); continue; }
+      if (pt){ bl.push(T(`${L_.nome[ins]}: ${ins==='uv'?'assorbanza':m} a ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, senza correzione della linea di base${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; non è l\'indice di ingiallimento colorimetrico (ASTM E313)':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`, `${L_.nome[ins]}: ${ins==='uv'?'absorbance':m} at ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, no baseline correction${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; this is not the colorimetric yellowness index (ASTM E313)':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); continue; }
       bl.push(T(`${L_.nome[ins]}: ${m} tra ${fmtN(Math.min(c.a,c.b),dg)} e ${fmtN(Math.max(c.a,c.b),dg)} ${u}, sopra una linea di base retta tra gli estremi della zona${c.c!=null&&c.d!=null?`, divisa per la stessa misura tra ${fmtN(Math.min(c.c,c.d),dg)} e ${fmtN(Math.max(c.c,c.d),dg)} ${u} (banda di riferimento)`:''}${prOk?` (indice «${pr[0]}»${saub?', metodo definito per polietilene e polipropilene':''})`:''}${inT?'; le aree sono calcolate in assorbanza (A = 2 − log₁₀ %T) dai dati in trasmittanza':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`,
         `${L_.nome[ins]}: ${m} between ${fmtN(Math.min(c.a,c.b),dg)} and ${fmtN(Math.max(c.a,c.b),dg)} ${u}, above a straight baseline between the ends of the region${c.c!=null&&c.d!=null?`, divided by the same measure between ${fmtN(Math.min(c.c,c.d),dg)} and ${fmtN(Math.max(c.c,c.d),dg)} ${u} (reference band)`:''}${prOk?` (index «${pr[0]}»${saub?', a method defined for polyethylene and polypropylene':''})`:''}${inT?'; areas are computed in absorbance (A = 2 − log₁₀ %T) from transmittance data':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); }
     if (bl.length) parts.push(T('Misure di banda. ','Band measurements. ')+bl.join(' ')); }

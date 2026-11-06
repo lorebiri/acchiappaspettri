@@ -113,6 +113,6 @@
 "a method defined for polyethylene and polypropylene",
 "areas are computed in absorbance (A = 2 − log₁₀ %T) from transmittance data",
 "this is not the colorimetric yellowness index (ASTM E313)",
-"{0}: {1} at {2} {3} (point value, no baseline correction){4}{5}{6}.",
-"{0}: {1} between {2} and {3} {4}, above a straight baseline between the ends of the region{5}{6}{7}{8}."
+"{0}: {1} between {2} and {3} {4}, above a straight baseline between the ends of the region{5}{6}{7}{8}.",
+"{0}: {1} at {2} {3}, no baseline correction{4}{5}{6}."
 ]
