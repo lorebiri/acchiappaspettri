@@ -17,3 +17,8 @@
 - Importazione: blocchi di dati riconosciuti (tabelle escluse, pause unite), celle vuote, colonna Y scelta dal nome, CSV con virgolette, canali XRF illeggibili, memoria legata all'impronta del file.
 - Tracciabilità: `tracciabilita.csv` in ogni cartella esportata; elaborazione per singolo spettro; dati calcolati dichiarabili; copia di recupero locale.
 - Sicurezza: un progetto non può più eseguire codice nella pagina; «Sobrio» non scarta più gli spettri.
+- Andamento: in «Più campioni» la misura di banda si può seguire nel tempo o con la dose (x con la sua unità, pendenza solo descrittiva, pagina «Andamento» nel PDF); ricette «Quanto è degradato?» (indice di carbonile) e «Quanto è ingiallito?» (assorbanza a 420 nm). La bozza dei metodi descrive le misure di banda.
+- HPLC: profilo di ogni campione confrontato con quello degli standard (coda, coeluito o impurezza); avviso di spalla senza falsi allarmi sulle code; cime sature riconosciute; derive della linea di base ai bordi della zona.
+- Riconoscimento della tecnica dalle intestazioni: tempo in minuti con il segnale del rivelatore (HPLC anche se non parte da 0), massa in percentuale (TGA), tempo e temperatura (da scegliere), colonna «B (%)» del gradiente non scambiata per campo EPR.
+- Numeri scritti a mano controllati: un solo separatore decimale; migliaia, spazi, testo e valori ambigui («1.000») rifiutati con un avviso, mai troncati. Limiti di banda fuori dall'asse rifiutati.
+- Problemi gravi sul dato (⛔) visibili sotto il grafico, nella barra di stato e accanto al nome; avvisi della barra di stato colorati.

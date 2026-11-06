@@ -227,3 +227,6 @@ html.shell .shsplit::after{display:none}
 html.shell #shSplitL{width:7px;left:calc(var(--L) - 4px)} html.shell #shSplitR{width:7px;right:calc(var(--R) - 4px)} html.shell #shSplitB{height:7px;bottom:calc(var(--S) + var(--B) - 4px)}
 html.shell .shsplit.v{background:linear-gradient(var(--sh-border),var(--sh-border)) center/1px 100% no-repeat}
 html.shell .shsplit.h{background:linear-gradient(var(--sh-border),var(--sh-border)) center/100% 1px no-repeat}
+html.shell #shMsg.err{color:var(--sh-err,#c62828);font-weight:600}
+html.shell #shMsg.err::before{content:'⛔ '}
+html.shell #qualBanner{flex:none;margin:4px 8px;border-radius:3px;font-size:12px;padding:4px 8px}

@@ -107,5 +107,12 @@
 "divided by the same measure between {0} and {1} {2} (reference band)",
 "the trend with {0} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)",
 "the x quantity",
-"{0}: {1} between {2} and {3} {4}, above a straight baseline between the ends of the region{5}{6}{7}."
+"Axis shifted: elements not proposed until it is aligned.",
+"(index «{0}»{1})",
+"Almond J., Sugumaar P., Wenzel M.N., Hill G., Wallis C. (2020) Determination of the carbonyl index of polyethylene and polypropylene using specified area under band methodology with ATR-FTIR spectroscopy. e-Polymers 20, 369–381. doi:10.1515/epoly-2020-0041.",
+"a method defined for polyethylene and polypropylene",
+"areas are computed in absorbance (A = 2 − log₁₀ %T) from transmittance data",
+"this is not the colorimetric yellowness index (ASTM E313)",
+"{0}: {1} at {2} {3} (point value, no baseline correction){4}{5}{6}.",
+"{0}: {1} between {2} and {3} {4}, above a straight baseline between the ends of the region{5}{6}{7}{8}."
 ]
