@@ -11,3 +11,4 @@
 
 #mvBand input[aria-invalid=true]{outline:2px solid #c62828;outline-offset:1px}
 #toast.warn{border-left:4px solid #e0a800}
+#mvOut [hidden],#mvBand [hidden]{display:none!important}

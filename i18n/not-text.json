@@ -91,5 +91,12 @@
 "per unit of x",
 "Nunito, sans-serif",
 "system-ui, -apple-system, \"Segoe UI\", sans-serif",
-"Slope {0}{1} {2}, R² {3} (descriptive only)"
+"Slope {0}{1} {2}, R² {3} (descriptive only)",
+"Calibration lines were fitted by",
+"Kubelka P., Munk F. (1931) Z. Tech. Phys. 12, 593–601.",
+"LOD = 3.3·s_y/x/b and LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); 95% confidence intervals of predicted concentrations follow Miller & Miller (2018)",
+"Tauc J., Grigorovici R., Vancu A. (1966) Optical properties and electronic structure of amorphous germanium. Phys. Status Solidi 15, 627–637; Makuła P., Pacia M., Macyk W. (2018) How to correctly determine the band gap energy of modified semiconductor photocatalysts based on UV–Vis spectra. J. Phys. Chem. Lett. 9, 6814–6817.",
+"linearity was checked with Mandel's test (ISO 8466-1) where at least 5 standards were available.",
+"ordinary least squares",
+"weighted least squares (1/x or 1/x² weights, as stated in the measurements)"
 ]

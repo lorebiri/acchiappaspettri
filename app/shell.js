@@ -117,11 +117,12 @@
   const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^(\d+) spectra caught!/,'$1 spectra loaded.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
   const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
-  let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
+  const isWarnMsg=t=>/😕|⚠️/.test(String(t)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible|accepted))(?=\s|$|[.,:;!?])/i.test(String(t));
+  let lastMsg='', lastWarn=''; function pushMsg(t){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean; stMsg.textContent=clean; stMsg.title=clean; stMsg.classList.toggle('warn', isWarnMsg(t)); const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;
   win.say=function(sel,txt){ oSay(sel,txt); if (!/^Sotto al grafico trovi/.test(String(txt))) pushMsg(txt); };
   // un avviso o un errore si vede anche senza emoji: «non è», «non riesco», «non si può», «manca»…
-  win.toast=function(txt){ pushMsg(txt); if (/😕|⚠️/.test(String(txt)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible))(?=\s|$|[.,:;!?])/i.test(String(txt))){ lastWarn=txt; oToast(txt); } };
+  win.toast=function(txt){ pushMsg(txt); if (isWarnMsg(txt)){ lastWarn=txt; oToast(txt); } };
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;

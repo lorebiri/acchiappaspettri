@@ -213,10 +213,12 @@ html.shell .shres .pktools{padding-right:18px}
 html.shell .shsplit::after{background:transparent}
 /* tabella dei picchi nel pannello dei risultati: larghezze fisse, i suggerimenti lunghi finiscono con i puntini (nome intero nel title) */
 html.shell .shres .pktab{table-layout:fixed;width:100%}
-html.shell .shres .pktab th:nth-child(1){width:28px} html.shell .shres .pktab th:nth-child(2){width:92px} html.shell .shres .pktab th:nth-child(3){width:110px} html.shell .shres .pktab th:nth-child(4){width:170px} html.shell .shres .pktab th:nth-child(6){width:56px}
+html.shell .shres .pktab th:nth-child(1){width:28px} html.shell .shres .pktab th:nth-child(2){width:92px} html.shell .shres .pktab th:nth-child(3){width:110px} html.shell .shres .pktab th:nth-child(4){width:170px} html.shell .shres .pktab th:nth-child(6){width:66px}
 html.shell .shres .pktab td{overflow:hidden}
 html.shell .shres .pktab td:nth-child(4) input{width:100%;max-width:260px;box-sizing:border-box}
 html.shell .shres .pktab .sgp{display:inline-block;vertical-align:middle;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:1199px){html.shell .shres .pktab th:nth-child(2){width:72px} html.shell .shres .pktab th:nth-child(3){width:80px} html.shell .shres .pktab th:nth-child(4){width:120px} html.shell .shres .pktab th:nth-child(6){width:48px}}
+@media (max-width:1199px){html.shell .shres .pktab th:nth-child(2){width:72px} html.shell .shres .pktab th:nth-child(3){width:80px} html.shell .shres .pktab th:nth-child(4){width:120px} html.shell .shres .pktab th:nth-child(6){width:64px}}
 html.shell #toast.warn{border-left:4px solid #e0a800;padding-left:10px}
 @media (max-width:1199px){html.shell .shres .pktab th{white-space:normal;line-height:13px;vertical-align:bottom}}
+html.shell #shMsg.warn{color:var(--sh-warn);font-weight:600}
+html.shell #shMsg.warn::before{content:'⚠ ';}
