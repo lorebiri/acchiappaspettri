@@ -1,5 +1,6 @@
 # Limitazioni note
 
+- **Windows 10 reale non provato prima del rilascio**: l'installazione, l'avvio e la disinstallazione sono provati nella pipeline su Windows Server 2025; la lista di prova a mano per Windows 10 è in [COLLAUDO.md](COLLAUDO.md).
 - **Firma dei sistemi operativi**: niente certificati Microsoft né Apple: avvisi al primo avvio ([INSTALLAZIONE.md](INSTALLAZIONE.md)). Su macOS l'app ha firma ad hoc e non è autenticata (notarizzata).
 - **Lingua nell'installer**: solo su Windows; su macOS e Linux si chiede al primo avvio.
 - **Aggiornamento .deb**: manuale, con avviso.
@@ -10,6 +11,8 @@
 - **Archivi ostili**: i limiti si basano sulle dimensioni dichiarate dallo ZIP; un archivio che mente viene riconosciuto solo dopo la decompressione, e può usare molta memoria.
 - **Progetti e preferenze**: aprire un progetto applica le sue impostazioni (lingua dei grafici compresa) e aggiunge i suoi riferimenti e voci di libreria a quelli dell'utente.
 - **Motori web diversi**: WebKit su macOS e Linux, WebView2 su Windows. HEIC/TIFF si aprono solo dove il motore li supporta.
+- **Nota sul grafico nei riquadri molto stretti**: sul telefono la riga «Elementi (ipotesi)» non viene disegnata nel grafico (resta nella scheda Analisi); nei PDF con molti grafici per pagina compare in forma breve.
+- **Numeri scritti a mano**: nei campi di «Più campioni» si accetta un solo separatore decimale; «1.000» o «2,500» vengono rifiutati come ambigui (scrivi 1000 oppure 2,5).
 - **Grafici**: il tema scuro non cambia i grafici, che restano bianchi come nei file esportati. Alcuni piccoli elementi colorati a mano nell'interfaccia possono essere meno curati in tema scuro.
 - **Inglese**: traduzione a livello di testo mostrato. Nomi di alcuni file esportati e nomi tecnici restano in italiano. Il testo costruito da pezzi molto dinamici può risultare meno naturale.
 - **Dati scientifici**: vedi [SCIENZA.md](SCIENZA.md). In breve, quelli trovati dai collaudi:

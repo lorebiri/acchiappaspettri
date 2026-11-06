@@ -98,5 +98,14 @@
 "Tauc J., Grigorovici R., Vancu A. (1966) Optical properties and electronic structure of amorphous germanium. Phys. Status Solidi 15, 627–637; Makuła P., Pacia M., Macyk W. (2018) How to correctly determine the band gap energy of modified semiconductor photocatalysts based on UV–Vis spectra. J. Phys. Chem. Lett. 9, 6814–6817.",
 "linearity was checked with Mandel's test (ISO 8466-1) where at least 5 standards were available.",
 "ordinary least squares",
-"weighted least squares (1/x or 1/x² weights, as stated in the measurements)"
+"weighted least squares (1/x or 1/x² weights, as stated in the measurements)",
+"(index «{0}»)",
+"Axis shifted",
+"Axis shifted: elements not proposed until it is aligned",
+"Band measurements.",
+"Elements (hypotheses):",
+"divided by the same measure between {0} and {1} {2} (reference band)",
+"the trend with {0} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)",
+"the x quantity",
+"{0}: {1} between {2} and {3} {4}, above a straight baseline between the ends of the region{5}{6}{7}."
 ]

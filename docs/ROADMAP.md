@@ -1,6 +1,6 @@
 # Roadmap
 
-Sintesi di cinque cicli di prova con **tester virtuali**. Sono sub-agenti che hanno usato il programma con dati sintetici, ciascuno dal punto di vista di un profilo:
+Sintesi di diciassette cicli di prova con **tester virtuali**. Sono sub-agenti che hanno usato il programma con dati sintetici, ciascuno dal punto di vista di un profilo:
 - ricercatore generale di laboratorio;
 - analitica e bioanalisi, NMR ed EPR, spettroscopia laser e beni culturali, chimica teorica (quattro contesti di ricerca dell'ICCOM);
 - tre profili specialistici: XRF quantitativa senza standard, analisi qualitativa multi-tecnica dei beni culturali, HPLC qualitativa e quantitativa.
@@ -19,7 +19,7 @@ Ogni ciclo ha seguito gli stessi passi:
 3. si corregge;
 4. chi aveva segnalato riprova.
 
-Cinque cicli, fermi solo quando nessun profilo trovava più problemi critici o alti realizzabili. Quelli medi e bassi restano qui e in [LIMITAZIONI.md](LIMITAZIONI.md).
+Diciassette cicli, fermi solo quando nessun profilo trovava più problemi medi o superiori realizzabili. Quelli che restano sono qui e in [LIMITAZIONI.md](LIMITAZIONI.md). Le proposte sono state valutate dall'Agente Capo Progetto, che rappresenta il committente.
 
 ## Già corretto o aggiunto nei cicli
 
@@ -56,10 +56,12 @@ Cinque cicli, fermi solo quando nessun profilo trovava più problemi critici o a
 | 11 | Correzione della tecnica per una serie intera, riconosciuta dal nome dei file | beni culturali | O | giorni |
 | 12 | Riferimenti confrontati con la stessa elaborazione del campione | qualitativa | O | giorni |
 | 13 | Caricamento di `jsPDF` e del dizionario inglese solo all'uso: −20% di attesa su reti lente | web lead | O | giorni |
+| 14 | Ore o dosi lette dal nome del file («0250h» → 250 h) nella modalità andamento | ricercatore senior | P | giorni |
+| 15 | Scheda «Andamento» a sé: campioni, ore, indice, grafico ed esportazione su un solo schermo | ricercatore senior | P | settimane |
 
 ### P2: qualità d'uso
 
-Annotazioni libere sui grafici; intervallo Y manuale nelle figure esportate; nomi delle colonne nel selettore Y; uno schermo da 375 px senza scorrimento laterale; il benvenuto dopo un recupero; una soglia S/N EPR meno sensibile allo smoothing.
+Separare il ricalcolo dei numeri dalla ricostruzione dei campi in «Più campioni» (debito tecnico: oggi si ridisegna tutto, conservando fuoco e testo); revisione del glossario perché SNV/MSC, arPLS e pseudo-Voigt abbiano tutti una spiegazione; testo base più grande e avvisi accanto al campo coinvolto; un'unica uscita «per la relazione» (grafici e tabella senza le pagine di ipotesi); annotazioni libere sui grafici; intervallo Y manuale nelle figure esportate; nomi delle colonne nel selettore Y; uno schermo da 375 px senza scorrimento laterale; il benvenuto dopo un recupero; una soglia S/N EPR meno sensibile allo smoothing.
 
 ## Valutato e scartato (motivato dai profili)
 
@@ -68,6 +70,12 @@ Annotazioni libere sui grafici; intervallo Y manuale nelle figure esportate; nom
 - Lettori di formati binari proprietari senza file veri per collaudarli (`.ch`, `.lcd`, `.cmbx`, `.pdz`).
 - Separazione automatica dei picchi con Rs < 0,5; un punteggio unico di affidabilità; un'identificazione automatica «intelligente».
 - Supporto a 21 CFR Part 11 e alle firme elettroniche.
+
+## Rilascio
+
+- I pacchetti pubblicati vengono ricostruiti dalla pipeline di pubblicazione dopo i test: non sono gli stessi file installati e provati in CI. Dopo ogni pubblicazione si scaricano e si installano almeno Windows e un Mac.
+- L'aggiornamento firmato si prova davvero solo da una versione pubblicata alla successiva: pubblicare una 2.2.1 entro due settimane dalla 2.2.0.
+- La chiave privata di firma degli aggiornamenti va custodita anche fuori dal Mac di sviluppo: senza di essa le app installate non possono più aggiornarsi.
 
 ## Prossimo passo
 

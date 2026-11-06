@@ -16,3 +16,6 @@
 
 ## Impostazioni
 ⚙️: lingua, tema (i grafici restano bianchi come nei file esportati), controllo degli aggiornamenti, versione.
+
+## Leggibilità
+Nell'app desktop *Vista → Testo più grande o più piccolo* ingrandisce tutto il testo dell'interfaccia; nel browser si usa lo zoom (Ctrl e + oppure ⌘ e +). Gli avvisi importanti compaiono anche nella barra di stato in basso, con ⚠ e in colore; un problema grave sul dato (⛔) compare sotto il grafico e accanto al nome dello spettro.

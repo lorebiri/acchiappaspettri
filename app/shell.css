@@ -222,3 +222,8 @@ html.shell #toast.warn{border-left:4px solid #e0a800;padding-left:10px}
 @media (max-width:1199px){html.shell .shres .pktab th{white-space:normal;line-height:13px;vertical-align:bottom}}
 html.shell #shMsg.warn{color:var(--sh-warn);font-weight:600}
 html.shell #shMsg.warn::before{content:'⚠ ';}
+/* divisori: zona di presa larga 7 px disegnata come una linea di 1 px (niente ::after, che nel tema scuro lasciava una striscia chiara) */
+html.shell .shsplit::after{display:none}
+html.shell #shSplitL{width:7px;left:calc(var(--L) - 4px)} html.shell #shSplitR{width:7px;right:calc(var(--R) - 4px)} html.shell #shSplitB{height:7px;bottom:calc(var(--S) + var(--B) - 4px)}
+html.shell .shsplit.v{background:linear-gradient(var(--sh-border),var(--sh-border)) center/1px 100% no-repeat}
+html.shell .shsplit.h{background:linear-gradient(var(--sh-border),var(--sh-border)) center/100% 1px no-repeat}

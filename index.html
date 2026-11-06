@@ -3828,6 +3828,7 @@ function drawPlot(ctx, W, H, k, d, S){
   }
   // grafico stretto (telefono): la nota non ruba la larghezza ai dati; gli stessi valori sono nella scheda «Analisi»
   if (d.info && d.info.length && W>=f*40) inf={items:d.info.map(t=>({name:t})), lh:f*0.98};
+  else if (d.infoShort && d.infoShort.length && W>=f*16) inf={items:d.infoShort.map(t=>({name:t})), lh:f*0.98};
 
   let G, lab, boxes, side=null;
   const topR0=topR, botR0=botR, MAXR=0.9;   // i dati occupano sempre almeno metà dell'altezza: oltre, le etichette si accorciano
@@ -4426,7 +4427,8 @@ function dscRate(f){ // °C/min: dalla colonna del tempo, altrimenti dall'intest
   return f.therm && f.therm.rate>0 ? f.therm.rate : null;
 }
 function fmtN(v, d){ return (+v).toFixed(d).replace('.', T_().dec); }
-function viewOf(f){
+function viewOf(f){ return viewInfoXrf(f, viewOf0(f)); }
+function viewOf0(f){
   const instr=f.instr, prof=INSTR[instr], P=processed(f), L=T_();
   const key=procKey(f)+'|'+S.sens+'|'+S.maxPeaks+'|'+(f.freq||'');
   if (f._autoKey!==key){ f._auto=autoPeaks(f, P); f._autoKey=key; }
@@ -4492,8 +4494,16 @@ function viewOf(f){
   return {areaUnit, title:dispTitle(f), desc, instrName:L.nome[instr], series, series2,
           legend: !!(series2 || refSer || fitSer), xs:P.xs, ys:P.ys, kind:P.kind, dir:P.dir, invertX:prof.invertX, xLabel: f.uncal ? L.chan : (f.an&&f.an.axX)||L.x[instr],
           yLabel: (f.an&&f.an.axY)||yLab+(S.logY[instr] && P.kind!=='N' && P.dir>0 && !P.deriv ? ` · ${L.logS}` : ''), logY: !!S.logY[instr] && P.kind!=='N' && !P.deriv && !(instr==='dsc'||instr==='epr'),
-          logX: !!S.logX[instr], peaks, instr, inset: insetFor(f, insetKeyFile(f)), info, idxOff:0};
+          logX: !!S.logX[instr], peaks, instr, inset: insetFor(f, insetKeyFile(f)), info, idxOff:0, infoShort:null};
 }
+/* nota sul grafico XRF: gli stessi elementi delle ipotesi, mai una lista diversa; forma breve per i grafici stretti (PDF a più grafici per pagina) */
+function viewInfoXrf(f, d){ if (!S.showInfo || !d || !d.peaks || !d.peaks.length) return d; const en=LANG==='en';
+  if (d.instr==='libs' && d.info){ const ln=d.info.find(t=>/^(Elementi probabili|Probable elements)/.test(t)); if (ln) d.infoShort=[ln.split(': ').slice(1).join(': ').split(', ').join(' · ')]; return d; }
+  if (d.instr!=='xrf' || f.uncal) return d; let H=null; try{ H=hypotheses(f, d); }catch(e){} if (!H || H.kind!=='els') return d;
+  let line=null, short=null;
+  if (H.shifted){ line=en?'Axis shifted: elements not proposed until it is aligned':'Asse spostato: elementi non proposti finché non è allineato'; short=en?'Axis shifted':'Asse spostato'; }
+  else if (H.els.length || (H.unsure&&H.unsure.length)){ line=(en?'Elements (hypotheses): ':'Elementi (ipotesi): ')+(H.els.slice(0,10).join(', ')||'—')+(H.unsure&&H.unsure.length?(en?' · not distinguishable: ':' · non distinguibili: ')+H.unsure.join(', '):''); short=H.els.slice(0,8).join(' · ')+(H.unsure&&H.unsure.length?' · ('+H.unsure.join('/')+'?)':''); }
+  if (line){ d.info=(d.info||[]).concat([line]); d.infoShort=[short]; } return d; }
 function shade(c){ const m=/^#?([0-9a-f]{6})$/i.exec(c||''); if (!m) return '#888'; const v=parseInt(m[1],16), r=v>>16, g=(v>>8)&255, b=v&255, mix=x=>Math.round(x+(255-x)*0.45);
   return '#'+[mix(r),mix(g),mix(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function localBase(P, x){ const i=nearestIdx(P.xs,x), w=Math.max(5,Math.round(P.xs.length/40)); const a=Math.max(0,i-w), b=Math.min(P.xs.length-1,i+w); return (P.ys[a]+P.ys[b])/2; }
@@ -4541,7 +4551,7 @@ function infoLines(f, P, peaks, L){
     if (f.lex>0) lines.push(`λex = ${Math.round(f.lex)} nm`);
     lines.push(`${en?'Maximum':'Massimo'}: ${Math.round(P.xs[k])} nm`);
   }
-  if ((it==='libs' || it==='xrf') && peaks.length){
+  if (it==='libs' && peaks.length){
     const cnt={}; peaks.forEach(p=>{ const ids = p.custom ? [String(f.labels[lblKey(p.x)]||'').replace(/^@/,'')] : p.sugg.slice(0,2).map(g=>g.id);
       const els=new Set(ids.map(elOf).filter(Boolean)); els.forEach(e=>cnt[e]=(cnt[e]||0)+1); });
     const els=Object.entries(cnt).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).map(([e])=>e);
@@ -4943,7 +4953,7 @@ function renderList(){
      return `<div class="fitem ${i===cur?'sel':''} ${f.include?'':'off'} ${SEL.has(f.id)?'msel':''}" data-i="${i}">
      <input type="checkbox" ${f.include?'checked':''} data-inc="${i}" title="Includi nell'output">
      <div class="nm" title="${esc(f.path)}">${esc(dispTitle(f))}<small>${esc(f.title?f.name:(f.path.includes('/')?f.path.slice(0,f.path.lastIndexOf('/')):(f.desc||'')))}</small></div>
-     ${isEdited(f)?'<span class="ed" title="Modificato">✎</span>':''}
+     ${isEdited(f)?'<span class="ed" title="Modificato">✎</span>':''}${(QBAD.get(f.id)||{bad:[]}).bad.length?'<span class="qbad" title="Dati da controllare: vedi «Controllo del dato»">⛔</span>':''}
      <span class="badge b-${f.instr}">${esc(NOME_IT[f.instr].split(' ')[0])}</span></div>`; }).join('') || '<div class="empty">Nessun file</div>';
   if (cm){
     $$('#flist .fitem').forEach(el=>el.addEventListener('click', e=>{ if (e.target.dataset.cm!==undefined) return; const cb=el.querySelector('input'); if (!cb.disabled){ cb.checked=!cb.checked; cb.dispatchEvent(new Event('change')); } }));
@@ -5139,7 +5149,7 @@ function renderPreview(){
   $('#fInclude').checked = f.include;
   $('#fSample').innerHTML = `<option value="">come per tutti (${SAMPLE_TYPES[S.sample]})</option>` + Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${f.sample===k?'selected':''}>${v}</option>`).join('');
   $('#xrUnit').textContent = f.uncal ? '(canali)' : INSTR[f.instr].xPdf ? '('+INSTR[f.instr].xPdf+')' : '';
-  renderXrfBox(f); renderInstrBox(f); renderSubBox(f);
+  renderXrfBox(f); renderInstrBox(f); renderSubBox(f); qualBanner(f);
   if ($('.panel[data-panel="refs"]').classList.contains('on')) renderRefs();
   if ($('.panel[data-panel="an"]').classList.contains('on')) renderAnalysis();
   if ($('.panel[data-panel="multi"]').classList.contains('on') && $('#secMulti').open) renderMulti();
@@ -6371,6 +6381,15 @@ function cleanAn(v){
 }
 function anSet(f, k, v){ f.an=f.an||{}; if (v==null || v==='' || (typeof v==='number' && !isFinite(v))) delete f.an[k]; else f.an[k]=v; if (!Object.keys(f.an).length) f.an=null; persist(f); }
 function numIn(v){ const x=parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; }
+/* campo numerico scritto a mano: un solo separatore decimale (virgola o punto), niente migliaia, spazi o lettere.
+   Ciò che non è chiaramente un numero viene rifiutato con un avviso e il campo torna al valore di prima (mai troncato in silenzio). */
+const NUM_STRICT=/^[-+]?(\d+([.,]\d*)?|[.,]\d+)(e[-+]?\d+)?$/i;
+function numField(el, ok){ const raw=String(el.value).trim(); if (!raw) return ok(null);
+  // «1.000» o «2,500»: migliaia o decimali? Non si indovina: si chiede di scriverlo senza ambiguità
+  if (/^[-+]?[1-9]\d{0,2}[.,]\d{3}$/.test(raw)){ const msg=`⚠️ «${raw}» è ambiguo: per mille scrivi ${raw.replace(/[.,]/,'')}, per un decimale scrivi meno cifre o più cifre dopo la virgola (per esempio ${raw.replace(/[.,]/,',').replace(/0+$/,'')||raw}). Valore non accettato.`; el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); return; }
+  if (NUM_STRICT.test(raw)) return ok(parseFloat(raw.replace(',', '.')));
+  const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`;
+  el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); }
 const fmtG = (v, d) => v==null || !isFinite(v) ? '—' : (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) ? v.toExponential(d==null?3:d-1).replace('.',T_().dec) : (+v.toPrecision(d||4)).toString().replace('.',T_().dec);
 const fmtSN = v => v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
 const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla cifra della seconda cifra significativa dell'incertezza (GUM)
@@ -6741,6 +6760,15 @@ function renderAnalysis(){
 }
 let anFitFor=null, anOpenFor=null;
 /* una riga di riassunto su ogni sezione chiusa; quando cambi spettro si aprono da sole le sezioni con qualcosa da dire */
+const QBAD=new Map();
+function badItems(f){ let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0); const c=QBAD.get(f.id); if (c && c.sig===sig) return c.bad;
+  let bad=[]; try{ bad=assess(f,d).filter(o=>o.lv==='bad').map(o=>String(o.t)); }catch(e){} QBAD.set(f.id,{sig,bad}); return bad; }
+/* un problema grave sul dato (⛔) non resta nascosto nella scheda: riga sotto il grafico e, nel desktop, nella barra di stato */
+function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');
+  if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; pv.insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
+  const bad=(!f||viewMode==='cmp') ? [] : badItems(f); b.hidden=!bad.length;
+  if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span>${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span>Apri «Controllo del dato».</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; if (window.AcchShell&&AcchShell.pushMsg) AcchShell.pushMsg('⛔ '+b.textContent); } }
+  const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
 function secSummaries(f, d){
   const Q=assess(f, d), bad=Q.filter(o=>o.lv==='bad').length, warn=Q.filter(o=>o.lv==='warn').length, H=hypotheses(f, d);
   const sq=$('#sumQual'); sq.textContent = bad ? `⛔ ${bad} problem${bad===1?'a':'i'}${warn?`, ${warn} avvis${warn===1?'o':'i'}`:''}` : warn ? `⚠️ ${warn} avvis${warn===1?'o':'i'}` : '✅ tutto a posto'; sq.classList.toggle('warn', !!(bad||warn));
@@ -6819,7 +6847,7 @@ function rerenderKeep(fn, now, origin, boxes){ setTimeout(()=>{ const act=docume
   if (box && /INPUT|SELECT/.test(act.tagName)){ if (!box._pending){ box._pending=true; const out=e=>{ if (e.relatedTarget && box.contains(e.relatedTarget)) return; box.removeEventListener('focusout',out); box._pending=false; setTimeout(()=>rerenderKeep(fn, true, document.activeElement),0); }; box.addEventListener('focusout',out); } return; }
   { const a=document.activeElement, key=a&&a!==document.body&&a.dataset?{id:a.id,cls:String(a.className||'').trim().split(/\s+/)[0],i:a.dataset.i,e:a.dataset.e,f:a.dataset.f}:null, typed=a&&a.tagName==='INPUT'?{v:a.value,s:a.selectionStart,e:a.selectionEnd}:null; fn();
   if (!key) return; let q=key.id?document.getElementById(key.id):null; if (!q && key.cls){ q=document.querySelector('.'+CSS.escape(key.cls)+(key.i!=null?`[data-i="${key.i}"]`:'')+(key.e!=null?`[data-e="${key.e}"]`:'')+(key.f!=null?`[data-f="${key.f}"]`:'')); }
-  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!=='' && (!origin || origin===a)){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); else if (q.select) q.select(); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
+  if (q && q.focus){ q.focus(); try{ if (typed && q.tagName==='INPUT' && typed.v!=='' && (!origin || origin===a || a.value!==a.defaultValue)){ q.value=typed.v; if (typed.s!=null) q.setSelectionRange(typed.s,typed.e); else if (q.select) q.select(); } else if (q.select && q.type!=='range') q.select(); }catch(e){} } } },0); }
 document.addEventListener('keydown',e=>{ const t=e.target; if (e.key!=='Enter' || !t || !t.matches || !t.matches('input.concin,input.xq')) return; const same=[...document.querySelectorAll('input.'+(t.classList.contains('xq')?'xq':'concin')+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:''))]; const n=same[same.indexOf(t)+(e.shiftKey?-1:1)]; e.preventDefault(); t.blur(); if (n) setTimeout(()=>{ const m=document.querySelector('input.'+(t.classList.contains('xq')?'xq':'concin')+`[data-i="${n.dataset.i}"]`+(t.dataset.e!=null?`[data-e="${t.dataset.e}"]`:'')); if (m){ m.focus(); m.select(); } },10); });
 function mvShape(f, a, b){ const P=processed(f), U=upData(P), m=bandMeasure(P.xs, U.y, a, b); if (!m) return null; const lo=Math.min(a,b), hi=Math.max(a,b); let k=-1, top=-Infinity, bot=Infinity; for (let i=0;i<P.xs.length;i++) if (P.xs[i]>=lo&&P.xs[i]<=hi){ if (U.y[i]>top){ top=U.y[i]; k=i; } if (U.y[i]<bot) bot=U.y[i]; }
   // larghezza al 10% sopra la retta tra i bordi della zona: con una deriva il minimo sta da un lato e falserebbe la forma
@@ -6884,7 +6912,7 @@ function renderMulti(){
   const rows=mvTable(instr), cal=mvCalib(rows), xu=(INSTR[instr].xPdf||'').replace('cm-1','cm⁻¹');
   let html='';
   if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?f.an.conc:''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
-    setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>{ anSet(list[+el.dataset.f], 'conc', numIn(el.value)); rerenderKeep(renderMulti); }), 0); }
+    setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>numField(el, v=>{ anSet(list[+el.dataset.f], 'conc', v); rerenderKeep(renderMulti); })), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
     const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : c.meas==='value' && instr==='uv' ? `A (${fmtN(c.a,0)} nm)` : MEAS_NAME[c.meas];
@@ -6919,7 +6947,7 @@ function renderMulti(){
   $('#mvOut').innerHTML=html;
   // eventi
   const mvMarkBad=(k,msg)=>setTimeout(()=>{ const r=$('#mv'+k.toUpperCase()); if (!r) return; r.setAttribute('aria-invalid','true'); r.title=msg; setTimeout(()=>{ const q=$('#mv'+k.toUpperCase()); if (q){ q.removeAttribute('aria-invalid'); q.title=''; } },5000); },40);
-  const setNum=(k,el)=>{ const raw=String(el.value).trim(); if (raw && !/^[-+]?(\d+([.,]\d*)?|[.,]\d+)(e[-+]?\d+)?$/i.test(raw)){ const msg=`⚠️ «${raw}» non è un numero: valore non accettato.`; el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; }
+  const setNum=(k,el)=>{ const raw=String(el.value).trim(); if (raw && !NUM_STRICT.test(raw)){ const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`; el.value=c[k]!=null?c[k]:''; toast(msg); mvMarkBad(k, msg); return; }
     const x=numIn(el.value);
     // un limite fuori dall'asse degli spettri (per esempio due numeri attaccati) non viene accettato
     if (x!=null){ let lo=Infinity, hi=-Infinity; files.forEach(f=>{ if (f.instr!==instr || !f.xs || !f.xs.length) return; lo=Math.min(lo,f.xs[0],f.xs[f.xs.length-1]); hi=Math.max(hi,f.xs[0],f.xs[f.xs.length-1]); }); const m=(hi-lo)*0.05;
@@ -6934,7 +6962,7 @@ function renderMulti(){
   { const hd=$('#mvHead'); if (hd) hd.textContent=c.model==='trend'?'📏 Misura di banda e andamento':'📏 Misura di banda e retta di taratura'; }
   if ($('#mvPreset')) $('#mvPreset').onchange=e=>{ const p=pres[+e.target.value]; if (!p) return; c.preset=+e.target.value; c.a=p[1]; c.b=p[2]; if (p[3]!=null){ c.c=p[3]; c.d=p[4]; } else { delete c.c; delete c.d; } c.meas=p[5]; mvSave(); renderMulti(); say('#tip2', p[1]==null ? 'Ora imposta la zona da integrare (anche con «⤢ zoom attuale»). 📏' : `Indice impostato: ${p[0].split(' (')[0]}. 📏`); };
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
-  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', numIn(el.value)); anSet(o.f, 'concK', c.a+'|'+c.b); rerenderKeep(renderMulti); });
+  $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>numField(el, v=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', v); anSet(o.f, 'concK', c.a+'|'+c.b); rerenderKeep(renderMulti); }));
   $$('#mvOut .rolein').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'role', el.value==='std'?null:el.value); rerenderKeep(renderMulti); });
   if ($('#mvCsv')) $('#mvCsv').onclick=()=>download(new Blob(['﻿'+mvCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `misure_${instr}.csv`);
   if (c.model!=='pls' && cal && cal.b!=null && $('#calC')) drawCalChart($('#calC'), instr, rows, cal);
@@ -7196,7 +7224,7 @@ function renderXrfQuant(instr){
   $('#xqAdd').onchange=e=>{ const v=e.target.value.trim(); const el=v.charAt(0).toUpperCase()+v.slice(1).toLowerCase(); if (XRF_LINES[el] && !c.qEls.includes(el)){ c.qEls.push(el); mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); } else if (v) toast(`«${v}» non è un elemento che conosco.`); };
   $('#xq100').onchange=e=>{ c.q100=e.target.checked; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
   $('#xqModel').onchange=e=>{ c.qModel=e.target.value; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
-  $$('#xqBox .xq').forEach(el=>el.onchange=()=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); const v=numIn(el.value); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); rerenderKeep(()=>renderXrfQuant(instr)); });
+  $$('#xqBox .xq').forEach(el=>el.onchange=()=>numField(el, v=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); rerenderKeep(()=>renderXrfQuant(instr)); }));
   if ($('#xqCsv')) $('#xqCsv').onclick=()=>download(new Blob(['\ufeff'+xqCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), 'composizione_xrf.csv');
 }
 function xqCsvRows(instr){ const M=xqModel(instr); if (!M || !M.fit) return []; const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec);
@@ -7478,6 +7506,10 @@ function methodsText(inc, used){
   if (cite.has('lm')) parts.push(T('Le bande sovrapposte sono state separate con profili pseudo-Voigt (Wertheim et al., 1974) e una linea di base polinomiale, mediante minimi quadrati non lineari di Levenberg–Marquardt (Levenberg, 1944; Marquardt, 1963).'+(cite.has('bic')?' Il numero di componenti è stato scelto a partire dai minimi della derivata seconda (Maddams & Mead, 1982) con il criterio di informazione bayesiano (Schwarz, 1978), accettando un componente aggiuntivo solo per ΔBIC > 6.':'')+' Le incertezze sono gli errori standard ottenuti dalla matrice di covarianza dei parametri.',
     'Overlapping bands were resolved with pseudo-Voigt profiles (Wertheim et al., 1974) on a polynomial baseline by Levenberg–Marquardt non-linear least squares (Levenberg, 1944; Marquardt, 1963).'+(cite.has('bic')?' The number of components was selected starting from the minima of the second derivative (Maddams & Mead, 1982) using the Bayesian information criterion (Schwarz, 1978), accepting an additional component only for ΔBIC > 6.':'')+' Uncertainties are standard errors from the parameter covariance matrix.'));
   if (cite.has('ich') && Object.values(MV).some(m=>m&&m.weight)) parts.push(T('Dove indicato, retta pesata (1/x o 1/x²): LOD e LOQ riferiti alla dispersione allo standard più basso.','Where stated, weighted line (1/x or 1/x²): LOD and LOQ refer to the dispersion at the lowest standard.'));
+  { const L_=T_(), bl=[]; for (const ins of Object.keys(MV||{})){ const c=MV[ins]; if (!c || c.a==null || c.b==null || !inc.some(f=>f.instr===ins) || c.model==='pls') continue; const u=(INSTR[ins]&&INSTR[ins].xPdf)||'', dg=Math.abs(c.b-c.a)>=50?0:Math.abs(c.b-c.a)>=1?2:3, m=MEAS_NAME[c.meas]||c.meas, pr=(BAND_PRESETS[ins]||[])[c.preset], prOk=pr&&pr[1]===c.a&&pr[2]===c.b;
+      bl.push(T(`${L_.nome[ins]}: ${m} tra ${fmtN(Math.min(c.a,c.b),dg)} e ${fmtN(Math.max(c.a,c.b),dg)} ${u}, sopra una linea di base retta tra gli estremi della zona${c.c!=null&&c.d!=null?`, divisa per la stessa misura tra ${fmtN(Math.min(c.c,c.d),dg)} e ${fmtN(Math.max(c.c,c.d),dg)} ${u} (banda di riferimento)`:''}${prOk?` (indice «${pr[0]}»)`:''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`,
+        `${L_.nome[ins]}: ${m} between ${fmtN(Math.min(c.a,c.b),dg)} and ${fmtN(Math.max(c.a,c.b),dg)} ${u}, above a straight baseline between the ends of the region${c.c!=null&&c.d!=null?`, divided by the same measure between ${fmtN(Math.min(c.c,c.d),dg)} and ${fmtN(Math.max(c.c,c.d),dg)} ${u} (reference band)`:''}${prOk?` (index «${pr[0]}»)`:''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); }
+    if (bl.length) parts.push(T('Misure di banda. ','Band measurements. ')+bl.join(' ')); }
   if (cite.has('ich')) parts.push(T('Le rette di taratura sono state calcolate con i minimi quadrati '+(cite.has('wls')?'pesati (pesi 1/x o 1/x², come indicato nelle misure)':'ordinari')+'; LOD = 3,3·s_y/x/b e LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); gli intervalli di confidenza al 95% delle concentrazioni stimate seguono Miller & Miller (2018)'+(cite.has('mandel')?'; la linearità è stata verificata con il test di Mandel (ISO 8466-1) dove gli standard erano almeno 5.':'.'),
     'Calibration lines were fitted by '+(cite.has('wls')?'weighted least squares (1/x or 1/x² weights, as stated in the measurements)':'ordinary least squares')+'; LOD = 3.3·s_y/x/b and LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); 95% confidence intervals of predicted concentrations follow Miller & Miller (2018)'+(cite.has('mandel')?'; linearity was checked with Mandel\'s test (ISO 8466-1) where at least 5 standards were available.':'.')));
   if (cite.has('ich') && Object.values(MV).some(m=>m&&m.weight)){ const k=parts.length-1; parts[k]=parts[k].replace('minimi quadrati ordinari','minimi quadrati ordinari o pesati (dove indicato)').replace('ordinary least squares','ordinary or weighted (where stated) least squares').replace('e la linearità è stata verificata','e, per le rette non pesate, la linearità è stata verificata').replace(/and linearity was/,'and, for unweighted lines, linearity was'); }

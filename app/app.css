@@ -9,6 +9,7 @@
 .updbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}
 .updbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
 
-#mvBand input[aria-invalid=true]{outline:2px solid #c62828;outline-offset:1px}
+#mvBand input[aria-invalid=true],#mvOut input[aria-invalid=true],#xqBox input[aria-invalid=true]{outline:2px solid #c62828;outline-offset:1px}
 #toast.warn{border-left:4px solid #e0a800}
 #mvOut [hidden],#mvBand [hidden]{display:none!important}
+.qbanner{display:block;width:100%;text-align:left;margin:6px 0;padding:7px 10px;border:0;border-left:4px solid #c62828;background:rgba(198,40,40,.08);color:inherit;font:inherit;font-size:13px;border-radius:4px;cursor:pointer}.qbanner[hidden]{display:none}.qbanner:hover{background:rgba(198,40,40,.14)}.fitem .qbad{font-size:12px;margin-left:2px}
