@@ -72,3 +72,4 @@ html.web .pktab .sgp{word-break:keep-all;font-size:12px}
 html.web .pktab .sgp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
 html.web .pkwrap .pktab td:last-child{position:static}
 }
+html.web details.ansec>summary>b{flex:1 1 0;min-width:0}

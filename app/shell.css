@@ -230,3 +230,4 @@ html.shell .shsplit.h{background:linear-gradient(var(--sh-border),var(--sh-borde
 html.shell #shMsg.err{color:var(--sh-err,#c62828);font-weight:600}
 html.shell #shMsg.err::before{content:'⛔ '}
 html.shell #qualBanner{flex:none;margin:4px 8px;border-radius:3px;font-size:12px;padding:4px 8px}
+html.shell details.ansec>summary>b{flex:1 1 0;min-width:0;display:inline}
