@@ -1282,7 +1282,7 @@ const L10N = {
        dec:',', title:'Report spettri', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
        cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
        csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo','Origine del nome'], csvOrig:['proposta dalla banca dati: ipotesi','scritto a mano'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
-       locale:'it-IT', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
+       locale:'it-IT', csvNote:'Nota', satNote:'banda satura: posizione e intensità non affidabili', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
   en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', fluo:'Wavelength (nm)', hplc:'Retention time (min)', xrf:'Energy (keV)', libs:'Wavelength (nm)', tga:'Temperature (°C)', dsc:'Temperature (°C)', nmr:'Chemical shift δ (ppm)', epr:'Magnetic field (mT)', gen:'X'},
        y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', U:'Intensity (a.u.)', FL:'Fluorescence intensity (a.u.)', W:'Mass (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Heat flow', E:'EPR signal, derivative (a.u.)', D1:'First derivative', D2:'Second derivative', '':'Y'},
        nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', fluo:'Fluorescence', hplc:'HPLC', xrf:'XRF', libs:'LIBS', tga:'TGA', dsc:'DSC', nmr:'NMR', epr:'EPR', gen:'Generic'},
@@ -1291,7 +1291,7 @@ const L10N = {
        dec:'.', title:'Spectra report', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
        cols:['#','Sample','Instrument','X range','Peaks'], fileLbl:'file',
        csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type','Name origin'], csvOrig:['proposed from the database: hypothesis','typed by hand'], csvArea:['Area','Area unit','Area %','Integration start','Integration end'], man:'manual', auto:'automatic',
-       locale:'en-GB', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
+       locale:'en-GB', csvNote:'Note', satNote:'saturated band: position and intensity not reliable', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
 };
 let LANG = 'it';
 const T_ = () => L10N[LANG] || L10N.it;
@@ -3708,6 +3708,7 @@ const XRF_PIGMENTS = [
   {col:'gold', els:['Sn'], no:['Au'], it:'foglia di stagno (meccatura, con vernice gialla)', en:'tin leaf (with yellow varnish)'},
   {col:'gold', els:['Ag'], no:['Au'], it:'foglia d\'argento (meccatura, con vernice gialla)', en:'silver leaf (with yellow varnish)'}
 ];
+const COLOURS_EN = {white:'white', yellow:'yellow', orange:'orange', red:'red', blue:'blue', green:'green', brown:'brown', black:'black', gold:'gold / metal'};
 const COLOURS = {white:['⚪','bianco'], yellow:['🟡','giallo'], orange:['🟠','arancio'], red:['🔴','rosso'], blue:['🔵','blu'], green:['🟢','verde'], brown:['🟤','bruno'], black:['⚫','nero'], gold:['✨','oro / metallo']};
 function xrfPigments(els, col){
   const set=new Set(els), out=[];
@@ -5148,7 +5149,7 @@ function renderPreview(){
   $('#fTitle').placeholder=f.name;
   if (document.activeElement!==$('#fDesc')) $('#fDesc').value=f.desc||'';
   const sel=$('#fInstr');
-  sel.innerHTML = Object.keys(INSTR).map(k=>`<option value="${k}" ${k===f.instr?'selected':''}>${NOME_IT[k]}${k===f.autoInstr?' (rilevato)':''}</option>`).join('');
+  sel.innerHTML = Object.keys(INSTR).map(k=>`<option value="${k}" ${k===f.instr?'selected':''}>${NOME_IT[k]}${k===f.autoInstr?(uiEn()?' (detected)':' (rilevato)'):''}</option>`).join('');
   $('#fReason').textContent = f.instr===f.autoInstr ? 'Riconosciuto da: '+f.reason : 'Scelto a mano (avevo pensato: '+NOME_IT[f.autoInstr]+')';
   $('#fInclude').checked = f.include;
   $('#fSample').innerHTML = `<option value="">come per tutti (${SAMPLE_TYPES[S.sample]})</option>` + Object.entries(SAMPLE_TYPES).map(([k,v])=>`<option value="${k}" ${f.sample===k?'selected':''}>${v}</option>`).join('');
@@ -6274,7 +6275,7 @@ async function buildZip(extra){
   for (const e of (extra||[])) folder.file(e.name, e.blob);
   const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
   const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
-  const rows=[S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()];
+  const rows=[(S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()).concat([Lx.csvNote])];
   const uniq=(dir,base,ext)=>{ let name=dir+base+ext, n=2; while (used.has(name)) name=dir+base+'_'+(n++)+ext; used.add(name); return name; };
   const groups = ((S.outPng || S.outSvg) && S.cmpPng) ? outComparisons() : [];
   const total=inc.length+groups.length;
@@ -6285,10 +6286,12 @@ async function buildZip(extra){
     const base = (f.title && f.title.trim() ? f.title.trim().replace(/[\\/:*?"<>|]+/g,'_') : safeName(f.name))+(f.an&&f.an.calc?(LANG==='en'?'_computed':'_calcolato'):'');
     if (S.outPng){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
     if (S.outSvg) folder.file(uniq('svg/'+dir, base, '.svg'), renderSvg(viewOf(f), wmm, hmm, fontPt));
+    // picchi su una banda tagliata (saturazione segnalata dal controllo del dato): nota nell'elenco esportato
+    const satMax = S.showPeaks && badItems(f).some(t=>/massimo è piatto/.test(t)) && view.peaks.length ? Math.max(...view.peaks.map(p=>p.y)) : null;
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], INSTR[f.instr].xPdf,
       String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?(String(f.labels[lblKey(p.x)]||'').startsWith('@')?Lx.csvOrig[0]:Lx.csvOrig[1]):'']
       .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
-        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []));
+        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satMax!=null && p.y>=satMax-Math.abs(satMax)*0.005 ? Lx.satNote : '']));
     if (S.csvData){
       const P=processed(f), extra = P.y2 || (f.instr==='tga' && P.kind==='W' ? P.dtg : null);
       const lines=[[Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[P.kind]||'Y')+(P.kind==='HF'&&f.therm&&f.therm.yUnit?` (${f.therm.yUnit})`:'')].concat(extra?[Lx.y.DTG]:[]).map(c=>csvCell(c.replace('−','-'),csep)).join(csep)];
@@ -6450,7 +6453,7 @@ function assess(f, d){
   if ((it==='uv'||it==='ftir') && f.kind!=='N'){
     let amax=-Infinity, amin=Infinity; for (const v of raw){ if (v>amax) amax=v; if (v<amin) amin=v; }
     if (it==='uv' && amax>1.5) add('warn', `Assorbanza massima ${fmtG(amax,3)}: sopra ~1,5 la luce diffusa rende la risposta non lineare (Lambert–Beer). Per quantificare diluisci fino ad A ≈ 0,1–1.`);
-    if (it==='ftir' && amax>2) add('warn', `Bande con assorbanza ${fmtG(amax,2)} (T < 1%): sono sature, la loro forma e intensità non sono affidabili. Campione più sottile, meno diluito in KBr, oppure ATR.`);
+    if (it==='ftir' && amax>2) add('warn', `Bande con assorbanza ${fmtG(amax,2)} (T < 1%): sono sature, la loro forma e intensità non sono affidabili. Campione più sottile, più diluito in KBr (meno campione nella pastiglia), oppure ATR.`);
     if (amin<-0.05) add('info', 'Assorbanza negativa in alcuni tratti: il fondo (bianco) non è stato sottratto bene, oppure il campione era più sottile del riferimento.');
   }
   if (it==='fluo') add('info', 'Per confronti quantitativi tieni l\'assorbanza all\'eccitazione sotto 0,1: sopra, l\'effetto filtro interno abbassa e deforma l\'emissione (Lakowicz).');
@@ -6578,7 +6581,7 @@ function renderAnHyp(f, d){
     why.innerHTML='Dagli elementi con una riga principale intensa o almeno due righe riconosciute ricavo i materiali compatibili, con l\'epoca d\'uso quando è un indizio di datazione (Eastaugh et al. 2008). Pensato per i beni culturali: <b>verifica sempre con altre tecniche</b> (Raman, FTIR, stratigrafia).';
     box.innerHTML = H.shifted ? `<div class="pkempty">⚠️ La riga diffusa del tubo è spostata di circa ${Math.round(Math.abs(H.tubeOff||0)*1000)} eV ${(H.tubeOff||0)>0?'in più':'in meno'} (stima approssimata, ±60 eV): l'asse in energia è spostato e non propongo elementi. Prova prima «Allinea sulle righe note»; se non basta, correggi lo spostamento in «Dati dello spettro» controllando che le righe del tubo cadano al loro posto.</div>` : !H.els.length ? '<div class="pkempty">Nessun elemento con una riga principale intensa o due righe riconosciute. Dai un nome ai picchi o accetta i suggerimenti nella scheda «Picchi».</div>'
       : `<div class="elrow"><b>Elementi:</b> ${H.els.map(e=>`<span class="pill on">${e}</span>`).join(' ')}</div>${H.shifted?`<p class="why" style="margin:4px 0">⚠️ Più di metà delle righe non ha un'assegnazione: l'asse in energia sembra spostato e non propongo elementi. Allinealo o calibralo prima.</p>`:''}${(H.unsure||[]).length?`<p class="why" style="margin:4px 0">⚠️ Non distinguibili da questo spettro: ${H.unsure.map(esc).join(', ')}. As Kα coincide con Pb Lα, As Kβ è vicina a Hg Lβ, W è coperto dalle righe di Au: non si possono né affermare né escludere.</p>`:''}${(H.oneLine||[]).length?`<p class="why" style="margin:4px 0">⚠️ Una riga sola per ${H.oneLine.map(esc).join(', ')}: l'ipotesi è inconclusiva.</p>`:''}${(H.over||[]).length?`<p class="why" style="margin:4px 0">⚠️ Righe sovrapposte: ${H.over.map(o=>`${esc(o.num)} keV = ${esc(o.names.join(' + '))}`).join(' · ')}. L'area di questi picchi è la somma dei due elementi.</p>`:''}`;
-    const cp=`<div class="colpick"><b>Di che colore è il punto misurato?</b> <span class="opt-l">così restringo le ipotesi</span><div class="pills">${Object.entries(COLOURS).filter(([k])=>k!=='orange').map(([k,[e,t]])=>`<button class="pill ${H.col===k?'on':''}" data-col="${k}">${e} ${t}</button>`).join('')}</div></div>`;
+    const cp=`<div class="colpick"><b>Di che colore è il punto misurato?</b> <span class="opt-l">così restringo le ipotesi</span><div class="pills">${Object.entries(COLOURS).filter(([k])=>k!=='orange').map(([k,[e,t]])=>`<button class="pill ${H.col===k?'on':''}" data-col="${k}">${e} ${uiEn()?COLOURS_EN[k]:t}</button>`).join('')}</div></div>`;
     let list='';
     if (H.col) list = H.pig.length ? `<ul class="anlist">${H.pig.map(h=>`<li class="lv-${h.weak?'info':'ok'}"><span>${COLOURS[h.col][0]}</span><div>${h.els.length?`<b>${h.els.join(' + ')}</b> → `:''}${esc(h.it)}${h.weak?' <small>(meno probabile: ci sono anche '+(h.no||[]).filter(e=>H.els.includes(e)).join(', ')+')</small>':''}</div></li>`).join('')}</ul>` : '<div class="pkempty">Nessun pigmento noto con questi elementi e questo colore: potrebbe essere una miscela o un materiale moderno.</div>';
     else if (H.list.length) list=`<ul class="anlist">${H.list.map(h=>`<li class="lv-info"><span>🎨</span><div><b>${h.els.join(' + ')}</b> → ${esc(h.it)}</div></li>`).join('')}</ul>`;
@@ -6780,13 +6783,13 @@ function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualB
   if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; ((window.ACCH_SHELL?null:$('.pvtools'))||$('#pvWrap')||pv).insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
   const bad=(!f||viewMode==='cmp') ? [] : badItems(f); b.hidden=!bad.length;
   if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span class="qbt">${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span class="qbgo">Controllo del dato ›</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; const cc=cur, nm=dispTitle(f); setTimeout(()=>{ b.title=b.textContent; if (window.AcchShell&&AcchShell.pushMsg && cc===cur) AcchShell.pushMsg('⛔ «'+nm+'» · '+b.textContent, cc); }, 60); } }
-  else { b._h=null; if (window.AcchShell&&AcchShell.clearErr) AcchShell.clearErr(); }
+  else { b._h=null; if (window.AcchShell&&AcchShell.clearErr) AcchShell.clearErr(f&&viewMode!=='cmp'?dispTitle(f):''); }
   const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
 function secSummaries(f, d){
   const Q=assess(f, d), bad=Q.filter(o=>o.lv==='bad').length, warn=Q.filter(o=>o.lv==='warn').length, H=hypotheses(f, d);
   const sq=$('#sumQual'); sq.textContent = bad ? `⛔ ${bad} problem${bad===1?'a':'i'}${warn?`, ${warn} avvis${warn===1?'o':'i'}`:''}` : warn ? `⚠️ ${warn} avvis${warn===1?'o':'i'}` : '✅ tutto a posto'; sq.classList.toggle('warn', !!(bad||warn));
   let hs=''; if (H){ const top = H.pig && H.pig.length ? H.pig[0] : H.list && H.list.length ? H.list[0] : null;
-    if (top) hs = (top.it||'').split(' (')[0] + (top.score!=null && top.ev ? ` · ${hypTag(top,uiEn())}` : '');
+    if (top) hs = ((uiEn()&&top.en)||top.it||'').split(' (')[0] + (top.score!=null && top.ev ? ` · ${hypTag(top,uiEn())}` : '');
     else if (H.kind==='els' && H.els.length) hs = 'elementi: '+H.els.join(', '); }
   $('#sumHyp').textContent = hs || (H ? 'nessuna ipotesi' : '—');
   $('#sumFit').textContent = fitValid(f) ? `${f.fit.peaks.length} component${f.fit.peaks.length===1?'e':'i'} · R² ${fmtN(f.fit.r2,4)}` : 'non eseguita';
@@ -7106,7 +7109,7 @@ function fpLayerCfg(f, R){ const c=fpCfg(f), L=Object.assign({method:'ratio'}, c
   if (!L.cover) L.cover = L.el==='Cu'||L.el==='Ag' ? 'oro' : 'org'; if (!L.sub) L.sub = R && R.Q && R.Q.comp ? 'fp' : (FP_SUB_DEF[L.el] || 'calcite'); return L; }
 function fpLayerHtml(f, R){
   const S=R.S, L=fpLayerCfg(f, R), pairs=fpLayerPairs(L.el, S), pr=pairs.find(p=>p.join()===(L.lines||[]).join()) || pairs[0];
-  const refs=files.filter(g=>g!==f && g.instr==='xrf' && !g.uncal), mats=sel=>FP_MATS.map(m=>`<option value="${m[0]}" ${sel===m[0]?'selected':''}>${m[1]}</option>`).join('')+`<option value="custom" ${sel==='custom'?'selected':''}>altro (formula e densità)…</option>`;
+  const refs=files.filter(g=>g!==f && g.instr==='xrf' && !g.uncal), mats=sel=>FP_MATS.map(m=>`<option value="${m[0]}" ${sel===m[0]?'selected':''}>${uiEn()?m[2]:m[1]}</option>`).join('')+`<option value="custom" ${sel==='custom'?'selected':''}>altro (formula e densità)…</option>`;
   let h=`<h4 class="anh" style="margin-top:18px">🧱 Spessore di uno strato ${glBtn('fpstrato')}</h4>
     <p class="why">Vernice o legante sopra un pigmento, doratura sopra il rame o l'argento, gesso sopra la biacca: lo strato assorbe di più la riga meno energetica dell'elemento che sta sotto, quindi il rapporto ${pr?fpLn(pr[0])+'/'+fpLn(pr[1]):'Kα/Kβ o Lα/Lβ'} cala. Dal calo, con le costanti fisiche, ricavo la massa per area (mg/cm²) e lo spessore. Metodo dei rapporti di riga (Cesareo et al. 2008; Trojek 2011).</p>
     <div class="ibfields">

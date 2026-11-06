@@ -457,6 +457,7 @@
 "assorbanza a 420 nm, campione per campione o nel tempo": "absorbance at 420 nm, sample by sample or over time",
 "automatica": "automatic",
 "automatico": "automatic",
+"banda satura: posizione e intensità non affidabili": "saturated band: position and intensity not reliable",
 "bianco": "blank",
 "bianco: fuori dalla retta": "blank: outside the line",
 "bianco: fuori dalla retta · ⚠️ sopra il LOD ({0}): contaminazione?": "blank: outside the line · ⚠️ above the LOD ({0}): contamination?",

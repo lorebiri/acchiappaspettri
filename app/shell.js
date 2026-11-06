@@ -75,7 +75,7 @@
   $$('[data-go]').forEach(b=>{ const n=+b.dataset.go; b.addEventListener('click',()=>{ if (curView===n) mark(); }); });
   const oOpen=win.openTab; win.openTab=function(name){ const r=oOpen(name); if (name==='multi') showDoc('study'); else { if (docNow==='start'&&files.length) showDoc('graph'); multi.classList.toggle('on',docNow==='study'); } return r; };
   const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; const r=await oAdd.apply(this,arguments); mark(); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
-  const oView=win.setView; win.setView=function(m){ const r=oView(m); app.classList.toggle('cmp',m==='cmp'); applySizes(); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
+  const oView=win.setView; win.setView=function(m){ const r=oView(m); if (m==='cmp') clearErr(); app.classList.toggle('cmp',m==='cmp'); applySizes(); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
   /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
   const oFit=win.runFitUI; win.runFitUI=async function(fromAssist){ const f=files[cur], before=f&&f.fit; const r=await oFit(fromAssist); if (f&&f.fit&&f.fit!==before&&f.fit.range&&viewMode!=='cmp'){ { const lo=Math.min(...f.fit.range), hi=Math.max(...f.fit.range), x0=Math.min(f.xs[0],f.xs[f.xs.length-1]), x1=Math.max(f.xs[0],f.xs[f.xs.length-1]); if (hi-lo<0.95*(x1-x0)) f._zoom=[lo,hi]; } showPane('bottom',true); showRes('fit'); renderPreview(); } return r; };
@@ -160,7 +160,7 @@
   function sheetText(sp){ const c=shData.cols,L=[c.map(x=>x[0]).join(sp)]; for (let i=0;i<shData.n;i++) L.push(c.map(x=>{ const v=x[1](i); return v==null?'':String(v); }).join(sp)); return L.join('\n'); }
   async function copySheet(){ try{ await navigator.clipboard.writeText(sheetText('\t')); pushMsg(tr('Dati copiati negli appunti.')); }catch(e){ pushMsg(tr('Non riesco a copiare negli appunti.')); } }
 
-  function clearErr(){ if (stMsg.classList.contains('err')){ stMsg.classList.remove('err'); stMsg.textContent=''; stMsg.title=''; lastMsg=''; } sticky=null; }
+  function clearErr(t){ if (stMsg.classList.contains('err')){ stMsg.classList.remove('err'); stMsg.textContent=t||''; stMsg.title=t||''; lastMsg=''; } sticky=null; }
   win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,clearErr,get doc(){ return docNow; },act};
   /* avvio */
   applySizes(); mark(); showRes(lsG('acch.sh.res','peaks')); updateStatus(); pushMsg('Pronto');
