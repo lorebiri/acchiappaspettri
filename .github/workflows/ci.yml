@@ -31,9 +31,17 @@ jobs:
         run: npm test
       - name: Benchmark scientifici
         run: N=20 npm run test:benchmarks
+      - name: Validazione numerica (NIST StRD, statistica, deconvoluzione, file avversi, casi limite, riferimenti)
+        run: npm run test:validation
+      - name: Rapporto di validazione
+        run: npm run validazione
       - run: npx playwright install --with-deps chromium
       - name: Collaudo dell'interfaccia in italiano e inglese
         run: npm run test:ui
+      - name: Validazione nell'interfaccia (file avversi ed esportazioni)
+        run: npm run test:validation:ui
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with: { name: validazione, path: docs/VALIDAZIONE.md }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with: { name: i18n-missing, path: test/i18n-missing.json, if-no-files-found: ignore }

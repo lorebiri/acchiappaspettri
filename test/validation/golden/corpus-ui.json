@@ -182,14 +182,28 @@
  "c/06_ftir_cols_inverted.csv": {
   "instr": "ftir",
   "n": 1801,
-  "xMax": 0.02607,
-  "yMax": 4000,
+  "xMax": 1730,
+  "yMax": 1.01801,
   "avvisi": [
-   "bad: Rapporto segnale/rumore basso (S/N ≈ 1,5): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.",
-   "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante.",
-   "info: La derivata seconda mostra 2 bande nascoste (spalle) a 0, 0: la deconvoluzione può separarle e misurarle."
+   "warn: Le colonne erano invertite («absorbance» prima di «wavenumber (cm-1)»): le ho scambiate."
   ],
-  "picchi": []
+  "picchi": [
+   [
+    1050.11,
+    0.472565,
+    null
+   ],
+   [
+    1730,
+    1.01799,
+    null
+   ],
+   [
+    2919.97,
+    0.619929,
+    null
+   ]
+  ]
  },
  "c/07_ftir_nan_mid.txt": {
   "instr": "ftir",
@@ -280,7 +294,7 @@
   "xMax": 1086,
   "yMax": 8478,
   "avvisi": [
-   "warn: Il fondo pesa circa il 33% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
   "picchi": [
    [
@@ -307,7 +321,7 @@
   "yMax": 8478,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (shift cm⁻¹ e conteggi): controlla che sia giusta in «Dati dello spettro».",
-   "warn: Il fondo pesa circa il 33% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
   "picchi": [
    [
@@ -333,7 +347,7 @@
   "xMax": 1086,
   "yMax": 8.478,
   "avvisi": [
-   "warn: Il fondo pesa circa il 33% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
   "picchi": [
    [
@@ -877,30 +891,30 @@
  "c/18_hplc_seconds.txt": {
   "instr": "hplc",
   "n": 9001,
-  "xMax": 546,
+  "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: L'asse X sembra in secondi, ma è etichettato in minuti: in «Dati dello spettro» metti scala 0,016667 e cambia l'etichetta.",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 840,18). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Tempo in secondi nell'intestazione: l'asse è stato convertito in minuti (÷ 60).",
+   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
   ],
   "picchi": [
    [
-    192,
+    3.2,
     120.591,
     null
    ],
    [
-    330.006,
+    5.50011,
     45.5576,
     null
    ],
    [
-    351.005,
+    5.85008,
     30.5527,
     null
    ],
    [
-    546,
+    9.1,
     300.732,
     null
    ]
@@ -914,6 +928,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (385 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "bad: 385 righe con numeri su 9001 non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.",
+   "bad: L'asse X ha 4 buchi (3,12–3,28, 5,42–5,58, 5,78–5,92) senza dati. Il picco a 9,27 cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.",
    "warn: Picco asimmetrico a 5,54, 5,89, 9,27: coda o interferente non separato. L'area può comprendere un altro composto.",
    "warn: Cima piatta in 3 picchi (5,54, 5,89, 9,27): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.",
    "warn: 1 coppia di picchi con risoluzione Rs < 1,5 (non separati alla base): le aree si spartiscono in modo arbitrario. Prova la deconvoluzione o ottimizza il metodo.",
@@ -957,7 +972,9 @@
    "info: Tecnica dedotta solo dagli intervalli dei numeri (asse X in minuti): controlla che sia giusta in «Dati dello spettro».",
    "bad: 838 righe con numeri su 9001 non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.",
    "bad: Rapporto segnale/rumore basso (S/N ≈ 8,4): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.",
-   "warn: 1 coppia di picchi con risoluzione Rs < 1,5 (non separati alla base): le aree si spartiscono in modo arbitrario. Prova la deconvoluzione o ottimizza il metodo."
+   "bad: L'asse X ha 5 buchi (3,09–3,32, 5,37–5,63, 5,72–5,98) senza dati. Il picco a 3,09, 5,37, 5,72 cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.",
+   "warn: 1 coppia di picchi con risoluzione Rs < 1,5 (non separati alla base): le aree si spartiscono in modo arbitrario. Prova la deconvoluzione o ottimizza il metodo.",
+   "warn: 1 picco con fattore di coda > 2 (limite usuale USP ): interazioni secondarie con la colonna o colonna degradata."
   ],
   "picchi": [
    [
@@ -1053,22 +1070,32 @@
  "c/34_hplc_y_first.csv": {
   "instr": "hplc",
   "n": 9001,
-  "xMax": 0.9594,
-  "yMax": 18,
+  "xMax": 9.1,
+  "yMax": 300.733,
   "avvisi": [
+   "warn: Le colonne erano invertite («mau» prima di «time (min)»): le ho scambiate.",
    "info: Tecnica dedotta solo dagli intervalli dei numeri (asse X in minuti): controlla che sia giusta in «Dati dello spettro».",
-   "bad: Rapporto segnale/rumore basso (S/N ≈ 3,4): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.",
-   "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante."
+   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
   ],
   "picchi": [
    [
-    0.8696,
-    17.778,
+    3.2,
+    120.591,
     null
    ],
    [
-    8.58583,
-    14.0102,
+    5.50011,
+    45.5576,
+    null
+   ],
+   [
+    5.85008,
+    30.5527,
+    null
+   ],
+   [
+    9.1,
+    300.732,
     null
    ]
   ]
@@ -1151,38 +1178,38 @@
   ]
  },
  "c/45_xrd.txt": {
-  "instr": "xrf",
+  "instr": "gen",
   "n": 7001,
   "xMax": 26.6,
   "yMax": 9213,
   "avvisi": [
-   "info: Tecnica dedotta solo dagli intervalli dei numeri (conteggi interi su un asse 0–100 keV): controlla che sia giusta in «Dati dello spettro»."
+   "bad: Diffrattogramma di raggi X (2θ): la diffrazione non è tra le tecniche supportate. Grafico e posizioni dei picchi (in gradi) sono corretti, ma assegnazioni, ipotesi e controlli non valgono."
   ],
   "picchi": [
    [
-    20.8002,
-    2203.11,
+    20.8,
+    2203.84,
     null
    ],
    [
     26.6,
-    9212.4,
+    9212.87,
     null
    ],
    [
-    50.1013,
-    1716.56,
+    50.1011,
+    1717.82,
     null
    ]
   ]
  },
  "c/68_xrd_2theta_float.txt": {
-  "instr": "raman",
+  "instr": "gen",
   "n": 7001,
   "xMax": 26.6,
   "yMax": 9199.95,
   "avvisi": [
-   "info: Tecnica dedotta solo dagli intervalli dei numeri (shift cm⁻¹ e conteggi): controlla che sia giusta in «Dati dello spettro»."
+   "bad: Diffrattogramma di raggi X (2θ): la diffrazione non è tra le tecniche supportate. Grafico e posizioni dei picchi (in gradi) sono corretti, ma assegnazioni, ipotesi e controlli non valgono."
   ],
   "picchi": [
    [
@@ -1315,32 +1342,6 @@
    ]
   ]
  },
- "c/51_raman_us_thousands_tab.txt": {
-  "instr": "raman",
-  "n": 3101,
-  "xMax": 1086,
-  "yMax": 8.478,
-  "avvisi": [
-   "warn: Il fondo pesa circa il 33% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
-  ],
-  "picchi": [
-   [
-    280.055,
-    5.97474,
-    null
-   ],
-   [
-    711.868,
-    4.80281,
-    null
-   ],
-   [
-    1086,
-    8.47731,
-    null
-   ]
-  ]
- },
  "c/52_const_zero.txt": {
   "instr": "uv",
   "n": 601,
@@ -1349,7 +1350,7 @@
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo 150–1200 nm): controlla che sia giusta in «Dati dello spettro».",
    "info: Bande deboli rispetto al rumore (S/N ≈ 0), ma il rumore è basso (σ ≈ 0 di assorbanza): i valori in un punto, come A a 420 nm, restano affidabili; posizioni e aree delle bande deboli no.",
-   "warn: Segnale costante su 601 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro»."
+   "bad: Segnale costante su 601 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro»."
   ],
   "picchi": []
  },
@@ -1383,6 +1384,7 @@
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo 150–1200 nm): controlla che sia giusta in «Dati dello spettro».",
    "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 396,62). Abbassa «Quanti picchi cerco» o aggiungili con un clic.",
+   "bad: L'asse X ha un buco (399,00–461,00) senza dati. Il picco a 462 cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.",
    "info: La derivata seconda mostra una banda nascosta (spalla) a 468: la deconvoluzione può separarla e misurarla."
   ],
   "picchi": [
@@ -1432,7 +1434,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -1491,7 +1493,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -1550,7 +1552,8 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (2201 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 101,21). Abbassa «Quanti picchi cerco» o aggiungili con un clic.",
-   "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante."
+   "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante.",
+   "warn: L'asse X ha 900 buchi (3,20–100,00, 100,00–101,00, 101,00–102,00) senza dati. Un picco dentro il buco non si vede."
   ],
   "picchi": [
    [
@@ -1770,6 +1773,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (116 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "bad: 116 righe con numeri su 9001 non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.",
+   "warn: L'asse X ha 2 buchi (3,18–3,22, 9,00–9,20) senza dati. Un picco dentro il buco non si vede.",
    "warn: Picco asimmetrico a 9,15: coda o interferente non separato. L'area può comprendere un altro composto.",
    "warn: Cima piatta in un picco (9,15): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.",
    "warn: 1 picco con fattore di coda > 2 (limite usuale USP ): interazioni secondarie con la colonna o colonna degradata.",
@@ -1796,7 +1800,7 @@
   "avvisi": [
    "warn: Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.",
    "info: Il file ha 3 colonne: Y è la colonna 2. La puoi cambiare in «Dati dello spettro».",
-   "warn: Segnale costante su 1801 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».",
+   "bad: Segnale costante su 1801 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».",
    "warn: Il fondo pesa circa il 72% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
   "picchi": [
@@ -1814,7 +1818,7 @@
   "yMax": 370869000,
   "avvisi": [
    "warn: JCAMP: le X scritte all'inizio delle righe non corrispondono a ##FIRSTX; l'asse è ricostruito da FIRSTX, LASTX e dal numero di punti.",
-   "warn: Asse in Hz: frequenza di osservazione assente, i valori non sono ppm.",
+   "bad: Asse in Hz senza la frequenza di osservazione (##.OBSERVE FREQUENCY): i valori non sono ppm e non si possono convertire. Riesporta lo spettro in ppm o con la frequenza.",
    "info: La derivata seconda mostra una banda nascosta (spalla) a 2904,1: la deconvoluzione può separarla e misurarla."
   ],
   "picchi": [
@@ -1926,15 +1930,13 @@
  "nmr/epr_Wband_mT_nounit.txt": {
   "instr": "epr",
   "n": 4096,
-  "xMax": 335.187,
+  "xMax": 3351.87,
   "yMax": 3.30709,
-  "avvisi": [
-   "bad: Con questo campo il fattore g verrebbe circa 20,036: l'unità del campo è probabilmente sbagliata (gauss letti come mT?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro»."
-  ],
+  "avvisi": [],
   "picchi": [
    [
-    335.201,
-    0,
+    3352.01,
+    9.2551e-12,
     null
    ]
   ]
@@ -2010,7 +2012,7 @@
   "yMax": 0,
   "avvisi": [
    "bad: Rapporto segnale/rumore basso (S/N ≈ 0): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.",
-   "warn: Segnale costante su 4096 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro»."
+   "bad: Segnale costante su 4096 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro»."
   ],
   "picchi": []
  },
@@ -2093,7 +2095,8 @@
   "yMax": 634996,
   "avvisi": [
    "bad: JCAMP: in 1 righe la X dichiarata non corrisponde al numero di punti letti (punti mancanti o in più nel file). Ho messo i valori alla X dichiarata da ogni riga: controlla il file.",
-   "bad: JCAMP: il file dichiara 16384 punti (##NPOINTS) ma ne contiene 15984: il file può essere troncato o rovinato."
+   "bad: JCAMP: il file dichiara 16384 punti (##NPOINTS) ma ne contiene 15984: il file può essere troncato o rovinato.",
+   "warn: L'asse X ha un buco (5,33–5,65) senza dati. Un picco dentro il buco non si vede."
   ],
   "picchi": [
    [
@@ -2558,7 +2561,7 @@
   "yMax": 7317.9,
   "avvisi": [
    "warn: S/N ≈ 22: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 67% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 67% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
   "picchi": [
    [
@@ -2575,7 +2578,7 @@
   "yMax": 86274.6,
   "avvisi": [
    "warn: S/N ≈ 42: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 79% del segnale (tipico della fluorescenza): altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 79% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
    "warn: 4 punti con un salto stretto e isolato: sembrano raggi cosmici. Possono diventare falsi picchi."
   ],
   "picchi": [
@@ -2618,7 +2621,7 @@
   "yMax": 1.1022,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (asse X in minuti): controlla che sia giusta in «Dati dello spettro».",
-   "bad: Rapporto segnale/rumore basso (S/N ≈ 3,6): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione."
+   "info: Nessun picco sopra il rumore: se è un bianco va bene così; se aspettavi dei picchi, controlla iniezione e rivelatore."
   ],
   "picchi": []
  },
@@ -2842,22 +2845,22 @@
   ]
  },
  "generale/uv_cm.csv": {
-  "instr": "ftir",
+  "instr": "uv",
   "n": 601,
-  "xMax": 19267.8,
+  "xMax": 519,
   "yMax": 0.6019,
   "avvisi": [
-   "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante."
+   "warn: Asse X in numeri d'onda oltre 8000 cm⁻¹ (UV-Vis): convertito in nm (λ = 10⁷ / ν̃)."
   ],
   "picchi": [
    [
-    19232.7,
-    0.599306,
+    279.976,
+    0.300753,
     null
    ],
    [
-    35717.4,
-    0.300754,
+    519.947,
+    0.599306,
     null
    ]
   ]

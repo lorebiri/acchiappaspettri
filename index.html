@@ -2138,7 +2138,7 @@ function parseJcamp(text){
   if (/^\s*hz\s*$/i.test(xun)){
     if (sf>1 && sf<3000){ X=X.map(v=>v/sf); jcNote.push(`Asse convertito da Hz a ppm con la frequenza di osservazione ${sf} MHz`); }
     else if (sf!=null) jcNote.push(`Asse in Hz: frequenza di osservazione ${sf} non plausibile in MHz, i valori non sono ppm`);
-    else jcNote.push('Asse in Hz: frequenza di osservazione assente, i valori non sono ppm');
+    else { const m='Asse in Hz senza la frequenza di osservazione (##.OBSERVE FREQUENCY): i valori non sono ppm e non si possono convertire. Riesporta lo spettro in ppm o con la frequenza'; jcNote.push(m); jcBad.push(m); }
     if (H['.SHIFTREFERENCE']) jcNote.push('Il file dichiara un riferimento dello spostamento chimico che non viene applicato: riferisci l\'asse in «Dati dello spettro»');
   }
   const idx=X.map((_,i)=>i).sort((a,b)=>X[a]-X[b]), Xs=new Float64Array(idx.length), Ys=new Float64Array(idx.length); idx.forEach((k,i)=>{ Xs[i]=X[k]; Ys[i]=Y[k]; });
@@ -2206,15 +2206,21 @@ function xUnitFix(p){ if (!p || !p.xs || p.xs.length<5 || p.reject || p.xrf || p
     if (c0.length===2 && Y.test(c0[0]) && !X.test(c0[0]) && X.test(c0[1])){ const xs=p.ys, ys=p.xs, idx=Array.from(xs,(_,i)=>i).sort((a,b)=>xs[a]-xs[b]); p.xs=Float64Array.from(idx,i=>xs[i]); p.ys=Float64Array.from(idx,i=>ys[i]); p.importNotes=(p.importNotes||[]).concat([`Le colonne erano invertite («${c0[0]}» prima di «${c0[1]}»): le ho scambiate`]); } }
   // diffrattogrammi (2θ): tecnica non supportata, meglio dirlo che chiamarli XRF o Raman
   if (/2\s*-?\s*theta|2\s*θ|two.?theta|\bxrd\b|diffra/i.test(head)){ const n='Diffrattogramma di raggi X (2θ): la diffrazione non è tra le tecniche supportate. Grafico e posizioni dei picchi (in gradi) sono corretti, ma assegnazioni, ipotesi e controlli non valgono'; p.unitInstr='gen'; p.unitReason='diffrattogramma XRD (2θ): tecnica non supportata'; p.importNotes=(p.importNotes||[]).concat([n]); p.importBad=(p.importBad||[]).concat([n]); return p; }
-  if (!unit) return p; let lo=Infinity, hi=-Infinity; for (const v of p.xs){ if (v<lo) lo=v; if (v>hi) hi=v; }
+  // cromatogramma con il tempo in secondi (intestazione «Time (s)» e segnale del rivelatore): si porta in minuti
+  if ((p.meta||[]).some(l=>/^\W*(ret(ention)?\.?\s*time|time|tempo|rt|t_?r)\s*[(\[]\s*(s|sec|seconds?|secondi)\s*[)\]]/i.test(l) && (/^\W*(ret|rt\b|t_?r)/i.test(l) || /mau|\bmv\b|signal|segnale|response|value|intens|counts|dad|uv\b|fld|vwd/i.test(l)))){
+    const X=Float64Array.from(p.xs,v=>v/60); p.xs=X; p.unitInstr='hplc'; p.unitReason='intestazione: tempo in secondi, convertito in minuti'; p.importNotes=(p.importNotes||[]).concat(['Tempo in secondi nell\'intestazione: l\'asse è stato convertito in minuti (÷ 60)']); return p; }
+  const cmU=/cm-1|cm\^-1|1\/cm|cm⁻¹|wavenumber/i.test(xh+' '+xu);
+  if (!unit && !cmU) return p; let lo=Infinity, hi=-Infinity; for (const v of p.xs){ if (v<lo) lo=v; if (v>hi) hi=v; }
   const conv=(fn, instr, note, bad)=>{ const X=Array.from(p.xs,fn), idx=X.map((_,i)=>i).sort((a,b)=>X[a]-X[b]); p.xs=Float64Array.from(idx,i=>X[i]); p.ys=Float64Array.from(idx,i=>p.ys[i]); p.unitInstr=instr; p.unitReason=note; p.importNotes=(p.importNotes||[]).concat([note]); if (bad) p.importBad=(p.importBad||[]).concat([note]); return p; };
+  if (cmU && lo>=8000 && hi<=100000 && !/raman|\bir\b|ftir|infrared/i.test(head)) return conv(x=>1e7/x, 'uv', `Asse X in numeri d'onda oltre 8000 cm⁻¹ (UV-Vis): convertito in nm (λ = 10⁷ / ν̃)`);
   if (unit==='eV' && lo>0.3 && hi<=15) return conv(x=>1239.84/x, /fluoresc|emission|emissione/i.test(head)?'fluo':'uv', `Asse X in eV convertito in nm (λ = 1239,84 / E): i picchi sono in nm`);
   if (unit==='um' && lo>=1 && hi<=60) return conv(x=>1e4/x, /raman/i.test(head)?'raman':'ftir', `Asse X in µm convertito in numero d'onda (cm⁻¹ = 10000 / λ)`);
   if (unit==='nm' && /raman/i.test(head) && lo>=200 && hi<=1700){ const m=/(?:laser|excitation|eccitazione|λ0|lambda0)[^0-9\n]{0,25}(\d{3,4}(?:[.,]\d+)?)\s*nm/i.exec(head); const l0=m?parseFloat(m[1].replace(',','.')):null;
     if (l0 && l0<lo) return conv(x=>1e7/l0-1e7/x, 'raman', `Asse Raman in nm assoluti convertito in spostamento Raman (cm⁻¹) con il laser a ${l0} nm`);
     p.unitInstr='gen'; p.unitReason='Raman in nm assoluti'; const n='Spettro Raman con l\'asse in nm assoluti e senza la lunghezza d\'onda del laser nell\'intestazione (per esempio «Laser 785 nm»): non posso convertirlo in spostamento Raman (cm⁻¹). I numeri dei picchi sono lunghezze d\'onda, non spostamenti'; p.importNotes=(p.importNotes||[]).concat([n]); p.importBad=(p.importBad||[]).concat([n]); return p; }
   return p; }
-function parseText(text, opt){ const P0=xUnitFix(parseText0(text,opt)); if (!opt || opt.ycol==null){ try{ if (P0 && P0.nCols>2 && P0.ycol===1 && !(P0.colNames && /mau|\bmv\b|signal|segnale|absorb|intens|counts|value/i.test(P0.colNames[1]||'')) && P0.ys.length>100 && new Set(Array.from(P0.ys)).size<=20){ const P1=xUnitFix(parseText0(text,{ycol:2})); let up=0; for (let i=1;i<P1.ys.length;i++) if (P1.ys[i]>P1.ys[i-1]) up++; if (P1 && P1.ys.length>=0.9*P0.ys.length && new Set(Array.from(P1.ys)).size>50 && up<0.95*(P1.ys.length-1)){ P1.importNotes=(P1.importNotes||[]).concat(['La seconda colonna è quasi costante: come Y ho usato la terza. Controlla in «Dati dello spettro»']); return P1; } } }catch(e){} } return P0; }
+function parseText(text, opt){ const P=parseText1(text, opt); if (P && !P.reject && P.xs && P.xs.length>=2){ let lo=Infinity, hi=-Infinity; for (const v of P.xs){ if (v<lo) lo=v; if (v>hi) hi=v; } if (!(hi>lo)) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:P.meta||[], reject:'La prima colonna (asse X) ha lo stesso valore in tutte le righe: non è un asse. Forse le colonne sono in un altro ordine o il file contiene una sola misura ripetuta'}; } return P; }
+function parseText1(text, opt){ const P0=xUnitFix(parseText0(text,opt)); if (!opt || opt.ycol==null){ try{ if (P0 && P0.nCols>2 && P0.ycol===1 && !(P0.colNames && /mau|\bmv\b|signal|segnale|absorb|intens|counts|value/i.test(P0.colNames[1]||'')) && P0.ys.length>100 && new Set(Array.from(P0.ys)).size<=20){ const P1=xUnitFix(parseText0(text,{ycol:2})); let up=0; for (let i=1;i<P1.ys.length;i++) if (P1.ys[i]>P1.ys[i-1]) up++; if (P1 && P1.ys.length>=0.9*P0.ys.length && new Set(Array.from(P1.ys)).size>50 && up<0.95*(P1.ys.length-1)){ P1.importNotes=(P1.importNotes||[]).concat(['La seconda colonna è quasi costante: come Y ho usato la terza. Controlla in «Dati dello spettro»']); return P1; } } }catch(e){} } return P0; }
 function parseText0(text, opt){
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
   const jc = parseJcamp(text); if (jc) return jc;
@@ -2449,6 +2455,7 @@ function peakCandidates(sm){
 }
 function halfWidthPts(sm, c){ const half=sm[c.i]-c.prom/2; let a=c.i, b=c.i; while (a>0 && sm[a]>half) a--; while (b<sm.length-1 && sm[b]>half) b++; return b-a; }
 function findPeaks(xs, ys, dir, sens, maxN){
+  if (!numsOk(xs) || !numsOk(ys)) return [];
   const n=ys.length; if (n<9 || maxN<=0) return [];
   const s0=Float64Array.from(ys, v=>v*dir), sigRaw=noiseSigma(s0);
   const m1=2, sm1=sgSmooth(s0, 2*m1+1);
@@ -2745,6 +2752,7 @@ function pvAt(x, c, w, eta){ const t=(x-c)/w, g=2*SQ_LN2_PI/w*Math.exp(-4*Math.L
 function pvPeakH(A, w, eta){ return A*(eta*2/(Math.PI*w)+(1-eta)*2*SQ_LN2_PI/w); }
 /* fitPeaks: seeds = [{x, w}] (w = FWHM stimata); profile 'pv' | 'gauss' | 'lor'. Restituisce parametri ± errore standard */
 function fitPeaks(xs, ys, seeds, opt){
+  if (!numsOk(xs) || !numsOk(ys) || !(Math.abs(xs[xs.length-1]-xs[0])>0)) return null;
   opt=opt||{}; const prof=opt.profile||'pv', n0=xs.length;
   const step=Math.max(1, Math.ceil(n0/(opt.maxPts||2500)));   // griglia uniforme: decimare non altera le aree dei parametri
   const X=[], Y=[]; for (let i=0;i<n0;i+=step){ X.push(xs[i]); Y.push(ys[i]); }
@@ -2802,10 +2810,12 @@ function fitPeaks(xs, ys, seeds, opt){
   // i parametri fermi a un limite (per esempio un'area andata a zero) non hanno un errore standard: si escludono, e se la matrice resta
   // singolare gli errori non si dichiarano (null, mostrato «n.d.») invece di scrivere «± 0»
   const free=[]; for (let a=0;a<P;a++) if (!fixed(a)) free.push(a);
-  const atLim=a=>{ const t=1e-9*Math.max(1, Math.abs(hi[a]-lo[a])||1); return p[a]<=lo[a]+t || p[a]>=hi[a]-t; }, inner=free.filter(a=>!atLim(a));
-  const {JTJ}=normal(p), sub=inner.map(a=>inner.map(b=>JTJ[a][b])), Lc=inner.length?chol(sub):null, dof=Math.max(1, n-free.length), s2=cur/dof;
-  const cov=Array.from({length:P},()=>new Float64Array(P)), known=new Set();
-  if (Lc){ const inv=cholInv(Lc); let ok=true; inner.forEach((a,i)=>{ if (!(inv[i][i]>0) || !isFinite(inv[i][i])) ok=false; }); if (ok){ inner.forEach((a,i)=>inner.forEach((b,j)=>{ cov[a][b]=inv[j][i]*s2; })); inner.forEach(a=>known.add(a)); } }
+  const atLim=a=>{ const r=hi[a]-lo[a], t=1e-9*(isFinite(r)&&r>0 ? r : Math.max(1, Math.abs(p[a]))); return (isFinite(lo[a]) && p[a]<=lo[a]+t) || (isFinite(hi[a]) && p[a]>=hi[a]-t); };
+  const {JTJ}=normal(p), dof=Math.max(1, n-free.length), s2=cur/dof, cov=Array.from({length:P},()=>new Float64Array(P)), known=new Set();
+  const tryCov=set=>{ if (!set.length) return false; const L=chol(set.map(a=>set.map(b=>JTJ[a][b]))); if (!L) return false; const inv=cholInv(L); if (set.some((a,i)=>!(inv[i][i]>0) || !isFinite(inv[i][i]))) return false; set.forEach((a,i)=>set.forEach((b,j)=>{ cov[a][b]=inv[j][i]*s2; })); set.forEach(a=>known.add(a)); return true; };
+  // prima la matrice completa (come prima); solo se è singolare si tolgono i parametri fermi al limite
+  // una componente con l'area ferma al limite (zero) non determina nemmeno centro e larghezza: si toglie tutto il suo blocco
+  if (!tryCov(free)){ const out=new Set(free.filter(atLim)); for (let j=0;j<k;j++){ const o=NB+j*np; if (out.has(o)) for (let q=0;q<np;q++) out.add(o+q); } tryCov(free.filter(a=>!out.has(a))); }
   const se=a=>known.has(a) ? Math.sqrt(Math.max(0, cov[a][a])) : null;
   let ym=0; for (const v of Y) ym+=v; ym/=n; let sst=0; for (const v of Y) sst+=(v-ym)**2;
   const peaks=[]; let totA=0;
@@ -2843,6 +2853,7 @@ function hiddenBands(xs, ys, sig){
    fusione dei doppioni, potatura dei componenti non significativi, eliminazione all'indietro e aggiunta guidata dai residui
    con il criterio BIC (Schwarz 1978); un componente in più è accettato solo con ΔBIC > 6, «evidenza forte» (Kass & Raftery 1995) */
 function deconvolve(xs, ys, opt){
+  if (!numsOk(xs) || !numsOk(ys) || !(Math.abs(xs[xs.length-1]-xs[0])>0)) return null;
   opt=opt||{}; const n=ys.length; if (n<12) return null;
   const sig=noiseSigma(ys)||1e-12, span=Math.abs(xs[n-1]-xs[0]), dx=span/(n-1);
   const sm=sgSmooth(Float64Array.from(ys), 5), real=peakCandidates(sm).filter(q=>q.prom>6*sig*sgNoiseGain(2));
@@ -2886,16 +2897,18 @@ function deconvolve(xs, ys, opt){
 }
 
 /* ---- regressione lineare, calibrazione, LOD/LOQ, test di Mandel ---- */
+// numeri utilizzabili per un calcolo: tutti finiti e in una scala di laboratorio (oltre 1e150 o sotto 1e-150 i quadrati escono dalla precisione)
+function numsOk(a){ let mx=0; for (let i=0;i<a.length;i++){ const v=a[i]; if (!Number.isFinite(v) || Math.abs(v)>1e150) return false; if (Math.abs(v)>mx) mx=Math.abs(v); } return a.length===0 || mx===0 || mx>1e-150; }
 function linReg(x, y){
-  const n=x.length; if (n<2) return null; let xm=0, ym=0; for (let i=0;i<n;i++){ xm+=x[i]; ym+=y[i]; } xm/=n; ym/=n;
+  const n=x.length; if (n<2 || !numsOk(x) || !numsOk(y)) return null; let xm=0, ym=0; for (let i=0;i<n;i++){ xm+=x[i]; ym+=y[i]; } xm/=n; ym/=n;
   let sxx=0, sxy=0, syy=0, sx2=0; for (let i=0;i<n;i++){ sxx+=(x[i]-xm)**2; sxy+=(x[i]-xm)*(y[i]-ym); syy+=(y[i]-ym)**2; sx2+=x[i]*x[i]; }
-  if (!(sxx>0)) return null;
+  if (!(sxx>0) || !(syy>0)) return null;   // x tutte uguali o risposta costante: nessuna retta, non una retta «perfetta» con R² = 1
   const b=sxy/sxx, a=ym-b*xm; let ssr=0; const res=[]; for (let i=0;i<n;i++){ const r=y[i]-(a+b*x[i]); res.push(r); ssr+=r*r; }
   const syx=n>2 ? Math.sqrt(ssr/(n-2)) : 0;
   return {n, a, b, xm, ym, sxx, syx, sb: syx/Math.sqrt(sxx), sa: syx*Math.sqrt(sx2/(n*sxx)), r2: syy>0 ? 1-ssr/syy : 1, r: syy>0 ? sxy/Math.sqrt(sxx*syy) : 1, res, ssr};
 }
 function quadReg(x, y){   // y = a + b x + c x² con i minimi quadrati (per il test di linearità di Mandel)
-  const n=x.length; if (n<4) return null; const M=[[0,0,0],[0,0,0],[0,0,0]], v=[0,0,0];
+  const n=x.length; if (n<4 || !numsOk(x) || !numsOk(y)) return null; const M=[[0,0,0],[0,0,0],[0,0,0]], v=[0,0,0];
   for (let i=0;i<n;i++){ const r=[1,x[i],x[i]*x[i]]; for (let a=0;a<3;a++){ v[a]+=r[a]*y[i]; for (let b=0;b<3;b++) M[a][b]+=r[a]*r[b]; } }
   const sc=[1, Math.sqrt(M[1][1]/n)||1, (M[2][2]/n)**0.5||1], Ms=M.map((r,a)=>r.map((q,b)=>q/(sc[a]*sc[b]))), L=chol(Ms); if (!L) return null;
   const c=cholSolve(L, v.map((q,a)=>q/sc[a])).map((q,a)=>q/sc[a]);
@@ -2904,10 +2917,10 @@ function quadReg(x, y){   // y = a + b x + c x² con i minimi quadrati (per il t
 }
 /* retta pesata 1/x o 1/x²: minimi quadrati pesati (Miller & Miller; ISO 11095). Var(y|x)=s²/w(x); un punto a x=0 prende il peso dello standard più basso.
    LOD e LOQ usano la dispersione allo standard più basso. Mandel non si applica. */
-function calibrateW(pts, kind){ const k=kind==='1/x2'?2:1, x=pts.map(p=>p.x), y=pts.map(p=>p.y), n=x.length, pos=x.filter(v=>v>0); if (n<3 || !pos.length) return null;
+function calibrateW(pts, kind){ const k=kind==='1/x2'?2:1, x=pts.map(p=>p.x), y=pts.map(p=>p.y), n=x.length, pos=x.filter(v=>v>0); if (n<3 || !pos.length || !numsOk(x) || !numsOk(y)) return null;
   const low=Math.min(...pos), rawW=v=>1/Math.pow(v>0?v:low,k), w0=x.map(rawW), norm=n/w0.reduce((a,b)=>a+b,0), W=v=>rawW(v)*norm, w=w0.map(v=>v*norm);
   const sw=w.reduce((a,b)=>a+b,0), xm=w.reduce((t,v,i)=>t+v*x[i],0)/sw, ym=w.reduce((t,v,i)=>t+v*y[i],0)/sw; let sxx=0, sxy=0, syy=0; for (let i=0;i<n;i++){ sxx+=w[i]*(x[i]-xm)**2; sxy+=w[i]*(x[i]-xm)*(y[i]-ym); syy+=w[i]*(y[i]-ym)**2; }
-  if (!(sxx>0)) return null; const b=sxy/sxx, a=ym-b*xm, res=x.map((v,i)=>y[i]-(a+b*v)); let ssr=0; res.forEach((r,i)=>ssr+=w[i]*r*r);
+  if (!(sxx>0) || !(syy>0)) return null; const b=sxy/sxx, a=ym-b*xm, res=x.map((v,i)=>y[i]-(a+b*v)); let ssr=0; res.forEach((r,i)=>ssr+=w[i]*r*r);
   const df=n-2, s=Math.sqrt(ssr/df), t=tInv(0.975,df), sb=s/Math.sqrt(sxx), sa=s*Math.sqrt(1/sw+xm*xm/sxx), sLow=s/Math.sqrt(W(low));
   const out={a,b,sa,sb,n,df,t,r2:syy>0?1-ssr/syy:1,syx:s,ym,xm,sxx,res,weight:kind,ciA:[a-t*sa,a+t*sa],ciB:[b-t*sb,b+t*sb],lod:3.3*sLow/Math.abs(b),loq:10*sLow/Math.abs(b),stdRes:res.map((r,i)=>s>0?r*Math.sqrt(w[i])/s:0)};
   out.predict=(y0,m)=>{ m=m||1; const x0=(y0-a)/b, sx0=s/Math.abs(b)*Math.sqrt(1/(m*W(Math.max(x0,low)))+1/sw+(y0-ym)**2/(b*b*sxx)); const mn=Math.min(...x), mx=Math.max(...x), tl=1e-3*(mx-mn); return {x:x0,s:sx0,ci:t*sx0,inRange:x0>=mn-tl&&x0<=mx+tl,belowLoq:x0<out.loq,belowLod:x0<out.lod}; };
@@ -2928,6 +2941,7 @@ function calibrate(pts, opt){   // pts: [{x: concentrazione, y: risposta}]
 }
 /* misura una banda: altezza, area, baricentro e FWHM sopra una base retta tra i bordi (media di pochi punti) */
 function bandMeasure(xs, ys, a, b){
+  if (!numsOk(xs) || !numsOk(ys)) return null;
   const lo=Math.min(a,b), hi=Math.max(a,b); let i0=0; while (i0<xs.length && xs[i0]<lo) i0++; let i1=xs.length-1; while (i1>=0 && xs[i1]>hi) i1--;
   if (i1-i0<3) return null;
   const e=Math.max(1, Math.min(3, Math.floor((i1-i0)/8))); let ya=0, yb=0, xa=0, xb=0;
@@ -4361,7 +4375,7 @@ function insetKeyFile(f){ return [S.conv[f.instr], pBase(f), pSmooth(f), f.kind,
 function insetKeyCmp(c){ const m=members(c); return [c.mode, c.gap, ...m.map(f=>S.conv[f.instr]+'/'+S.base[f.instr]+'/'+f.kind), !!S.logY[c.instr]].join('|'); }
 function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {auto: o.inset.yk!==key}) : null; }
 /* allineamento in energia (XRF): x_nuovo = a + b·x_file; picchi ed etichette vengono spostati di conseguenza */
-function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=f.xSeconds?Float64Array.from(p.xs,v=>v/60):p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.removed=[]; f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
+function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.removed=[]; f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
 function kindOf(f){ return (f.an&&f.an.ykind) || (f.an&&f.an.calc&&['ftir','uv'].includes(f.instr) ? 'U' : yKindFor(f.instr, f._p)); }
 function bindAxisFields(){
   const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; [...$('#pBmSel').options].forEach(o=>{ o.hidden=o.disabled=!baseAllowed(f.instr, o.value||null); }); $('#pBmSel').value=(f.an&&f.an.pBm&&baseAllowed(f.instr,f.an.pBm))?f.an.pBm:''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1)+(f.colNames&&f.colNames[c]?' · '+f.colNames[c]:''); o.setAttribute('data-noi18n',''); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
@@ -4821,7 +4835,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=!!det.xSeconds; if (f.xSeconds){ f.xs=f.xs0=Float64Array.from(f.xs, v=>v/60); f.importNotes=(f.importNotes||[]).concat(['Tempo in secondi nell\'intestazione: l\'asse è stato convertito in minuti (÷ 60)']); } postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -6490,7 +6504,7 @@ function numField(el, ok, opt){ const raw=String(el.value).trim(); if (!raw) ret
   const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`;
   el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); }
 const fmtG = (v, d) => v==null || !isFinite(v) ? '—' : (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) ? v.toExponential(d==null?3:d-1).replace('.',T_().dec) : (+v.toPrecision(d||4)).toString().replace('.',T_().dec);
-const fmtSN = v => v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
+const fmtSN = v => !isFinite(v) || v>1e5 ? '> 100 000'.replace(' 000', T_().locale==='en-US'?',000':'.000') : v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
 const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla cifra della seconda cifra significativa dell'incertezza (GUM)
   if (s===null && v!=null && isFinite(v)) return fmtG(v,d)+' ± n.d.';   // incertezza non calcolabile (parametro al limite): mai «± 0»
   if (s==null || !isFinite(s) || !(s>0) || v==null || !isFinite(v)) return fmtG(v,d);
@@ -6529,15 +6543,17 @@ function assess(f, d){
     const q=signalQuality(f.xs, raw, 1);
     const sgA=it==='uv'&&f.kind!=='T'&&f.kind!=='N' ? noiseSigma(raw) : null;
     if (q.snr<10 && sgA!=null && sgA<0.002) add('info', `Bande deboli rispetto al rumore (S/N ≈ ${fmtSN(q.snr)}), ma il rumore è basso (σ ≈ ${fmtG(sgA,2)} di assorbanza): i valori in un punto, come A a 420 nm, restano affidabili; posizioni e aree delle bande deboli no.`);
+    else if (q.snr<10 && it==='hplc' && !d.peaks.length) add('info', 'Nessun picco sopra il rumore: se è un bianco va bene così; se aspettavi dei picchi, controlla iniezione e rivelatore.');
     else if (q.snr<10) add('bad', `Rapporto segnale/rumore basso (S/N ≈ ${fmtSN(q.snr)}): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.`);
     else if (q.snr<50) add('warn', `S/N ≈ ${fmtSN(q.snr)}: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).`);
     else add('ok', `Buon rapporto segnale/rumore (S/N ≈ ${fmtSN(q.snr)}).`);
-    if (q.flat>=3 && q.flat>=0.5*raw.length) add('warn', `Segnale costante su ${q.flat} punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».`);
+    if (q.flat>=3 && q.flat>=0.5*raw.length) add('bad', `Segnale costante su ${q.flat} punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».`);
     else if (q.flat>=3 && it==='ftir' && f.kind!=='U') add('bad', `Il massimo è piatto su ${q.flat} punti: banda satura (assorbanza troppo alta). Posizione e area delle bande tagliate non sono affidabili: usa un film più sottile, l'ATR invece della trasmissione, oppure diluisci il campione.`);
     else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
     if (q.bgRatio>0.3 && pBase(f)==='none' && ['raman','fluo','ftir','xrf','libs','gen'].includes(it)){
       const m = (it==='xrf'||it==='libs') ? 'snip' : 'arpls';
-      add('warn', `Il fondo pesa circa il ${Math.round(q.bgRatio*100)}% del segnale${it==='raman'?' (tipico della fluorescenza)':''}: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.`, {lab:`Applica ${m==='snip'?'SNIP':'arPLS'}`, fn:()=>{ S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
+      const bgp=Math.round(q.bgRatio*100);
+      add('warn', it==='raman' ? `Il fondo pesa circa il ${bgp}% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.` : `Il fondo pesa circa il ${bgp}% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.`, {lab:`Applica ${m==='snip'?'SNIP':'arPLS'}`, fn:()=>{ S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
     if (q.wPts<4 && !['libs','xrf'].includes(it)) add('info', `Solo ≈${fmtG(q.wPts,2)} punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine.`);
     if (q.irregular>0.05) add('info', 'Il passo dell\'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante.');
     if (['raman','fluo','gen'].includes(it) && S.spike[it] && d.peaks.length){ try{ const ds=despike(f.kind==='T'?Float64Array.from(f.ys,v=>-v):f.ys), at=(ds.at||[]).map(k=>f.xs[k]), st=Math.abs(f.xs[f.xs.length-1]-f.xs[0])/f.xs.length, hit=d.peaks.filter(p=>at.some(x=>Math.abs(x-p.x)<=4*st)); if (hit.length) add('warn', `Un punto tolto come raggio cosmico cade sulla cima di ${hit.length===1?'un picco':hit.length+' picchi'} (${hit.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): se il picco è stretto e vero, altezza e forma sono state cambiate. Confronta con i raggi cosmici non tolti.`); }catch(e){} }
@@ -7580,14 +7596,15 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     line(`${dispTitle(f)} · ${T_().nome[f.instr]}`, 10, true); y+=0.5;
     if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili (ipotesi): ','Compatible pigments/materials (hypotheses): ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${hypTag(h,en)})`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
     if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${R.S.atm}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.els.includes('Cu')&&!R.els.includes('Sn')&&R.Q.res.Cu&&R.Q.res.Cu.w>50?T(' · Sn sotto il 5% può non essere rilevato',' · Sn below 5% may not be detected'):'')+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
-    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) fpNotes(f,R).filter(t=>/⚠️/.test(t)).forEach(t=>line('! '+t.replace(/<[^>]+>/g,'').replace(/⚠️\s*/g,''), 8, false, 90)); }
+    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) fpNotes(f,R).filter(t=>/⚠️/.test(t)).forEach(t=>{ const c=t.replace(/<[^>]+>/g,''), tt=en && window.AcchI18n ? AcchI18n.tr(c) : c; line('! '+tt.replace(/⚠️\s*/g,''), 8, false, 90); }); }
     if (H && H.kind==='els' && H.shifted) line(T('Asse spostato: elementi non proposti finché non è allineato.','Axis shifted: elements not proposed until it is aligned.'), 9);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
     if (fitValid(f)) line(T('Deconvoluzione: ','Deconvolution: ')+f.fit.peaks.map(q=>`${fmtPeak(f.instr,q.c)} (${fmtN(q.pct,q.pct<1?3:1)}%)`).join(', ')+` · R² ${fmtN(f.fit.r2,4)}`, 8.5);
     // prima i problemi gravi, ben visibili: rosso e grassetto; poi gli avvisi
-    Q.filter(o=>o.lv==='bad').forEach(o=>line(T('GRAVE: ','SERIOUS: ')+o.t.replace(/<[^>]+>/g,''), 8.5, true, [179,38,30]));
-    Q.filter(o=>o.lv!=='bad').forEach(o=>line('! '+o.t.replace(/<[^>]+>/g,''), 8, false, 90));
+    const trW=t=>{ const c=t.replace(/<[^>]+>/g,''); return en && window.AcchI18n ? AcchI18n.tr(c) : c; };
+    Q.filter(o=>o.lv==='bad').forEach(o=>line(T('GRAVE: ','SERIOUS: ')+trW(o.t), 8.5, true, [179,38,30]));
+    Q.filter(o=>o.lv!=='bad').forEach(o=>line('! '+trW(o.t), 8, false, 90));
     if (!Q.length && !(H && ((H.pig&&H.pig.length)||(H.list&&H.list.length)||(H.els&&H.els.length))) && !fitValid(f)) line(T('nessun avviso','no warnings'), 8, false, 120);
     y+=2; }
   footer();
@@ -7632,7 +7649,7 @@ function analysisFiles(){
   const n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec);
   const q=[['File','Nome','Strumento','Livello','Messaggio']], h=[['File','Nome','Strumento','Ipotesi','Livello','Indizi trovati','Bande mancanti']], t=[['File','Nome','Strumento','Tabella']];
   for (const f of inc){ const d=viewOf(f);
-    assess(f,d).forEach(o=>q.push([f.name, dispTitle(f), NOME_IT[f.instr], {ok:'ok',info:'nota',warn:'attenzione',bad:'problema'}[o.lv], o.t]));
+    assess(f,d).forEach(o=>q.push([f.name, dispTitle(f), NOME_IT[f.instr], (LANG==='en'?{ok:'ok',info:'note',warn:'warning',bad:'problem'}:{ok:'ok',info:'nota',warn:'attenzione',bad:'problema'})[o.lv], o.t]));
     const H=hypotheses(f,d);
     if (H && H.kind==='bands' && H.list.length){ used.add('groups'); H.list.forEach(x=>h.push([f.name, dispTitle(f), NOME_IT[f.instr], en?x.en:x.it, hypTag(x,en), x.ev.filter(e=>e.hit!=null).map(e=>n(e.hit)).join(' '), x.ev.filter(e=>e.hit==null).map(e=>e.a+'-'+e.b).join(' ')])); }
     if (H && H.pig && H.pig.length){ used.add('pigments'); H.pig.forEach(x=>h.push([f.name, dispTitle(f), NOME_IT[f.instr], (en?x.en:x.it)+(x.date?' ('+x.date+')':''), x.score!=null&&x.ev?hypTag(x,en):'', x.ev ? x.ev.filter(e=>e.hit!=null).map(e=>n(e.hit)).join(' ') : (x.els||[]).join(' + '), x.ev ? x.ev.filter(e=>e.hit==null).map(e=>e.b).join(' ') : ''])); }

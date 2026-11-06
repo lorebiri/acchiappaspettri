@@ -70,7 +70,7 @@ async function checks(lang){
     // avvisi: ⛔ e ⚠ a schermo = PDF (GRAVE/SERIOUS e «!») = CSV del controllo di qualità
     for (const lv of ['bad','warn']){
       const scr=s.qual.filter(q=>q.lv===lv).map(q=>norm(q.t)), pdf=(P[s.name]||[]).filter(q=>q.lv===lv).map(q=>norm(q.t));
-      const csvLv=qc.filter(r=>r[0]===s.name && r[3]===(lv==='bad'?'problema':'attenzione')).map(r=>norm(r[4]));
+      const csvLv=qc.filter(r=>r[0]===s.name && r[3]===(lv==='bad'?(en?'problem':'problema'):(en?'warning':'attenzione'))).map(r=>norm(r[4]));
       seen[lv]+=scr.length;
       if (scr.length!==pdf.length) problems.push(`${s.name}: ${scr.length} ${lv==='bad'?'⛔':'⚠'} a schermo, ${pdf.length} nel PDF`);
       if (scr.length!==csvLv.length) problems.push(`${s.name}: ${scr.length} ${lv==='bad'?'⛔':'⚠'} a schermo, ${csvLv.length} nel CSV`);

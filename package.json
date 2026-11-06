@@ -15,7 +15,10 @@
     "tauri": "tauri",
     "test": "node --test \"test/unit/*.test.js\"",
     "test:benchmarks": "node test/benchmark-gate.js",
-    "test:ui": "node test/ui-run.js"
+    "test:ui": "node test/ui-run.js",
+    "test:validation": "node --test test/validation/r1-strd.test.js test/validation/r2-statistica.test.js test/validation/r3-deconvoluzione.test.js test/validation/r5-corpus.test.js test/validation/r7-casi-limite.test.js test/validation/r8-golden.test.js",
+    "test:validation:ui": "node --test test/validation/r5-corpus-ui.test.js test/validation/r6-esportazioni.test.js",
+    "validazione": "node scripts/gen-validazione.js"
   },
   "devDependencies": {
     "@fontsource/nunito": "5.1.0",

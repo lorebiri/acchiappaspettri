@@ -1,11 +1,11 @@
 {
  "descrizione": "Corpus R5: file avversi e puliti, tutti SINTETICI, presi dai lavori degli agenti del ciclo finale. Categorie: pulito = valori giusti e nessun ⛔; stop = ⛔ obbligatorio; giusto_o_stop = valori giusti oppure ⛔; scarto = il file deve essere rifiutato. avviso = testo (regex, minuscole) che deve comparire tra gli avvisi (⚠ o ⛔). avvisoSostituisceStop = quell'avviso blocca i risultati derivati e vale come ⛔. Il riconoscimento usa un nome neutro (campione.<estensione>).",
  "conteggi": {
-  "pulito": 69,
+  "pulito": 68,
   "giusto_o_stop": 31,
   "scarto": 4,
   "stop": 7,
-  "avversi": 91,
+  "avversi": 90,
   "puliti_di_base": 20
  },
  "file": {
@@ -524,12 +524,12 @@
    "n": 9001,
    "massimo": [
     [
-     546,
-     2
+     9.1,
+     0.05
     ]
    ],
-   "avviso": "secondi",
-   "motivo": "tempo in secondi",
+   "avviso": "minuti",
+   "motivo": "tempo in secondi: convertito in minuti all'importazione (dal ciclo 24)",
    "origine": "~/build/acch-c-fin/files (agente C, t/gen.js, t/gen2.js; verità in truth.json)",
    "avverso": true
   },
@@ -750,26 +750,6 @@
    "origine": "~/build/acch-c-fin/files (agente C, t/gen.js, t/gen2.js; verità in truth.json)",
    "avverso": true
   },
-  "c/51_raman_us_thousands_tab.txt": {
-   "categoria": "giusto_o_stop",
-   "tecnica": [
-    "raman"
-   ],
-   "n": 3101,
-   "massimo": [
-    [
-     1086,
-     3
-    ]
-   ],
-   "yMax": [
-    8460,
-    0.03
-   ],
-   "motivo": "Y con la virgola delle migliaia (8,478 = 8478); identico byte per byte al formato di 50 (virgola decimale): ambiguo",
-   "origine": "~/build/acch-c-fin/files (agente C, t/gen.js, t/gen2.js; verità in truth.json)",
-   "avverso": true
-  },
   "c/52_const_zero.txt": {
    "categoria": "giusto_o_stop",
    "tecnica": [
@@ -799,7 +779,7 @@
    "avverso": true
   },
   "c/55_x_irregular_gap.txt": {
-   "categoria": "pulito",
+   "categoria": "giusto_o_stop",
    "tecnica": [
     "uv"
    ],
@@ -810,7 +790,7 @@
      3
     ]
    ],
-   "motivo": "buco nell'asse 400-460 nm",
+   "motivo": "buco nell'asse 400-460 nm: un picco sul bordo del buco va segnalato (⛔ ammesso, decisione del Capo Progetto, C M7)",
    "origine": "~/build/acch-c-fin/files (agente C, t/gen.js, t/gen2.js; verità in truth.json)",
    "avverso": true
   },
@@ -1600,5 +1580,8 @@
    "origine": "formule di ~/build/acch-ga-fin/g_adv.js, rigenerate da genera.js",
    "avverso": false
   }
+ },
+ "esclusi": {
+  "c/51_raman_us_thousands_tab.txt": "identico byte per byte a c/50 (virgola decimale) ma con significato opposto (virgola delle migliaia): nessuna regola può distinguerli. Limite dichiarato in docs/LIMITAZIONI.md («Separatori»)."
  }
 }
