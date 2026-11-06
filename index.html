@@ -2799,21 +2799,24 @@ function fitPeaks(xs, ys, seeds, opt){
     if (!improved) break;
   }
   // errori standard dalla matrice di covarianza: σ² (JᵀJ)⁻¹, con σ² = SSR / (n − parametri liberi)
+  // i parametri fermi a un limite (per esempio un'area andata a zero) non hanno un errore standard: si escludono, e se la matrice resta
+  // singolare gli errori non si dichiarano (null, mostrato «n.d.») invece di scrivere «± 0»
   const free=[]; for (let a=0;a<P;a++) if (!fixed(a)) free.push(a);
-  const {JTJ}=normal(p), sub=free.map(a=>free.map(b=>JTJ[a][b])), Lc=chol(sub), dof=Math.max(1, n-free.length), s2=cur/dof;
-  const cov=Array.from({length:P},()=>new Float64Array(P));
-  if (Lc){ const inv=cholInv(Lc); free.forEach((a,i)=>free.forEach((b,j)=>{ cov[a][b]=inv[j][i]*s2; })); }
-  const se=a=>Math.sqrt(Math.max(0, cov[a][a]));
+  const atLim=a=>{ const t=1e-9*Math.max(1, Math.abs(hi[a]-lo[a])||1); return p[a]<=lo[a]+t || p[a]>=hi[a]-t; }, inner=free.filter(a=>!atLim(a));
+  const {JTJ}=normal(p), sub=inner.map(a=>inner.map(b=>JTJ[a][b])), Lc=inner.length?chol(sub):null, dof=Math.max(1, n-free.length), s2=cur/dof;
+  const cov=Array.from({length:P},()=>new Float64Array(P)), known=new Set();
+  if (Lc){ const inv=cholInv(Lc); let ok=true; inner.forEach((a,i)=>{ if (!(inv[i][i]>0) || !isFinite(inv[i][i])) ok=false; }); if (ok){ inner.forEach((a,i)=>inner.forEach((b,j)=>{ cov[a][b]=inv[j][i]*s2; })); inner.forEach(a=>known.add(a)); } }
+  const se=a=>known.has(a) ? Math.sqrt(Math.max(0, cov[a][a])) : null;
   let ym=0; for (const v of Y) ym+=v; ym/=n; let sst=0; for (const v of Y) sst+=(v-ym)**2;
   const peaks=[]; let totA=0;
   for (let j=0;j<k;j++){ const o=NB+j*np, A=p[o], w=p[o+2], eta=etaOf(p,o), h=pvPeakH(A,w,eta);
     const dh=[pvPeakH(1,w,eta), -h/w, freeEta ? A*(2/(Math.PI*w)-2*SQ_LN2_PI/w) : 0], ix=[o, o+2, freeEta?o+3:-1];
-    let vh=0; for (let a=0;a<3;a++) for (let b=0;b<3;b++) if (ix[a]>=0 && ix[b]>=0) vh+=dh[a]*dh[b]*cov[ix[a]][ix[b]];
-    peaks.push({c:p[o+1], w, eta, area:A, h, sc:se(o+1), sw:se(o+2), sarea:se(o), sh:Math.sqrt(Math.max(0,vh)), seta: freeEta?se(o+3):0,
+    let vh=0, vok=true; for (let a=0;a<3;a++) for (let b=0;b<3;b++) if (ix[a]>=0 && ix[b]>=0){ if (!known.has(ix[a])||!known.has(ix[b])) vok=false; vh+=dh[a]*dh[b]*cov[ix[a]][ix[b]]; }
+    peaks.push({c:p[o+1], w, eta, area:A, h, sc:se(o+1), sw:se(o+2), sarea:se(o), sh:vok?Math.sqrt(Math.max(0,vh)):null, seta: freeEta?se(o+3):0,
       atBound: w<=lo[o+2]*1.001 || w>=hi[o+2]*0.999 || p[o+1]<=lo[o+1] || p[o+1]>=hi[o+1], narrow: w<=lo[o+2]*1.1}); totA+=Math.max(0,A); }
   peaks.forEach(q=>q.pct=totA>0?100*Math.max(0,q.area)/totA:0);
   const nFree=free.length;
-  return {peaks, base:[p[0], p[1], p[2]], xm, xr, profile:prof, r2: sst>0 ? 1-cur/sst : 1, ssr:cur, chi2r:s2, rmse:Math.sqrt(cur/n), n, p:nFree, iter,
+  return {peaks, seMissing: peaks.some(q=>q.sc==null||q.sarea==null), base:[p[0], p[1], p[2]], xm, xr, profile:prof, r2: sst>0 ? 1-cur/sst : 1, ssr:cur, chi2r:s2, rmse:Math.sqrt(cur/n), n, p:nFree, iter,
     bic: n*Math.log(Math.max(cur,1e-300)/n) + nFree*Math.log(n), aic: n*Math.log(Math.max(cur,1e-300)/n) + 2*nFree,
     range:[Math.min(x0,x1), Math.max(x0,x1)]};
 }
@@ -4292,7 +4295,11 @@ function sanitizeS(r){
   }
   return r;
 }
-let S = merge(DEFAULTS, lsGet(LS_KEY)); LANG = S.lang; SAMPLE = S.sample;
+let S = merge(DEFAULTS, lsGet(LS_KEY));
+// lingua di grafici e documenti: alla prima apertura è quella dell'interfaccia, e la segue quando la si cambia (resta modificabile in «Esporta»)
+{ const saved=lsGet(LS_KEY), ui=window.AcchI18n&&AcchI18n.lang; if ((!saved || saved.lang==null) && (ui==='en'||ui==='it')) S.lang=ui; }
+window.addEventListener('acch-lang', e=>{ const l=e&&e.detail; if ((l==='en'||l==='it') && S.lang!==l){ S.lang=l; saveS(); try{ syncControls(); }catch(err){} try{ renderPreview(); }catch(err){} } });
+LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
@@ -6485,6 +6492,7 @@ function numField(el, ok, opt){ const raw=String(el.value).trim(); if (!raw) ret
 const fmtG = (v, d) => v==null || !isFinite(v) ? '—' : (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) ? v.toExponential(d==null?3:d-1).replace('.',T_().dec) : (+v.toPrecision(d||4)).toString().replace('.',T_().dec);
 const fmtSN = v => v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
 const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla cifra della seconda cifra significativa dell'incertezza (GUM)
+  if (s===null && v!=null && isFinite(v)) return fmtG(v,d)+' ± n.d.';   // incertezza non calcolabile (parametro al limite): mai «± 0»
   if (s==null || !isFinite(s) || !(s>0) || v==null || !isFinite(v)) return fmtG(v,d);
   const dec=1-Math.floor(Math.log10(s)); if (dec<0 || dec>8 || Math.abs(v)>=1e6) return fmtG(v,d)+' ± '+fmtG(s,2);
   return v.toFixed(dec).replace('.',T_().dec)+' ± '+s.toFixed(dec).replace('.',T_().dec); };
@@ -6720,7 +6728,8 @@ function renderFitOut(f){
   const F=f.fit, it=f.instr, xu=(INSTR[it].xPdf||'x').replace('cm-1','cm⁻¹'), ratio=F.noise ? F.rmse/F.noise : null;
   const good = ratio!=null ? (ratio<1.3 ? '✅ il residuo è al livello del rumore: il modello spiega i dati' : ratio<2 ? '🟡 resta un po\' di struttura nei residui' : '⚠️ residuo molto sopra il rumore: forse mancano componenti o il profilo non è adatto') : '';
   const smW=pSmooth(f), smNote=smW?`<div class="signote">⚠️ Deconvoluzione su dati lisciati (Savitzky–Golay ${smW} punti): le bande risultano più larghe e il residuo non è più rumore indipendente, quindi possono comparire componenti in più e le aree cambiano. Per i parametri da pubblicare togli lo smoothing per questo spettro e rifai il fit.</div>`:'';
-  box.innerHTML = smNote + `<div class="fitsum">${F.peaks.length} component${F.peaks.length===1?'e':'i'} ${PROF_NAME[F.profile]} · base ${BASE_NAME[F.bm]||F.bm} · R² = ${fmtN(F.r2,5)} · residuo RMS / rumore = ${ratio!=null?fmtN(ratio,2):'—'}<br><small>${good}</small></div>
+  const seNote=F.peaks.some(q=>q.sc===null||q.sarea===null) ? `<div class="signote">⚠️ Per alcune componenti l'errore standard non è calcolabile («n.d.»): un parametro è arrivato al suo limite (per esempio un'area andata a zero, o due componenti uguali). Quella componente probabilmente non c'è: toglila o cambia i picchi di partenza, poi rifai il fit.</div>` : '';
+  box.innerHTML = smNote + seNote + `<div class="fitsum">${F.peaks.length} component${F.peaks.length===1?'e':'i'} ${PROF_NAME[F.profile]} · base ${BASE_NAME[F.bm]||F.bm} · R² = ${fmtN(F.r2,5)} · residuo RMS / rumore = ${ratio!=null?fmtN(ratio,2):'—'}<br><small>${good}</small></div>
     <div class="areawrap"><table class="areatab"><thead><tr><th>#</th><th>Centro (${xu})</th><th>FWHM</th><th>Altezza</th><th>Area</th><th>Area %</th><th>Lorentz %</th></tr></thead><tbody>${
     F.peaks.map((q,j)=>`<tr><td><span class="dot" style="background:${FIT_COLORS[j%FIT_COLORS.length]}"></span>${j+1}</td><td>${pm(q.c,q.sc,6)}</td><td>${pm(q.w,q.sw,3)}</td><td>${pm(q.h,q.sh,3)}</td><td>${pm(q.area,q.sarea,4)}</td><td>${fmtN(q.pct,q.pct<1?3:1)}</td><td>${F.profile==='pv'?Math.round(q.eta*100):F.profile==='lor'?100:0}</td></tr>`).join('')}</tbody></table></div>
     <canvas id="fitRes" class="minic" height="110"></canvas>
@@ -7797,10 +7806,10 @@ function recipesFor(f){
   if (it==='libs') R.push(['🧪','Riconosci gli elementi','accetta i nomi suggeriti e guarda i materiali compatibili', ()=>{ $('#acceptAll').click(); go2('#anHyp'); }]);
   if (it==='ftir'){
     R.push(['🔍','Di che materiale si tratta?','gruppi chimici, leganti, cariche e prodotti di alterazione', ()=>go2('#anHyp')]);
-    R.push(['📉','Quanto è degradato?','indice di carbonile SAUB (definito per polietilene e polipropilene)', ()=>{ const c=mvCfg('ftir'), pr=BAND_PRESETS.ftir[0]; c.a=pr[1]; c.b=pr[2]; c.c=pr[3]; c.d=pr[4]; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='ftir'; renderMulti(); go2('#mvOut'); }]);
+    R.push(['📉','Quanto è degradato?','indice di carbonile SAUB (definito per polietilene e polipropilene)', ()=>{ const c=mvCfg('ftir'), pr=BAND_PRESETS.ftir[0]; c.a=pr[1]; c.b=pr[2]; c.c=pr[3]; c.d=pr[4]; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); if (window.AcchWebShow) AcchWebShow(); openTab('multi'); $('#mvInstr').value='ftir'; renderMulti(); go2('#mvOut'); }]);
   }
   if (it==='hplc') R.push(['📋','Valuta la separazione','piatti teorici, coda e risoluzione di ogni picco', ()=>go2('#anTech')]);
-  if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); if (window.AcchWebShow) AcchWebShow(); go2('#mvOut'); }]);
+  if (it==='uv') R.push(['🟡','Quanto è ingiallito?','assorbanza a 420 nm, campione per campione o nel tempo', ()=>{ const c=mvCfg('uv'), pr=BAND_PRESETS.uv[0]; c.a=pr[1]; c.b=pr[2]; delete c.c; delete c.d; c.meas=pr[5]; c.preset=0; if (!c.model || c.model==='line') c.model='trend'; mvSave(); if (window.AcchWebShow) AcchWebShow(); openTab('multi'); $('#mvInstr').value='uv'; renderMulti(); if (window.AcchWebShow) AcchWebShow(); go2('#mvOut'); }]);
   if (it==='uv') R.push(['⚡','Calcola il band gap','grafico di Tauc per semiconduttori e pigmenti', ()=>go2('#anTech')]);
   if (['dsc','tga'].includes(it)) R.push(['🌡️','Temperature caratteristiche','onset, endset ed entalpie degli eventi termici', ()=>go2('#anTech')]);
   if (['nmr','epr','fluo'].includes(it)) R.push(['🧮','Valori quantitativi','integrali, quantità relative, resa quantica', ()=>go2('#anTech')]);
