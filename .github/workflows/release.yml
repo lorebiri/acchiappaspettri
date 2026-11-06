@@ -62,6 +62,12 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+      - name: Versioni delle librerie Ubuntu incluse nell'AppImage (per l'offerta del codice sorgente LGPL)
+        if: startsWith(matrix.os, 'ubuntu')
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          dpkg-query -W -f='${Package}\t${Version}\t${source:Package}\t${source:Version}\n' | sort > librerie-linux-ubuntu-22.04.tsv
+          gh release upload "$GITHUB_REF_NAME" librerie-linux-ubuntu-22.04.tsv --clobber
       - name: Controlla i pacchetti che verranno pubblicati
         shell: bash
         env:
