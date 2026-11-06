@@ -1,0 +1,52 @@
+# Limitazioni note
+
+- **Windows 10 reale non provato prima del rilascio**: l'installazione, l'avvio e la disinstallazione sono provati nella pipeline su Windows Server 2025; la lista di prova a mano per Windows 10 è in [COLLAUDO.md](COLLAUDO.md).
+- **Firma dei sistemi operativi**: niente certificati Microsoft né Apple: avvisi al primo avvio ([INSTALLAZIONE.md](INSTALLAZIONE.md)). Su macOS l'app ha firma ad hoc e non è autenticata (notarizzata).
+- **Lingua nell'installer**: solo su Windows; su macOS e Linux si chiede al primo avvio.
+- **Aggiornamento .deb**: manuale, con avviso.
+- **Linux ARM e Windows ARM**: nessun pacchetto.
+- **Doppio clic su `.acchspettri` in Linux**: il tipo di file non viene registrato, quindi può non aprirsi con l'app: usa *File → Apri progetto*. Su Windows e macOS l'associazione è configurata.
+- **macOS, «Esci» dal Dock o spegnimento**: il sistema chiude l'app senza passare dalla domanda sulle modifiche non salvate. *Acchiappaspettri → Esci da Acchiappaspettri* e ⌘Q chiedono sempre.
+- **Compilazione Linux**: su Ubuntu 22.04 per la compatibilità con sistemi più vecchi; GitHub ritirerà quell'ambiente e allora andrà aggiornato.
+- **Archivi ostili**: i limiti si basano sulle dimensioni dichiarate dallo ZIP; un archivio che mente viene riconosciuto solo dopo la decompressione, e può usare molta memoria.
+- **Progetti e preferenze**: aprire un progetto applica le sue impostazioni (lingua dei grafici compresa) e aggiunge i suoi riferimenti e voci di libreria a quelli dell'utente.
+- **Motori web diversi**: WebKit su macOS e Linux, WebView2 su Windows. HEIC/TIFF si aprono solo dove il motore li supporta.
+- **Nota sul grafico nei riquadri molto stretti**: sul telefono la riga «Elementi (ipotesi)» non viene disegnata nel grafico (resta nella scheda Analisi); nei PDF con molti grafici per pagina compare in forma breve.
+- **Numeri scritti a mano**: nei campi di «Più campioni» si accetta un solo separatore decimale; «1.000» o «2,500» vengono rifiutati come ambigui (scrivi 1000 oppure 2,5).
+- **Grafici**: il tema scuro non cambia i grafici, che restano bianchi come nei file esportati. Alcuni piccoli elementi colorati a mano nell'interfaccia possono essere meno curati in tema scuro.
+- **Inglese**: traduzione a livello di testo mostrato. Nomi di alcuni file esportati e nomi tecnici restano in italiano. Il testo costruito da pezzi molto dinamici può risultare meno naturale.
+- **Dati scientifici**: vedi [SCIENZA.md](SCIENZA.md). In breve, quelli trovati dai collaudi:
+  - **XRF, elementi minori**: un elemento sotto la soglia di rivelazione dei picchi (per esempio Sn al 3% in un bronzo simulato) non entra nell'elenco automatico, e la stima FP lo ridistribuisce sugli altri. Le note elencano gli elementi considerati: aggiungilo a mano.
+  - **XRF di soli canali senza intestazione**: un file con i soli conteggi per canale, senza energia né intestazione, può essere riconosciuto come Raman (con l'avviso «tecnica dedotta dagli intervalli dei numeri»): scegli a mano la tecnica XRF.
+  - **XRF, asse spostato**: se la riga diffusa del tubo è spostata di oltre 80 eV, non viene proposto nessun elemento finché l'asse non è allineato. Lo spostamento indicato è una stima (±50 eV), e «Allinea» non sempre riesce oltre i 100 eV.
+  - **HPLC, coeluizioni molto strette**: due composti a meno di circa due deviazioni standard del picco (0,1 minuti per picchi larghi), con rapporti da 2:1 a 20:1, non si distinguono dalla forma del picco. L'avviso di spalla considera solo bande lontane almeno 0,4 FWHM dall'apice, così una coda normale non viene scambiata per un coeluito; servirebbe la purezza spettrale di un rivelatore a serie di diodi, che il programma non legge.
+  - **Raman, calibrazione**: uno spettro spostato di qualche cm⁻¹ può non dare nessun pigmento, senza un avviso specifico.
+  - **Serie di spettri**: se tutti i file di una serie sono riconosciuti nella stessa tecnica sbagliata (per esempio LIBS deboli letti come Raman), non c'è un avviso di serie: va corretta la tecnica.
+  - **XRF, oltre 50 kV**: il modello del tubo arriva a 50 kV, e una misura a 60 kV viene calcolata a 50 con un avviso.
+  - **XRF, righe coincidenti**: As e Pb, As e Hg, W e Au, S e Mo L restano «non distinguibili» quando manca una riga libera.
+  - **Dati calcolati**: nessun allargamento dei bastoncini, nessuna conversione nm ↔ eV ↔ cm⁻¹. Uno spettro in eV va scelto a mano come UV, e l'asse resta etichettato in nm.
+  - **NMR**: integrali dei soli picchi in elenco, quindi i multipletti risultano sottostimati. Formati Bruker `fid` e `1r`, BES3T e JCAMP NTUPLES non sono letti.
+  - **EPR**: un campo in gauss etichettato mT viene segnalato (con la frequenza dal fattore g, senza dal valore oltre 1000), non corretto da solo. Il doppio integrale non ha un'incertezza.
+  - **Cinetiche UV contro il tempo**: un file «Time (min) / Abs» viene letto come cromatogramma. Va scelta a mano la tecnica UV-Vis.
+  - **Cime sature**: un picco tagliato a due terzi dell'altezza viene riconosciuto quasi sempre se il segnale è alto (S/N oltre 50); un taglio più lieve (80–95%) o con molto rumore spesso no, perché la forma resta vicina a quella di un picco normale.
+  - **HPLC, sovraccarico della colonna**: se il picco si allarga con la concentrazione, lo standard più concentrato può ricevere «più largo degli standard». È un'indicazione reale (il picco non è più lineare), non un coeluito.
+  - **HPLC, profilo rispetto agli standard**: con almeno due standard ogni campione viene confrontato con la loro forma media. Una coda diversa da quella degli standard, un coeluito o un'impurezza presente solo negli standard danno lo stesso avviso, che non distingue tra le tre cause.
+  - **HPLC e tarature**: niente integrazione manuale, niente sequenze, niente repliche né diluizioni. Una coeluizione con Δt molto piccolo può non essere segnalata. Se standard e campioni hanno elaborazioni diverse c'è un avviso, ma non vengono rielaborati.
+  - **Separatori**: un file con tutti i valori nel formato `40.000` o `12,345` (con tre cifre dopo il separatore e senza altri numeri che lo chiariscano) è ambiguo per costruzione: viene letto con il separatore come decimale. Quando nella stessa colonna ci sono anche interi come `991`, il programma lo segnala con un avviso grave.
+  - **Riferimenti**: per Raman e fluorescenza senza linea di base il confronto si fa dopo una linea di base arPLS su campione e riferimento; per FTIR e UV un fondo può ancora alzare il punteggio, con un avviso.
+- **Progetti**: niente foto del falso colore; zoom e scheda aperta non vengono ripristinati.
+- **File grandi**: i progetti sono caricati interamente in memoria; limite di sicurezza 2 GB.
+
+## Dopo il ciclo di collaudo 24 (decisioni del Capo Progetto)
+- **Coeluizioni HPLC rispetto agli standard**: con variabilità tra iniezioni (larghezza ±3%, tempo ±0,01 min) o standard con coda, coeluiti da 2:1 a 10:1 separati di 1–1,5σ possono non essere segnalati (in simulazione 2–6 casi su 20); senza variabilità sono segnalati tutti. Una soglia ricavata dalla dispersione degli standard è prevista nella 2.2.x.
+- **HPLC**: un piccolo picco pulito accanto a uno grande può essere descritto come «spalla»; l'avviso di polarità invertita non inverte il segnale da solo.
+- **Deconvoluzione**: su dati lisciati il programma avvisa ma non impedisce il fit; un raggio cosmico sulla cima di una banda viene segnalato, non ricostruito.
+- **EPR**: con righe di larghezza molto diversa il doppio integrale su una finestra stretta può sbagliare di circa il 6% (avviso in tabella); spettri calcolati a bastoncini non vengono allargati.
+- **Conversioni di unità** (eV → nm, µm → cm⁻¹, Raman in nm → cm⁻¹): si converte l'asse, non l'intensità (niente correzione con lo jacobiano). Va bene per posizioni e confronti, non per aree in un'unità diversa da quella misurata.
+- **Diffrazione (XRD)** e altre tecniche non previste: il file si apre e si disegna, ma senza assegnazioni né controlli specifici.
+- **Ipotesi FTIR e Raman con «Tutti i tipi» di campione**: le regole dei gruppi funzionali valgono per molte classi di materiali e possono dare ipotesi poco adatte (per esempio uretani su olio con biacca): scegli il tipo di campione.
+- **Menu desktop *Modifica → Ripeti***: vale nei campi di testo; per picchi ed elaborazioni c'è solo *Annulla*.
+- **Precisione delle esportazioni**: i dati elaborati sono scritti con 8 cifre significative, oltre la precisione di qualsiasi strumento; i dati originali restano intatti nel progetto.
+- **Accessibilità**: tastiera e fuoco visibile sono provati; i lettori di schermo (NVDA, VoiceOver) non sono ancora stati provati davvero (previsto nella 2.3).
+- **Validazione**: i calcoli sono provati su dati sintetici e, dove esistono, su dati di riferimento pubblici (NIST); non su materiali certificati né su file reali di strumenti per la versione 2.2.
+- **XRF, righe deboli tra righe forti**: un elemento minore con la riga tra due righe forti di un altro (per esempio Zn Kα a 8,63 keV tra Cu Kα e Cu Kβ) può non essere proposto in automatico; nella stima a parametri fondamentali va aggiunto a mano dall'elenco degli elementi (il χ² ridotto più alto del solito è un indizio).

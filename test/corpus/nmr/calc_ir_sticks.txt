@@ -1,0 +1,8 @@
+# DATI SINTETICI DFT B3LYP (non sperimentale)
+# Frequency (cm-1)	IR Intensity (km/mol)
+-152.3	2.1
+1052	85
+1250	40
+1745	320
+2950	45
+3010	12

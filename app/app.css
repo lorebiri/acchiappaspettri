@@ -1,0 +1,18 @@
+/* SPDX-FileCopyrightText: 2026 Lorenzo Birindelli */
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Aggiunte all'interfaccia: punto di accesso, download, aggiornamenti */
+.entry{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px}
+.entrytxt{flex:1 1 320px;min-width:0}
+.entrytxt small{display:block;color:var(--muted);font-size:13px}
+.dllist{display:flex;flex-direction:column;gap:8px}
+.dllist a{display:flex;justify-content:space-between;gap:12px;text-decoration:none}
+.upnotes{max-height:220px;overflow:auto;white-space:pre-wrap;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:10px 0;font-size:13.5px}
+.upnotes:empty{display:none}
+.updbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}
+.updbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+
+#mvBand input[aria-invalid=true],#mvOut input[aria-invalid=true],#xqBox input[aria-invalid=true]{outline:2px solid #c62828;outline-offset:1px}
+#toast.warn{border-left:4px solid #e0a800}
+#mvOut [hidden],#mvBand [hidden]{display:none!important}
+.qbanner{display:block;width:100%;text-align:left;margin:6px 0;padding:7px 10px;border:0;border-left:4px solid #c62828;background:rgba(198,40,40,.08);color:inherit;font:inherit;font-size:13px;border-radius:4px;cursor:pointer}.qbanner[hidden]{display:none}.qbanner:hover{background:rgba(198,40,40,.14)}.fitem .qbad{display:inline-flex;align-items:center;justify-content:center;flex:none;width:13px;height:13px;border-radius:3px;background:#c62828;margin-left:4px;vertical-align:middle}.fitem .qbad::before{content:'!';color:#fff;font:700 10px/1 system-ui,sans-serif}
+.qbanner .qbt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.qbanner .qbgo{display:block;margin-top:2px;font-weight:600;white-space:nowrap}

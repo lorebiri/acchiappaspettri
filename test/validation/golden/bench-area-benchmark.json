@@ -1,0 +1,8 @@
+[
+ "Gaussiani isolati, base inclinata, rumore 0,5% picchi  751 | errore mediano -0.11% | 90% entro ±2.6% | peggiore 10.8%",
+ "Gaussiani isolati, rumore 2%                 picchi  751 | errore mediano 1.36% | 90% entro ±8.2% | peggiore 78.6%",
+ "Gaussiani isolati, base curva                picchi  751 | errore mediano 1.67% | 90% entro ±13.7% | peggiore 213.8%",
+ "Lorentziani isolati (code lunghe)            picchi  751 | errore mediano -18.69% | 90% entro ±27.3% | peggiore 39.3%",
+ "Misti (pseudo-Voigt)                         picchi  748 | errore mediano -12.64% | 90% entro ±20.2% | peggiore 31.3%",
+ "Gaussiani vicini (separazione ≥ 2 FWHM)      picchi  751 | errore mediano -0.29% | 90% entro ±3.1% | peggiore 34.9%"
+]

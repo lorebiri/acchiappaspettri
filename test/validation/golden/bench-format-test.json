@@ -1,0 +1,9 @@
+[
+ "✓ JCAMP AFFN (X++(Y..Y))",
+ "✓ JCAMP SQZ",
+ "✓ JCAMP DIF/DUP con controllo Y",
+ "✓ JCAMP (XY..XY)",
+ "✓ Thermo .spa",
+ "✓ Bruker OPUS",
+ "6 riuscite, 0 fallite. Nota: .spa e OPUS sono provati su file costruiti secondo le specifiche pubbliche, non ancora su file veri."
+]
