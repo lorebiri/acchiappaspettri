@@ -50,3 +50,5 @@
 - **Accessibilità**: tastiera e fuoco visibile sono provati; i lettori di schermo (NVDA, VoiceOver) non sono ancora stati provati davvero (previsto nella 2.3).
 - **Validazione**: i calcoli sono provati su dati sintetici e, dove esistono, su dati di riferimento pubblici (NIST); non su materiali certificati né su file reali di strumenti per la versione 2.2.
 - **XRF, righe deboli tra righe forti**: un elemento minore con la riga tra due righe forti di un altro (per esempio Zn Kα a 8,63 keV tra Cu Kα e Cu Kβ) può non essere proposto in automatico; nella stima a parametri fondamentali va aggiunto a mano dall'elenco degli elementi (il χ² ridotto più alto del solito è un indizio).
+- **HPLC con più canali**: si legge un canale per file; un secondo canale nello stesso file viene segnalato ma non letto (lettura completa nella 2.2.1). Con più canali caricati la taratura usa un canale alla volta, scelto in «Più campioni».
+- **Libreria dei nomi**: per ora ogni voce ha solo tecnica, nome e intervallo; tipo di campione, metodo, canale e pendenza arrivano nelle versioni 2.2.1 e 2.3.

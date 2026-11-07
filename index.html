@@ -950,6 +950,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
         <div class="ibfields">
           <label class="ibf"><span>Strumento</span><select id="mvInstr"></select></label>
           <label class="ibf"><span>Quali spettri</span><select id="mvWhich"><option value="inc">solo quelli spuntati</option><option value="all">tutti quelli caricati</option></select></label>
+          <label class="ibf" id="mvChanBox" hidden><span>Canale</span><select id="mvChan"></select></label>
         </div>
         <div id="xqBox"></div>
         <h4 class="anh"><span id="mvHead">📏 Misura di banda e retta di taratura</span> <button type="button" class="gl" data-gl="cal" title="Cosa vuol dire?">?</button><button type="button" class="gl" data-gl="lod" title="Cosa vuol dire LOD?">LOD?</button></h4>
@@ -2194,8 +2195,11 @@ function parseBinary(buf, name){
   if (buf.byteLength>4 && new DataView(buf).getUint32(0, true)===0xFEFE0A0A) return parseOPUS(buf);
   return null;
 }
-function colNamesOf(meta, n){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=String(meta[k]).replace(/^#\s*/,''), t=/[\t;,]/.test(h) ? h.split(/[\t;,]/).map(x=>x.trim()).filter(Boolean) : (splitLine(h)||[]); if (t.length===n && !t.some(x=>isFinite(toNum(x)))) return t.map(x=>x.slice(0,30)); } return null; }
-function guessYCol(meta, nData){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=meta[k].replace(/^#\s*/,''), n=/[\t;,]/.test(h) ? h.split(/[\t;,]/).map(t=>t.trim()).filter(Boolean) : (splitLine(h)||[]); if (n.length<3 || (nData && n.length!==nData) || n.some(t=>isFinite(toNum(t)))) continue;   /* solo la riga dei nomi delle colonne, non le righe informative */ const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
+function headerCells(h){ if (/\t/.test(h)) return h.split('\t').map(x=>x.replace(/^"|"$/g,'').trim()).filter(Boolean); if (/;/.test(h)) return h.split(';').map(x=>x.replace(/^"|"$/g,'').trim()).filter(Boolean);
+  if (/,/.test(h)){ const out=[]; let cur='', q=false; for (const ch of h){ if (ch==='"'){ q=!q; continue; } if (ch===',' && !q){ out.push(cur.trim()); cur=''; } else cur+=ch; } out.push(cur.trim()); return out.filter(Boolean); }
+  return splitLine(h)||[]; }
+function colNamesOf(meta, n){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=String(meta[k]).replace(/^#\s*/,''), t=headerCells(h); if (t.length===n && !t.some(x=>isFinite(toNum(x)))) return t.map(x=>x.slice(0,30)); } return null; }
+function guessYCol(meta, nData){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=meta[k].replace(/^#\s*/,''), n=headerCells(h); if (n.length<3 || (nData && n.length!==nData) || n.some(t=>isFinite(toNum(t)))) continue;   /* solo la riga dei nomi delle colonne, non le righe informative */ const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
 // unità dell'asse X dichiarate nell'intestazione e diverse da quelle della tecnica: si convertono (eV → nm, µm → cm⁻¹, Raman in nm assoluti → cm⁻¹)
 // invece di lasciare numeri giusti con l'unità sbagliata
 function xUnitFix(p){ if (!p || !p.xs || p.xs.length<5 || p.reject || p.xrf || p.nmr || p.epr || p.thermal || p.pe) return p;
@@ -4317,7 +4321,7 @@ LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
-const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
 const dispTitle = f => ((f.title && f.title.trim()) || f.name)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
@@ -4866,7 +4870,15 @@ async function addEntries(entries){
   if (rejected.length) msgs.push(`⛔ Non letto: ${rejected.slice(0,3).map(esc).join('; ')}.`);
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): ${list(errors)}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
-  { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true); toast(uiEn() ? `⚠️ Data to check: unread rows or thousands separators in «${bad[0].name}». See «Data check».` : `⚠️ Dati da controllare: righe non lette o separatori delle migliaia in «${bad[0].name}». Vedi «Controllo del dato».`); msgs.push(`⚠️ Righe non lette o separatori delle migliaia in: ${list(bad.map(f=>f.path))}. I numeri possono essere sbagliati.`); } }
+  { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true);
+      // il messaggio dice che cosa è successo davvero: un secondo canale non letto non è un problema di separatori
+      const q=bad[0].importIssue, nm=bad[0].name, en=uiEn(), more=bad.length>1?(en?` (and ${bad.length-1} more files)`:` (e altri ${bad.length-1} file)`):'';
+      const why = q.channel ? (en?`«${nm}» contains a second channel (${q.after} rows) that was not read: one channel per file is read. Export the channels as separate files`:`«${nm}» contiene un secondo canale (${q.after} righe) che non ho letto: leggo un canale per file. Esporta i canali in file separati`)
+        : q.thou ? (en?`thousands separators in «${nm}»: numbers may be wrong`:`separatori delle migliaia in «${nm}»: i numeri possono essere sbagliati`)
+        : q.dropped ? (en?`${q.dropped} unread rows in «${nm}»`:`${q.dropped} righe non lette in «${nm}»`)
+        : (en?`data to check in «${nm}»`:`dati da controllare in «${nm}»`);
+      toast('⚠️ '+why+more+(en?'. See «Data check».':'. Vedi «Controllo del dato».'));
+      msgs.push(`⚠️ Da controllare: ${list(bad.map(f=>f.path))}. Il motivo è in «Controllo del dato» di ogni file.`); } }
   if (extra.length){ msgs.push(`⚠️ In ${extra.length===1?'questo file ci sono':'questi file ci sono'} altre colonne di valori, che non ho letto (Y è la seconda colonna: si cambia in «Dati dello spettro»): ${list(extra)}.`); toast(`⚠️ Alcuni file hanno altre colonne di valori, che non ho letto: uso solo le prime due.`); }
   if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=Math.round(f.xs.length/Math.max(1,f.xs.length*0.01))+'|'+Math.round(f.xs[0]*2)/2+'|'+Math.round(f.xs[f.xs.length-1]*2)/2; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
@@ -5219,7 +5231,9 @@ $('#cmpDel').onclick=async ()=>{ const c=curCmp(); if(!c) return; if(!await uiCo
   COMPS=COMPS.filter(x=>x!==c); const v=visibleCmps(); curCmpId=v.length?v[v.length-1].id:null; saveCmps(); renderCmp(); renderSummary(); };
 $$('.goCmp').forEach(b=>b.onclick=()=>{ go(2); setView('cmp'); });
 
+let libSyncId=null;
 function renderPreview(){
+  { const f=files[cur], s=document.getElementById('libInstr'); if (f && s && libSyncId!==f.id && document.activeElement!==s){ libSyncId=f.id; if ([...s.options].some(o=>o.value===f.instr)) s.value=f.instr; } }
   const ro=$('#readout'); if (ro && !pvHover) ro.innerHTML='&nbsp;';
   if (viewMode==='cmp') return renderCompare();
   const f=files[cur];
@@ -5448,11 +5462,25 @@ $('#daOk').onclick=()=>{
   say('#tip2', chosen.length ? `Fatto! ${chosen.length} nom${chosen.length===1?'e':'i'} sul grafico${nOther?` e su altri ${nOther} file`:''}. 🏷️` : 'Ok, lascio solo i numeri. 👍');
 };
 /* libreria personale */
+// unisce voci importate: stesso id e stesso contenuto = già presente; stesso id e contenuto diverso = nuova voce con un altro id (mai scartata in silenzio)
+function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0}; if (!Array.isArray(list)) return out;
+  for (const e of list){ if (!(e&&typeof e.id==='string'&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b))){ out.scartate++; continue; }
+    const v={id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}, old=LIB.find(x=>x.id===v.id);
+    if (!old){ LIB.push(v); out.nuove++; } else if (old.i===v.i && old.a===v.a && old.b===v.b && old.n===v.n) out.uguali++;
+    else { v.id=(v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8)); LIB.push(v); out.rinominate++; } }
+  if (out.nuove||out.rinominate) saveLib(); return out; }
+window.libMerge=libMerge;
+function libMergeMsg(r){ return `Libreria dei nomi: ${r.nuove} voci nuove, ${r.uguali} già presenti${r.rinominate?`, ${r.rinominate} con lo stesso codice ma diverse, aggiunte come voci separate`:''}${r.scartate?`, ${r.scartate} non valide scartate`:''}.`; }
+window.libMergeMsg=libMergeMsg;
 function renderLib(){
   $('#libInstr').innerHTML = Object.keys(INSTR).filter(k=>k!=='gen').map(k=>`<option value="${k}" ${files[cur]&&files[cur].instr===k?'selected':''}>${NOME_IT[k]}</option>`).join('');
   $('#libList').innerHTML = LIB.length ? LIB.map(e=>`<div class="libitem"><span class="badge b-${esc(e.i)}">${esc((NOME_IT[e.i]||'').split(' ')[0])}</span><span title="${esc(e.n)}"><b>${esc(e.n)}</b> · ${String(Math.min(e.a,e.b)).replace('.',',')}–${String(Math.max(e.a,e.b)).replace('.',',')}</span><button class="btn small ghost" data-del="${esc(e.id)}" title="Elimina">×</button></div>`).join('')
     : '<div style="color:var(--muted);font-size:13px">Ancora vuota.</div>';
-  $$('#libList [data-del]').forEach(b=>b.onclick=()=>{ LIB=LIB.filter(e=>e.id!==b.dataset.del); saveLib(); renderLib(); resetCaches(); renderPreview(); });
+  // eliminare una voce non deve trasformare in silenzio i nomi dei picchi in numeri: si chiede, e i nomi restano come testo
+  $$('#libList [data-del]').forEach(b=>b.onclick=async ()=>{ const id=b.dataset.del, e=LIB.find(x=>x.id===id); if (!e) return; const ref='@'+id; let n=0; files.forEach(f=>Object.values(f.labels||{}).forEach(v=>{ if (v===ref) n++; }));
+    if (n && !await uiConfirm(`${n} ${n===1?'picco usa':'picchi usano'} il nome «${e.n}» di questa voce. Elimino la voce dalla libreria? I picchi tengono il nome come testo.`)) return;
+    files.forEach(f=>{ let ch=false; for (const k of Object.keys(f.labels||{})) if (f.labels[k]===ref){ f.labels[k]=e.n; ch=true; } if (ch) persist(f); });
+    LIB=LIB.filter(x=>x.id!==id); saveLib(); renderLib(); resetCaches(); renderPreview(); });
 }
 $('#libAdd').onclick=()=>{
   const n=$('#libName').value.trim(), a=parseFloat($('#libA').value), b=parseFloat($('#libB').value);
@@ -5958,7 +5986,7 @@ $('#presetExport').onclick=()=>download(new Blob([JSON.stringify({attuali:S, sal
 $('#presetImport').onclick=()=>$('#presetFile').click();
 $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ const o=JSON.parse(await f.text()); const p=presets(); Object.assign(p, o.salvate||{}); lsSet(LS_PRESETS,p);
-    if (Array.isArray(o.libreria)){ const ids=new Set(LIB.map(e=>e.id)); o.libreria.forEach(e=>{ if(e&&typeof e.id==='string'&&!ids.has(e.id)&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) LIB.push({id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}); }); saveLib(); renderLib(); }
+    if (Array.isArray(o.libreria)){ const r=libMerge(o.libreria); renderLib(); toast((r.rinominate||r.scartate?'⚠️ ':'')+libMergeMsg(r)); }
     if (o.attuali){ S=merge(DEFAULTS,o.attuali); saveS(); syncControls(); resetCaches(); renderPreview(); }
     renderPresets(); say('#tip3','Impostazioni importate! 📥'); }catch(err){ say('#tip3','Mmm, quel file non lo capisco. 🤷'); }
   e.target.value=''; };
@@ -6961,7 +6989,17 @@ const BAND_PRESETS = {
 };
 function mvIndexName(instr, c){ const p=c&&c.preset!=null&&(BAND_PRESETS[instr]||[])[c.preset]; if (!p || p[1]!==c.a || p[2]!==c.b || (p[3]??null)!==(c.c??null) || (p[4]??null)!==(c.d??null)) return null; return String(p[0]).split(/[:(]/)[0].trim(); }
 const MEAS_NAME={height:'altezza', area:'area', value:'valore in un punto', centroid:'baricentro', fwhm:'FWHM'};
-function mvFiles(instr, c){ return (c.which==='all' ? files : included()).filter(f=>f.instr===instr); }
+// canale del rivelatore letto dal nome del file o dall'intestazione (DAD1 A, Sig=254, VWD1 A, FLD, UV_VIS_1, Detector A-Ch1, 254 nm…)
+function chanOf(f){ if (f._chan!==undefined) return f._chan; const t=(f.name||'')+'\n'+(f.meta||[]).slice(0,40).join('\n'); let d='', w='';
+  let m=/(?<![A-Za-z0-9])(DAD|MWD|VWD|FLD|RID|ELSD|PDA|ADC)[\s_-]?(\d)?[\s_-]?([A-H])?(?![A-Za-z0-9])/i.exec(t); if (m) d=(m[1]+(m[2]||'')+(m[3]||'')).toUpperCase();
+  if (!d && (m=/(?<![A-Za-z0-9])UV[_ ]?VIS[_ ]?(\d)(?![0-9])/i.exec(t))) d='UV_VIS_'+m[1]; if (!d && (m=/Detector\s*([A-Z])[\s_-]*Ch\s?(\d)/i.exec(t))) d='Det '+m[1].toUpperCase()+'-Ch'+m[2]; if (!d && (m=/(?<![A-Za-z0-9])Ch(?:annel)?[\s_]?([A-D1-9])(?![A-Za-z0-9])/.exec(t))) d='Ch'+m[1];
+  if ((m=/Sig\s*=\s*(\d{3})/i.exec(t)) || (m=/(?<![0-9])(\d{3})(?:[.,]\d)?\s?nm(?![a-z])/i.exec(t))) w=m[1]+' nm';
+  return (f._chan=[d,w].filter(Boolean).join(' ')); }
+function mvChans(instr, c){ if (instr!=='hplc') return []; const L=(c.which==='all' ? files : included()).filter(f=>f.instr===instr); const set=[...new Set(L.map(chanOf).filter(Boolean))]; return set.length>1 ? set : []; }
+// una retta di taratura vale per un solo canale del rivelatore: con più canali caricati si lavora su uno alla volta
+function mvFiles(instr, c){ const L=(c.which==='all' ? files : included()).filter(f=>f.instr===instr), ch=mvChans(instr, c); if (!ch.length) return L;
+  if (!ch.includes(c.chan)){ const cnt={}; L.forEach(f=>{ const k=chanOf(f); if (k) cnt[k]=(cnt[k]||0)+1; }); c.chan=ch.sort((a,b)=>(cnt[b]-cnt[a])||a.localeCompare(b))[0]; }
+  return L.filter(f=>chanOf(f)===c.chan); }
 function mvValue(f, a, b, meas){
   const P=processed(f), U=upData(P);
   if (meas==='value' || a===b){ const n=P.xs.length, lo=Math.min(P.xs[0],P.xs[n-1]), hi=Math.max(P.xs[0],P.xs[n-1]); return n && a>=lo && a<=hi ? interpY(P.xs, U.y, a) : null; }
@@ -7062,6 +7100,7 @@ function renderMulti(){
   $('#mvInstr').innerHTML=Object.keys(counts).map(k=>`<option value="${k}" ${k===instr?'selected':''}>${NOME_IT[k]} (${counts[k]})</option>`).join('');
   $('#mvScope').textContent=`tutti gli spettri ${NOME_IT[instr]}`;
   const c=mvCfg(instr); $('#mvWhich').value=c.which;
+  { const ch=mvChans(instr, c), box=$('#mvChanBox'), sel=$('#mvChan'); box.hidden=!ch.length; if (ch.length){ mvFiles(instr, c); sel.innerHTML=ch.map(k=>`<option value="${esc(k)}" data-noi18n>${esc(k)}</option>`).join(''); sel.value=c.chan; } }
   const v=k=>c[k]!=null&&isFinite(+c[k])?numOut(+c[k]):'', pres=BAND_PRESETS[instr]||[];
   $('#mvBand').innerHTML=`${pres.length?`<label class="ibf" style="flex:1 1 100%"><span>Indici e misure dalla letteratura</span><select id="mvPreset"><option value="">— scegli un indice già pronto, oppure imposta tu le zone —</option>${pres.map((p,i)=>`<option value="${i}" ${c.preset===i&&c.a===p[1]&&c.b===p[2]?'selected':''}>${esc(p[0])}</option>`).join('')}</select></label>`:''}
     <label class="ibf"><span>Banda: da</span><input type="text" inputmode="decimal" autocomplete="off" id="mvA" value="${v('a')}" style="min-width:90px;width:100px"></label><label class="ibf"><span>a</span><input type="text" inputmode="decimal" autocomplete="off" id="mvB" value="${v('b')}" style="min-width:90px;width:100px"></label>
@@ -7072,6 +7111,7 @@ function renderMulti(){
     <label class="ibf"><span>${c.model==='trend'?'Unità di x':'Unità di concentrazione'}</span><input type="text" id="mvUnit" value="${esc(c.unit||'')}" placeholder="${c.model==='trend'?'es. h':'es. mg/L'}" style="min-width:90px;width:100px"></label>`;
   const rows=mvTable(instr), cal=mvCalib(rows), xu=(INSTR[instr].xPdf||'').replace('cm-1','cm⁻¹');
   let html='';
+  { const ch=mvChans(instr, c); if (ch.length) html+=`<div class="signote">⚠️ Sono caricati cromatogrammi di ${ch.length} canali diversi (${ch.map(esc).join(', ')}). Una retta di taratura vale per un solo canale: ora uso <b data-noi18n>${esc(c.chan)}</b>; gli altri canali non entrano nella retta né nelle stime. Cambia canale con il menu «Canale» qui sopra.</div>`; }
   if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?numOut(f.an.conc):''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
     setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>numField(el, v=>{ anSet(list[+el.dataset.f], 'conc', v); rerenderKeep(renderMulti); }, {pos:true})), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
@@ -7462,6 +7502,7 @@ function mvCsvRows(instr){
     out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), cv, pr&&!pr.belowLod?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', rec, blk, pr&&pr.belowLod?L(`stima ${fmtG(pr.x,3)} sotto il LOD`,`estimate ${fmtG(pr.x,3)} below LOD`):'', mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
   if (cal && cal.b!=null){ const st=rows.filter(o=>o.role==='std'&&o.conc!=null&&o.y!=null), cs=st.map(o=>o.conc), lv=new Set(cs.map(v=>+v.toPrecision(6))).size;
     out.push([]); out.push([L('Retta','Line'),L('pesi','weights'),cal.weight||L('nessuno','none'),'n',cal.n,L('IC95 di a (intercetta)','95% CI of a (intercept)'),n(cal.ciA&&cal.ciA[0])+' / '+n(cal.ciA&&cal.ciA[1]),L('IC95 di b (pendenza)','95% CI of b (slope)'),n(cal.ciB&&cal.ciB[0])+' / '+n(cal.ciB&&cal.ciB[1]),L('a (intercetta)','a (intercept)'),n(cal.a),L('b (pendenza)','b (slope)'),n(cal.b),'R²',n(cal.r2),'s(y/x)',n(cal.syx),'LOD',n(cal.lod),'LOQ',n(cal.loq)]);
+    if (mvChans(instr,c).length) out.push([L('Canale','Channel'), c.chan, L('altri canali esclusi dalla retta','other channels excluded from the line')]);
     if (cs.length) out.push([L('Intervallo di taratura','Calibration range'), n(Math.min(...cs)), n(Math.max(...cs)), c.unit||'', L('livelli','levels'), lv, L('standard','standards'), cs.length]);
     if (cal.mandel) out.push(['Mandel','PG',n(cal.mandel.PG),'F99',n(cal.mandel.F),L('non lineare','non-linear'),cal.mandel.nonlinear?L('sì','yes'):L('no','no')]); }
   return out;
@@ -7512,6 +7553,7 @@ function pcaCsvRows(instr){
 }
 function bindMulti(){
   $('#mvInstr').onchange=()=>renderMulti();
+  $('#mvChan').onchange=e=>{ const c=mvCfg($('#mvInstr').value); c.chan=e.target.value; mvSave(); rerenderKeep(renderMulti, true, e.target); };
   $('#mvWhich').onchange=e=>{ const c=mvCfg($('#mvInstr').value); c.which=e.target.value; mvSave(); rerenderKeep(renderMulti, true, e.target); };
   [['pcPre','pre'],['pcScale','scale'],['pcZone','zone'],['pcK','k']].forEach(([id,k])=>$('#'+id).onchange=e=>{ const instr=$('#mvInstr').value, c=mvCfg(instr); c[k]=e.target.value; mvSave(); if (MVres[instr] && !MVres[instr].err){ runPCA(instr); } renderPCA(instr); });
   $('#pcRun').onclick=()=>{ const instr=$('#mvInstr').value; runPCA(instr); renderPCA(instr); const R=MVres[instr]; if (R && !R.err) say('#tip2', `PCA fatta su ${R.list.length} spettri: ${R.k} gruppi. 🧭`); };
@@ -7620,7 +7662,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
       try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:mvIndexName(instr,c)||(c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:MEAS_NAME[c.meas])}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
       pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}${o.flag?' ['+o.flag+']':''}`, 9)); continue; }
     const rows=mvTable(instr), cal=mvCalib(rows); if (!cal || cal.b==null) continue;
-    head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]);
+    head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]+(mvChans(instr,c).length?' · '+c.chan:''));
     line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''} · y = ${fmtG(cal.a,4)} + ${fmtG(cal.b,4)}·x · R² ${fmtN(cal.r2,5)} · n ${cal.n}`, 9.5);
     line(`LOD ${fmtG(cal.lod,3)} · LOQ ${fmtG(cal.loq,3)} ${c.unit||''} (ICH Q2)${cal.mandel?` · Mandel: ${cal.mandel.nonlinear?(cal.hetero?T('curvatura segnalata con varianze non omogenee (possibile falso allarme)','curvature flagged with non-uniform variances (possible false alarm)'):T('curvatura significativa','significant curvature')):T('retta adeguata','line adequate')}`:''}`, 9.5);
     { const xs=cal.pts.map(p=>p.x); line(`${T('Intervallo di taratura','Calibration range')} ${fmtG(Math.min(...xs),3)}–${fmtG(Math.max(...xs),3)} ${c.unit||''} · ${new Set(xs.map(v=>+v.toPrecision(6))).size} ${T('livelli','levels')}, ${xs.length} standard`, 9.5); }

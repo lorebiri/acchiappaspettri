@@ -43,6 +43,7 @@ Fondamenta per ogni ciclo di collaudo con agenti virtuali. Ogni istruzione data 
 | Validatore numerico indipendente | ricalcola le prove R1–R9 con strumenti propri (mpmath, scipy, R) e dimostra che falliscono su copie sabotate |
 | Licenze e conformità open source | licenze di tutte le dipendenze, avvisi nei pacchetti, LICENSE, CITATION.cff; ciò che richiede un parere legale resta NON VERIFICATO |
 | Documentazione per gli utenti | **scrive** solo in `docs/tutorial/` e `examples/`, sul ramo `agente/tutorial`: tutorial veri nel programma, con dati sintetici |
+| Sviluppatore della libreria e dei canali | **scrive** solo in `app/channels.js`, `app/library.js`, nei loro test e in `test/corpus/hplc-canali/`, sul ramo `agente/libreria` creato da `desktop` dopo il tag v2.2.0: caricatore multicanale (2.2.1) e libreria dei picchi (2.3); gli agganci nel nucleo li fa il coordinatore |
 | Capo Progetto | rappresenta il committente; decide priorità, squadra degli agenti e pubblicazione |
 
 Architetto e UI/UX lavorano come un solo agente «esperienza d'uso». Rinviati alla 2.3: prestazioni e grandi dati, accessibilità, sviluppatore delle funzioni avanzate (moduli nuovi), statistico.

@@ -37,6 +37,21 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 | Lavoro perso | generale | Copia di recupero locale ogni 30 s, che si cancella solo su richiesta. |
 | Versione online | web lead | Più leggera: le funzioni di studio si aprono con «Mostra qui». Picchi e assegnazioni sono identici al desktop ([WEB-LEGGERA.md](WEB-LEGGERA.md)). |
 
+## Versioni decise dal Capo Progetto (7 novembre 2026)
+
+### 2.2.1: caricamento multicanale HPLC
+- Riconoscimento dei canali dal nome e dall'intestazione (DAD1 A, Sig=254, VWD, FLD Ex/Em, UV_VIS_1, Detector A-Ch1, «254 nm»); lettura dei file a più colonne e a più blocchi (Shimadzu); Empower `.arw`.
+- Finestra «Canali trovati»: griglia campioni × canali con lunghezza d'onda e sigla; predefinito tutto tranne fluorescenza e canali sconosciuti; un canale non riconosciuto non viene mai scartato senza dirlo; «ricorda la scelta».
+- Ogni canale diventa uno spettro con il suo canale (`f.channel`) e il campione (`f.sampleKey`); i byte originali si salvano una volta sola.
+- Libreria dei nomi: campi facoltativi (tecnica, tipo di campione, canale, unità, fonte, data), provenienza del nome visibile (📚) e nel CSV, avviso quando due voci si sovrappongono.
+
+### 2.3: libreria dei picchi completa e pendenza per picco
+- Modulo `app/library.js`, file aperto `.acchlib.json` con schema versionato, tre livelli (sistema, utente, condivise), import con i conflitti esplicitati, progetto `.acchspettri` versione 2 con le librerie incorporate e migrazione provata dalla versione 1.
+- Scheda «Libreria dei picchi» con filtri per strumento, tipo di campione, metodo e canale; «Aggiungi alla libreria» dal clic destro sul picco.
+- HPLC: per ogni picco tempo di ritenzione, finestra, RRT rispetto allo standard interno, canale e λ, metodo e colonna, taratura (pendenza o fattore di risposta, intercetta, unità, intervallo, n, R², s_y/x, LOD, LOQ, data, strumento, lotto dello standard) con lo storico.
+- Regole della taratura salvata decise dal Capo Progetto il 7 novembre 2026 (su incarico del committente, dopo i pareri degli agenti scienziati): profili per tipo di analisi, aggiornamento con uno o due controlli del giorno, carta di controllo, incertezza estesa, messaggi ed esportazioni, prove di accettazione. Specifica completa in [SPEC-TARATURA-SALVATA.md](SPEC-TARATURA-SALVATA.md).
+- Validazione prima del rilascio: prove HPLC T1–T6, migrazione dei progetti, R4–R8 estesi alla libreria, test di usabilità con SUS ≥ 75.
+
 ## Da sviluppare
 
 ### P1: bisogni concreti, realizzabili con l'architettura attuale

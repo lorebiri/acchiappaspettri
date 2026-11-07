@@ -160,5 +160,14 @@
 "profiles on a polynomial baseline by Levenberg–Marquardt non-linear least squares (Levenberg, 1944; Marquardt, 1963).",
 "pseudo-Voigt (Wertheim et al., 1974)",
 "{0} spectra without an x value or a measurement are not in the chart:",
-"{0}{1} {2}–{3} ({4}){5}"
+"{0}{1} {2}–{3} ({4}){5}",
+"Det",
+"UV_VIS_",
+"other channels excluded from the line",
+"(and {0} more files)",
+". See «Data check».",
+"data to check in «{0}»",
+"thousands separators in «{0}»: numbers may be wrong",
+"{0} unread rows in «{1}»",
+"«{0}» contains a second channel ({1} rows) that was not read: one channel per file is read. Export the channels as separate files"
 ]
