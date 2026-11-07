@@ -1,6 +1,6 @@
 [package]
 name = "acchiappaspettri"
-version = "2.2.0"
+version = "2.2.0-rc.1"
 description = "Acchiappaspettri: spectra and chromatograms to clean plots and scientific analysis"
 authors = ["Lorenzo Birindelli"]
 edition = "2021"
