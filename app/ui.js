@@ -43,7 +43,9 @@
     box.innerHTML=`<p style="margin:6px 0 10px"><b>Versione <span data-noi18n>${esc(String(j.tag_name||'').replace(/^v/,''))}</span></b></p><div class="dllist">${mine.map(x=>link(x,true)).join('')}${other.map(x=>link(x,false)).join('')}</div>${os&&OS_NOTE[os]?`<p class="why" style="margin-top:12px">${esc(OS_NOTE[os])}</p>`:''}`;
     return list;
   }
-  function openDownload(){ const d=$('#dlgDownload'); if (!d.open) d.showModal(); return renderDownload(); }
+  // i pulsanti arrivano dopo showModal: il fuoco passa al primo installer, se nel frattempo l'utente non l'ha spostato
+  function openDownload(fetchFn){ const d=$('#dlgDownload'); if (!d.open) d.showModal(); const was=document.activeElement;
+    return renderDownload(typeof fetchFn==="function"?fetchFn:undefined).then(list=>{ const a=d.querySelector('.dlasset'); if (a && d.open && document.activeElement===was) a.focus(); return list; }); }
   function init(){
     applyTheme(); if (win.matchMedia) win.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
     const I=win.AcchI18n; if (I.isChosen && I.lang && typeof S!=='undefined' && S.lang!==I.lang && !lsG('acch.ui.langSynced')){ S.lang=I.lang; saveS(); lsS('acch.ui.langSynced',true); }

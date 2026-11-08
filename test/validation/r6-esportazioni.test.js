@@ -49,7 +49,8 @@ function pdfAnalysis(lines, names){
   return out;
 }
 // testo a schermo → testo del PDF: pdfText() del programma traslittera alcuni simboli; confronto su una forma normalizzata
-const canon=s=>norm(s).replace(/[⁻¹]/g,'').replace(/-1/g,'').replace(/[^\p{L}\p{N}%.,:;()]+/gu,' ').trim();
+// «?» resta: è il segno di un carattere che il PDF non sa scrivere e non deve confondersi con uno spazio
+const canon=s=>norm(s).replace(/[⁻¹]/g,'').replace(/-1/g,'').replace(/[^\p{L}\p{N}%.,:;()?]+/gu,' ').trim();
 
 async function checks(lang){
   const R=await exportOnce(lang), en=lang==='en', sep=en?',':';', problems=[], seen={pk:0, bad:0, warn:0};
@@ -99,6 +100,8 @@ async function checks(lang){
 module.exports={checks};
 
 if (require.main===module){
+  // il confronto normalizzato non deve far passare un carattere perso nel PDF («dell’affresco» → «dell?affresco»)
+  test('R6 confronto schermo/PDF: un «?» al posto di un carattere è una differenza', ()=>{ assert.notStrictEqual(canon('dell’affresco'), canon('dell?affresco')); assert.strictEqual(canon('cm⁻¹ · R²'), canon('cm-1 · R²')); });
   for (const lang of ['it','en']) test(`R6 esportazioni (${lang}): schermo, CSV e PDF coincidono; testi dell'utente intatti`, {timeout:10*60*1000}, async ()=>{
     const {problems}=await checks(lang); assert.deepStrictEqual(problems, []); });
 }

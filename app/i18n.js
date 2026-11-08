@@ -25,6 +25,8 @@
     const safe=[]; parts.forEach((p,i)=>{ const m=p.match(/[\p{L}]+/gu)||[]; m.forEach((w,j)=>{ if (w.length<3) return; if (j===0 && i>0 && p.startsWith(w)) return; if (j===m.length-1 && i<parts.length-1 && p.endsWith(w)) return; safe.push(w.toLowerCase()); }); });
     const w=safe.sort((a,b)=>b.length-a.length)[0];
     const t={re, order, tr:v, len:statics.length}; if (w) (byWord.get(w)||byWord.set(w,[]).get(w)).push(t); else general.push(t);
+    // il desktop toglie le emoji dai testi: anche i modelli «🎉 … {0}» devono valere senza emoji (es. il titolo delle Novità)
+    const de=deEmoji(k); if (de!==k && !Object.prototype.hasOwnProperty.call(dict, de)) addEntry(de, deEmoji(v));
   }
   Object.keys(dict).forEach(k=>addEntry(k, dict[k]));
   for (const list of byWord.values()) list.sort((a,b)=>b.len-a.len);

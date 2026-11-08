@@ -5,7 +5,7 @@
 // Uso: PW_CHANNEL=chrome node --test test/validation/r6-pdf-ostile.test.js
 'use strict';
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path');
-const B=require('./browser.js'), {pdfText}=require('./pdf-text.js');
+const B=require('./browser.js'), {pdfText, pdfInfoTitle}=require('./pdf-text.js');
 const FILES=['c/10_raman_header.txt','hplc/U3_coeluito.txt'];
 const HOSTILE='Titolo (ostile) \\ ) ( <script>alert(1)</script> /JS (app.alert(1)) >> /AA << °µ±';
 const HOSTILE_DOC='Doc ) >> /OpenAction << /S /JavaScript /JS (app.alert(2)) >> (';
@@ -60,5 +60,8 @@ test('R6 PDF da un progetto con titoli ostili: solo testo, nessuno script', {tim
     const text=pdfText(buf), flat=text.join('\n');
     assert.ok(flat.includes('<script>alert(1)</script>') && flat.includes('/JS (app.alert(1))'), 'titolo ostile presente come testo');
     assert.ok(text.some(l=>l.startsWith('Doc ) >> /OpenAction')), 'titolo del documento presente come testo');
+    // titoli intatti anche nei simboli (°µ±) e nei metadati: un /Title troncato o cambiato non deve passare (difetto piantato D4)
+    assert.ok(text.some(l=>l.endsWith('/AA << °µ±')), 'simboli °µ± del titolo dello spettro nel testo del PDF');
+    assert.strictEqual(pdfInfoTitle(buf), HOSTILE_DOC, 'titolo del documento nei metadati (/Title)');
   } finally { await br.close(); server.close(); }
 });

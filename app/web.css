@@ -77,5 +77,11 @@ html.web .pkwrap .pktab td:last-child{position:static}
 html.web details.ansec>summary>b{flex:1 1 0;min-width:0}
 
 /* «Più campioni» online su schermi da 1366 px: la colonna dello stato va a capo invece di allargare la tabella oltre il pannello */
-html.web #mvOut td:last-child{white-space:normal;min-width:10em;max-width:20em}
+html.web #mvOut td:last-child{white-space:normal;min-width:7em;max-width:20em}
 html.web #mvOut .areawrap{overflow-x:auto}
+/* il pannello è largo circa 440 px anche a 1366–1920: testi a capo, ruolo sotto la concentrazione, così la stima ± IC si vede senza scorrere */
+html.web #mvOut .areatab{min-width:0;width:100%}
+html.web #mvOut .areatab th,html.web #mvOut .areatab td{white-space:normal;padding:6px 6px}
+html.web #mvOut .areatab td:first-child{overflow-wrap:anywhere;min-width:8.5em}
+html.web #mvOut .areatab .concin{width:5.5em}
+html.web #mvOut .areatab .rolein{display:block;margin:3px 0 0 auto}
