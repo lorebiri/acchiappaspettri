@@ -57,6 +57,12 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 ### 2.2.1, in più
 - Misura di base del tempo per arrivare al risultato su 5 compiti tipo (indice FTIR, taratura HPLC, deconvoluzione, XRF, NMR), da confrontare poi con i ricercatori pilota.
 
+### Aspetto dell'applicazione (requisiti V1–V6 e G1–G5 in AGENTI.md)
+- 2.2.0: invariata.
+- 2.2.1: il designer visivo scrive il sistema di design e le bozze; passaggio alle variabili CSS senza cambiare l'aspetto (confronto a pixel identico); misura di base di fluidità e prontezza; movimento di base: zoom morbido, passaggi tra viste, riscontro delle azioni, impostazione «Animazioni».
+- 2.3: nuovo aspetto per gradi, una zona alla volta (barra degli strumenti, pannelli, finestre, benvenuto, grafico), con i 39 test dell'interfaccia e R5/R6 verdi e il ritorno all'aspetto precedente; grafico fluido con 1 milione di punti (WebGL o OffscreenCanvas con ritorno al canvas 2D); mirino, cursori, viste collegate, spettri a cascata; animazione didattica. Voce separata a priorità più bassa: figure per la pubblicazione (vettoriali, stili delle riviste, palette per chi distingue male i colori).
+- 3.0: mappe, contorni, 3D, serie nel tempo animate.
+
 ### 3.0: oltre i programmi a pagamento
 - Mappe e dati iperspettrali; MCR-ALS; fit globale delle cinetiche; ricetta esportata come script Python; estensioni per nuovi formati; importazione dei progetti Origin (.opj).
 
