@@ -3640,7 +3640,8 @@ function eprEdgeSignal(B, y){
 // frequenza delle microonde (GHz) dall'intestazione; la virgola decimale degli export europei («MWFQ 9,400000e9») vale come punto
 function eprFreqFromHead(head){
   const num=s=>{ s=String(s).replace(/[.,]+$/,''); s = /,.*,/.test(s) || /,.*\.|\..*,/.test(s) ? s.replace(/,/g,'') : s.replace(',', '.'); return toNum(s); }; let m;
-  if ((m=/MWFQ\s*[=:]?\s*([\d.,]+(?:[eE][+-]?\d+)?)/.exec(head))){ const v=num(m[1]); return v>1e6 ? v/1e9 : v; }
+  // dopo MWFQ può esserci anche il separatore di colonna di un CSV («MWFQ,9400000000» da Excel): il numero comincia con una cifra
+  if ((m=/MWFQ\s*[=:,;\t]?\s*(\d[\d.,]*(?:[eE][+-]?\d+)?)/.exec(head))){ const v=num(m[1]); return v>1e6 ? v/1e9 : v; }
   if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*GHz/i.exec(head)) || (m=/\b([89]\.\d+|3[3-5]\.\d+)\s*GHz/i.exec(head))) return num(m[1]);
   if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*MHz/i.exec(head)) && num(m[1])>1000) return num(m[1])/1000;
   return null;

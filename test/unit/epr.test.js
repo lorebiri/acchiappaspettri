@@ -37,7 +37,7 @@ test('riga vicina al bordo (caso e23): il doppio integrale sbagliato è riconosc
 
 test('frequenza delle microonde: virgola decimale e unità', ()=>{
   const F=fn('eprFreqFromHead'), near=(a,b)=>assert.ok(Math.abs(a-b)<1e-9, a+' ≠ '+b);
-  near(F('MWFQ 9,400000e9'), 9.4); near(F('MWFQ 9.4e9'), 9.4); near(F('MWFQ=9,4e+09'), 9.4); near(F('MWFQ 9400000000'), 9.4);
+  near(F('MWFQ 9,400000e9'), 9.4); near(F('MWFQ 9.4e9'), 9.4); near(F('MWFQ=9,4e+09'), 9.4); near(F('MWFQ 9400000000'), 9.4); near(F('MWFQ,9400000000'), 9.4); near(F('MWFQ;9,4e9'), 9.4); near(F('MWFQ\t9.4e9'), 9.4);   // ciclo 26: separatore di Excel (virgola, punto e virgola) dopo MWFQ
   near(F('Microwave frequency: 9,4 GHz'), 9.4); near(F('Microwave frequency: 9400.0 MHz'), 9.4); near(F('Frequenza 34,0 GHz'), 34);
   assert.equal(F('EPR spectrum'), null);
 });
