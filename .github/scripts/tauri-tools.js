@@ -33,9 +33,10 @@ const TOOLS={
     {file:'linuxdeploy-07333c6-x86_64.AppImage', repo:'tauri-apps/binary-releases', tag:'linuxdeploy-07333c6', asset:'linuxdeploy-x86_64.AppImage', sha256z:'bd9521cd5ff3ca351fecb78cd9b236a4e37b3621014ac05cac0c2d767ffa0474'},
     // «continuous»: cambia nel tempo, non ha un hash fisso; si verifica con l'hash che GitHub pubblica per l'asset, se raggiungibile
     {file:'linuxdeploy-plugin-appimage.AppImage', repo:'linuxdeploy/linuxdeploy-plugin-appimage', tag:'continuous', asset:'linuxdeploy-plugin-appimage-x86_64.AppImage', elf:1048576},
-    // l'appimagetool dentro il plugin scarica a ogni build il runtime dell'AppImage da github.com (src/appimagetool_fetch_runtime.cpp)
-    // se APPIMAGETOOL_RUNTIME_FILE non è impostata: è il «failed to run linuxdeploy» di run 42464743191 e 42468588488
-    {file:'runtime-x86_64', repo:'AppImage/type2-runtime', tag:'continuous', asset:'runtime-x86_64', elf:262144, env:'APPIMAGETOOL_RUNTIME_FILE'},
+    // l'appimagetool dentro il plugin scarica a ogni build il runtime dell'AppImage da github.com (src/appimagetool_fetch_runtime.cpp):
+    // con github.com in 504 è il «failed to run linuxdeploy» di run 42464743191 e 42468588488. Il plugin passa --runtime-file
+    // ad appimagetool se c'è LDAI_RUNTIME_FILE (src/main.cpp); APPIMAGETOOL_RUNTIME_FILE vale per gli appimagetool dal 4/10/2026
+    {file:'runtime-x86_64', repo:'AppImage/type2-runtime', tag:'continuous', asset:'runtime-x86_64', elf:262144, env:['LDAI_RUNTIME_FILE','APPIMAGETOOL_RUNTIME_FILE']},
   ],
   windows:[
     {file:'NSIS', repo:'tauri-apps/binary-releases', tag:'nsis-3.13', asset:'nsis-3.13.zip', sha1:'db14f8af2ea346b786c6ae19343f61aaf5e09b8e', zip:'nsis-3.13',
@@ -125,6 +126,6 @@ function install(t, dir, buf){
   }
   // ultimo controllo dell'insieme: la dll sta dentro NSIS, che può essere stato appena sostituito
   for (const t of list){ const why=checkInstalled(t,dir); if (why) die(`${t.file}: ${why}`);
-    if (t.env){ const v=path.join(dir,t.file); console.log(t.env+'='+v); if (process.env.GITHUB_ENV) fs.appendFileSync(process.env.GITHUB_ENV,t.env+'='+v+'\n'); } }
+    for (const k of t.env||[]){ const v=path.join(dir,t.file); console.log(k+'='+v); if (process.env.GITHUB_ENV) fs.appendFileSync(process.env.GITHUB_ENV,k+'='+v+'\n'); } }
   console.log('Strumenti di Tauri pronti in '+dir);
 })().catch(e=>die(e.stack||String(e)));
