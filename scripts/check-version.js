@@ -8,5 +8,6 @@ if (new Set([pkg,conf,cargo,full]).size!==1) errs.push(`versioni diverse: packag
 if (!pkg.startsWith(short+'.')) errs.push(`APP_VERSION ${short} non corrisponde a ${pkg}`);
 if (news!==short) errs.push(`manca la voce ${short} in cima a NOVITA (c'è ${news})`);
 if (tag && tag!==pkg) errs.push(`il tag v${tag} non coincide con la versione ${pkg}`);
-if (!new RegExp('^## '+pkg.replace(/[.]/g,'\\.')+'\\b','m').test(rd('CHANGELOG.md'))) errs.push(`manca la sezione «## ${pkg}» in CHANGELOG.md`);
+// la sezione deve essere esattamente quella della versione: «## 2.2.0» non deve accettare «## 2.2.0-rc.1»
+if (!new RegExp('^## '+pkg.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\w.+-])','m').test(rd('CHANGELOG.md'))) errs.push(`manca la sezione «## ${pkg}» in CHANGELOG.md`);
 if (errs.length){ console.error(errs.join('\n')); process.exit(1); } console.log('versione coerente:',pkg);
