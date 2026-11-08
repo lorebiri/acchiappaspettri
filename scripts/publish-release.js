@@ -21,6 +21,8 @@ if (String(j.version||'').replace(/^v/,'')!==ver) fail('versione di latest.json 
 // voci di base (obbligatorie) e voci con il tipo di installer (l'updater le prova per prime: se ci sono devono essere valide)
 const expect={'windows-x86_64':/x64-setup\.exe$/, 'darwin-aarch64':/aarch64\.app\.tar\.gz$/, 'darwin-x86_64':/x64\.app\.tar\.gz$/, 'linux-x86_64':/\.AppImage$/};
 const suffix={'windows-x86_64':'nsis','darwin-aarch64':'app','darwin-x86_64':'app','linux-x86_64':'appimage'};
+// il .deb si aggiorna a mano (docs/AGGIORNAMENTI.md): la voce che tauri-action aggiunge per lui si toglie, così l'updater non installa mai un .deb da solo
+if (j.platforms && j.platforms['linux-x86_64-deb']){ delete j.platforms['linux-x86_64-deb']; console.log('· tolta la voce linux-x86_64-deb da latest.json (il .deb si aggiorna a mano)'); }
 const P=j.platforms||{}, prefix=`https://github.com/${repo}/releases/download/${tag}/`, fetched={};
 const asset=n=>{ const p=path.join(dir,n); if (!fs.existsSync(p)){ if (localDir) fail('manca il file '+n); gh('release','download',tag,'-p',n,'-D',dir); } return fs.readFileSync(p); };
 const checkEntry=(key, re)=>{ const e=P[key]; if (!e || !e.url || !e.signature) return `${key}: voce vuota o incompleta`;
