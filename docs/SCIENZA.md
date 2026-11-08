@@ -26,7 +26,8 @@ Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Kl
 ## Limiti noti non corretti
 - XRF empirico (`xrfIntensities`): con tubo ignoto la finestra del Compton 16–21,5 keV può includere il Rayleigh del Rh; ±1 FWHM taglia parte del Compton.
 - Currie: «rilevato» sopra L_D è prudente; è dichiarato nel testo.
-- EPR: l'asse è supposto in gauss se supera 1000 senza «mT»: controlla i file in banda Q.
+- EPR: campo senza unità dichiarata (colonna «Field» o file senza intestazione): con la frequenza si sceglie G, mT o T perché la riga più intensa dia g tra 1,5 e 6; senza frequenza (o se nessun fattore va bene) una riga oltre 1000 è presa per gauss e divisa per 10, sempre con avviso. Un file in banda Q in mT senza frequenza viene quindi diviso per 10: l'avviso lo dice.
+- EPR, doppio integrale: base presa dal 5 % agli estremi. Se lì c'è ancora segnale (riga vicina al bordo o troppo larga) o il risultato è negativo compare ⛔; una lorentziana in una finestra di ±5–7 HWHM ha ⛔ (66–75 % del vero), in ±10 HWHM dà circa l'82 % del vero senza ⛔ (limite fisico delle code).
 - Tauc in riflettanza: R va dato in %. FTIR: T frazionaria 0–1 viene presa per assorbanza.
 - Ammide I: stessa assorbività per tutte le strutture, zone per H₂O e stato solido (dichiarato).
 

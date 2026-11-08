@@ -2045,9 +2045,10 @@ function parseEPRCols(nc){
   const iB = low.findIndex(n=>/field|b_field|\bb\s*[\[(]\s*(g|gauss|mt|t)\s*[\])]|gauss|\[g\]|\(g\)|\[mt\]|\(mt\)|campo/.test(n) && !/%/.test(n)); if (iB<0) return null;
   let iY = low.findIndex((n,i)=>i!==iB && /intens|signal|segnale|amplit|\bepr\b|\besr\b|value|\by\b/.test(n));
   if (iY<0) iY = iB+1<nc.cols.length ? iB+1 : (iB>0 ? 0 : -1); if (iY<0) return null;
-  const u=low[iB]; let k=1; if (/gauss|\[g\]|\(g\)|\bg\s*$/.test(u)) k=0.1; else if (/\[t\]|\(t\)/.test(u)) k=1000;
+  // unità non dichiarata (es. «Field»): unitK=null, la deduce postDetect dalla frequenza (docs/SCIENZA.md)
+  const u=low[iB]; let k=null; if (/gauss|\[g\]|\(g\)|\bg\s*$/.test(u)) k=0.1; else if (/\[t\]|\(t\)|\/\s*t\s*$|tesla/.test(u)) k=1000; else if (/\bmt\b/.test(u)) k=1;
   const idx=[...nc.cols[iB].keys()].sort((a,b)=>nc.cols[iB][a]-nc.cols[iB][b]);
-  return {xs:Float64Array.from(idx,i=>nc.cols[iB][i]*k), ys:Float64Array.from(idx,i=>nc.cols[iY][i]), meta:nc.meta.concat([`EPR · colonne: ${nc.names.join(' | ')}`]), pe:false, peX:'', peY:'', epr:{unitK:k}};
+  return {xs:Float64Array.from(idx,i=>nc.cols[iB][i]*(k||1)), ys:Float64Array.from(idx,i=>nc.cols[iY][i]), meta:nc.meta.concat([`EPR · colonne: ${nc.names.join(' | ')}`]), pe:false, peX:'', peY:'', epr:{unitK:k}};
 }
 /* NMR esportato da TopSpin («totxt»): una colonna di intensità tra LEFT e RIGHT (ppm) */
 function parseTopSpin(text){
@@ -3599,6 +3600,33 @@ function eprIsAbsorption(B, y){ const n=y.length; if (n<20) return false; const 
   let pos=0, neg=0; for (let k=0;k<n;k++){ const c=y[k]-(a0+(a1-a0)*k/(n-1)); if (c>0) pos+=c; else neg-=c; } const big=Math.max(pos,neg); return big>0 && Math.min(pos,neg)/big<0.15; }
 function eprSingleIntegral(B, y){ const n=y.length, e=Math.max(2,Math.round(n*0.05)); let a0=0,a1=0; for (let k=0;k<e;k++){ a0+=y[k]; a1+=y[n-1-k]; } a0/=e; a1/=e; let s=0; for (let k=1;k<n;k++){ const c0=y[k-1]-(a0+(a1-a0)*(k-1)/(n-1)), c1=y[k]-(a0+(a1-a0)*k/(n-1)); s+=0.5*(c0+c1)*(B[k]-B[k-1]); } return s; }
 
+// segnale negli estremi usati come base del doppio integrale: dopo la retta tra le medie delle due finestre una finestra pulita è piatta;
+// se la sua pendenza propria supera 5 σ (rumore) e lo 0,2 % del picco-picco, la riga entra nella base e il DI è sbagliato (anche di segno)
+function eprEdgeSignal(B, y){
+  const n=y.length; if (n<20) return null; const e=Math.max(2, Math.round(n*0.05)), sg=noiseSigma(y); let mx=-Infinity, mn=Infinity; for (const v of y){ if (v>mx) mx=v; if (v<mn) mn=v; }
+  if (!(mx>mn) || !isFinite(mx-mn)) return null;
+  const mean=(a,b)=>{ let s=0; for (let k=a;k<b;k++) s+=y[k]; return s/(b-a); }, slope=(a,b)=>{ const m=(a+b-1)/2, ym=mean(a,b); let sxy=0, sxx=0; for (let k=a;k<b;k++){ sxy+=(k-m)*(y[k]-ym); sxx+=(k-m)*(k-m); } return sxy/sxx; };
+  const k0=(e-1)/2, k1=n-1-k0, ch=(mean(n-e,n)-mean(0,e))/(k1-k0), L=Math.abs(slope(0,e)-ch)*(e-1), R=Math.abs(slope(n-e,n)-ch)*(e-1);
+  const lim=Math.max(5*sg*Math.sqrt(12/e), 0.002*(mx-mn)); return {left:L>lim, right:R>lim, edge:L>lim||R>lim};
+}
+// frequenza delle microonde (GHz) dall'intestazione; la virgola decimale degli export europei («MWFQ 9,400000e9») vale come punto
+function eprFreqFromHead(head){
+  const num=s=>{ s=String(s).replace(/[.,]+$/,''); s = /,.*,/.test(s) || /,.*\.|\..*,/.test(s) ? s.replace(/,/g,'') : s.replace(',', '.'); return toNum(s); }; let m;
+  if ((m=/MWFQ\s*[=:]?\s*([\d.,]+(?:[eE][+-]?\d+)?)/.exec(head))){ const v=num(m[1]); return v>1e6 ? v/1e9 : v; }
+  if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*GHz/i.exec(head)) || (m=/\b([89]\.\d+|3[3-5]\.\d+)\s*GHz/i.exec(head))) return num(m[1]);
+  if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*MHz/i.exec(head)) && num(m[1])>1000) return num(m[1])/1000;
+  return null;
+}
+// campo della riga più intensa (massimo di |y − mediana|): in una scansione larga il centro della finestra non è una riga
+function eprLineField(B, y){ const n=y.length; if (!n) return NaN; const med=Float64Array.from(y).sort()[n>>1]; let k=0; for (let i=1;i<n;i++) if (Math.abs(y[i]-med)>Math.abs(y[k]-med)) k=i; return B[k]; }
+// fattore per portare in mT un campo senza unità dichiarata. Con la frequenza: quello (1, G→mT, T→mT) che dà un g plausibile sulla riga più intensa;
+// altrimenti «riga oltre 1000 = gauss» (banda X in G ≈ 3350, in mT ≈ 335). by:'freq' = deciso dalla frequenza, 'range' = supposto
+function eprFieldUnitK(B, y, freq){
+  const Bl=eprLineField(B, y);
+  if (freq>0 && Bl>0){ const k=[1,0.1,1000].find(k=>{ const g=71.4477*freq/(Bl*k); return g>1.5 && g<6; }); if (k!=null) return {k, by:'freq'}; }
+  return {k: Math.abs(Bl)>1000 ? 0.1 : 1, by:'range'};
+}
+
 /* ---- XRF: conteggi netti, incertezza di Poisson e limiti di Currie ---- */
 function currie(net, bkg){ const B=Math.max(0,bkg), LC=2.33*Math.sqrt(B), LD=2.71+4.65*Math.sqrt(B), s=Math.sqrt(Math.max(0,net)+2*B);
   return {net, bkg:B, sigma:s, LC, LD, detected: net>LD, critical: net>LC}; }
@@ -4343,14 +4371,11 @@ function postDetect(f, p){
   const meta=p.meta||[], head=meta.join('\n')+'\n'+f.name;
   f.minfo = measInfo(meta);
   if (p.thermal){ f.therm=p.thermal; f.seg=p.thermal.seg; f.ts=p.thermal.ts; }
-  let m;
-  if ((m=/MWFQ\s*[=:]?\s*([\d.]+(?:[eE][+-]?\d+)?)/.exec(head))){ const v=toNum(m[1]); f.freqH = v>1e6 ? v/1e9 : v; }
-  else if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*GHz/i.exec(head)) || (m=/\b([89]\.\d+|3[3-5]\.\d+)\s*GHz/i.exec(head))) f.freqH=toNum(m[1].replace(',', '.'));
-  else if ((m=/(?:microwave\s*)?freq(?:uency|uenza)?[^0-9\n]{0,24}([\d.,]+)\s*MHz/i.exec(head)) && toNum(m[1].replace(',', '.'))>1000) f.freqH=toNum(m[1].replace(',', '.'))/1000;
-  // campo senza unità dichiarata: con la frequenza si sceglie il fattore (G→mT, T→mT o nessuno) che dà un fattore g plausibile;
-  // senza frequenza resta la regola «oltre 1000 sono gauss» (banda X), con l'avviso in «Controllo del dato»
-  if (f.instr==='epr' && !p.epr){ const s=stats(f.xs,f.ys); if (!/\bmT\b/.test(head)){ const B=(s.xmin+s.xmax)/2, ok=k=>{ const g=71.4477*f.freqH/(B*k); return g>1.5 && g<6; };
-    const k = f.freqH>0 && B>0 ? ([1,0.1,1000].find(ok) ?? 1) : (s.xmax>1000 ? 0.1 : 1); if (k!==1) f.xs=f.xs0=Float64Array.from(f.xs, v=>v*k); } }
+  let m; const fq=eprFreqFromHead(head); if (fq!=null) f.freqH=fq;
+  // campo senza unità dichiarata: fattore deciso dalla frequenza sulla riga più intensa, altrimenti supposto (eprFieldUnitK);
+  // la conversione fatta resta in f.eprConv per l'avviso in «Controllo del dato»
+  f.eprConv=null;
+  if (f.instr==='epr' && (!p.epr || p.epr.unitK==null) && !/\bmT\b/.test(head)){ const c=eprFieldUnitK(f.xs, f.ys, f.freqH); if (c.k!==1) f.xs=f.xs0=Float64Array.from(f.xs, v=>v*c.k); f.eprConv=c; }
   const nm=/(?:^|[^a-z0-9])(1H|H1|13C|C13|29Si|31P|27Al|15N|19F|2H|11B)(?:[^a-z0-9]|$)/i.exec(head);
   if (nm){ const t=nm[1].toUpperCase(); f.nucH = ({H1:'1H',C13:'13C'})[t] || t.replace(/^(\d+)([A-Z])([A-Z]?)$/, (q,a,b,c)=>a+b+(c||'').toLowerCase()); }
   if ((m=/(?:^|[^a-z])ex(?:citation)?[\s_:=-]*(?:wl|wavelength|λ)?[\s_:=-]*(\d{3}(?:[.,]\d+)?)/i.exec(head))) f.lexH=toNum(m[1].replace(',', '.'));
@@ -6552,10 +6577,16 @@ function assess(f, d){
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
   if (f.nCols>2) add('info', `Il file ha ${f.nCols} colonne: Y è la colonna ${(f.an&&f.an.ycol||1)+1}. La puoi cambiare in «Dati dello spettro».`);
   if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
-  if (it==='epr' && f.freq>0 && P.xs.length){ const B=(P.xs[0]+P.xs[P.xs.length-1])/2, g=B>0?71.4477*f.freq/B:0; if (g<1.2||g>12) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss, mT o tesla?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
+  if (it==='epr' && f.freq>0 && P.xs.length){ const B=eprLineField(P.xs, P.ys), g=B>0?71.4477*f.freq/B:0; if (g<1.2||g>12) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss, mT o tesla?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
   if (it==='nmr' && d.peaks.some(p=>p.area!=null)){ const an=f.an||{}; if (an.nmrX!=null && !d.peaks.some(p=>p.area!=null && Math.abs(p.x-an.nmrX)<0.02)) add('warn',`Il picco di riferimento degli integrali (${fmtN(an.nmrX,2)} ppm) non è più nell'elenco: gli integrali sono riferiti al primo picco.`); add('warn','Gli integrali sono calcolati picco per picco: un multipletto (doppietto, tripletto, quartetto…) risulta sottostimato del 10–20% perché le code delle righe vicine non sono contate. Per i rapporti tra gruppi integra regioni intere con la misura di banda in «Più campioni» (area), che su spettri simulati sbaglia meno dell\'1%.'); }
-  if (it==='epr' && !(f.freq>0) && P.xs[P.xs.length-1]>1000 && !(f.epr&&f.epr.unitK===0.1)) add('warn','Campo oltre 1000 senza unità dichiarata e senza frequenza: potrebbe essere in gauss. Controlla l\'unità prima di confrontare doppi integrali.');
+  // avviso sulla conversione fatta davvero in postDetect (prima guardava l'asse già convertito e taceva)
+  if (it==='epr' && f.eprConv && f.eprConv.by==='range' && f.eprConv.k===0.1) add('warn','Campo senza unità dichiarata: i valori oltre 1000 sono stati presi per gauss e divisi per 10 (ora in mT). Se erano già mT, i campi mostrati sono 10 volte troppo piccoli: correggi con la scala in «Dati dello spettro».');
+  else if (it==='epr' && !(f.freq>0) && P.xs[P.xs.length-1]>1000 && !(f.eprConv && f.eprConv.k!==1)) add('warn','Campo oltre 1000 senza unità dichiarata e senza frequenza: potrebbe essere in gauss. Controlla l\'unità prima di confrontare doppi integrali.');
   if (f.an&&f.an.calc){ add('info','Dato calcolato: niente controlli di rumore, saturazione o ipotesi, che valgono per le misure; restano quelli su file, unità e asse.'); if (f.xs.length<60) add('warn',`Solo ${f.xs.length} punti: se sono bastoncini (frequenze e intensità di un calcolo), il programma non li allarga in bande e i picchi non si trovano. Allarga lo spettro nel programma di calcolo prima di caricarlo.`); return out; }
+  // riga vicina al bordo o doppio integrale negativo: la base presa agli estremi contiene segnale e il DI può essere sbagliato anche di segno
+  if (it==='epr' && P.kind==='E' && !P.deriv && P.xs.length>=20){ const ab=eprIsAbsorption(P.xs, P.ys), ed=eprEdgeSignal(P.xs, P.ys), di=ab ? null : eprDoubleIntegral(P.xs, P.ys);
+    if (ed && ed.edge) add('bad','Agli estremi dello spettro c\'è ancora segnale (riga vicina al bordo o troppo larga per la finestra): la linea di base dell\'integrale (doppio o singolo) lo contiene e il valore non è affidabile, anche di molte volte o di segno. Misura con la riga al centro di una finestra larga almeno 10 volte la riga.');
+    else if (di && di.di<0) add('bad','Il doppio integrale è negativo: la fase del segnale è invertita o la linea di base è sbagliata. Il valore non è affidabile per confrontare quantità di spin: controlla fase e base.'); }
   if (it==='epr' && P.xs.length && eprIsAbsorption(P.xs, P.ys)) add('bad','Lo spettro EPR sembra in assorbimento (un solo segno), non in derivata come di solito: il doppio integrale non vale, per la quantità di spin uso l\'integrale singolo. Se invece è una derivata molto asimmetrica, controlla la linea di base.');
   if (it==='epr'){ const v=Array.from(f.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(f.ys); if (sg>0 && v[v.length-1]/sg<200 && (peakFwhmPts(P.xs,Float64Array.from(f.ys,Math.abs),P.xs[f.ys.reduce((k,y,i,a)=>Math.abs(y)>Math.abs(a[k])?i:k,0)])||0)<0.1*f.ys.length) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
   { const sw=pSmooth(f); if (sw && d.peaks.length){ const up=upData(P), w=d.peaks.map(p=>peakFwhmPts(P.xs,up.y,p.x)).filter(v=>v>0).sort((a,b)=>a-b); if (w.length && w[0]<sw) add('warn',`Lo smoothing (${sw} punti) è più largo del picco più stretto (circa ${Math.round(w[0])} punti): altezze e aree si abbassano. Riducilo o scegline uno per questo spettro.`); } }
@@ -6846,10 +6877,12 @@ function techMetrics(f, d){   // restituisce {title, why, head:[], rows:[[]], ex
     o.title='🧮 Doppio integrale (quantità relativa di spin)'; o.why='Il doppio integrale dello spettro in derivata è proporzionale al numero di spin. Il confronto vale solo tra spettri misurati con stessi guadagno, potenza, modulazione, tempo e fattore Q della cavità (Eaton et al. 2010). Per concentrazioni assolute serve uno standard (es. TEMPOL, DPPH, Mn²⁺).';
     const all=files.filter(g=>g.instr==='epr').map(g=>{ const Q=processed(g); if (Q.kind!=='E' || Q.deriv) return {g, di:null}; const ab=eprIsAbsorption(Q.xs, Q.ys); return {g, ab, di: ab ? {di:eprSingleIntegral(Q.xs, Q.ys)} : eprDoubleIntegral(Q.xs, Q.ys)}; }).filter(o=>o.di);
     const mx=Math.max(...all.map(o=>Math.abs(o.di.di)), 1e-300);
-    o.head=['Spettro','Doppio integrale','Relativo al massimo (%)','Nota'];
-    const odd=g=>{ if (!(g.freq>0)) return g.xs[g.xs.length-1]>1000; const B=(g.xs[0]+g.xs[g.xs.length-1])/2, gg=B>0?71.4477*g.freq/B:0; return gg<1.2||gg>12; };
+    // con spettri in assorbimento il valore è l'integrale singolo: il titolo della colonna lo dice
+    o.head=['Spettro', all.some(o=>o.ab)?'Doppio o singolo integrale':'Doppio integrale','Relativo al massimo (%)','Nota'];
+    const odd=g=>{ if (!(g.freq>0)) return g.xs[g.xs.length-1]>1000 || !!(g.eprConv && g.eprConv.by==='range' && g.eprConv.k!==1); const B=eprLineField(g.xs, g.ys), gg=B>0?71.4477*g.freq/B:0; return gg<1.2||gg>12; };
+    const edgeBad=o=>{ const Q=processed(o.g), ed=eprEdgeSignal(Q.xs, Q.ys); return !!(ed && ed.edge) || (!o.ab && o.di.di<0); };
     { const W=all.filter(o=>!o.ab).map(o=>{ try{ const Q=processed(o.g), y=Q.ys; let a=0,b=0; for (let k=1;k<y.length;k++){ if (y[k]>y[a]) a=k; if (y[k]<y[b]) b=k; } return Math.abs(Q.xs[a]-Q.xs[b]); }catch(e){ return null; } }).filter(v=>v>0); if (W.length>=2){ const mn=Math.min(...W), mxw=Math.max(...W); if (mxw>1.5*mn) o.extra=(o.extra||'')+`<div class="signote">⚠️ Le larghezze di riga (picco–picco) vanno da ${fmtG(mn,3)} a ${fmtG(mxw,3)}: con righe di larghezza molto diversa il doppio integrale su questa finestra può sbagliare di alcuni punti percentuali (circa 6% in simulazione). Usa una finestra di campo uguale e larga almeno 10 volte la riga più larga.</div>`; } }
-    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1), [o.ab?'⚠️ spettro in assorbimento, non in derivata: integrale singolo':'', odd(o.g)?'⚠️ unità del campo da controllare':''].filter(Boolean).join('; ')]);
+    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1), [o.ab?'⚠️ spettro in assorbimento, non in derivata: integrale singolo':'', edgeBad(o)?'⛔ segnale agli estremi o valore negativo: non affidabile':'', odd(o.g)?'⚠️ unità del campo da controllare':''].filter(Boolean).join('; ')]);
   }
   if (it==='nmr'){
     o.title='🧮 Integrali relativi (NMR)'; o.why='Scegli il picco di riferimento e quanti nuclei rappresenta: gli altri integrali vengono scalati di conseguenza (qNMR: Bharti & Roy 2012). Per una purezza assoluta servono uno standard interno pesato, D1 ≥ 5·T₁ e una fase/base corrette.';
