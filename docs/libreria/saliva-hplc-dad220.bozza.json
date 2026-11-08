@@ -1,0 +1,2182 @@
+{
+ "schema": "draft-acchiappaspettri-library-saliva-hplc",
+ "generated": "2026-11-08",
+ "disclaimer": "Bozza dell'agente di letteratura (tester virtuale). Il committente ha dichiarato lo stesso sistema delle fonti A e B (Agilent 1260, DAD G4212B, software Agilent): quelle voci entrano come tarature salvate nel profilo Ricerca, con l'unità dell'area assunta mAU·s. Le altre restano riferimenti. Vedi docs/SPEC-TARATURA-SALVATA.md.",
+ "entries": [
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Creatinine",
+   "tR": 3.561,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 9876,
+    "slopeSD": 49,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.02,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 3.603,
+    "slope": 8633,
+    "intercept": 7.9,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 22.7,
+    "medianUM": 10.0,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Partly adsorbed by Salivette swab (Metabolites 2023, sect. 3.3).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "5-Aminovaleric acid",
+   "tR": 3.636,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 57,
+    "slopeSD": 2.0,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.996,
+    "lod": 2.31,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": null,
+   "typicalSaliva": null,
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Spike at 3.636 min; not found in saliva; peak at 3.736 assigned to formic acid (sect. 3.2, Fig. S2C).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Formic acid",
+   "tR": 3.723,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 63,
+    "slopeSD": 0.1,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 2.07,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 3.736,
+    "slope": 63,
+    "intercept": 2,
+    "r2": 0.9974,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 1466.4,
+    "medianUM": 1066.1,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Malic acid",
+   "tR": 4.018,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 162,
+    "slopeSD": 0.3,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.8,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 4.015,
+    "slope": 173,
+    "intercept": 528.7,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 24038.7,
+    "medianUM": 23367.3,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Pyruvic acid",
+   "tR": 4.272,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 959,
+    "slopeSD": 1.6,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.14,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 4.24,
+    "slope": 1164,
+    "intercept": 0,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": null,
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "In saliva masked by malic acid (mM levels); not detectable in saliva with this elution (text, sect. 3.2). Partly adsorbed by Salivette swab (Metabolites 2023, sect. 3.3).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Valine",
+   "tR": 4.36,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 66,
+    "slopeSD": 0.1,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 1.97,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 4.362,
+    "slope": 64,
+    "intercept": 0,
+    "r2": 0.9899,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 2327.9,
+    "medianUM": 2118.7,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Lactic acid",
+   "tR": 4.697,
+   "window": {
+    "from": 4.648,
+    "to": 4.802,
+    "source": "Table 2 (two peaks in saliva)"
+   },
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 110,
+    "slopeSD": 0.3,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 1.18,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": "4.648-4.802",
+    "slope": 111,
+    "intercept": 3.8,
+    "r2": 0.9985,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 2467.7,
+    "medianUM": 1637.9,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Elutes as two peaks in saliva at 4.648 and 4.802 min (text, sect. 3.1 and Table 2); validated vs 9-CMA method (Fig. S1). Table S2 footnote: figures of merit comparable to Biagi et al. 2012.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Acetic acid",
+   "tR": 4.935,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 46,
+    "slopeSD": 0.1,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 2.83,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 4.954,
+    "slope": 39,
+    "intercept": 15.4,
+    "r2": 0.9673,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 4265.0,
+    "medianUM": 2163.0,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "alpha-Ketoglutaric acid",
+   "tR": 5.141,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 1351,
+    "slopeSD": 2.4,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.1,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": null,
+   "typicalSaliva": {
+    "meanUM": 23.5,
+    "medianUM": 11.9,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "In the DHU paper (2022) appears as a shoulder at 5.022 min that can co-elute with acetic acid and interfere with DHU.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Dihydrouracil",
+   "tR": 5.167,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 4529,
+    "slopeSD": 112,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9988,
+    "lod": 0.03,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": null,
+   "typicalSaliva": null,
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Spike to saliva at 5.167 min; not detected in saliva with this method (sect. 3.2). See dedicated DHU entry (IJERPH 2022).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Uric acid",
+   "tR": 5.358,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 12773,
+    "slopeSD": 24,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.01,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 5.341,
+    "slope": 13320,
+    "intercept": 810,
+    "r2": 0.987,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 209.9,
+    "medianUM": 216.5,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Citric acid",
+   "tR": 5.496,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 345,
+    "slopeSD": 1.5,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.38,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 5.51,
+    "slope": 412,
+    "intercept": 0,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 214.6,
+    "medianUM": 214.6,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Glutathione (GSH)",
+   "tR": 5.813,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 2062,
+    "slopeSD": 14,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9998,
+    "lod": 0.06,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 5.95,
+    "slope": 1445,
+    "intercept": 0,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 37.0,
+    "medianUM": 34.0,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Fumaric acid",
+   "tR": 6.091,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 20940,
+    "slopeSD": 29,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.006,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 6.17,
+    "slope": 23793,
+    "intercept": 5.25,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 18.2,
+    "medianUM": 7.4,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "cis-Aconitic acid",
+   "tR": 6.618,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 16129,
+    "slopeSD": 143,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9998,
+    "lod": 0.008,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": null,
+   "typicalSaliva": {
+    "meanUM": 7.4,
+    "medianUM": 1.5,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Succinic acid",
+   "tR": 6.747,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 88,
+    "slopeSD": 0.9,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9996,
+    "lod": 1.49,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 6.756,
+    "slope": 96,
+    "intercept": 7.82,
+    "r2": 0.9981,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 946.9,
+    "medianUM": 345.9,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Acetoacetic acid",
+   "tR": 6.978,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 70,
+    "slopeSD": 7,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9819,
+    "lod": 2.06,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 7.04,
+    "slope": 70,
+    "intercept": 0,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 593.7,
+    "medianUM": 792.9,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "< LOD (2.1 uM) in 10 of 13 samples (text sect. 3.2).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Tyrosine",
+   "tR": 7.476,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 16717,
+    "slopeSD": 25,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.008,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 7.504,
+    "slope": 18408,
+    "intercept": 40.7,
+    "r2": 0.9996,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 26.1,
+    "medianUM": 11.5,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Glutathione disulfide (GSSG)",
+   "tR": 8.158,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 5402,
+    "slopeSD": 158,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9974,
+    "lod": 0.02,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 8.167,
+    "slope": 7214,
+    "intercept": 0,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 18.4,
+    "medianUM": 9.4,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Propionic acid",
+   "tR": 10.059,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 51,
+    "slopeSD": 0.1,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.99999,
+    "lod": 2.55,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 10.25,
+    "slope": 49,
+    "intercept": 1.7,
+    "r2": 0.9975,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 1018.5,
+    "medianUM": 333.3,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": null,
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Phenylalanine",
+   "tR": 17.019,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 3328,
+    "slopeSD": 5,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 0.039,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 17.547,
+    "slope": 3642,
+    "intercept": 6.24,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 41.8,
+    "medianUM": 14.3,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Elutes in the methanol gradient part; tR 17.019 (standards, Table S2) vs 17.547 (saliva recovery, Table 2).",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Butyric acid",
+   "tR": 22.89,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 66,
+    "slopeSD": 0.2,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9999,
+    "lod": 1.97,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 22.838,
+    "slope": "67 +/- 7",
+    "intercept": "4.9 +/- 2.7",
+    "r2": 0.981,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 2916.8,
+    "medianUM": 2189.4,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Elutes in the methanol gradient part of the run.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Tryptophan",
+   "tR": 23.356,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-RP220",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 4 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 15 min, then 10 min gradient to 80% MeOH, 10 min 80% MeOH",
+    "flow": "0.8 mL/min",
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "whole non-stimulated saliva (Salivette, 5 min), centrifuged 4500 g 10 min 4 C, diluted 1:5 or 1:10 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 63966,
+    "slopeSD": 362,
+    "intercept": null,
+    "units": "peak area per mM (area units not stated in the paper)",
+    "range": null,
+    "n": "3-4 concentration levels, N=3 replicates",
+    "r2": 0.9998,
+    "lod": 0.002,
+    "lodUnits": "uM",
+    "loq": null,
+    "matrix": "standards in eluent (5 mM H2SO4)"
+   },
+   "altCalibration": {
+    "tR": 23.392,
+    "slope": 70892,
+    "intercept": 34.6,
+    "r2": 0.9999,
+    "units": "mM^-1 (as printed)",
+    "location": "Table 2 (recovery in saliva sample n. 2)",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "meanUM": 6.2,
+    "medianUM": 2.7,
+    "n": "13 samples, 7 subjects",
+    "location": "Table 3"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Bramanti E. Validation and Application of a Derivatization-Free RP-HPLC-DAD Method for the Determination of Low Molecular Weight Salivary Metabolites. Int J Environ Res Public Health 2020;17(17):6158",
+    "doi": "10.3390/ijerph17176158",
+    "location": "Supplementary Table S2 (pp. 2-3 of ijerph-17-06158-s001.pdf); method sect. 2.5"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Elutes in the methanol gradient part.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B quaternary pump, G1329B ALS, G1316A TCC)",
+    "detector": "DAD G4212B, 220 nm; bandwidth and reference wavelength NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Peak area vs concentration, least squares (sect. 2.4); integration software, mode and baseline NOT STATED. Chromatogram axis in Fig. 1/S2 labelled 'Absorbance a.u.'",
+   "intercept": {
+    "reportedInPrimary": false,
+    "reportedElsewhere": "Table 2 (no uncertainty except butyric 4.9 +/- 2.7; several printed as 0, fit through origin not stated)",
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Dihydrouracil",
+   "tR": 5.151,
+   "window": null,
+   "channel": "DAD 220 nm",
+   "lambda": 220,
+   "method": {
+    "id": "ICCOM-SAL-DHU-ISO",
+    "column": "Agilent Zorbax Phenyl-Hexyl RP 250 x 4.6 mm, 5 um",
+    "mobilePhase": "5 mM H2SO4 (pH 2.2) isocratic 6 min, then MeOH rinse",
+    "flow": null,
+    "temp": "45 C",
+    "injection": "5 uL",
+    "instrument": "Agilent 1260 Infinity, DAD G4212B",
+    "samplePrep": "Salivette 5 min, centrifuged, diluted 1:5 in 5 mM H2SO4, 0.20 um RC filter"
+   },
+   "calibration": {
+    "slope": 4.443,
+    "slopeSD": 0.053,
+    "intercept": 60.8,
+    "interceptSD": 26.18,
+    "units": "peak area per umol/L (printed as umol^-1 L; area units not stated)",
+    "range": "1-2500 umol/L",
+    "n": "N=3 replicates",
+    "r2": 0.9981,
+    "lod": null,
+    "loq": 0.103,
+    "loqUnits": "umol/L (standards); 0.103-3.0 in saliva",
+    "matrix": "external calibration in eluent"
+   },
+   "altCalibration": {
+    "slope": 4.45,
+    "slopeSD": 0.044,
+    "intercept": -4.238,
+    "interceptSD": 50.9,
+    "r2": 0.999,
+    "matrix": "standard addition to saliva",
+    "location": "Table 1",
+    "status": "READ IN FULL TEXT"
+   },
+   "typicalSaliva": {
+    "text": "< LOQ in 18/21 healthy subjects; 0.19-4.01 umol/L in 3 subjects",
+    "location": "sect. 3.2, Table 2"
+   },
+   "source": {
+    "citation": "Campanella B, Lomonaco T, Benedetti E, Onor M, Nieri R, Marmorino F, Cremolini C, Bramanti E. Fast, Direct Dihydrouracil Quantitation in Human Saliva: Method Development, Validation, and Application. Int J Environ Res Public Health 2022;19(10):6033",
+    "doi": "10.3390/ijerph19106033",
+    "location": "Table 1; sect. 2.4 and 3.1"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Flow rate not stated in this paper. Particle size given as 5 um here vs 4 um in the 2020 paper. alpha-ketoglutaric shoulder at 5.022 min can raise the LOQ in saliva.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1260 Infinity (G1311B, G1329B, G1316A)",
+    "detector": "DAD G4212B, 220 nm; bandwidth/reference NOT STATED",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": "Area of the peak at 5.151 min (sect. 3.1); software and integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": true,
+    "external": "60.8 +/- 26.18",
+    "matrix": "-4.238 +/- 50.9",
+    "significanceTested": false,
+    "agentNote": "Not tested in the paper. Ratio |b|/s(b) = 2.3 (external) and 0.08 (matrix); meaning of +/- (SD or CI) and degrees of freedom not stated, so significance cannot be confirmed. External intercept equals about 14 umol/L of DHU, i.e. above the LOQ: forcing through zero would bias low levels."
+   },
+   "sameAsOwnerInstrument": "DICHIARATO DALL'UTENTE (8/11/2026): Agilent 1260 con DAD G4212B e software Agilent",
+   "responseUnitsAssumed": "mAU·s"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Lactic acid (9-CMA ester derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "FLD ex 365 / em 410 nm; UV 365 nm",
+   "lambda": 365,
+   "method": {
+    "id": "ICCOM-LAC-9CMA",
+    "column": null,
+    "mobilePhase": null,
+    "flow": null,
+    "temp": null,
+    "derivatization": "9-chloromethyl anthracene, ~70% completion in 30 min"
+   },
+   "calibration": {
+    "slope": null,
+    "intercept": null,
+    "units": null,
+    "range": "2e-4 - 3e-2 mM",
+    "n": null,
+    "r2": null,
+    "lod": 50,
+    "lodUnits": "nM (FL and UV)",
+    "loq": null,
+    "repeatability": "intra-day < 5%, inter-day < 6%"
+   },
+   "source": {
+    "citation": "Pellegrini D, Onor M, Degano I, Bramanti E. Development and validation of a novel derivatization method for the determination of lactate in urine and saliva by liquid chromatography with UV and fluorescence detection. Talanta 2014;130:280-287",
+    "doi": "10.1016/j.talanta.2014.07.015",
+    "location": "abstract only"
+   },
+   "status": "READ IN ABSTRACT",
+   "notes": "Full text paywalled (closed access per OpenAlex); slope, tR and column NOT FOUND.",
+   "instrument": {
+    "brand": null,
+    "model": null,
+    "detector": "fluorescence (ex 365/em 410) and UV 365 nm, models NOT FOUND",
+    "software": null
+   },
+   "responseUnits": null,
+   "integration": null,
+   "intercept": {
+    "reportedInPrimary": null,
+    "significanceTested": null,
+    "agentNote": "abstract only"
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Acetone (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.202,
+    "slopeRSD": "7%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.995,
+    "lod": 6,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "2-Butanone (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.238,
+    "slopeRSD": "7%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.997,
+    "lod": 2,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "2-Pentanone (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.31,
+    "slopeRSD": "8%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.998,
+    "lod": 3,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Propanal (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.289,
+    "slopeRSD": "6%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.997,
+    "lod": 1,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Butanal (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.136,
+    "slopeRSD": "10%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.994,
+    "lod": 2,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Hexanal (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.068,
+    "slopeRSD": "12%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.997,
+    "lod": 2,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Acrolein (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.509,
+    "slopeRSD": "6%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.999,
+    "lod": 1,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Methacrolein (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 370 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 370,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.306,
+    "slopeRSD": "8%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.997,
+    "lod": 1,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Glyoxal (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 420 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 420,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.419,
+    "slopeRSD": "10%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.995,
+    "lod": 3,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  },
+  {
+   "technique": "hplc",
+   "sampleType": "saliva",
+   "name": "Methylglyoxal (2,4-DNPH derivative)",
+   "tR": null,
+   "window": null,
+   "channel": "DAD 420 nm (bw 5 nm, ref 550 +/- 20 nm)",
+   "lambda": 420,
+   "method": {
+    "id": "UNIPI-SAL-DNPH-UHPLC",
+    "column": "Agilent Zorbax Eclipse Plus C18 50 x 2.1 mm, 1.8 um + guard",
+    "mobilePhase": "water/ACN: 30% ACN 2 min, to 65% ACN in 17 min",
+    "flow": "0.5 mL/min",
+    "temp": "30 C",
+    "injection": "20 uL",
+    "instrument": "Agilent 1290 Infinity II UHPLC-DAD",
+    "samplePrep": "stimulated saliva (Salivette), 3 kDa ultrafiltration, DNPH 12 mM 60 min 30 C"
+   },
+   "calibration": {
+    "slope": 0.979,
+    "slopeRSD": "13%",
+    "intercept": null,
+    "units": "not stated (signal per ng/mL implied)",
+    "range": "25-250 ng/mL",
+    "n": "5 levels, n=3",
+    "r2": 0.996,
+    "lod": 2,
+    "lodUnits": "ng/mL",
+    "loq": null
+   },
+   "source": {
+    "citation": "Biagini D, Lomonaco T, Ghimenti S, Fusi J, Cerri E, De Angelis F, Bellagambi FG, Oger C, Galano JM, Bramanti E, Franzoni F, Fuoco R, Di Francesco F. Saliva as a non-invasive tool for monitoring oxidative stress in swimmers athletes performing a VO2max cycle ergometer test. Talanta 2020;216:120979",
+    "doi": "10.1016/j.talanta.2020.120979",
+    "location": "Table 2 (p. 5); method sect. 2.2 and 2.5 (HAL hal-02617520)"
+   },
+   "status": "READ IN FULL TEXT",
+   "notes": "Retention times NOT reported. Bramanti is a co-author (not corresponding). Derivatization method: not comparable with the direct 220 nm method.",
+   "instrument": {
+    "brand": "Agilent",
+    "model": "1290 Infinity II LC",
+    "detector": "1290 DAD; bandwidth +/-5 nm, reference 550 +/- 20 nm",
+    "software": "OpenLAB A.01.05"
+   },
+   "responseUnits": null,
+   "integration": "Deming regression of calibration (sect. 2.6); integration mode NOT STATED",
+   "intercept": {
+    "reportedInPrimary": false,
+    "significanceTested": false
+   },
+   "sameAsOwnerInstrument": "UNKNOWN - compare brand/model/detector/software with the owner's instrument; response units are not stated in any paper"
+  }
+ ]
+}

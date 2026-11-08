@@ -74,3 +74,11 @@ Senza controllo del giorno: m_c = ∞ e la componente tra i giorni (5% predefini
 6. Esperienza d'uso: un utente sceglie il profilo e capisce senza aiuto perché non riceve un numero.
 
 Implementazione: sviluppatore della libreria (moduli `app/library.js` e `app/hplc-stored-cal.js`), collaudo degli agenti HPLC, analitico e metrologo (che ripete le simulazioni), verifica delle norme da parte del revisore dei documenti.
+
+## Libreria di partenza: saliva, HPLC-DAD 220 nm (decisione del committente, 8 novembre 2026)
+Il committente usa lo stesso sistema degli articoli di partenza (Agilent 1260 Infinity con DAD G4212B e software Agilent). Le voci entrano quindi nella sua libreria come **tarature salvate**, utilizzabili nel profilo Ricerca, non come semplici riferimenti.
+- Fonti: Campanella et al., IJERPH 2020, 17, 6158 (doi:10.3390/ijerph17176158), 23 analiti, metodo RP-HPLC-DAD a 220 nm su Zorbax Phenyl-Hexyl; Campanella et al., IJERPH 2022, 19, 6033 (doi:10.3390/ijerph19106033), diidrouracile. Bozza delle voci, con tR, pendenza ± DS, R², LOD e posizione nella fonte: [`libreria/saliva-hplc-dad220.bozza.json`](libreria/saliva-hplc-dad220.bozza.json), preparata dall'agente di letteratura, da convertire nel formato `.acchlib.json` quando esisterà.
+- Pendenza predefinita: Tabella S2 (standard); la pendenza e l'intercetta della Tabella 2 (in saliva) restano come alternativa nella stessa voce.
+- Ogni voce dichiara «fonte: letteratura, stesso modello di strumento dichiarato dall'utente», l'unità dell'area assunta (mAU·s, predefinita del software Agilent, non scritta negli articoli) e la data della fonte; l'età si conta da quella data.
+- Avvisi da mostrare: tra le due tabelle dello stesso articolo le pendenze differiscono fino al 34% (GSSG) e i tR fino a 0,53 min (fenilalanina); il primo standard iniettato confronta subito la propria risposta con la pendenza salvata. Interferenze dichiarate dalle fonti: piruvico coperto dal malico, α-chetoglutarico vicino a diidrouracile e acetico, lattico in due picchi, creatinina e piruvico assorbiti in parte dalla Salivette.
+- Esclusi: lattato-9-CMA (solo abstract) e carbonili-DNPH (UHPLC 1290, senza tR) restano voci di sola identificazione.
