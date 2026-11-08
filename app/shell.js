@@ -76,7 +76,7 @@
     if (id==='sheet') renderSheet(); if (id==='graph') resize(); }
   $$('[data-go]').forEach(b=>{ const n=+b.dataset.go; b.addEventListener('click',()=>{ if (curView===n) mark(); }); });
   const oOpen=win.openTab; win.openTab=function(name){ const r=oOpen(name); if (name==='multi') showDoc('study'); else { if (docNow==='start'&&files.length) showDoc('graph'); multi.classList.toggle('on',docNow==='study'); } return r; };
-  const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; const r=await oAdd.apply(this,arguments); mark(); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
+  const oAdd=win.addEntries; win.addEntries=async function(){ lastWarn=''; impErr=null; const r=await oAdd.apply(this,arguments); mark(); if (lastWarn){ lastMsg=''; pushMsg(lastWarn); if (/⛔/.test(lastWarn)) impErr={cur:typeof cur!=='undefined'?cur:null}; } if (files.length&&docNow==='start') showDoc('graph'); mark(); return r; };
   const oView=win.setView; win.setView=function(m){ const r=oView(m); if (m==='cmp') clearErr(); else if (win.qualBannerRefresh) setTimeout(win.qualBannerRefresh,0); app.classList.toggle('cmp',m==='cmp'); applySizes(); if (m==='cmp'&&docNow!=='graph'&&files.length) showDoc('graph'); return r; };
   const oReveal=win.reveal; win.reveal=function(sel){ const t=typeof sel==='string'?$(sel):sel; if (t&&t.closest){ const res=t.closest('.shres'); if (res){ showPane('bottom',true); showRes(res.dataset.res); return; } if (t.closest('#shStudy')) showDoc('study'); } return oReveal(sel); };
   /* dopo una deconvoluzione: si vede la zona adattata e la sua tabella */
@@ -120,7 +120,7 @@
   const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   const isWarnMsg=t=>/😕|⚠️|⛔/.test(String(t)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible|accepted))(?=\s|$|[.,:;!?])/i.test(String(t));
-  let lastMsg='', lastWarn='', sticky=null; function pushMsg(t, forCur){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean;
+  let lastMsg='', lastWarn='', sticky=null, impErr=null; function pushMsg(t, forCur){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean;
     // un problema grave (⛔) sullo spettro aperto resta nella barra finché si resta su quello spettro: i suggerimenti d'uso vanno solo nel registro
     const err=/^⛔/.test(String(t)); if (sticky && (typeof cur==='undefined' || cur!==sticky)) sticky=null; if (err) sticky=forCur!=null?forCur:(typeof cur!=='undefined'?cur:null);
     if (!err && sticky!=null && !isWarnMsg(t)){ const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); return; }
@@ -164,7 +164,8 @@
   function sheetText(sp){ const c=shData.cols,L=[c.map(x=>x[0]).join(sp)]; for (let i=0;i<shData.n;i++) L.push(c.map(x=>{ const v=x[1](i); return v==null?'':String(v); }).join(sp)); return L.join('\n'); }
   async function copySheet(){ try{ await navigator.clipboard.writeText(sheetText('\t')); pushMsg(tr('Dati copiati negli appunti.')); }catch(e){ pushMsg(tr('Non riesco a copiare negli appunti.')); } }
 
-  function clearErr(t){ if (stMsg.classList.contains('err')){ stMsg.classList.remove('err'); stMsg.textContent=t||''; stMsg.title=t||''; lastMsg=''; } sticky=null; }
+  // il ⛔ d'importazione riguarda il caricamento, non lo spettro aperto: il controllo di qualità di uno spettro senza problemi non lo cancella finché non si cambia spettro
+  function clearErr(t){ if (impErr && typeof cur!=='undefined' && impErr.cur===cur) return; impErr=null; if (stMsg.classList.contains('err')){ stMsg.classList.remove('err'); stMsg.textContent=t||''; stMsg.title=t||''; lastMsg=''; } sticky=null; }
   win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,clearErr,get doc(){ return docNow; },act};
   /* avvio */
   applySizes(); mark(); showRes(lsG('acch.sh.res','peaks')); updateStatus(); pushMsg('Pronto');
