@@ -2249,7 +2249,7 @@ function parseText0(text, opt){
   }
   const tail=[]; let extraCols=0, dropped=0, pending=0, headBad=0, thou=0, after=0, midText=false, gap0=null; const firstData=lines.slice(start).map(l=>l.trim()).find(l=>l&&parseLine(l)), ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,lines.indexOf(lines.slice(start).find(l=>l.trim()===firstData))).map(l=>l.trim()).filter(Boolean)), firstData?(splitLine(firstData)||[]).length:0);
   const THOU=/^[-+]?(\d{1,3}(\.\d{3})+,\d+|\d{1,3}(\.\d{3}){2,}|\d{1,3}(,\d{3})+\.\d+)$/, DOT3=/^[-+]?[1-9]\d{0,2}\.\d{3}$/, COMMA3=/^[-+]?[1-9]\d{0,2},\d{3}$/, COMMA=/^[-+]?\d+,\d+$/;
-  const newB=()=>({xs:[],ys:[],extra:0,textBefore:0,cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
+  const newB=(h)=>({xs:[],ys:[],extra:0,textBefore:0,hdr:h||[],cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
   // quante celle vuote ci sono fra i valori: se cambia da una riga all'altra una colonna è saltata, e la riga non si può leggere
   const lead=r=>/^\t|^\s*[,;]/.test(r)?1:0;   // prima colonna vuota: senza X la riga non si può leggere
   const innerEmpty=l=>{ const sep=l.includes('\t')?'\t':l.includes(';')?';':(!/\s/.test(l)&&l.includes(','))?',':null; if (!sep) return 0; const q=sep===','&&l.includes('"')?csvSplit(l):l.split(sep); let n=0; for (let k=1;k<Math.min(q.length-1,ycol+1);k++) if (!q[k].trim()) n++; return n; };
@@ -2261,7 +2261,8 @@ function parseText0(text, opt){
     if (p && ntok0 && !/[\t;,]/.test(l) && tk.length<ntok0) p=null;   // separatore a spazi: una colonna mancante sposterebbe le altre
     if (!p && /^"?[^\d+\-.",;\t]/.test(l)){   // riga di testo: chiude il blocco di numeri
       if (cur.xs.length>=3){ blocks.push(cur); cur=newB(); }
-      else if (cur.xs.length){ if (blocks.length) after+=cur.xs.length; cur=newB(); }
+      else if (cur.xs.length){ if (blocks.length) after+=cur.xs.length; cur=newB(cur.hdr); }
+      if (cur.hdr.length<60) cur.hdr.push(l);   // intestazione del blocco: da qui si legge il canale del blocco letto davvero
       if (blocks.length){ cur.textBefore++; if (tail.length<120) tail.push(l); } else meta.push(l);
       pending=0; continue; }
     if (cur.xs.length>=3 && tk.length>1){
@@ -2288,7 +2289,7 @@ function parseText0(text, opt){
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
   for (const c of cols){ if (c.dot && c.int && !c.other) thou+=c.dot; if (c.com && c.int && !c.other) thou+=c.com; }
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2)};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -4350,7 +4351,10 @@ function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
 const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
-const dispTitle = f => ((f.title && f.title.trim()) || f.name)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
+// nomi di file uguali (cartelle .D di ChemStation: STD1.D/DAD1A.CSV, STD2.D/DAD1A.CSV): si aggiunge la cartella, o un numero se anche questa coincide
+const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
+  const dir=g=>String(g.path||'').split(/[\\/]/).slice(0,-1).pop()||'', d=dir(f); return ' ('+(d && all.filter(g=>dir(g)===d).length===1 ? d : all.indexOf(f)+1)+')'; };
+const dispTitle = f => ((f.title && f.title.trim()) || f.name)+sameNameTag(f)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
 function fkey(f){ return LS_FILE + f.path + '|' + (f.n0||f.xs.length); }
@@ -4404,7 +4408,7 @@ function insetKeyFile(f){ return [S.conv[f.instr], pBase(f), pSmooth(f), f.kind,
 function insetKeyCmp(c){ const m=members(c); return [c.mode, c.gap, ...m.map(f=>S.conv[f.instr]+'/'+S.base[f.instr]+'/'+f.kind), !!S.logY[c.instr]].join('|'); }
 function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {auto: o.inset.yk!==key}) : null; }
 /* allineamento in energia (XRF): x_nuovo = a + b·x_file; picchi ed etichette vengono spostati di conseguenza */
-function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.removed=[]; f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
+function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.ycolNow=c; delete f._chan; f.removed=[];   /* il canale va riletto dalla colonna e dal blocco nuovi */ f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
 function kindOf(f){ return (f.an&&f.an.ykind) || (f.an&&f.an.calc&&['ftir','uv'].includes(f.instr) ? 'U' : yKindFor(f.instr, f._p)); }
 function bindAxisFields(){
   const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; [...$('#pBmSel').options].forEach(o=>{ o.hidden=o.disabled=!baseAllowed(f.instr, o.value||null); }); $('#pBmSel').value=(f.an&&f.an.pBm&&baseAllowed(f.instr,f.an.pBm))?f.an.pBm:''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1)+(f.colNames&&f.colNames[c]?' · '+f.colNames[c]:''); o.setAttribute('data-noi18n',''); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
@@ -4864,7 +4868,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -4897,8 +4901,10 @@ async function addEntries(entries){
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
   { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true);
       // il messaggio dice che cosa è successo davvero: un secondo canale non letto non è un problema di separatori
-      const q=bad[0].importIssue, nm=bad[0].name, en=uiEn(), more=bad.length>1?(en?` (and ${bad.length-1} more files)`:` (e altri ${bad.length-1} file)`):'';
-      const why = q.channel ? (en?`«${nm}» contains a second channel (${q.after} rows) that was not read: one channel per file is read. Export the channels as separate files`:`«${nm}» contiene un secondo canale (${q.after} righe) che non ho letto: leggo un canale per file. Esporta i canali in file separati`)
+      const q=bad[0].importIssue, nm=bad[0].name, en=uiEn(), more=bad.length>2?(en?` (and ${bad.length-1} more files)`:` (e altri ${bad.length-1} file)`):bad.length===2?(en?' (and 1 more file)':' (e un altro file)'):'';
+      const lab=q.channel&&bad[0].instr==='hplc'?chanOf(bad[0]):'', k=(bad[0].blockIx||0)+1, rd=lab?(en?`channel «${lab}»`:`il canale «${lab}»`):(en?`block ${k} (the longest)`:`il blocco ${k} (il più lungo)`);   // si dice quale canale è stato letto: può essere il secondo
+      const why = q.channel && bad[0].instr!=='hplc' ? (en?`«${nm}» contains a second channel (${q.after} rows) that was not read: one channel per file is read. Export the channels as separate files`:`«${nm}» contiene un secondo canale (${q.after} righe) che non ho letto: leggo un canale per file. Esporta i canali in file separati`)
+        : q.channel ? (en?`«${nm}» contains more than one channel: I read ${rd}, ${q.after} other rows were not read (one channel per file). Export the channels as separate files`:`«${nm}» contiene più di un canale: ho letto ${rd}, altre ${q.after} righe non le ho lette (un canale per file). Esporta i canali in file separati`)
         : q.thou ? (en?`thousands separators in «${nm}»: numbers may be wrong`:`separatori delle migliaia in «${nm}»: i numeri possono essere sbagliati`)
         : q.dropped ? (en?`${q.dropped} unread rows in «${nm}»`:`${q.dropped} righe non lette in «${nm}»`)
         : (en?`data to check in «${nm}»`:`dati da controllare in «${nm}»`);
@@ -6537,6 +6543,7 @@ function cleanAn(v){
   if (['blank','qc'].includes(v.role)) o.role=v.role; if (typeof v.concK==='string' && v.concK.length<60) o.concK=v.concK; if (v.concs && typeof v.concs==='object'){ const m={}; Object.entries(v.concs).slice(0,60).forEach(([k,x])=>{ if (/^-?[\d.e+]+\|-?[\d.e+]+$/i.test(k) && typeof x==='number' && isFinite(x)) m[k]=x; }); if (Object.keys(m).length) o.concs=m; } if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (['none','linear','rubber','arpls','snip'].includes(v.pBm)) o.pBm=v.pBm;
   if (Number.isInteger(v.ycol) && v.ycol>1 && v.ycol<200) o.ycol=v.ycol;
   if (COLOURS[v.color]) o.color=v.color;
+  if (typeof v.chan==='string' && v.chan && v.chan.length<=40) o.chan=v.chan;   // canale HPLC scelto a mano
   if (['direct','indirect'].includes(v.trans)) o.trans=v.trans; if (['abs','refl'].includes(v.data)) o.data=v.data;
   return Object.keys(o).length ? o : null;
 }
@@ -6573,7 +6580,7 @@ function assess(f, d){
   if (/^(asse X in minuti|intervallo 150|intervallo IR|shift cm|conteggi interi)/.test(f.reason||'') && f.instr===f.autoInstr) add('info', `Tecnica dedotta solo dagli intervalli dei numeri (${f.reason}): controlla che sia giusta in «Dati dello spettro».`);
   if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.');
   if (it==='xrf'){ let neg=0; for (const v of f.ys) if (v<0) neg++; if (neg) add('warn',`${neg} canali con conteggi negativi: i conteggi veri non sono mai negativi, lo spettro è già stato elaborato e l'incertezza di conteggio non vale.`); }
-  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare un separatore delle migliaia (${q.thou} valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after && q.channel) add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${q.after} righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato.`); else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
+  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare un separatore delle migliaia (${q.thou} valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after && q.channel && f.instr!=='hplc') add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${q.after} righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato.`); else if (q.after && q.channel){ const lab=chanOf(f), k=(f.blockIx||0)+1, n=f.nBlocks||2; add('warn', lab ? `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il canale «${lab}» (blocco ${k} di ${n}, il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.` : `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il blocco ${k} di ${n} (il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.`); } else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
   if (f.nCols>2) add('info', `Il file ha ${f.nCols} colonne: Y è la colonna ${(f.an&&f.an.ycol||1)+1}. La puoi cambiare in «Dati dello spettro».`);
   if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
@@ -7022,17 +7029,43 @@ const BAND_PRESETS = {
 };
 function mvIndexName(instr, c){ const p=c&&c.preset!=null&&(BAND_PRESETS[instr]||[])[c.preset]; if (!p || p[1]!==c.a || p[2]!==c.b || (p[3]??null)!==(c.c??null) || (p[4]??null)!==(c.d??null)) return null; return String(p[0]).split(/[:(]/)[0].trim(); }
 const MEAS_NAME={height:'altezza', area:'area', value:'valore in un punto', centroid:'baricentro', fwhm:'FWHM'};
-// canale del rivelatore letto dal nome del file o dall'intestazione (DAD1 A, Sig=254, VWD1 A, FLD, UV_VIS_1, Detector A-Ch1, 254 nm…)
-function chanOf(f){ if (f._chan!==undefined) return f._chan; const t=(f.name||'')+'\n'+(f.meta||[]).slice(0,40).join('\n'); let d='', w='';
-  let m=/(?<![A-Za-z0-9])(DAD|MWD|VWD|FLD|RID|ELSD|PDA|ADC)[\s_-]?(\d)?[\s_-]?([A-H])?(?![A-Za-z0-9])/i.exec(t); if (m) d=(m[1]+(m[2]||'')+(m[3]||'')).toUpperCase();
-  if (!d && (m=/(?<![A-Za-z0-9])UV[_ ]?VIS[_ ]?(\d)(?![0-9])/i.exec(t))) d='UV_VIS_'+m[1]; if (!d && (m=/Detector\s*([A-Z])[\s_-]*Ch\s?(\d)/i.exec(t))) d='Det '+m[1].toUpperCase()+'-Ch'+m[2]; if (!d && (m=/(?<![A-Za-z0-9])Ch(?:annel)?[\s_]?([A-D1-9])(?![A-Za-z0-9])/.exec(t))) d='Ch'+m[1];
-  if ((m=/Sig\s*=\s*(\d{3})/i.exec(t)) || (m=/(?<![0-9])(\d{3})(?:[.,]\d)?\s?nm(?![a-z])/i.exec(t))) w=m[1]+' nm';
-  return (f._chan=[d,w].filter(Boolean).join(' ')); }
-function mvChans(instr, c){ if (instr!=='hplc') return []; const L=(c.which==='all' ? files : included()).filter(f=>f.instr===instr); const set=[...new Set(L.map(chanOf).filter(Boolean))]; return set.length>1 ? set : []; }
+// canale del rivelatore (DAD1 A, Sig=254, VWD1 A, FLD1 A, UV_VIS_1, Detector A-Ch1, Ch1, 254 nm…) in un testo.
+// Vince la sigla più specifica: «Agilent 1260 DAD» è lo strumento, «DAD1 A» è il segnale. Un DAD/VWD/MWD/PDA senza numero né lettera non è un canale.
+function chanParse(t){ let d='', sc=0, w='', m; const re=/(?<![A-Za-z0-9])(DAD|MWD|VWD|FLD|RID|ELSD|PDA|ADC)(?:[\s_-]?(\d)(?!\d))?(?:[\s_-]?([A-H])(?![A-Za-z]))?/gi;
+  while ((m=re.exec(t))){ const nx=t.slice(m.index+m[0].length), gen=!m[2]&&!m[3];
+    if (/^[A-Za-z]/.test(nx) || (gen && /^\d/.test(nx))) continue;
+    let k=(m[2]?1:0)+(m[3]?1:0)+1; if (gen && /^(DAD|MWD|VWD|PDA)$/i.test(m[1])) k=0;   // rivelatore UV generico: è lo strumento, non il canale
+    if (k>sc){ sc=k; d=(m[1]+(m[2]||'')+(m[3]||'')).toUpperCase(); const q=m[3]&&/^(\d{3})(?!\d)/.exec(nx); if (q && +q[1]>=190 && +q[1]<=950) w=q[1]; } }   // DAD1A254
+  if (!d && (m=/(?<![A-Za-z0-9])UV[_ ]?VIS[_ ]?(\d)(?![0-9])/i.exec(t))) d='UV_VIS_'+m[1];
+  if (!d && (m=/Detector\s*([A-Z])[\s_-]*Ch\s?(\d)/i.exec(t))) d='Det '+m[1].toUpperCase()+'-Ch'+m[2];
+  if (!d && (m=/(?<![A-Za-z0-9])Ch(?:annel)?[\s_]?([A-D1-9])(?![A-Za-z0-9])/i.exec(t))) d='Ch'+m[1].toUpperCase();
+  // λ: prima «Sig=254» (ChemStation/OpenLab; «Ref=360» è il riferimento), poi «Wavelength 254», poi «254 nm»; un intervallo («190-400 nm») non è la λ di un canale
+  const ok=x=>+x>=190 && +x<=950;
+  if (!w) for (const r of [/Sig\s*=?\s*(\d{3})(?!\d)/gi, /(?:Wavelength|Lambda|λ)\s*[:=]?\s*(\d{3})(?!\d)/gi, /(?<![\d.,]|\d\s*(?:[-–~]|to)\s*)(\d{3})(?:[.,]\d+)?\s?nm(?![a-z])(?!\s*(?:[-–~]|to)\s*\d)/gi]){ while ((m=r.exec(t))) if (ok(m[1])){ w=m[1]; break; } if (w) break; }
+  return {d, w}; }
+// canale del file: dalla colonna Y letta (file a più colonne), poi dall'intestazione del blocco letto davvero, poi dal nome.
+// La λ si prende solo da una fonte che non nomina un altro segnale. Una scelta a mano (f.an.chan) vale solo se il canale non si riconosce.
+function chanOf(f){ if (f._chan===undefined){ const yc=f.ycolNow||(f.an&&f.an.ycol)||1, multi=(f.nCols||2)>2, cn=multi&&f.colNames?String(f.colNames[yc]||''):'';
+    const src=[cn, (f.blockHead||f.meta||[]).slice(0,60).join('\n'), f.name||''].map(chanParse);
+    let d='', w=''; if (multi){ if (src[0].d||src[0].w){ d=src[0].d; w=src[0].w; } else if (yc>1) d='col. '+(yc+1); }   // in un file a più colonne l'intestazione e il nome parlano della prima colonna
+    if (!d && !w) for (const q of src.slice(1)) if (q.d){ d=q.d; break; }
+    if (!w) for (const q of src.slice(multi?0:1)) if (q.w && (!q.d || q.d===d || !d)){ w=q.w; break; }
+    f._chan=[d, w&&w+' nm'].filter(Boolean).join(' '); }
+  return f._chan || (f.an&&typeof f.an.chan==='string'?f.an.chan:''); }
+// lo stesso canale scritto in due modi («DAD1A» e «DAD1A 254 nm», «254 nm» e «DAD1A 254 nm») diventa uno solo, se non c'è ambiguità
+function chanMap(L){ const raw=new Map(L.map(f=>[f, chanOf(f)])), P=s=>{ const m=/^(.*?)\s*(\d{3}) nm$/.exec(s); return m?{d:m[1],w:m[2]}:{d:s,w:''}; }, ws={}, wd={};
+  for (const s of raw.values()) if (s){ const {d,w}=P(s); if (d){ ws[d]=ws[d]||new Set(); if (w) ws[d].add(w); } }
+  Object.entries(ws).forEach(([d,S])=>{ if (S.size===1){ const w=[...S][0]; (wd[w]=wd[w]||new Set()).add(d); } });
+  const lab=s=>{ if (!s) return ''; const {d,w}=P(s); if (d) return w ? s : ws[d].size===1 ? d+' '+[...ws[d]][0]+' nm' : d; const D=wd[w]; return D&&D.size===1 ? [...D][0]+' '+w+' nm' : s; };
+  return new Map([...raw].map(([f,s])=>[f, lab(s)])); }
+function mvChanList(instr, c){ return (c.which==='all' ? files : included()).filter(f=>f.instr===instr); }
+function mvChans(instr, c){ if (instr!=='hplc') return []; const M=chanMap(mvChanList(instr, c)), set=[...new Set([...M.values()].filter(Boolean))]; return set.length>1 ? set : []; }
+// file senza canale riconoscibile, quando i canali sono più di uno: restano fuori dalla retta e vanno nominati
+function mvNoChan(instr, c){ if (!mvChans(instr, c).length) return []; const M=chanMap(mvChanList(instr, c)); return [...M].filter(([,k])=>!k).map(([f])=>f); }
 // una retta di taratura vale per un solo canale del rivelatore: con più canali caricati si lavora su uno alla volta
-function mvFiles(instr, c){ const L=(c.which==='all' ? files : included()).filter(f=>f.instr===instr), ch=mvChans(instr, c); if (!ch.length) return L;
-  if (!ch.includes(c.chan)){ const cnt={}; L.forEach(f=>{ const k=chanOf(f); if (k) cnt[k]=(cnt[k]||0)+1; }); c.chan=ch.sort((a,b)=>(cnt[b]-cnt[a])||a.localeCompare(b))[0]; }
-  return L.filter(f=>chanOf(f)===c.chan); }
+function mvFiles(instr, c){ const L=mvChanList(instr, c), ch=mvChans(instr, c); if (!ch.length) return L; const M=chanMap(L);
+  if (!ch.includes(c.chan)){ const cnt={}; L.forEach(f=>{ const k=M.get(f); if (k) cnt[k]=(cnt[k]||0)+1; }); c.chan=ch.sort((a,b)=>(cnt[b]-cnt[a])||a.localeCompare(b))[0]; }
+  return L.filter(f=>M.get(f)===c.chan); }
 function mvValue(f, a, b, meas){
   const P=processed(f), U=upData(P);
   if (meas==='value' || a===b){ const n=P.xs.length, lo=Math.min(P.xs[0],P.xs[n-1]), hi=Math.max(P.xs[0],P.xs[n-1]); return n && a>=lo && a<=hi ? interpY(P.xs, U.y, a) : null; }
@@ -7144,8 +7177,16 @@ function renderMulti(){
     <label class="ibf"><span>${c.model==='trend'?'Unità di x':'Unità di concentrazione'}</span><input type="text" id="mvUnit" value="${esc(c.unit||'')}" placeholder="${c.model==='trend'?'es. h':'es. mg/L'}" style="min-width:90px;width:100px"></label>`;
   const rows=mvTable(instr), cal=mvCalib(rows), xu=(INSTR[instr].xPdf||'').replace('cm-1','cm⁻¹');
   let html='';
-  { const ch=mvChans(instr, c); if (ch.length) html+=`<div class="signote">⚠️ Sono caricati cromatogrammi di ${ch.length} canali diversi (${ch.map(esc).join(', ')}). Una retta di taratura vale per un solo canale: ora uso <b data-noi18n>${esc(c.chan)}</b>; gli altri canali non entrano nella retta né nelle stime. Cambia canale con il menu «Canale» qui sopra.</div>`; }
-  if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?numOut(f.an.conc):''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
+  { const ch=mvChans(instr, c), en=uiEn(); if (ch.length){ mvFiles(instr, c); const L=(a,b)=>en?b:a, lst=ch.map(esc).join(', '), now=`<b>${esc(c.chan)}</b>`;
+      // testo già nella lingua dell'interfaccia (data-noi18n): il traduttore a nodi lo lasciava metà in italiano
+      html+=`<div class="signote" data-noi18n>⚠️ ${L(`Sono caricati cromatogrammi di ${ch.length} canali diversi (${lst}). Una retta di taratura vale per un solo canale: ora uso ${now}; gli altri canali non entrano nella retta né nelle stime. Cambia canale con il menu «Canale» qui sopra.`, `Chromatograms from ${ch.length} different channels are loaded (${lst}). A calibration line applies to one channel only: now using ${now}; the other channels are not used in the line or in the estimates. Change channel with the «Channel» menu above.`)}`;
+      // file di cui non si riconosce il canale: si nominano e si possono assegnare a mano (f.an.chan, salvato nel progetto)
+      const nc=mvChanList(instr, c).filter(f=>{ chanOf(f); return !f._chan; });
+      if (nc.length){ const free=nc.filter(f=>!(f.an&&f.an.chan)).length, opt=f=>`<option value="">${L('— nessun canale: escluso —','— no channel: left out —')}</option>`+ch.map(k=>`<option value="${esc(k)}" ${f.an&&f.an.chan===k?'selected':''}>${esc(k)}</option>`).join('');
+        html+=`<div class="nochan" style="margin-top:6px">${free?(free===1?L('In un file non riconosco il canale (né dal nome né dall\'intestazione): resta fuori dalla retta e dalle stime finché non scegli il suo canale.','In one file I cannot recognise the channel (neither from the name nor from the header): it stays out of the line and the estimates until you choose its channel.'):L(`In ${free} file non riconosco il canale (né dal nome né dall'intestazione): restano fuori dalla retta e dalle stime finché non scegli il loro canale.`,`In ${free} files I cannot recognise the channel (neither from the name nor from the header): they stay out of the line and the estimates until you choose their channel.`)):L('Canale scelto a mano:','Channel chosen by hand:')}</div>`
+          +nc.map(f=>`<label class="ibf" style="margin:4px 12px 0 0;display:inline-flex"><span data-noi18n>${esc(dispTitle(f))}</span><select class="chanin" style="max-width:280px" data-fi="${files.indexOf(f)}" aria-label="${esc(L('Canale di ','Channel of ')+dispTitle(f))}">${opt(f)}</select></label>`).join(''); }
+      html+='</div>'; } }
+  if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?numOut(f.an.conc):''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
     setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>numField(el, v=>{ anSet(list[+el.dataset.f], 'conc', v); rerenderKeep(renderMulti); }, {pos:true})), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
@@ -7183,6 +7224,7 @@ function renderMulti(){
     }
   }
   $('#mvOut').innerHTML=html;
+  $$('#mvOut .chanin').forEach(el=>el.onchange=()=>{ const f=files[+el.dataset.fi]; if (!f) return; anSet(f,'chan',el.value||null); rerenderKeep(renderMulti, true, el); });
   // eventi
   const mvMarkBad=(k,msg)=>setTimeout(()=>{ const r=$('#mv'+k.toUpperCase()); if (!r) return; r.setAttribute('aria-invalid','true'); r.title=msg; setTimeout(()=>{ const q=$('#mv'+k.toUpperCase()); if (q){ q.removeAttribute('aria-invalid'); q.title=''; } },5000); },40);
   const setNum=(k,el)=>{ let raw=String(el.value).trim();
