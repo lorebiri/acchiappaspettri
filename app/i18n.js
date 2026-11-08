@@ -48,7 +48,7 @@
       const SENT=/(?<=[.!?…])\s+(?=[\p{Lu}«])/u;
       { const q=/^(\d+) (\p{L}.*)$/u.exec(s); if (q){ const v=lookup(q[2]); if (v!=null) r=q[1]+' '+v; } }
       { const q=/^Usa «(.+)»$/su.exec(s); if (q){ const v=lookup(q[1]); r='Use «'+(v!=null?v:q[1])+'»'; } }
-      r=r||pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ');
+      r=r||pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ')||list('; ','; ');   // «nota; nota» (colonna Nota delle tabelle)
       if (r==null){ const m=/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N})»%]*)$/su.exec(s); if (m && (m[1]||m[3]) && m[2] && m[2]!==s){ const inner=lookup(m[2]); if (inner!=null) r=m[1]+inner+m[3]; } }
       if (r==null) r=pair(' — ',1)||pair(': ',1)||list(SENT,' ',1)||list(' · ',' · ',1)||list(', ',', ',1);
     }
