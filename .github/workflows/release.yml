@@ -6,6 +6,10 @@ on:
     tags: ["v*.*.*"]
 permissions:
   contents: read
+# due esecuzioni sullo stesso tag (tag cancellato e rifatto) scriverebbero nella stessa bozza: la seconda aspetta
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   check-version:
     runs-on: ubuntu-24.04
@@ -17,13 +21,31 @@ jobs:
           KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           PW: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: test -n "$KEY" && test -n "$PW" || { echo "Mancano i segreti di firma (docs/PUBBLICARE.md)"; exit 1; }
+  draft:
+    # tauri-action riusa la prima release con questo tag: una bozza rimasta da un altro commit porterebbe pacchetti e latest.json vecchi
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # le bozze sono visibili solo con il permesso di scrittura
+    steps:
+      - name: Nessuna release pubblicata o bozza di un altro commit con questo tag
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[]|select(.tag_name==\"$GITHUB_REF_NAME\")|[.id,.draft,.target_commitish]|@tsv" > found.tsv
+          cat found.tsv
+          n=$(grep -c . found.tsv || true)
+          if [ "$n" -gt 1 ]; then echo "::error::$n release con il tag $GITHUB_REF_NAME: ne deve restare al più una (bozza dello stesso commit)"; exit 1; fi
+          if [ "$n" = 1 ]; then
+            IFS=$'\t' read -r id draft commit < found.tsv
+            if [ "$draft" != true ]; then echo "::error::la release $GITHUB_REF_NAME è già pubblicata (id $id): non si ripubblica sopra"; exit 1; fi
+            if [ "$commit" != "$GITHUB_SHA" ]; then echo "::error::bozza $id di un altro commit ($commit, tag su $GITHUB_SHA): va cancellata prima di pubblicare"; exit 1; fi
+            echo "::notice::bozza $id dello stesso commit: si riprende (nuova esecuzione)"
+          fi
   tests:
     needs: check-version
     uses: ./.github/workflows/ci.yml
     with: { native: true }
-    secrets: inherit
   build:
-    needs: tests
+    needs: [tests, draft]
     permissions:
       contents: write
     strategy:
@@ -31,8 +53,8 @@ jobs:
       max-parallel: 1   # tauri-action fonde latest.json leggendo e riscrivendo: in parallelo si perderebbe una piattaforma
       matrix:
         include:
-          - { os: windows-latest, args: "--bundles nsis" }
-          - { os: macos-latest, args: "--target aarch64-apple-darwin --bundles app,dmg", rust_target: aarch64-apple-darwin }
+          - { os: windows-2025, args: "--bundles nsis" }   # stesse immagini della CI
+          - { os: macos-26, args: "--target aarch64-apple-darwin --bundles app,dmg", rust_target: aarch64-apple-darwin }
           - { os: macos-15-intel, args: "--target x86_64-apple-darwin --bundles app,dmg", rust_target: x86_64-apple-darwin }   # compilato su un Mac Intel vero
           - { os: ubuntu-22.04, args: "--bundles appimage,deb" }
     runs-on: ${{ matrix.os }}
@@ -53,6 +75,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libgtk-3-dev
       - run: npm ci
+      - uses: ./.github/actions/tauri-tools
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,6 +89,9 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+          # come in ci.yml: nuovi tentativi solo per hdiutil «Resource busy» e download falliti per la rete, con ::warning::
+          # (retryAttempts di tauri-action ripete qualsiasi errore senza avviso: non si usa)
+          tauriScript: node .github/scripts/tauri-build.js
       - name: Versioni delle librerie Ubuntu incluse nell'AppImage (per l'offerta del codice sorgente LGPL)
         if: startsWith(matrix.os, 'ubuntu')
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
