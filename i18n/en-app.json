@@ -877,5 +877,9 @@
 "il blocco {0} (il più lungo)": "block {0} (the longest)",
 "il canale «{0}»": "channel «{0}»",
 "nessun canale: escluso —": "no channel: left out —",
-"«{0}» contiene più di un canale: ho letto {1}, altre {2} righe non le ho lette (un canale per file). Esporta i canali in file separati": "«{0}» contains more than one channel: I read {1}, {2} other rows were not read (one channel per file). Export the channels as separate files"
+"«{0}» contiene più di un canale: ho letto {1}, altre {2} righe non le ho lette (un canale per file). Esporta i canali in file separati": "«{0}» contains more than one channel: I read {1}, {2} other rows were not read (one channel per file). Export the channels as separate files",
+"⛔ Da controllare:": "⛔ To check:",
+"{0} Da controllare:": "{0} To check:",
+"una riga di testo interrompe i dati in «{0}»": "a line of text interrupts the data in «{0}»",
+"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
 }

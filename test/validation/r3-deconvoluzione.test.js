@@ -1,6 +1,9 @@
-// R3: deconvoluzione. (a) dati SINTETICI senza rumore, semi automatici di deconvolve: centri, FWHM e aree con LRE ≥ 6;
-// (b) dati SINTETICI con rumore (fixture Python): errori standard di fitPeaks contro scipy curve_fit sugli stessi dati, LRE ≥ 2;
-// (c) un fit fallito non deve risultare «riuscito».
+// R3: deconvoluzione. (a) dati SINTETICI senza rumore, semi automatici di deconvolve: centri, FWHM e aree con LRE ≥ 12;
+// (b) dati SINTETICI con rumore (fixture Python): centri, FWHM e aree di fitPeaks contro scipy curve_fit sugli stessi dati (LRE ≥ 6),
+//     errori standard (LRE ≥ 4; deconvoluzione automatica ≥ 5);
+// (c) un fit fallito non deve risultare «riuscito», con il criterio letto da runFitUI.
+// Soglie vicine ai valori ottenuti (ciclo 25: 15 senza rumore; 7,7–11,2 sui parametri con rumore; ≥ 6,1 sugli errori della automatica):
+// una soglia larga lascerebbe passare un errore vero.
 'use strict';
 const test=require('node:test'), assert=require('node:assert'), path=require('path');
 const C=require('./core.js'), {lre}=require('../strd/strd.js');
@@ -37,18 +40,25 @@ function noisyRows(){ if (_n) return _n;
     return {caso:c.nome, profilo:c.profilo, n:c.x.length, componenti:c.veri.length, ssr:{app:f.ssr, scipy:c.curve_fit.ssr}, semi:comp(f), auto:{trovati:auto.peaks.length, comp:auto.peaks.length===c.veri.length?comp(auto):[]}};
   });
 }
-// criterio dell'interfaccia (index.html, runFitUI: «poco affidabile» se R² < 0,9 o residuo ≥ 2 volte il rumore)
-const uiWarns=(fit, sig)=> fit.r2<0.9 || (sig && fit.rmse/sig>=2);
+// criterio dell'interfaccia letto dal testo di runFitUI (index.html), non riscritto qui: se cambia, il test segue il codice vero
+function uiCriterion(){
+  const html=require('fs').readFileSync(C.INDEX,'utf8'), a=html.indexOf('async function runFitUI('), body=html.slice(a, html.indexOf('\nfunction ', a+10));
+  const rr=/const rr=([^;]+);/.exec(body), cond=/if \((.+?)\) toast\(`⚠️ Deconvoluzione eseguita ma poco affidabile/.exec(body);
+  if (a<0 || !rr || !cond) throw new Error('criterio «poco affidabile» di runFitUI non trovato: aggiornare il test');
+  return new Function('fit', `const rr=${rr[1]}; return !!(${cond[1]});`);
+}
+const uiWarns=uiCriterion();
 module.exports={cleanRows, noisyRows};
 
 if (require.main===module){
-  test('R3 deconvoluzione senza rumore, semi automatici: centri, FWHM, aree con LRE ≥ 6 (Gauss, Lorentz, pseudo-Voigt; 2 e 4 componenti)', ()=>{
-    const bad=cleanRows().filter(r=>r.trovati!==r.attesi || Math.min(r.minLRE.c,r.minLRE.w,r.minLRE.area)<6);
+  test('R3 deconvoluzione senza rumore, semi automatici: centri, FWHM, aree con LRE ≥ 12 (Gauss, Lorentz, pseudo-Voigt; 2 e 4 componenti)', ()=>{
+    const bad=cleanRows().filter(r=>r.trovati!==r.attesi || Math.min(r.minLRE.c,r.minLRE.w,r.minLRE.area)<12);
     assert.deepStrictEqual(bad.map(r=>`${r.profilo} ${r.caso}: ${r.trovati}/${r.attesi} componenti, LRE min c ${r.minLRE.c.toFixed(1)} w ${r.minLRE.w.toFixed(1)} area ${r.minLRE.area.toFixed(1)}`), []);
   });
-  test('R3 con rumore: errori standard di fitPeaks come scipy curve_fit (LRE ≥ 2), stesso minimo', ()=>{
+  test('R3 con rumore: centri, FWHM e aree di fitPeaks come scipy curve_fit (LRE ≥ 6), errori standard (LRE ≥ 2), stesso minimo', ()=>{
     for (const r of noisyRows()){
       assert.ok(Math.abs(r.ssr.app-r.ssr.scipy)/r.ssr.scipy<=1e-6, `${r.caso}: SSR ${r.ssr.app} contro ${r.ssr.scipy}`);
+      for (const [j,q] of r.semi.entries()) for (const k of ['c','w','area']) assert.ok(q.lre[k]>=6, `${r.caso} comp. ${j+1} ${k}: LRE ${q.lre[k].toFixed(2)} contro scipy (app ${q.calc[k]}, scipy ${q.rif[k]})`);
       for (const [j,q] of r.semi.entries()) for (const k of ['s_c','s_w','s_area','s_eta']) if (q.lre[k]!=null) assert.ok(q.lre[k]>=2, `${r.caso} comp. ${j+1} ${k}: LRE ${q.lre[k].toFixed(2)} (app ${JSON.stringify(q.calc)}, scipy ${JSON.stringify(q.rif)})`);
     }
   });
@@ -56,14 +66,18 @@ if (require.main===module){
     // con LRE ≥ 2 un errore sui gradi di libertà (SSR/n invece di SSR/(n−p), 0,8% con n = 600) passerebbe: verificato con una copia sabotata
     for (const r of noisyRows()) for (const [j,q] of r.semi.entries()) for (const k of ['s_c','s_w','s_area','s_eta']) if (q.lre[k]!=null) assert.ok(q.lre[k]>=4, `${r.caso} comp. ${j+1} ${k}: LRE ${q.lre[k].toFixed(2)}`);
   });
-  test('R3 con rumore: la deconvoluzione automatica trova il numero giusto di componenti e le stesse incertezze', ()=>{
+  test('R3 con rumore: la deconvoluzione automatica trova il numero giusto di componenti e le stesse incertezze (LRE ≥ 5)', ()=>{
     for (const r of noisyRows()){ assert.equal(r.auto.trovati, r.componenti, r.caso);
-      for (const q of r.auto.comp) for (const k of ['s_c','s_w','s_area']) assert.ok(q.lre[k]>=2, `${r.caso} ${k} ${q.lre[k]}`); }
+      for (const q of r.auto.comp) for (const k of ['s_c','s_w','s_area']) assert.ok(q.lre[k]>=5, `${r.caso} ${k} ${q.lre[k]}`); }
   });
   test('R3 fit fallito (semi lontani dalle bande): l\'interfaccia lo segnala come poco affidabile', ()=>{
     const c=D.casi[1], xs=Float64Array.from(c.x), ys=Float64Array.from(c.y);
-    const f=C.fitPeaks(xs, ys, [{x:xs[3], w:1}, {x:xs[xs.length-4], w:1}], {profile:'gauss'});
-    assert.ok(!f || uiWarns(f, C.noiseSigma(ys)), `fit fallito presentato come riuscito: R² ${f&&f.r2}`);
+    // come runFitUI in modalità manuale: deconvolve con i semi dell'utente, poi il criterio dell'interfaccia
+    const f=C.deconvolve(xs, ys, {seeds:[xs[3], xs[xs.length-4]], profile:'gauss', base:'none', fixed:true});
+    assert.ok(!f || uiWarns(f), `fit fallito presentato come riuscito: R² ${f&&f.r2}, rmse/rumore ${f&&f.noise?(f.rmse/f.noise).toFixed(2):'—'}`);
+    // controllo del controllo: lo stesso criterio non deve segnalare il fit giusto con i semi veri
+    const g=C.deconvolve(xs, ys, {seeds:c.veri.map(p=>p.c), profile:c.profilo, base:'none', fixed:true});
+    assert.ok(g && !uiWarns(g), `fit giusto segnalato come poco affidabile: R² ${g&&g.r2}`);
   });
   test('R3 banda assente in modalità manuale: le altre componenti non possono avere errore standard 0', ()=>{
     // SINTETICO: due gaussiane (40 e 52) con rumore uniforme ±0,25; l'utente ha un picco anche a 75, dove non c'è banda

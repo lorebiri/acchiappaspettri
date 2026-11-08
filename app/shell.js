@@ -130,7 +130,7 @@
   const webOnly=t=>{ const s=String(t); return (win.TIPS2||[]).includes(s) || /Sotto al grafico|Vediamo i grafici|qui sotto|Clic destro lo toglie|etichetta colorata/i.test(s); };
   win.say=function(sel,txt){ oSay(sel,txt); if (!webOnly(txt)) pushMsg(txt); };
   // un avviso o un errore si vede anche senza emoji: «non è», «non riesco», «non si può», «manca»…
-  win.toast=function(txt){ if (webOnly(txt)) return; pushMsg(txt); if (isWarnMsg(txt)){ lastWarn=txt; oToast(txt); } };
+  win.toast=function(txt){ if (webOnly(txt)) return; pushMsg(txt); if (isWarnMsg(txt)){ if (!lastWarn || !/⛔/.test(lastWarn) || /⛔/.test(txt)) lastWarn=txt; oToast(txt); } };   // dopo il caricamento la barra ripete l'avviso più grave, non l'ultimo
 
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;

@@ -75,7 +75,7 @@ function parseOffenders(){
     const p=r.v; if (!p || p.reject || !p.xs || p.xs.length<5) continue;
     const bad=nonFinite({xs:p.xs, ys:p.ys}); if (bad.length) out.push(`parseText [${k}]: ${bad.join(', ')}`);
     const warned=!!((p.importBad&&p.importBad.length) || (p.importIssue&&(p.importIssue.dropped||p.importIssue.midText||p.importIssue.thou)));
-    const lines=t.split('\n').filter(l=>/\d/.test(l)).length; if (p.xs.length<lines-1 && !warned) out.push(`parseText [${k}]: ${lines-p.xs.length} righe perse senza avviso`);
+    const rows=t.split('\n').filter(l=>l.trim()), head=rows.length && !/^\s*[-+]?(\d|\.\d|nan|inf)/i.test(rows[0]) ? 1 : 0, lines=rows.length-head; if (p.xs.length<lines && !warned) out.push(`parseText [${k}]: ${lines-p.xs.length} righe perse senza avviso`);
     let mn=Infinity, mx=-Infinity; for (const v of p.xs){ if (v<mn) mn=v; if (v>mx) mx=v; } if (!(mx>mn) && !warned) out.push(`parseText [${k}]: asse X costante accettato senza rifiuto né avviso (${p.xs.length} punti)`);
     const d=run(()=>C.detectInstrument(p,'a.txt')); if (d.err) out.push(`detectInstrument [${k}]: eccezione ${d.err}`);
   }
