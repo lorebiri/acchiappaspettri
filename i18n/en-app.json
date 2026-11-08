@@ -861,5 +861,9 @@
 "🙈 Ho saltato {0} di formato non riconosciuto: {1}.": "🙈 I skipped {0} of unrecognised format: {1}.",
 "🟡 Quanto è ingiallito?": "🟡 How yellowed is it?",
 "🤔 In {0} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): {1}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.": "🤔 In {0} file(s) I found fewer than two columns of numbers (empty, binary, or text instead of numbers): {1}. Open them in a text editor: if they are an instrument export, export them again as text or CSV.",
-"🧪 Taratura con standard di composizione nota (XRF)": "🧪 Calibration with standards of known composition (XRF)"
+"🧪 Taratura con standard di composizione nota (XRF)": "🧪 Calibration with standards of known composition (XRF)",
+"⛔ Da controllare:": "⛔ To check:",
+"{0} Da controllare:": "{0} To check:",
+"una riga di testo interrompe i dati in «{0}»": "a line of text interrupts the data in «{0}»",
+"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
 }

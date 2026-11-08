@@ -169,5 +169,8 @@
 "data to check in «{0}»",
 "thousands separators in «{0}»: numbers may be wrong",
 "{0} unread rows in «{1}»",
-"«{0}» contains a second channel ({1} rows) that was not read: one channel per file is read. Export the channels as separate files"
+"«{0}» contains a second channel ({1} rows) that was not read: one channel per file is read. Export the channels as separate files",
+"(and {0} more file{1})",
+"a line of text interrupts the data in «{0}»",
+"«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
 ]

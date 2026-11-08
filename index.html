@@ -421,6 +421,7 @@ body.busy, body.busy *{cursor:progress !important}
 /* avvisi, sezioni richiudibili, aspetto sobrio */
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);z-index:80;background:#1c2230;color:#fff;padding:11px 18px;border-radius:13px;font-size:14.5px;line-height:1.4;box-shadow:0 10px 30px rgba(10,20,40,.3);max-width:min(560px,92vw);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toastX{background:none;border:0;color:inherit;font-size:18px;line-height:1;margin-left:10px;padding:0 2px;cursor:pointer;opacity:.8;vertical-align:middle}.toast.on .toastX{pointer-events:auto}.toast:not(.warn) .toastX{display:none}#toast.warn.err{border-left:4px solid #d32f2f}
 details.ansec{border:1px solid var(--line);border-radius:14px;margin:0 0 10px;background:#fff}
 details.ansec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;font-size:15px}
 details.ansec>summary::-webkit-details-marker{display:none}
@@ -1105,7 +1106,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
 
 </main>
 <div class="ctxmenu" id="ctxMenu" role="menu" hidden></div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastTxt"></span><button type="button" class="toastX" id="toastX" aria-label="Chiudi" title="Chiudi">×</button></div>
 <dialog id="dlgCmd" class="cmdk" aria-label="Comandi"><div class="cmdin"><span>🔎</span><input type="text" id="cmdQ" placeholder="Cosa vuoi fare? Es. «arpls», «deconvolvi», «pdf», «calcite», il nome di uno spettro…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div><div class="cmdlist" id="cmdList" role="listbox"></div><div class="cmdfoot">↑↓ scegli · Invio esegue · <b>?</b> scorciatoie da tastiera</div></dialog>
 <dialog id="dlgNews" class="wide" aria-labelledby="nwTitle"><div class="dlg">
   <h2 id="nwTitle"></h2>
@@ -2225,6 +2226,11 @@ function xUnitFix(p){ if (!p || !p.xs || p.xs.length<5 || p.reject || p.xrf || p
   return p; }
 function parseText(text, opt){ const P=parseText1(text, opt); if (P && !P.reject && P.xs && P.xs.length>=2){ let lo=Infinity, hi=-Infinity; for (const v of P.xs){ if (v<lo) lo=v; if (v>hi) hi=v; } if (!(hi>lo)) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:P.meta||[], reject:'La prima colonna (asse X) ha lo stesso valore in tutte le righe: non è un asse. Forse le colonne sono in un altro ordine o il file contiene una sola misura ripetuta'}; } return P; }
 function parseText1(text, opt){ const P0=xUnitFix(parseText0(text,opt)); if (!opt || opt.ycol==null){ try{ if (P0 && P0.nCols>2 && P0.ycol===1 && !(P0.colNames && /mau|\bmv\b|signal|segnale|absorb|intens|counts|value/i.test(P0.colNames[1]||'')) && P0.ys.length>100 && new Set(Array.from(P0.ys)).size<=20){ const P1=xUnitFix(parseText0(text,{ycol:2})); let up=0; for (let i=1;i<P1.ys.length;i++) if (P1.ys[i]>P1.ys[i-1]) up++; if (P1 && P1.ys.length>=0.9*P0.ys.length && new Set(Array.from(P1.ys)).size>50 && up<0.95*(P1.ys.length-1)){ P1.importNotes=(P1.importNotes||[]).concat(['La seconda colonna è quasi costante: come Y ho usato la terza. Controlla in «Dati dello spettro»']); return P1; } } }catch(e){} } return P0; }
+// Passo dell'asse rispetto al verso del blocco: 0 avanti (o quasi fermo), 1 indietro (righe mescolate, andata e ritorno, colonna che non è un asse),
+// 2 l'asse riparte: torna di colpo (almeno 10 passi medi e un quinto dell'asse) dentro l'intervallo già letto, cioè un secondo canale o una seconda scansione.
+// Il ritorno vale solo in un blocco sempre monotono: dopo un passo indietro qualsiasi il blocco si legge come prima.
+function axisStep(xs, x){ const n=xs.length, span=xs[n-1]-xs[0], dir=Math.sign(span); if (!dir || !Number.isFinite(x)) return 0; const a=Math.abs(span), st=a/(n-1), back=(xs[n-1]-x)*dir;
+  if (back<=0.5*st) return 0; return back>10*st && back>0.2*a && (x-xs[0])*dir>=-0.05*a ? 2 : 1; }
 function parseText0(text, opt){
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
   const jc = parseJcamp(text); if (jc) return jc;
@@ -2268,6 +2274,7 @@ function parseText0(text, opt){
       if (!/[\t;\s]/.test(l) && tk.some((t,k)=>k>=2 && /^\d{3}$/.test(t) && /^\d{1,3}$/.test(tk[k-1]))) thou++;   // 3.00,1,800: la virgola può essere un separatore delle migliaia
       }
     if (cur.xs.length>=3 && !p && (/^"?[-+]?\d/.test(l) || /^[,;]\s*[-+]?\d/.test(l))) pending++;
+    if (p && cur.xs.length>=2 && !cur.rev){ const r=axisStep(cur.xs, p[0]); if (r===2 && cur.xs.length>=3){ blocks.push(cur); cur=newB(); } else if (r) cur.rev=true; }   // l'asse riparte (due canali o due scansioni senza testo in mezzo): nuovo blocco, come dopo una riga di testo
     if (p){ dropped+=pending; pending=0; if (cur.xs.length===2){ dropped+=headBad; headBad=0; }   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
       [0,ycol].forEach((c,k)=>{ const t=String(tk[c]||'').replace(/"/g,'').trim(), C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (COMMA3.test(t)) C.com=(C.com||0)+1; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)) C.other++; });
       cur.xs.push(p[0]); cur.ys.push(p[1]); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
@@ -4833,7 +4840,6 @@ async function addEntries(entries){
         const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
         if (p.xs.length<5) { errors.push(path); continue; }
-        if (p.extraCols>0) extra.push(`${path} (${p.extraCols})`);
         const det = detectInstrument(p, file.name);
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
@@ -4860,6 +4866,7 @@ async function addEntries(entries){
         }
         f.kind=kindOf(f);
         if (f.an && f.an.ycol>1 && !f.rawBin){ const keep=[f.removed,f.added,f.labels,f.fit]; applyYCol(f,f.an.ycol); [f.removed,f.added,f.labels,f.fit]=keep; }
+        if (p.extraCols>0 && !(f.an && f.an.ycol>1)) extra.push(`${path} (${p.extraCols})`);   // con la colonna Y già scelta (dal file o dal lavoro salvato) «uso solo le prime due» non è vero
         files.push(f); added++;
       }catch(e){ console.error(e); errors.push(path); }
     }
@@ -4871,14 +4878,18 @@ async function addEntries(entries){
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): ${list(errors)}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
   { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true);
-      // il messaggio dice che cosa è successo davvero: un secondo canale non letto non è un problema di separatori
-      const q=bad[0].importIssue, nm=bad[0].name, en=uiEn(), more=bad.length>1?(en?` (and ${bad.length-1} more files)`:` (e altri ${bad.length-1} file)`):'';
-      const why = q.channel ? (en?`«${nm}» contains a second channel (${q.after} rows) that was not read: one channel per file is read. Export the channels as separate files`:`«${nm}» contiene un secondo canale (${q.after} righe) che non ho letto: leggo un canale per file. Esporta i canali in file separati`)
-        : q.thou ? (en?`thousands separators in «${nm}»: numbers may be wrong`:`separatori delle migliaia in «${nm}»: i numeri possono essere sbagliati`)
+      // il messaggio dice che cosa è successo davvero e parla del problema più grave: righe perse o numeri letti male (⛔) prima di un secondo blocco non letto (⚠)
+      const sevI=f=>{ const q=f.importIssue; return (q.thou||q.dropped||q.midText)?2:1; }, w=bad.slice().sort((a,b)=>sevI(b)-sevI(a))[0], sev=sevI(w);
+      const q=w.importIssue, nm=w.name, en=uiEn(), more=bad.length>1?(en?` (and ${bad.length-1} more file${bad.length>2?'s':''})`:` (e altri ${bad.length-1} file)`):'';
+      const chrom=w.instr==='hplc';   // due scansioni FTIR o due spettri in coda non sono «un canale»
+      const why = q.thou ? (en?`thousands separators in «${nm}»: numbers may be wrong`:`separatori delle migliaia in «${nm}»: i numeri possono essere sbagliati`)
         : q.dropped ? (en?`${q.dropped} unread rows in «${nm}»`:`${q.dropped} righe non lette in «${nm}»`)
+        : q.midText ? (en?`a line of text interrupts the data in «${nm}»`:`una riga di testo interrompe i dati in «${nm}»`)
+        : q.channel ? (chrom ? (en?`«${nm}» contains a second channel (${q.after} rows) that was not read: one channel per file is read. Export the channels as separate files`:`«${nm}» contiene un secondo canale (${q.after} righe) che non ho letto: leggo un canale per file. Esporta i canali in file separati`)
+            : (en?`«${nm}» contains a second block of data (${q.after} rows), for example another scan, that was not read: one block per file is read`:`«${nm}» contiene un secondo blocco di dati (${q.after} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file`))
         : (en?`data to check in «${nm}»`:`dati da controllare in «${nm}»`);
-      toast('⚠️ '+why+more+(en?'. See «Data check».':'. Vedi «Controllo del dato».'));
-      msgs.push(`⚠️ Da controllare: ${list(bad.map(f=>f.path))}. Il motivo è in «Controllo del dato» di ogni file.`); } }
+      toast((sev===2?'⛔ ':'⚠️ ')+why+more+(en?'. See «Data check».':'. Vedi «Controllo del dato».'));
+      msgs.push(`${sev===2?'⛔':'⚠️'} Da controllare: ${list(bad.map(f=>f.path))}. Il motivo è in «Controllo del dato» di ogni file.`); } }
   if (extra.length){ msgs.push(`⚠️ In ${extra.length===1?'questo file ci sono':'questi file ci sono'} altre colonne di valori, che non ho letto (Y è la seconda colonna: si cambia in «Dati dello spettro»): ${list(extra)}.`); toast(`⚠️ Alcuni file hanno altre colonne di valori, che non ho letto: uso solo le prime due.`); }
   if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=Math.round(f.xs.length/Math.max(1,f.xs.length*0.01))+'|'+Math.round(f.xs[0]*2)/2+'|'+Math.round(f.xs[f.xs.length-1]*2)/2; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
@@ -4977,8 +4988,19 @@ $('#inFolder').onchange=e=>fromInput(e,true);
 function say(sel, txt){ const b=$(sel); if (!b) return; b.textContent=txt;
   if (performance.now()<3000) return;   // i saluti all'apertura della pagina restano nel fumetto
   const r=b.getBoundingClientRect(), z=zf(), shown=b.offsetParent!==null && r.bottom>70*z && r.top<innerHeight-40; if (!shown) toast(txt); }
-let toastT=null;
-function toast(txt){ const t=$('#toast'); if (!t) return; t.textContent=txt; t.classList.toggle('warn', /⚠️|😕/.test(String(txt))); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), Math.max(3200, String(txt).length*55)); }
+let toastT=null, toastCur=null, toastQ=[];
+const toastSev=t=>/⛔/.test(t)?2:/⚠|😕/.test(t)?1:0;
+// vince l'avviso più grave: un messaggio meno grave (o un altro avviso dello stesso livello) aspetta in coda che quello in vista si chiuda; un ⛔ non viene mai coperto
+function toast(txt){ txt=String(txt); const t=$('#toast'); if (!t) return; const s=toastSev(txt);
+  if (toastCur!=null && t.classList.contains('on')){ const s0=toastSev(toastCur); if (txt===toastCur || toastQ.includes(txt)) return;
+    if (s<s0 || (s===s0 && s>0)){ toastQ.push(txt); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); toastQ.length=Math.min(toastQ.length,6); return; }
+    if (s0>0){ toastQ.unshift(toastCur); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); } }
+  else if (toastQ.length){ if (!toastQ.includes(txt)) toastQ.push(txt); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); txt=toastQ.shift(); }   // fra un avviso e il successivo: prima il più grave
+  toastShow(txt); }
+function toastShow(txt){ const t=$('#toast'), s=toastSev(txt); toastCur=txt; $('#toastTxt').textContent=txt; t.classList.toggle('warn', s>0); t.classList.toggle('err', s===2); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(toastHide, Math.max(s===2?10000:3200, txt.length*55)); }
+function toastHide(){ const t=$('#toast'); clearTimeout(toastT); if (t) t.classList.remove('on'); toastCur=null; if (toastQ.length) toastT=setTimeout(()=>{ if (toastQ.length) toastShow(toastQ.shift()); }, 250); }
+$('#toastX').onclick=toastHide;
+document.addEventListener('keydown', e=>{ if (e.key==='Escape' && toastCur!=null && toastSev(toastCur)>0 && $('#toast').classList.contains('on') && !document.querySelector('dialog[open]')){ toastHide(); e.stopPropagation(); } }, true);   // Esc chiude prima l'avviso in vista
 function zf(){ return parseFloat(document.body.style.zoom)||1; }   // con il testo ingrandito le coordinate dello schermo vanno divise per lo zoom
 function happy(){ const b=$('#buddy'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); }
 const GREET = ['Ciao! 👋 Io e Gino 👻 acchiappiamo i tuoi spettri e li trasformiamo in grafici.',
@@ -7823,8 +7845,8 @@ document.addEventListener('click', e=>{
 document.addEventListener('keydown', e=>{ if (e.key==='Escape') $('#glPop').hidden=true; });
 window.addEventListener('scroll', ()=>{ $('#glPop').hidden=true; }, true);
 function applyExpert(){ document.body.classList.toggle('expert', !!S.expert); }
-/* aspetto sobrio: niente mascotte, coriandoli né emoji (resta tutto il resto; ✓ e ✗ si tengono perché portano informazione) */
-const EMOJI_RE=/(?![✓✗→])[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}]️?‍?|️/gu;
+/* aspetto sobrio: niente mascotte, coriandoli né emoji (resta tutto il resto; ✓, ✗, ⛔ e ⚠ si tengono perché portano informazione: la gravità di un avviso) */
+const EMOJI_RE=/(?![✓✗→⛔⚠])[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}]️?‍?|️/gu;
 function stripEmoji(root){ if (!document.body.classList.contains('sober')) return;
   const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode:n=>{ const p=n.parentElement; return p && /^(SCRIPT|STYLE|TEXTAREA|INPUT|OPTION)$/.test(p.tagName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }});
   for (let n=w.nextNode(); n; n=w.nextNode()){ const t=n.nodeValue; if (!EMOJI_RE.test(t)) continue; EMOJI_RE.lastIndex=0; const v=t.replace(EMOJI_RE,'').replace(/^\s+(?=\S)/,m=>n.previousSibling?m:''); if (v!==t){ soberOrig.set(n,{t,v}); soberNodes.add(new WeakRef(n)); n.nodeValue=v; } } }
