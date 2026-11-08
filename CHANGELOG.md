@@ -14,6 +14,8 @@ Versione di prova (release candidate) della 2.2.0, con le stesse novità elencat
   - Esportazioni: CSV rapidi con il separatore della lingua; nessuna formula di Excel dai titoli; numeri senza separatore delle migliaia in parametri_per_tecnica.csv; nel PDF apostrofi, virgolette, €, •, ‰, ², ³ corretti e titolo intero nei metadati.
   - FTIR in trasmittanza 0–1: nessun indice sbagliato, avviso «trasmittanza letta come assorbanza».
   - Interfaccia: nel desktop «Scarica» sempre in vista; le tabelle delle tarature stanno nel pannello; Novità tradotte in inglese anche nel desktop; «> 100,000» con il formato della lingua.
+  - XRF: lega d'argento misurata con tubo ad argento stimata correttamente (argento dalla riga Lα, con avviso); con pochi conteggi una riga vale solo oltre il limite di Currie e il rapporto segnale/rumore è realistico; stagno puro non più dichiarato con l'asse spostato; CSV della stima FP con note corrette e tradotte; tabella FP leggibile nel pannello del desktop.
+  - Un milione di punti: niente più grafico bianco né errore di sistema.
   - Pubblicazione: gli strumenti dell'AppImage si verificano sempre con l'hash pubblicato da GitHub; la pagina della release dice quale file scaricare e come superare gli avvisi di Windows e macOS; le versioni di prova escono senza .deb.
 - Acchiappaspettri Desktop per Windows, macOS e Linux: funziona senza internet e avvisa quando esce una nuova versione.
 - Nuovo formato di progetto .acchspettri: dati originali, lavoro fatto e risultati in un solo file, controllato a ogni apertura.
