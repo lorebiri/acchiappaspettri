@@ -13,9 +13,9 @@ Scarica il pacchetto dalla pagina dell'ultima versione: <https://github.com/lore
 ## Gli avvisi del sistema al primo avvio
 I pacchetti **non sono firmati** con certificati Microsoft o Apple (costano e sono personali), quindi il sistema avvisa. Gli aggiornamenti invece sono firmati e verificati dall'app.
 - **Windows**:
-  - il browser può dire che il file «non viene scaricato comunemente»: in Edge apri ⋯ accanto al download → *Mantieni*; in Chrome scegli *Conserva*;
+  - il browser può dire che il file «non viene scaricato comunemente»: in Edge apri ⋯ accanto al download → *Mantieni*, poi, se lo chiede, *Mostra altro* → *Mantieni comunque*; in Chrome scegli *Conserva* (o *Mantieni*, secondo la versione);
   - nella finestra blu di SmartScreen: *Ulteriori informazioni* → *Esegui comunque*;
-  - se Windows chiede di consentire le modifiche a un'app di «Autore sconosciuto», rispondi *Sì*;
+  - se compare «Avviso di sicurezza» con «Autore sconosciuto», scegli *Esegui* (l'installazione è per il solo utente, di solito non serve la password di amministratore);
   - sui PC gestiti dall'ente *Esegui comunque* può mancare: chiedi al servizio informatico di installarlo.
 - **macOS**: se viene bloccata, *Impostazioni di Sistema → Privacy e sicurezza → Apri comunque*.
 
@@ -28,4 +28,4 @@ I pacchetti **non sono firmati** con certificati Microsoft o Apple (costano e so
 Su Windows la scegli nell'installer e l'app la usa al primo avvio. Su macOS e Linux l'app la chiede al primo avvio. Si cambia quando vuoi da ⚙️ Impostazioni o 🌐.
 
 ---
-Download from the [latest release](https://github.com/lorebiri/acchiappaspettri/releases/latest). Packages are not signed with Microsoft or Apple certificates, so the system warns on first launch (the browser may say the file is not commonly downloaded: choose *Keep*; Windows SmartScreen: *More info → Run anyway*; on managed PCs ask IT; macOS: *System Settings → Privacy & Security → Open Anyway*). Updates are signed and verified by the app. On Windows the language is chosen in the installer; on macOS and Linux at first launch.
+Download from the [latest release](https://github.com/lorebiri/acchiappaspettri/releases/latest). Packages are not signed with Microsoft or Apple certificates, so the system warns on first launch (the browser may say the file is not commonly downloaded: choose *Keep*, then in Edge *Show more* → *Keep anyway*; a «Security Warning» with «Unknown publisher» may appear: choose *Run*; Windows SmartScreen: *More info → Run anyway*; on managed PCs ask IT; macOS: *System Settings → Privacy & Security → Open Anyway*). Updates are signed and verified by the app. On Windows the language is chosen in the installer; on macOS and Linux at first launch.

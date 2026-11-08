@@ -27,7 +27,7 @@
       else if (/\.AppImage$/i.test(n)) out.push({os:'linux',label:'Linux AppImage (si aggiorna da sola)',a});
       else if (/\.deb$/i.test(n)) out.push({os:'linux',label:'Linux .deb (Debian, Ubuntu)',a}); }
     return out; }
-  const OS_NOTE={windows:'Il programma non è ancora firmato con un certificato: Windows può mostrare «PC protetto da Windows». Scegli «Ulteriori informazioni» e poi «Esegui comunque».',
+  const OS_NOTE={windows:'Il programma non è ancora firmato con un certificato: Windows può mostrare «Windows ha protetto il PC». Scegli «Ulteriori informazioni» e poi «Esegui comunque».',
     macos:'Il programma non è ancora firmato né autenticato da Apple. Trascinalo in Applicazioni; se macOS lo blocca, apri Impostazioni di Sistema → Privacy e sicurezza e scegli «Apri comunque».',
     linux:'AppImage: rendila eseguibile e aprila. Il pacchetto .deb si installa con il gestore pacchetti e si aggiorna scaricando la versione nuova.'};
   async function renderDownload(fetchFn){ const box=$('#dlBody'), esc=win.esc;

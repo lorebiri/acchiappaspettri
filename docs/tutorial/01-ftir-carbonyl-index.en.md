@@ -10,7 +10,7 @@
 When polyethylene ages, it oxidises. A band appears between 1650 and 1850 cm⁻¹ (C=O groups). The «SAUB» carbonyl index (Almond and co-workers, 2020) is the area of this band divided by the area of the polyethylene band between 1420 and 1500 cm⁻¹. The higher it is, the more oxidised the material. The method is defined for polyethylene and polypropylene.
 
 ## 1. Load the spectra
-1. Open Acchiappaspettri. In the online version, the first time, a welcome window appears: press **Let's start 👻**.
+1. Open Acchiappaspettri. In the online version, the first time, a welcome window appears: press **Let's start 👻** and then **▶ Use Acchiappaspettri Online**.
    *Desktop app:* there is no welcome window. The app opens on the **Start** tab, with the box for loading files.
 2. Press **Choose files** and select the six files `PE_0000h_SINTETICO.csv` … `PE_1000h_SINTETICO.csv`. You can also drag them onto the page.
    *Desktop app:* press **Add spectra** in the top bar.

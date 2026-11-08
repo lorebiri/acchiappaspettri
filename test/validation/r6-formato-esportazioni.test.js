@@ -46,7 +46,7 @@ async function run(lang){
       Object.assign(S,{outPdf:true, csvPeaks:true, outAnalysis:true, summary:true, showPeaks:true}); S.docTitle=DOC; saveS();
       const zip=await buildZip(), pdf=await buildPdf();
       files.forEach((f,i)=>{ f.include=i===0; }); const pdf1=await buildPdf();
-      return {LANG, quick, ftir, sn:fmtSN(1e7), zip:await b64(zip), pdf:await b64(pdf), pdf1:await b64(pdf1), cells:[csvCell('-12,5',';'), csvCell('-1.5e-3',','), csvCell('=1+1',';'), csvCell('\tx',';'), csvCell('-',';'), csvCell('a\rb',';')]};
+      return {LANG, quick, ftir, sym:pdfText('a ≠ b ≈ c ≥ d ≤ e'), sn:fmtSN(1e7), zip:await b64(zip), pdf:await b64(pdf), pdf1:await b64(pdf1), cells:[csvCell('-12,5',';'), csvCell('-1.5e-3',','), csvCell('=1+1',';'), csvCell('\tx',';'), csvCell('-',';'), csvCell('a\rb',';')]};
     }, [L, FTIR_T, DOC]);
     await ctx.close();
     const Z=await JSZip.loadAsync(toStr(r.zip)), csv={};
@@ -79,5 +79,6 @@ for (const lang of ['it','en']) describe(`R6 forma delle esportazioni (${lang})`
   it('PDF: caratteri tipografici nel testo', ()=>{ const lines=pdfText(toStr(R.pdf));
     assert.ok(lines.includes(DOC_PDF), 'titolo del documento con ’ “ ” – € • ‰ … ² ³ nel PDF: '+lines.find(l=>l.startsWith('Relazione'))+' · prime righe: '+JSON.stringify(lines.slice(0,8))); });   // ciclo 26: fallimento raro, le prime righe dicono se manca la pagina di riepilogo
   it('PDF: titolo intero nei metadati (/Title)', ()=>assert.strictEqual(pdfInfoTitle(toStr(R.pdf)), DOC));
+  it('PDF: simboli fuori WinAnsi in forma leggibile («≠» non diventa «=»)', ()=>assert.strictEqual(R.sym, 'a != b ~ c >= d <= e'));   // ciclo 26
   it('PDF: «1 grafico» al singolare', ()=>assert.ok(pdfText(toStr(R.pdf1)).some(l=>l.startsWith(en?'1 plot ·':'1 grafico ·')), '«1 grafici» al plurale · prime righe: '+JSON.stringify(pdfText(toStr(R.pdf1)).slice(0,8))));
 });

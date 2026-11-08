@@ -10,7 +10,7 @@
 Quando il polietilene invecchia, si ossida. Nello spettro compare una banda tra 1650 e 1850 cm⁻¹ (gruppi C=O). L'indice di carbonile «SAUB» (Almond e colleghi, 2020) è l'area di questa banda divisa per l'area della banda del polietilene tra 1420 e 1500 cm⁻¹. Più è alto, più il materiale è ossidato. Il metodo è definito per polietilene e polipropilene.
 
 ## 1. Carica gli spettri
-1. Apri Acchiappaspettri. Nella versione online, alla prima apertura compare il benvenuto: premi **Iniziamo 👻**.
+1. Apri Acchiappaspettri. Nella versione online, alla prima apertura compare il benvenuto: premi **Iniziamo 👻** e poi **▶ Usa Acchiappaspettri Online**.
    *App desktop:* il benvenuto non compare. L'app si apre sulla scheda **Inizio**, con il riquadro per caricare i file.
 2. Premi **Scegli file** e seleziona i sei file `PE_0000h_SINTETICO.csv` … `PE_1000h_SINTETICO.csv`. Puoi anche trascinarli sulla pagina.
    *App desktop:* premi **Aggiungi spettri** nella barra in alto.
