@@ -77,7 +77,7 @@ for (const lang of ['it','en']) describe(`R6 forma delle esportazioni (${lang})`
   it('«> 100.000» nel formato della lingua', ()=>assert.strictEqual(R.sn, en?'> 100,000':'> 100.000'));
   it('FTIR in trasmittanza 0–1: nessun indice, avviso che dice il motivo', ()=>assert.ok(R.ftir.length===3 && R.ftir.every(o=>o.y===null && /trasmittanza letta come assorbanza/.test(o.flag)), JSON.stringify(R.ftir)));
   it('PDF: caratteri tipografici nel testo', ()=>{ const lines=pdfText(toStr(R.pdf));
-    assert.ok(lines.includes(DOC_PDF), 'titolo del documento con ’ “ ” – € • ‰ … ² ³ nel PDF: '+lines.find(l=>l.startsWith('Relazione'))); });
+    assert.ok(lines.includes(DOC_PDF), 'titolo del documento con ’ “ ” – € • ‰ … ² ³ nel PDF: '+lines.find(l=>l.startsWith('Relazione'))+' · prime righe: '+JSON.stringify(lines.slice(0,8))); });   // ciclo 26: fallimento raro, le prime righe dicono se manca la pagina di riepilogo
   it('PDF: titolo intero nei metadati (/Title)', ()=>assert.strictEqual(pdfInfoTitle(toStr(R.pdf)), DOC));
-  it('PDF: «1 grafico» al singolare', ()=>assert.ok(pdfText(toStr(R.pdf1)).some(l=>l.startsWith(en?'1 plot ·':'1 grafico ·')), '«1 grafici» al plurale'));
+  it('PDF: «1 grafico» al singolare', ()=>assert.ok(pdfText(toStr(R.pdf1)).some(l=>l.startsWith(en?'1 plot ·':'1 grafico ·')), '«1 grafici» al plurale · prime righe: '+JSON.stringify(pdfText(toStr(R.pdf1)).slice(0,8))));
 });
