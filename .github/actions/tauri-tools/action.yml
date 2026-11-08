@@ -1,0 +1,27 @@
+# Strumenti che il bundler di Tauri scaricherebbe da github.com durante la build (NSIS, AppRun, linuxdeploy):
+# prima dalla cache di Actions, altrimenti scaricati con più tentativi e verificati (.github/scripts/tauri-tools.js), poi salvati in cache.
+# La cache non passa da github.com: con github.com in 504 (8 novembre 2026) la build va avanti lo stesso.
+# Una cache creata su main (ramo predefinito) è visibile anche alle esecuzioni dei tag, cioè alla pubblicazione.
+name: Strumenti del bundler di Tauri
+description: Mette gli strumenti del bundler di Tauri nella cartella dove il bundler li cerca
+runs:
+  using: composite
+  steps:
+    - id: dir
+      shell: bash
+      run: node .github/scripts/tauri-tools.js dir
+    - id: restore
+      if: runner.os != 'macOS'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.dir.outputs.dir }}
+        key: tauri-tools-${{ runner.os }}-${{ hashFiles('.github/scripts/tauri-tools.js') }}
+    - if: runner.os != 'macOS'
+      shell: bash
+      env: { GH_TOKEN: "${{ github.token }}" }
+      run: node .github/scripts/tauri-tools.js fetch
+    - if: runner.os != 'macOS' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.dir.outputs.dir }}
+        key: tauri-tools-${{ runner.os }}-${{ hashFiles('.github/scripts/tauri-tools.js') }}

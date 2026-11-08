@@ -1,0 +1,8 @@
+# Le azioni sono fissate per SHA: Dependabot propone gli aggiornamenti (SHA e commento del tag insieme), una volta al mese.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    target-branch: desktop   # il ramo di sviluppo; main è quello di GitHub Pages
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 5

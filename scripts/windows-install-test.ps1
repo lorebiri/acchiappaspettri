@@ -12,7 +12,10 @@ $dir = "$env:LOCALAPPDATA\Acchiappaspettri"
 $sm = @("$env:APPDATA\Microsoft\Windows\Start Menu\Programs", "$env:ProgramData\Microsoft\Windows\Start Menu\Programs")
 $lnk = { [bool](Get-ChildItem $sm -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Acchiappaspettri' }) }
 $appExe = { Get-ChildItem $dir -Filter *.exe -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1 }
-Start-Process $exe[0].FullName -ArgumentList '/S' -Wait
+# prima dell'installazione non deve esserci niente: altrimenti i controlli qui sotto passerebbero per caso
+if ((& $appExe) -or (& $lnk)) { throw "installazione precedente presente in $dir o nel menu Start: la prova non sarebbe attendibile" }
+$inst = Start-Process $exe[0].FullName -ArgumentList '/S' -Wait -PassThru
+if ($inst.ExitCode -ne 0) { throw "l'installer è uscito con il codice $($inst.ExitCode)" }
 if (-not (WaitFor { [bool](& $appExe) } 30)) { throw "non installato in $dir" }
 $app = & $appExe
 Write-Host "Installato in $dir : $($app.Name)"
@@ -25,7 +28,8 @@ Write-Host 'Avviata e ancora aperta dopo 20 s'
 Stop-Process $p.Id -Force
 if (-not (WaitFor { $p.HasExited } 15)) { throw "l'app non si chiude" }
 # _?= fa girare il disinstallatore sul posto: Start-Process -Wait aspetta davvero la fine (senza, NSIS si copia altrove e torna subito)
-Start-Process (Join-Path $dir 'uninstall.exe') -ArgumentList '/S', "_?=$dir" -Wait
+$un = Start-Process (Join-Path $dir 'uninstall.exe') -ArgumentList '/S', "_?=$dir" -Wait -PassThru
+if ($un.ExitCode -ne 0) { throw "il disinstallatore è uscito con il codice $($un.ExitCode)" }
 if (-not (WaitFor { -not (Test-Path $app.FullName) } 30)) { throw 'disinstallazione incompleta' }
 if (-not (WaitFor { -not (& $lnk) } 30)) { throw 'voce del menu Start rimasta dopo la disinstallazione' }
 Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue

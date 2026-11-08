@@ -19,6 +19,8 @@ if (process.platform==='win32'){ const exes=list('nsis',/-setup\.exe$/); need(ex
   const dir=path.join(process.env.LOCALAPPDATA,'Acchiappaspettri'), app=['acchiappaspettri.exe','Acchiappaspettri.exe'].map(n=>path.join(dir,n)), un=path.join(dir,'uninstall.exe');
   const lnkDirs=[path.join(process.env.APPDATA,'Microsoft','Windows','Start Menu','Programs'), path.join(process.env.ProgramData||'C:\\ProgramData','Microsoft','Windows','Start Menu','Programs')];
   const lnk=()=>lnkDirs.some(d=>{ try{ return fs.readdirSync(d,{recursive:true}).some(f=>/Acchiappaspettri.*\.lnk$/i.test(String(f))); }catch(e){ return false; } });
+  // prima dell'installazione non deve esserci niente: altrimenti i controlli qui sotto passerebbero per caso
+  if (!need(!app.some(fs.existsSync) && !lnk(),'nessuna installazione precedente (programma o voce del menu Start)')) process.exit(1);
   run(exe,['/S'],{timeout:180000});
   need(until(()=>app.some(fs.existsSync),30),'installato senza privilegi di amministratore in '+dir);
   need(fs.existsSync(path.join(dir,'installer-language.txt')),'lingua dell\'installer registrata');
@@ -43,7 +45,9 @@ if (process.platform==='darwin'){ const arch=process.env.EXPECT_ARCH || (process
   finally{ run('hdiutil',['detach',mnt]); }
   if (process.env.TAURI_SIGNING_PRIVATE_KEY){ const t=list('macos',/\.app\.tar\.gz$/); need(t.length && fs.existsSync(t[0]+'.sig'),'pacchetto firmato per l\'updater'); } }
 
-if (process.platform==='linux'){ const [deb]=list('deb',/\.deb$/), [ai]=list('appimage',/\.AppImage$/);
+if (process.platform==='linux'){ const debs=list('deb',/\.deb$/), ais=list('appimage',/\.AppImage$/), [deb]=debs, [ai]=ais;
+  need(debs.length===1 && ais.length===1,'un solo .deb e una sola AppImage ('+debs.length+', '+ais.length+')');
+  if (process.env.TAURI_SIGNING_PRIVATE_KEY) need(ai && fs.existsSync(ai+'.sig'),'AppImage firmata per l\'updater');
   need(deb&&big(deb,1)&&hasVer(deb),'pacchetto .deb della versione '+ver); const c=run('dpkg-deb',['-c',deb]);
   need(/usr\/bin\/acchiappaspettri/.test(c),'il .deb contiene il programma'); need(/usr\/share\/mime\/packages\/acchiappaspettri\.xml/.test(c),'il .deb dichiara il tipo dei progetti .acchspettri');
   need(/usr\/share\/doc\/acchiappaspettri\/copyright/.test(c) && /usr\/lib\/[^/\n]+\/LICENSE/.test(c) && /THIRD-PARTY-NOTICES\.md/.test(c),'il .deb contiene copyright, licenza e avvisi di terze parti');
