@@ -61,3 +61,4 @@
 - **NMR**: un picco negativo (fase sbagliata) viene ignorato senza avviso; l'avviso «bande nascoste» può ripetere lo stesso valore.
 - **Prestazioni**: con 500 mila punti il caricamento richiede circa 12 s e l'analisi può bloccare l'interfaccia per 17–37 s senza poterla interrompere (obiettivo nella 2.3).
 - **Pacchetto .deb**: chi ha installato una 2.2.0-rc dal .deb installa la 2.2.0 con `sudo apt install --allow-downgrades ./…deb`. Il controllo degli aggiornamenti non distingue tra «nessuna versione pubblicata» e «GitHub non raggiungibile».
+- **PDF**: nel testo i caratteri fuori dalla codifica WinAnsi (cinese, giapponese, ł, greco non mappato) diventano «?» e alcune lettere perdono l'accento (č → c); i metadati restano interi. «cm-1» è scritto senza apice. Le note delle misure di banda restano in italiano nel PDF e nel CSV inglesi.

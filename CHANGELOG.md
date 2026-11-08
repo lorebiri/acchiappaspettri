@@ -11,6 +11,9 @@ Versione di prova (release candidate) della 2.2.0, con le stesse novità elencat
   - Importazione: due blocchi di dati senza testo in mezzo (riga vuota, oppure l'asse che riparte) non vengono più uniti: si legge un blocco e l'altro è segnalato.
   - Avvisi: vince il più grave e un ⛔ non viene mai coperto; si chiudono con × o Esc; nel desktop la nota di importazione mostra ⛔ e ⚠.
   - EPR: ⛔ se agli estremi dello spettro c'è ancora segnale o se il doppio integrale è negativo; frequenza MWFQ con la virgola decimale; unità del campo non dichiarata dedotta sulla riga più intensa; avviso quando i valori vengono divisi per 10; colonna «Doppio o singolo integrale».
+  - Esportazioni: CSV rapidi con il separatore della lingua; nessuna formula di Excel dai titoli; numeri senza separatore delle migliaia in parametri_per_tecnica.csv; nel PDF apostrofi, virgolette, €, •, ‰, ², ³ corretti e titolo intero nei metadati.
+  - FTIR in trasmittanza 0–1: nessun indice sbagliato, avviso «trasmittanza letta come assorbanza».
+  - Interfaccia: nel desktop «Scarica» sempre in vista; le tabelle delle tarature stanno nel pannello; Novità tradotte in inglese anche nel desktop; «> 100,000» con il formato della lingua.
   - Pubblicazione: gli strumenti dell'AppImage si verificano sempre con l'hash pubblicato da GitHub; la pagina della release dice quale file scaricare e come superare gli avvisi di Windows e macOS; le versioni di prova escono senza .deb.
 - Acchiappaspettri Desktop per Windows, macOS e Linux: funziona senza internet e avvisa quando esce una nuova versione.
 - Nuovo formato di progetto .acchspettri: dati originali, lavoro fatto e risultati in un solo file, controllato a ogni apertura.
