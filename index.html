@@ -6751,6 +6751,10 @@ function xrfElements(f, d){
   if (PbSeen && !PbOk) drop('Pb');
   if (PbOk && !(AsK && !Hg)) drop('As');
   else if (PbSeen && !PbOk && !AsK && els.includes('As')) drop('As');
+  // senza Pb affermato e senza As Kβ libera, la riga a 10,5 keV può essere As Kα o Pb Lα (pochi conteggi: le Lβ di Pb restano sotto Currie).
+  // As non va nel calcolo da solo: nel calcolo entra Pb (più comune nelle leghe di rame), tutti e due segnati «non distinguibili».
+  const asPb = !PbSeen && !(AsK && !Hg) && !!(els.includes('As') || (by.As && by.As.main));
+  if (asPb){ drop('As'); if (!unsure.includes('Pb')) unsure.push('Pb'); }
   if (els.includes('Au') && els.includes('W')) drop('W');
   // Ti Kα/Kβ (4,51/4,93 keV) cadono sotto Ba Lα/Lβ (4,47/4,83): con il bario il titanio non si distingue
   if (els.includes('Ti') && (els.includes('Ba') || (by.Ba && by.Ba.lines.size>=2))) drop('Ti');
@@ -6762,6 +6766,7 @@ function xrfElements(f, d){
   // riga principale che cade sul picco di fuga del Si (−1,74 keV) di un picco molto più alto: è la fuga, non un elemento (es. «Mg» sotto Ag Lα)
   const isEsc=e=>e.mx!=null && d.peaks.some(q=>(q.prom||0)>=3*e.prom*mp && Math.abs(q.x-1.74-e.mx)<=tolFor('xrf', e.mx));
   const oneLine=els.filter(e=>by[e].lines.size<2 && !by[e].strong), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && !isEsc(e) && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
+  if (asPb && FP.el.Pb && !els.includes('Pb') && !cands.includes('Pb')) cands.push('Pb');
   const over=[];   // picchi dove due elementi presenti hanno righe sovrapposte
   d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg; if (p.custom && !p.suggAll) return; const es=[...new Set(SG.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
     if (es.length>=2) over.push({x:p.x, num:p.num, names:SG.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });

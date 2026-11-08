@@ -38,6 +38,8 @@ test('XRF: anodo, pochi conteggi, stagno puro, asse spostato, tutorial 3 (online
     for (const f of ['Q_low_300.mca','Q_300_s3.mca','Q_low_1500.mca','Q_1500_s2.mca','N_lowcounts_bronze.mca']){
       const r=await inspect(p, f, rd(path.join(FX,f)));
       assert.deepEqual(r.els.filter(e=>!real.includes(e)), [], `${f}: elementi falsi ${r.els}`);
+      // ciclo 26: con pochi conteggi As Kα e Pb Lα coincidono; senza As Kβ libera As non entra da solo nel calcolo al posto di Pb (bronzo con Pb 5%, As 0,5%)
+      if (f==='N_lowcounts_bronze.mca') assert.ok(r.res && r.res.Pb && !r.res.As, `${f}: As al posto di Pb ${JSON.stringify(r.res)}`);
       assert.ok(r.els.includes('Cu'), `${f}: Cu non trovato`);
       assert.ok(!r.hyp.some(h=>/cadmio|cobalto|Scheele|manganese/.test(h)), `${f}: ipotesi false ${r.hyp}`);
       const sn=r.qual.find(t=>/S\/N/.test(t)); assert.ok(sn && !/100[.,]000/.test(sn), `${f}: ${sn}`);
