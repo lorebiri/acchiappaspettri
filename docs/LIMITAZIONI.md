@@ -52,3 +52,12 @@
 - **XRF, righe deboli tra righe forti**: un elemento minore con la riga tra due righe forti di un altro (per esempio Zn Kα a 8,63 keV tra Cu Kα e Cu Kβ) può non essere proposto in automatico; nella stima a parametri fondamentali va aggiunto a mano dall'elenco degli elementi (il χ² ridotto più alto del solito è un indizio).
 - **HPLC con più canali**: si legge un canale per file; un secondo canale nello stesso file viene segnalato ma non letto (lettura completa nella 2.2.1). Con più canali caricati la taratura usa un canale alla volta, scelto in «Più campioni».
 - **Libreria dei nomi**: per ora ogni voce ha solo tecnica, nome e intervallo; tipo di campione, metodo, canale e pendenza arrivano nelle versioni 2.2.1 e 2.3.
+
+## Dopo il ciclo di collaudo 25 (decisioni del Capo Progetto)
+- **HPLC con più canali**: da un file con più blocchi si legge un solo canale, il blocco più lungo; un nome senza sigla del canale e senza lunghezza d'onda (per esempio «STD1_254.csv») va assegnato a mano. Rivelatori ELSD, RID, FLD e ADC senza numero contano come canale.
+- **Aree HPLC**: l'integrazione si ferma all'1% dell'altezza del picco; l'area risulta più bassa del vero di circa l'1–2,5% (di più sui picchi con coda) e fino al 10% sui coeluiti misurati per area di banda. Gli standard trattati allo stesso modo compensano in buona parte nella taratura.
+- **Blocchi di dati**: un secondo blocco in coda con l'asse invertito (A crescente, poi B decrescente dallo stesso punto), oppure un primo blocco con un passo indietro, si legge ancora unito, perché non si distingue da una misura di andata e ritorno.
+- **EPR**: un file in banda Q in mT senza frequenza (≈ 1200) viene preso per gauss e diviso per 10, con avviso; una lorentziana in una finestra di ±10 semilarghezze dà circa l'82% del doppio integrale vero senza ⛔ (con ±5–7 c'è ⛔); cambiare la frequenza a mano non rifà la scelta dell'unità: si corregge con la scala.
+- **NMR**: un picco negativo (fase sbagliata) viene ignorato senza avviso; l'avviso «bande nascoste» può ripetere lo stesso valore.
+- **Prestazioni**: con 500 mila punti il caricamento richiede circa 12 s e l'analisi può bloccare l'interfaccia per 17–37 s senza poterla interrompere (obiettivo nella 2.3).
+- **Pacchetto .deb**: chi ha installato una 2.2.0-rc dal .deb installa la 2.2.0 con `sudo apt install --allow-downgrades ./…deb`. Il controllo degli aggiornamenti non distingue tra «nessuna versione pubblicata» e «GitHub non raggiungibile».

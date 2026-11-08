@@ -1,7 +1,17 @@
 # Novità delle versioni
 
+## 2.2.0-rc.4
+
+Versione di prova (release candidate) della 2.2.0, con le stesse novità elencate sotto e le correzioni del ciclo di collaudo 25. È una pre-release: non viene proposta agli utenti come aggiornamento ed esce senza il pacchetto .deb.
+
 ## 2.2.0
 
+- Correzioni del ciclo di collaudo 25:
+  - HPLC: il canale viene dal blocco o dalla colonna letti davvero, e l'avviso dice quale canale è stato letto; i file senza canale riconoscibile sono nominati e si assegnano a mano; «DAD1A», «DAD1A_254nm» e «DAD1 A, Sig=254» sono lo stesso canale; i file con lo stesso nome (cartelle .D) mostrano la cartella.
+  - Importazione: due blocchi di dati senza testo in mezzo (riga vuota, oppure l'asse che riparte) non vengono più uniti: si legge un blocco e l'altro è segnalato.
+  - Avvisi: vince il più grave e un ⛔ non viene mai coperto; si chiudono con × o Esc; nel desktop la nota di importazione mostra ⛔ e ⚠.
+  - EPR: ⛔ se agli estremi dello spettro c'è ancora segnale o se il doppio integrale è negativo; frequenza MWFQ con la virgola decimale; unità del campo non dichiarata dedotta sulla riga più intensa; avviso quando i valori vengono divisi per 10; colonna «Doppio o singolo integrale».
+  - Pubblicazione: gli strumenti dell'AppImage si verificano sempre con l'hash pubblicato da GitHub; la pagina della release dice quale file scaricare e come superare gli avvisi di Windows e macOS; le versioni di prova escono senza .deb.
 - Acchiappaspettri Desktop per Windows, macOS e Linux: funziona senza internet e avvisa quando esce una nuova versione.
 - Nuovo formato di progetto .acchspettri: dati originali, lavoro fatto e risultati in un solo file, controllato a ogni apertura.
 - Interfaccia completa anche in inglese, tema scuro, risorse tutte incluse per funzionare offline.
