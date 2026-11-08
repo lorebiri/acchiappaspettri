@@ -328,7 +328,7 @@ body.busy, body.busy *{cursor:progress !important}
 .tab{border:0;background:none;padding:10px 14px;font-weight:700;font-size:14.5px;color:var(--muted);cursor:pointer;border-radius:12px 12px 0 0;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tab:hover{color:var(--ink);background:#f3f6fb}
 .tab.on{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-soft)}
-.tab:focus-visible,.btn:focus-visible,.choice:focus-visible,.pill:focus-visible{outline:3px solid #9cc0ff;outline-offset:2px}
+.tab:focus-visible,.btn:focus-visible,.choice:focus-visible,.pill:focus-visible{outline:3px solid var(--accent);outline-offset:2px}   /* #9cc0ff su bianco era 1,84:1, sotto il 3:1 di WCAG 1.4.11 */
 .panel{display:none;padding:16px 4px 4px}
 .panel.on{display:block}
 .phead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
@@ -5009,10 +5009,10 @@ function go(n){
   if (n!==2 && document.body.classList.contains('bigmode')) setBig(false);
   $$('.view').forEach((v,i)=>v.classList.toggle('on', i===n-1));
   $$('.step').forEach(b=>{ const s=+b.dataset.go; b.classList.toggle('on', s===n); b.classList.toggle('done', s<n); });
+  window.scrollTo({top:0});   // prima del fumetto: se si vede, say() non ripete lo stesso messaggio in un avviso
   if (n===2){ say('#tip2', TIPS2[tipI++ % TIPS2.length]); renderPreview(); }
   if (n===3){ say('#tip3', 'Ultimo passo! Spunta cosa vuoi ricevere, poi premi il pulsante blu. 👇'); renderSummary(); }
   if (n===2 && !lsGet('acch.tourDone')) setTimeout(()=>{ if (curView===2) startTour(); }, 500);
-  window.scrollTo({top:0});
 }
 $$('[data-go]').forEach(b=>b.addEventListener('click', ()=>go(+b.dataset.go)));
 function refreshAll(){
@@ -6047,8 +6047,13 @@ function setReady(list){
 }
 // nomi dei file nello ZIP: al massimo 80 caratteri (e mai oltre 120 byte), perché Windows e macOS non estraggono nomi oltre 255 byte e al nome si aggiungono suffissi
 function safeName(s){ let t=String(s).replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').trim(); const cut=Array.from(t); if (cut.length>80) t=cut.slice(0,80).join('').trim()+'…'; while (new TextEncoder().encode(t).length>120) t=Array.from(t).slice(0,-2).join('')+'…'; return t || 'grafico'; }
-const PDF_MAP={'α':'a','β':'b','γ':'g','η':'n','ℓ':'l','ν':'v','δ':'d','λ':'lambda ','Φ':'Phi','Δ':'D','σ':'s','χ':'chi','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','²':'2','³':'3','⁴':'4','⁻':'-','≈':'~','≥':'>=','≤':'<=','−':'-','✓':'v','✗':'x','⚠':'!','→':'->'};   // il font standard del PDF non ha greco e pedici
-function pdfText(s){ return String(s).replace(/⁻¹/g,'-1').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰²³⁴⁻≈≥≤−✓✗⚠→]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/[^\x20-\x7E -ÿ–—…·]/g,'?'); }
+const PDF_MAP={'α':'a','β':'b','γ':'g','η':'n','ℓ':'l','ν':'v','δ':'d','λ':'lambda ','Φ':'Phi','Δ':'D','σ':'s','χ':'chi','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','⁴':'4','⁻':'-','≈':'~','≥':'>=','≤':'<=','−':'-','✓':'v','✗':'x','⚠':'!','→':'->'};   // il font standard del PDF non ha greco e pedici
+// i caratteri WinAnsi (’ “ ” € • ‰ – … ² ³ ° µ ±) passano: jsPDF li codifica da sé per i font standard. Gli altri: lettera senza accento (č → c) o «?» (CJK, ł)
+const PDF_WIN=String.fromCharCode(0x2018,0x2019,0x201A,0x201C,0x201D,0x201E,0x2020,0x2021,0x2022,0x2026,0x2030,0x2039,0x203A,0x20AC,0x2122,0x0152,0x0153,0x0160,0x0161,0x0178,0x017D,0x017E,0x0192,0x02C6,0x02DC,0x2013,0x2014);
+function pdfText(s){ return String(s).replace(/⁻¹/g,'-1').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≥≤−✓✗⚠→]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
+  .replace(/[^\x20-\x7E\xA0-\xFF·]/gu, c=>{ if (PDF_WIN.includes(c)) return c; const b=c.normalize('NFD').replace(/[\u0300-\u036F]/g,''); return /^[\x20-\x7E\xA0-\xFF]+$/.test(b) ? b : '?'; }); }
+// metadati (Title, Subject, Author): jsPDF li scrive in UTF-16, quindi restano interi anche fuori da WinAnsi; si tolgono solo le emoji
+const pdfMeta = s => String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/\s+/g,' ').trim();
 function renderCanvas(view, wmm, hmm, dpi, fontPt){
   const k=dpi/25.4, c=document.createElement('canvas');
   c.width=Math.round(wmm*k); c.height=Math.round(hmm*k);
@@ -6295,7 +6300,7 @@ async function buildPdf(){
   const { jsPDF } = window.jspdf, Lx=T_();
   const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10, G=5;
   const doc = new jsPDF({orientation:S.orient, unit:'mm', format:'a4', compress:true});
-  doc.setProperties({title:pdfText(S.docTitle || Lx.title), subject:pdfText(S.docProject || Lx.title), author:pdfText(S.docAuthor||''), creator:'', keywords:'spectra'});
+  doc.setProperties({title:pdfMeta(S.docTitle || Lx.title), subject:pdfMeta(S.docProject || Lx.title), author:pdfMeta(S.docAuthor||''), creator:'', keywords:'spectra'});
   const inc=included(), [cols,rows]=gridFor(S.perPage,S.orient);
   const cw=(PW-2*M-(cols-1)*G)/cols, ch=(PH-2*M-8-(rows-1)*G)/rows;
   const fontPt = Math.max(5.5, Math.min(9, ch/11));
@@ -6311,7 +6316,7 @@ async function buildPdf(){
     const head=()=>{ newPage();
       doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text(pdfText(title), M, M+6);
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
-      doc.text(pdfText([`${inc.length} ${Lx.plots} · ${Lx.gen} ${date}`, S.docAuthor, S.docProject].filter(Boolean).join(' · ')), M, M+12); doc.setTextColor(0);
+      doc.text(pdfText([`${inc.length} ${inc.length===1?(LANG==='en'?'plot':'grafico'):Lx.plots} · ${Lx.gen} ${date}`, S.docAuthor, S.docProject].filter(Boolean).join(' · ')), M, M+12); doc.setTextColor(0);
       doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
       Lx.cols.forEach((h,i)=>doc.text(pdfText(h), X[i], M+22));
       doc.setDrawColor(200); doc.line(M, M+23.5, PW-M, M+23.5); return M+28; };
@@ -6389,7 +6394,11 @@ async function pngWithDpi(canvas, dpi){
   }
   return new Blob(parts, {type:'image/png'});
 }
-function csvCell(c, sep){ c=String(c); return (c.includes(sep)||/["\n]/.test(c)) ? '"'+c.replace(/"/g,'""')+'"' : c; }
+// un testo che inizia con = + - @ (o tab/CR) Excel lo esegue come formula: anche da un progetto ricevuto. Gli si antepone «'»; i numeri (anche negativi) restano numeri
+const CSV_NUM=/^[-+]?(\d[\d.,]*|[.,]\d+)([eE][-+]?\d+)?%?$/;
+function csvCell(c, sep){ c=String(c); if (/^[=+\-@\t\r]/.test(c) && c!=='-' && !CSV_NUM.test(c)) c="'"+c; return (c.includes(sep)||/["\n\r]/.test(c)) ? '"'+c.replace(/"/g,'""')+'"' : c; }
+// CSV rapidi (⬇️ CSV nelle schede): stesso separatore dello ZIP, «,» in inglese (decimale «.») e «;» in italiano (decimale «,»)
+function csvBlob(rows){ const sep=LANG==='en'?',':';'; return new Blob(['\uFEFF'+rows.map(r=>r.map(c=>csvCell(c==null?'':c,sep)).join(sep)).join('\r\n')],{type:'text/csv'}); }
 /* una riga per spettro: quale file, con quale impronta, con quali scelte. Serve a ricostruire un dato esportato */
 function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[[en?'File':'File','SHA-256',en?'Bytes':'Byte',en?'Points':'Punti',en?'Technique':'Tecnica',en?'Recognised from':'Riconosciuta da',en?'Y column':'Colonna Y',en?'X scale':'Scala X',en?'X shift':'Spostamento X',en?'Processing':'Elaborazione',en?'Printed range':'Zona stampata',en?'Peak sensitivity':'Sensibilità dei picchi',en?'Cosmic-ray threshold':'Soglia dei raggi cosmici',en?'Computed data':'Dato calcolato',en?'Application version':'Versione del programma',en?'Exported':'Esportato']];
   const now=new Date().toISOString(); for (const f of list){ let h=''; try{ if (f.raw) h=AcchFormat.sha256(new Uint8Array(f.raw)); }catch(e){}
@@ -6532,7 +6541,7 @@ function numField(el, ok, opt){ const raw=String(el.value).trim(); if (!raw) ret
   const msg=`⚠️ «${raw}» non è un numero valido: usa la virgola o il punto solo per i decimali, senza separatore delle migliaia né spazi. Valore non accettato.`;
   el.value=el.defaultValue; toast(msg); el.setAttribute('aria-invalid','true'); el.title=msg; setTimeout(()=>{ if (el.isConnected){ el.removeAttribute('aria-invalid'); el.title=''; } },5000); }
 const fmtG = (v, d) => v==null || !isFinite(v) ? '—' : (Math.abs(v)>=1e5 || (Math.abs(v)<1e-3 && v!==0)) ? v.toExponential(d==null?3:d-1).replace('.',T_().dec) : (+v.toPrecision(d||4)).toString().replace('.',T_().dec);
-const fmtSN = v => !isFinite(v) || v>1e5 ? '> 100 000'.replace(' 000', T_().locale==='en-US'?',000':'.000') : v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
+const fmtSN = v => !isFinite(v) || v>1e5 ? '> '+(1e5).toLocaleString(T_().locale) : v>=1000 ? Math.round(v).toLocaleString(T_().locale) : fmtG(v, v>=100?3:2);
 const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla cifra della seconda cifra significativa dell'incertezza (GUM)
   if (s===null && v!=null && isFinite(v)) return fmtG(v,d)+' ± n.d.';   // incertezza non calcolabile (parametro al limite): mai «± 0»
   if (s==null || !isFinite(s) || !(s>0) || v==null || !isFinite(v)) return fmtG(v,d);
@@ -6794,7 +6803,7 @@ function renderFitOut(f){
     <div class="row" style="margin-top:6px"><span class="opt-l">Il CSV della deconvoluzione (passo 3, «Risultati delle analisi») contiene tutti gli spettri.</span></div>`);
   $('#fitToPk').onclick=()=>{ pkSnap(f); const P=processed(f), tol=(P.xs[P.xs.length-1]-P.xs[0])*0.002, d=viewOf(f);
     F.peaks.forEach(q=>{ if (!d.peaks.some(p=>Math.abs(p.x-q.c)<tol)) f.added.push(q.c); }); changed(f); say('#tip2','Centri delle componenti aggiunti come picchi (Ctrl+Z per annullare). 📍'); };
-  $('#fitCsv').onclick=()=>download(new Blob(['﻿'+fitCsvRows([f]).map(r=>r.map(c=>csvCell(c,';')).join(';')).join('\r\n')],{type:'text/csv'}), safeName(dispTitle(f))+'_deconvoluzione.csv');
+  $('#fitCsv').onclick=()=>download(csvBlob(fitCsvRows([f])), safeName(dispTitle(f))+(LANG==='en'?'_deconvolution.csv':'_deconvoluzione.csv'));
 }
 function fitCsvRows(list){
   const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec), rows=[['File','Nome','Strumento','Profilo','Base','Zona da','Zona a','R2','Componente','Centro','σ centro','FWHM','σ FWHM','Altezza','σ altezza','Area','σ area','Area %','Frazione Lorentz']];
@@ -7029,7 +7038,7 @@ function mvFlag(f, a, b, meas){
     const near=main && Math.abs(main.x-P.xs[k])<0.4*fw, hb=all.filter(h=>Math.abs(h.x-P.xs[k])>=0.4*fw && (!near || h.prom<main.prom) && U.y[h.i]-bot>0.05*(top-bot)); if (hb.length) return 'spalla o coda (derivata seconda): possibile coeluito'; }catch(e){} } if (f.instr==='hplc'&&sh.asym) return 'picco asimmetrico: coda o interferente';
   return ''; }
 const MV_ROLE={std:'standard',blank:'bianco',qc:'controllo'};
-const mvNoEstimate=o=>/area negativa|nessun picco|fuori dallo spettro/.test(o.flag||'');
+const mvNoEstimate=o=>/area negativa|nessun picco|fuori dallo spettro|trasmittanza letta/.test(o.flag||'');
 function mvStatus(o, pr, c, instr){ return [pr&&!pr.inRange?'estrapolato':'', pr&&pr.belowLod?'< LOD':pr&&pr.belowLoq?'< LOQ':'', o.flag||'', S.conv[instr]==='norm'?'normalizzato':'', pr&&!c.unit?'unità mancante':''].filter(Boolean).join('; '); }
 /* ridisegna e rimette il cursore dove l'utente stava andando (Tab o clic su un'altra cella) */
 function rerenderKeep(fn, now, origin, boxes){ setTimeout(()=>{ const act=document.activeElement, box=!now&&boxes&&act&&act.closest&&act.closest(boxes);
@@ -7049,7 +7058,9 @@ function mvTable(instr){
   const c=mvCfg(instr), list=mvFiles(instr, c), R=c.c!=null && c.d!=null;
   if (c.a==null || c.b==null) return null;
   const T=list.map(f=>{ const v=mvValue(f, c.a, c.b, c.meas), r=R ? mvValue(f, c.c, c.d, c.meas==='value'?'value':c.meas==='area'?'area':'height') : null;
-    return {f, v, r, y: v==null ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
+    // trasmittanza in frazione (0–1) letta come assorbanza: bande capovolte, il valore misurato non vale (indice sbagliato del 20–30%): nessun valore, avviso esplicito
+    const tT=suspectT(f);
+    return {f, v, r, y: v==null || tT ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:tT ? 'trasmittanza letta come assorbanza: scegli «trasmittanza %» come asse Y in «Dati dello spettro»' : mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
   const key=c.a+'|'+c.b, sameZone=k=>{ const [a,b]=String(k).split('|').map(Number), w=Math.abs(c.b-c.a)||1; return Math.abs(a-c.a)<=0.02*w && Math.abs(b-c.b)<=0.02*w; };
   // ogni zona (composto) ha le sue concentrazioni: passare a un altro composto e tornare indietro non le perde
   T.forEach(o=>{ const an=o.f.an||{}, z=an.concs ? Object.keys(an.concs).find(sameZone) : null; if (c.model!=='trend' && z!=null){ o.conc=an.concs[z]; return; }
@@ -7175,7 +7186,7 @@ function renderMulti(){
   $('#mvZoom').onclick=()=>{ const g=files[cur]; if (!g || !g._zoom){ say('#tip2','Prima ingrandisci la banda nell\'anteprima, poi premi qui. 🔍'); return; } c.a=+g._zoom[0].toPrecision(6); c.b=+g._zoom[1].toPrecision(6); mvSave(); renderMulti(); };
   $$('#mvOut .concin[data-i]').forEach(el=>el.onchange=()=>numField(el, v=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'conc', v); anSet(o.f, 'concK', c.a+'|'+c.b); if (c.model!=='trend'){ const m=Object.assign({}, (o.f.an&&o.f.an.concs)||{}), w=Math.abs(c.b-c.a)||1; Object.keys(m).forEach(k=>{ const [a,b]=k.split('|').map(Number); if (Math.abs(a-c.a)<=0.02*w && Math.abs(b-c.b)<=0.02*w) delete m[k]; }); if (v!=null) m[c.a+'|'+c.b]=v; anSet(o.f, 'concs', Object.keys(m).length?m:null); } rerenderKeep(renderMulti); }, {pos:c.model!=='trend'}));
   $$('#mvOut .rolein').forEach(el=>el.onchange=()=>{ const o=rows[+el.dataset.i]; anSet(o.f, 'role', el.value==='std'?null:el.value); rerenderKeep(renderMulti); });
-  if ($('#mvCsv')) $('#mvCsv').onclick=()=>download(new Blob(['﻿'+mvCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `misure_${instr}.csv`);
+  if ($('#mvCsv')) $('#mvCsv').onclick=()=>download(csvBlob(mvCsvRows(instr)), `${LANG==='en'?'band_measurements':'misure'}_${instr}.csv`);
   if (c.model!=='pls' && cal && cal.b!=null && $('#calC')) drawCalChart($('#calC'), instr, rows, cal);
   if (c.model==='pls') renderPLS(instr);
   renderXrfQuant(instr);
@@ -7291,7 +7302,7 @@ function renderCult(f){
   setS('anode', $('#fpAn')); setS('kv', $('#fpKv'), 1); setS('psi1', $('#fpP1'), 1); setS('psi2', $('#fpP2'), 1); setS('d2', $('#fpD2'), 1); setS('atm', $('#fpAtm')); setS('beD', $('#fpBeD'), 1); setS('si', $('#fpSi'), 1); if ($('#fpFiltEl')){ setS('filtEl', $('#fpFiltEl')); setS('filtUm', $('#fpFiltUm'), 1); }
   if ($('#fpSens')) $('#fpSens').onclick=async()=>{ const box=$('#fpSensOut'); box.textContent='Sto ricalcolando…'; await new Promise(r=>setTimeout(r,20)); const q=fpSensitivity(f); if (!q){ box.textContent=''; return; } box.innerHTML=`<p class="why">Ho ripetuto la stima ${q.n} volte cambiando tensione ±5 kV, angoli ±10° e spessore del sensore. Mostra quanto contano queste ipotesi, in più del ± di conteggio. <b>Non è un'accuratezza:</b> vale solo se il modello è adatto al campione.</p><div class="areawrap"><table class="areatab"><thead><tr><th>Elemento</th><th>Stima %</th><th>da</th><th>a</th></tr></thead><tbody>${Object.entries(q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`<tr><td><b>${e}</b></td><td>${fmtN(o.w,o.w<10?2:1)}</td><td>${fmtN(o.lo,o.lo<10?2:1)}</td><td>${fmtN(o.hi,o.hi<10?2:1)}</td></tr>`).join('')}</tbody></table></div>`; };
   $('#fpSall').onclick=()=>{ let n=0; files.forEach(g=>{ if (g.instr!=='xrf' || g===f) return; const cg=fpCfg(g); cg.S=Object.assign({}, c.S||{}); fpSaveCfg(g, cg); n++; }); toast(n ? `✔ Condizioni copiate su ${n} spettr${n===1?'o':'i'} XRF.` : 'Non ci sono altri spettri XRF.'); };
-  if ($('#fpCsv')) $('#fpCsv').onclick=()=>download(new Blob(['﻿'+fpCsvRows([f]).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `composizione_FP_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`);
+  if ($('#fpCsv')) $('#fpCsv').onclick=()=>download(csvBlob(fpCsvRows([f])), `${LANG==='en'?'xrf_FP':'composizione_FP'}_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`);
   bindLayer(f, R);
 }
 function fpCsvRows(list){ const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec), out=[['File','Nome','Modalità','Elemento','Riga','% in peso','± (conteggi)','Ossido','% ossido','Conteggi netti','Anodo','kV','Angolo ingresso','Angolo uscita','Tipo di valore','Somma %','Chi2 ridotto','Atmosfera','Be tubo (um)','Be rivelatore (um)','Si (um)','Distanza rivelatore (cm)','Filtro primario','Note']];
@@ -7447,7 +7458,7 @@ function renderXrfQuant(instr){
   $('#xq100').onchange=e=>{ c.q100=e.target.checked; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
   $('#xqModel').onchange=e=>{ c.qModel=e.target.value; mvSave(); rerenderKeep(()=>renderXrfQuant(instr), true, e.target); };
   $$('#xqBox .xq').forEach(el=>el.onchange=()=>numField(el, v=>{ const f=list[+el.dataset.i]; const std=Object.assign({}, (f.an&&f.an.std)||{}); if (v==null) delete std[el.dataset.e]; else std[el.dataset.e]=v; anSet(f,'std', Object.keys(std).length?std:null); rerenderKeep(()=>renderXrfQuant(instr)); }, {pos:true}));
-  if ($('#xqCsv')) $('#xqCsv').onclick=()=>download(new Blob(['\ufeff'+xqCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), 'composizione_xrf.csv');
+  if ($('#xqCsv')) $('#xqCsv').onclick=()=>download(csvBlob(xqCsvRows(instr)), LANG==='en'?'xrf_composition.csv':'composizione_xrf.csv');
 }
 function xqCsvRows(instr){ const M=xqModel(instr); if (!M || !M.fit) return []; const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec);
   const out=[['File','Nome','Tipo'].concat(M.els.flatMap(e=>[e+' %', e+' ± (val. incrociata)', e+' I/Compton']))];
@@ -7544,7 +7555,7 @@ function renderPCA(instr){
   drawDendro($('#pcDendro'), R.tree, names, R.lab);
   const inv=INSTR[instr].invertX, L=[{xs:Array.from(R.grid), ys:Array.from(R.P.loadings[0]), color:'#1f5fbf', w:1.2}]; if (R.P.loadings[1]) L.push({xs:Array.from(R.grid), ys:Array.from(R.P.loadings[1]), color:'#d1495b', w:1.2});
   miniPlot($('#pcLoad'), {lines:L, zero:true, invertX:inv, xLabel:(INSTR[instr].xPdf||'x').replace('cm-1','cm⁻¹'), yLabel:'peso', legend:['PC1','PC2']});
-  $('#pcCsv').onclick=()=>download(new Blob(['﻿'+pcaCsvRows(instr).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `pca_${instr}.csv`);
+  $('#pcCsv').onclick=()=>download(csvBlob(pcaCsvRows(instr)), `pca_${instr}.csv`);
 }
 function pcaCsvRows(instr){
   const R=MVres[instr]; if (!R || R.err) return []; const dec=T_().dec, n=v=>String(+(+v).toPrecision(7)).replace('.',dec);
@@ -7689,6 +7700,8 @@ function analysisFiles(){
   const inc=included(), en=LANG==='en', csep=en?',':';', dec=T_().dec, out=[], used=new Set();
   const csv=rows=>'﻿'+rows.map(r=>r.map(c=>csvCell(String(c==null?'':c).replace(/<[^>]+>/g,''),csep)).join(csep)).join('\r\n');
   const n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec);
+  // le tabelle a schermo raggruppano le migliaia (N «16.623», «8,862»): R, pandas e Origin le leggerebbero come decimali, quindi nel CSV il numero è grezzo
+  const ths=dec===','?'.':',', thRe=new RegExp('^(>\\s*)?-?\\d{1,3}(\\'+ths+'\\d{3})+(\\'+dec+'\\d+)?$'), rawNum=c=>{ c=String(c==null?'':c).replace(/<[^>]+>/g,''); return thRe.test(c)?c.split(ths).join(''):c; };
   const q=[['File','Nome','Strumento','Livello','Messaggio']], h=[['File','Nome','Strumento','Ipotesi','Livello','Indizi trovati','Bande mancanti']], t=[['File','Nome','Strumento','Tabella']];
   for (const f of inc){ const d=viewOf(f);
     assess(f,d).forEach(o=>q.push([f.name, dispTitle(f), NOME_IT[f.instr], (LANG==='en'?{ok:'ok',info:'note',warn:'warning',bad:'problem'}:{ok:'ok',info:'nota',warn:'attenzione',bad:'problema'})[o.lv], o.t]));
@@ -7697,7 +7710,7 @@ function analysisFiles(){
     if (H && H.pig && H.pig.length){ used.add('pigments'); H.pig.forEach(x=>h.push([f.name, dispTitle(f), NOME_IT[f.instr], (en?x.en:x.it)+(x.date?' ('+x.date+')':''), x.score!=null&&x.ev?hypTag(x,en):'', x.ev ? x.ev.filter(e=>e.hit!=null).map(e=>n(e.hit)).join(' ') : (x.els||[]).join(' + '), x.ev ? x.ev.filter(e=>e.hit==null).map(e=>e.b).join(' ') : ''])); }
     if (H && H.kind==='els' && H.list.length && !H.pig.length){ used.add('pigments'); H.list.forEach(x=>h.push([f.name, dispTitle(f), NOME_IT[f.instr], en?x.en:x.it, x.lvl||'', x.els.join(' + '), ''])); }
     if (f.instr==='uv' && f.an && f.an.data==='refl') used.add('km');
-    const o=techMetrics(f,d); if (o.title && o.rows.length){ t.push([f.name, dispTitle(f), NOME_IT[f.instr], o.title.replace(/^\S+\s/,'')].concat(o.head)); o.rows.forEach(r=>t.push(['','','',''].concat(r))); if (TECH_REF[f.instr]) used.add(TECH_REF[f.instr]); }
+    const o=techMetrics(f,d); if (o.title && o.rows.length){ t.push([f.name, dispTitle(f), NOME_IT[f.instr], o.title.replace(/^\S+\s/,'')].concat(o.head)); o.rows.forEach(r=>t.push(['','','',''].concat(r.map(rawNum)))); if (TECH_REF[f.instr]) used.add(TECH_REF[f.instr]); }
   }
   out.push([en?'quality_check.csv':'controllo_qualita.csv', csv(q)]);
   if (h.length>1) out.push([en?'qualitative_hypotheses.csv':'ipotesi_qualitative.csv', csv(h)]);

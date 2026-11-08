@@ -29,4 +29,11 @@ function pdfText(buf){
   }
   return lines;
 }
-module.exports={pdfText};
+// /Title del dizionario Info: stringa letterale in PDFDocEncoding o, se ha il BOM, in UTF-16BE
+function pdfInfoTitle(buf){
+  const s=buf.toString('latin1'), i=s.lastIndexOf('/Title ('); if (i<0) return null; let k=i+8, d=1, raw='';
+  while (k<s.length && d>0){ const c=s[k]; if (c==='\\'){ const n=s[k+1]; if (/[0-7]/.test(n)){ let o=''; while (o.length<3 && /[0-7]/.test(s[k+1])) o+=s[++k]; raw+=String.fromCharCode(parseInt(o,8)); k++; continue; } raw+=({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'})[n]||n; k+=2; continue; }
+    if (c==='(') d++; else if (c===')' && !--d) break; raw+=c; k++; }
+  if (raw.startsWith('\xFE\xFF')){ let o=''; for (let j=2;j+1<raw.length;j+=2) o+=String.fromCharCode(raw.charCodeAt(j)*256+raw.charCodeAt(j+1)); return o; }
+  return raw; }
+module.exports={pdfText, pdfInfoTitle};
