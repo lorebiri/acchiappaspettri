@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Strumenti che il bundler di Tauri scarica da github.com durante «tauri build» (NSIS su Windows; AppRun, linuxdeploy e il suo
-// plugin AppImage su Linux). Il bundler li scarica una volta sola, senza riprovare: un 504 di github.com fa fallire la build
+// Strumenti che il bundler di Tauri scarica da github.com durante «tauri build» (NSIS su Windows; AppRun, linuxdeploy, il suo
+// plugin AppImage e il runtime che il plugin scarica a sua volta su Linux). Il bundler li scarica una volta sola, senza riprovare: un 504 di github.com fa fallire la build
 // (release 42464743191, 8 novembre 2026). Qui li mettiamo noi nella cartella dove il bundler li cerca, verificati, con più
 // tentativi distribuiti su ~15 minuti e, se github.com non risponde, dall'API delle release (api.github.com), che resta
 // raggiungibile anche quando le pagine di download non lo sono. La cartella va poi in actions/cache.
@@ -32,7 +32,10 @@ const TOOLS={
     {file:'AppRun-x86_64', repo:'tauri-apps/binary-releases', tag:'apprun-old', asset:'AppRun-x86_64', sha256:'f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f'},
     {file:'linuxdeploy-07333c6-x86_64.AppImage', repo:'tauri-apps/binary-releases', tag:'linuxdeploy-07333c6', asset:'linuxdeploy-x86_64.AppImage', sha256z:'bd9521cd5ff3ca351fecb78cd9b236a4e37b3621014ac05cac0c2d767ffa0474'},
     // «continuous»: cambia nel tempo, non ha un hash fisso; si verifica con l'hash che GitHub pubblica per l'asset, se raggiungibile
-    {file:'linuxdeploy-plugin-appimage.AppImage', repo:'linuxdeploy/linuxdeploy-plugin-appimage', tag:'continuous', asset:'linuxdeploy-plugin-appimage-x86_64.AppImage', elf:true},
+    {file:'linuxdeploy-plugin-appimage.AppImage', repo:'linuxdeploy/linuxdeploy-plugin-appimage', tag:'continuous', asset:'linuxdeploy-plugin-appimage-x86_64.AppImage', elf:1048576},
+    // l'appimagetool dentro il plugin scarica a ogni build il runtime dell'AppImage da github.com (src/appimagetool_fetch_runtime.cpp)
+    // se APPIMAGETOOL_RUNTIME_FILE non è impostata: è il «failed to run linuxdeploy» di run 42464743191 e 42468588488
+    {file:'runtime-x86_64', repo:'AppImage/type2-runtime', tag:'continuous', asset:'runtime-x86_64', elf:262144, env:'APPIMAGETOOL_RUNTIME_FILE'},
   ],
   windows:[
     {file:'NSIS', repo:'tauri-apps/binary-releases', tag:'nsis-3.13', asset:'nsis-3.13.zip', sha1:'db14f8af2ea346b786c6ae19343f61aaf5e09b8e', zip:'nsis-3.13',
@@ -47,7 +50,7 @@ function checkData(t, buf, digest){
   if (t.sha1 && hash('sha1',buf)!==t.sha1) return 'SHA-1 diverso da quello atteso dal bundler';
   if (t.sha256 && hash('sha256',buf)!==t.sha256) return 'SHA-256 diverso da quello fissato';
   if (t.sha256z && hash('sha256',zero8(buf))!==t.sha256z) return 'SHA-256 diverso da quello fissato';
-  if (t.elf && (buf.length<1048576 || buf.slice(0,4).toString('latin1')!=='\x7fELF')) return 'non è un eseguibile ELF completo';
+  if (t.elf && (buf.length<t.elf || buf.slice(0,4).toString('latin1')!=='\x7fELF')) return 'non è un eseguibile ELF completo';
   if (digest && hash('sha256',buf)!==digest) return 'SHA-256 diverso da quello pubblicato da GitHub';
   return null;
 }
@@ -121,6 +124,7 @@ function install(t, dir, buf){
     console.log('✓ '+t.file+' scaricato e verificato');
   }
   // ultimo controllo dell'insieme: la dll sta dentro NSIS, che può essere stato appena sostituito
-  for (const t of list){ const why=checkInstalled(t,dir); if (why) die(`${t.file}: ${why}`); }
+  for (const t of list){ const why=checkInstalled(t,dir); if (why) die(`${t.file}: ${why}`);
+    if (t.env){ const v=path.join(dir,t.file); console.log(t.env+'='+v); if (process.env.GITHUB_ENV) fs.appendFileSync(process.env.GITHUB_ENV,t.env+'='+v+'\n'); } }
   console.log('Strumenti di Tauri pronti in '+dir);
 })().catch(e=>die(e.stack||String(e)));
