@@ -2302,7 +2302,7 @@
   "xMax": 8.1904,
   "yMax": 50571,
   "avvisi": [
-   "warn: La calibrazione in energia è spostata di circa -157 eV (righe usate: Cu Kα, Cu Kβ, As Kα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
+   "warn: La calibrazione in energia è spostata di circa -159 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ₂). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
   ],
   "picchi": [
    [
@@ -2338,7 +2338,7 @@
   "xMax": 8.01251,
   "yMax": 50376,
   "avvisi": [
-   "warn: La calibrazione in energia è spostata di circa 43 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
+   "warn: La calibrazione in energia è spostata di circa 39 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
   ],
   "picchi": [
    [
@@ -2374,7 +2374,7 @@
   "xMax": 7.8892,
   "yMax": 50568,
   "avvisi": [
-   "warn: La calibrazione in energia è spostata di circa 163 eV (righe usate: Cu Kα, Cu Kβ, As Kα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
+   "warn: La calibrazione in energia è spostata di circa 160 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ₂). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
   ],
   "picchi": [
    [

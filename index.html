@@ -348,6 +348,9 @@ body.busy, body.busy *{cursor:progress !important}
 .areatab th,.areatab td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .areatab th{color:var(--muted);font-weight:700;font-size:12.5px}
 .areatab td:first-child,.areatab th:first-child{text-align:left}
+/* tabella della stima FP: deve stare nel pannello stretto del desktop senza nascondere ± e «(stima)» (le altre tabelle non cambiano) */
+.areatab.fptab{min-width:0;width:100%}
+.areatab.fptab th,.areatab.fptab td{white-space:normal;padding:5px 6px}
 .areatab .bar{display:inline-block;height:8px;border-radius:4px;background:var(--accent);opacity:.55;vertical-align:middle;margin-right:6px}
 .pkcount{font-size:13.5px;margin-top:4px;font-weight:700;color:var(--ink)}
 .pills{display:flex;gap:6px;flex-wrap:wrap}
@@ -1924,24 +1927,35 @@ function xrfMajorLines(tube){
    coppie di picchi forti assegnate a coppie di righe; vince la più coerente, che deve spiegare molto meglio della calibrazione del file
    (punteggio almeno 1,3 volte) e almeno 3 picchi, altrimenti la calibrazione del file resta. */
 const XRF_COMMON=['S','Cl','Ar','K','Ca','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','As','Se','Br','Rb','Sr','Zr','Mo','Ag','Cd','Sn','Sb','Ba','W','Pt','Au','Hg','Pb','Bi'];
+const XRF_LN_GR={Ka:'Kα',Kb:'Kβ',La:'Lα',Lb1:'Lβ',Lb2:'Lβ₂',Lg1:'Lγ',Ll:'Lℓ'};
 function xrfAlignFit(peaks, tube){
-  const L=[]; for (const el of XRF_COMMON) for (const [ln,E] of (XRF_LINES[el]||[])) if (E>=1.5) L.push({E, name:`${el} ${ln}`});
-  if (tube && XRF_TUBES[tube]) for (const ln of ['Kα','Kβ','Lα','Lβ']) if (XRF_TUBES[tube][ln]) L.push({E:XRF_TUBES[tube][ln], name:`${tube} ${ln} (tubo)`});
+  // righe di riferimento con Kα come media pesata di Kα₁ e Kα₂ (dalla tabella FP), più Lβ₂, Lγ e Lℓ come righe «minori».
+  // Con le sole Kα₁/Lα/Lβ lo stagno puro (Sn Kα a 25,19 keV e non 25,27; Sn Lℓ, Lβ₂, Lγ assenti) era spiegato meglio da una scala spostata di −240 eV.
+  // Una riga minore conta solo se nella stessa scala c'è anche una riga principale dello stesso elemento: altrimenti le tante Lℓ e Lγ spiegano qualsiasi cosa
+  const MAJ={Ka:1,Kb:1,La:1,Lb1:1}, L=[];
+  for (const el of XRF_COMMON){ const F=FP.el[el]&&FP.el[el].fam; if (F){ for (const fam of ['K','L']) for (const [nm,E,rel] of (F[fam]||[])) if (E>=1.5 && rel>=0.02 && XRF_LN_GR[nm]) L.push({E, el, minor:!MAJ[nm], name:`${el} ${XRF_LN_GR[nm]}`}); }
+    else for (const [ln,E] of (XRF_LINES[el]||[])) if (E>=1.5) L.push({E, el, name:`${el} ${ln}`}); }
+  if (tube && XRF_TUBES[tube]){ const TK=FP.el[tube]&&FP.el[tube].fam.K, tE=ln=>{ const q=TK&&TK.find(r=>XRF_LN_GR[r[0]]===ln); return q ? q[1] : XRF_TUBES[tube][ln]; };   // righe del tubo diffuse: anche qui Kα₁+Kα₂
+    for (const ln of ['Kα','Kβ','Lα','Lβ']) if (XRF_TUBES[tube][ln]) L.push({E:tE(ln), el:'tubo', name:`${tube} ${ln} (tubo)`}); }
   L.sort((p,q)=>p.E-q.E);
-  const P=peaks.filter(q=>q.x>=1.5).sort((a,b)=>(b.w||0)-(a.w||0)).slice(0,10).map(q=>({x:q.x, w:Math.sqrt(Math.max(q.w||1,1))}));
+  // picchi che non dicono nulla sulla scala: le fughe del Si (1,74 keV sotto un picco molto più alto, uguali in ogni scala) e la gobba Compton del tubo
+  const tKa=tube && XRF_TUBES[tube] ? XRF_TUBES[tube]['Kα'] : null, isEsc=q=>peaks.some(r=>(r.w||0)>=3*(q.w||0) && Math.abs(r.x-1.74-q.x)<=0.06);
+  const P=peaks.filter(q=>q.x>=1.5 && !isEsc(q) && !(tKa && q.x>tKa-1.2 && q.x<tKa-0.15)).sort((a,b)=>(b.w||0)-(a.w||0)).slice(0,10).map(q=>({x:q.x, w:Math.sqrt(Math.max(q.w||1,1))}));
   if (P.length<2) return null;
-  const near=E=>{ let lo=0, hi=L.length-1; while (lo<hi){ const m=(lo+hi)>>1; if (L[m].E<E) lo=m+1; else hi=m; } let best=L[lo]; if (lo>0 && Math.abs(L[lo-1].E-E)<Math.abs(best.E-E)) best=L[lo-1]; return best; };
-  const score=(a,b)=>{ let s=0, n=0; for (const p of P){ const d=Math.abs(near(a+b*p.x).E-(a+b*p.x)); if (d<0.04){ n++; } s+=p.w*Math.exp(-((d/0.025)**2)); } return {s, n}; };
+  const near0=(E, ok)=>{ let best=null; for (const l of L){ if (l.E<E-0.3) continue; if (l.E>E+0.3) break; if (l.minor && !(ok&&ok.has(l.el))) continue; if (!best || Math.abs(l.E-E)<Math.abs(best.E-E)) best=l; } return best || {E:Infinity}; };
+  const okEls=(a,b)=>{ const ok=new Set(); for (const p of P){ const E=a+b*p.x, l=near0(E); if (Math.abs(l.E-E)<0.04) ok.add(l.el); } return ok; };
+  let curOk=null; const near=E=>near0(E, curOk);
+  const score=(a,b)=>{ curOk=okEls(a,b); let s=0, n=0; for (const p of P){ const d=Math.abs(near(a+b*p.x).E-(a+b*p.x)); if (d<0.04){ n++; } s+=p.w*Math.exp(-((d/0.025)**2)); } return {s, n}; };
   const id=score(0,1); let best={a:0, b:1, s:id.s, n:id.n};
   const top=P.slice(0,6);
   for (let i=0;i<top.length;i++) for (let k=i+1;k<top.length;k++){ const p=top[i], q=top[k]; if (Math.abs(q.x-p.x)<1) continue;
     const Lp=L.filter(l=>Math.abs(l.E-p.x)<0.4), Lq=L.filter(l=>Math.abs(l.E-q.x)<0.4);
-    for (const l1 of Lp) for (const l2 of Lq){ if (l1===l2) continue; const b=(l2.E-l1.E)/(q.x-p.x), a=l1.E-b*p.x; if (!(b>0.97 && b<1.03) || Math.abs(a)>0.25) continue; const r=score(a,b); if (r.s>best.s) best={a,b,s:r.s,n:r.n}; } }
+    for (const l1 of Lp) for (const l2 of Lq){ if (l1===l2) continue; const b=(l2.E-l1.E)/(q.x-p.x), a=l1.E-b*p.x; if (!(b>0.97 && b<1.03) || Math.abs(a)>0.3) continue; const r=score(a,b); if (r.s>best.s) best={a,b,s:r.s,n:r.n}; } }
   const moved = best!==null && (best.a!==0 || best.b!==1);
   const keep = !moved || best.s<1.3*id.s || best.n<3;
   const a0=keep?0:best.a, b0=keep?1:best.b;
   // rifinitura ai minimi quadrati sulle coppie ritrovate
-  let pairs=P.map(p=>{ const E=a0+b0*p.x, l=near(E); return Math.abs(l.E-E)<0.04 ? {x:p.x, E:l.E, name:l.name, w:p.w} : null; }).filter(Boolean);
+  curOk=okEls(a0,b0); let pairs=P.map(p=>{ const E=a0+b0*p.x, l=near(E); return Math.abs(l.E-E)<0.04 ? {x:p.x, E:l.E, name:l.name, w:p.w} : null; }).filter(Boolean);
   pairs=pairs.filter((q,k)=>pairs.findIndex(r=>r.E===q.E)===k);
   if (keep) return {a:0, b:1, pairs, score:id.s, score0:id.s};
   let a=a0, b=b0; if (pairs.length>=3){ const W=pairs.reduce((t,q)=>t+q.w,0), mx=pairs.reduce((t,q)=>t+q.w*q.x,0)/W, mE=pairs.reduce((t,q)=>t+q.w*q.E,0)/W; let sxx=0, sxy=0; for (const q of pairs){ sxx+=q.w*(q.x-mx)**2; sxy+=q.w*(q.x-mx)*(q.E-mE); } if (sxx>0){ const bb=sxy/sxx; if (bb>0.97 && bb<1.03){ b=bb; a=mE-b*mx; } } }
@@ -2279,9 +2293,9 @@ function parseText0(text, opt){
   const mainIx=blocks.reduce((b,q,k)=>q.xs.length>blocks[b].xs.length?k:b,0), M=blocks[mainIx], dir=Math.sign(M.xs[M.xs.length-1]-M.xs[0])||1;
   const xs=M.xs.slice(), ys=M.ys.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
   const left=blocks.map((q,k)=>k).filter(k=>k!==mainIx); let grew=true;
-  while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=Math.min(...q.xs), qhi=Math.max(...q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
+  while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=arrMin(q.xs), qhi=arrMax(q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
       if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.com=(C.com||0)+(q.cols[u].com||0); C.int+=q.cols[u].int; C.other+=q.cols[u].other; }); left.splice(t,1); t--; grew=true; } } }
-  let channel=false; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && Math.min(...q.xs)<=hi && Math.max(...q.xs)>=lo) channel=true; });
+  let channel=false; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && arrMin(q.xs)<=hi && arrMax(q.xs)>=lo) channel=true; });
   const cols=M.cols;
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
@@ -2441,6 +2455,9 @@ function smoothMA(ys, w){
    2) larghezza tipica dei picchi più evidenti → finestra di smoothing Savitzky–Golay adattiva (~0,6 × FWHM del più stretto);
    3) prominenza di ogni massimo locale; soglia = max(8 × rumore lisciato, sensibilità % × prominenza massima);
    4) posizione affinata con interpolazione parabolica; esclusi i bordi dove lo smoothing non agisce. */
+/* massimo e minimo senza spread: Math.max(...array) con centinaia di migliaia di valori supera la pila (RangeError con 1 milione di punti) */
+function arrMax(a, f){ let m=-Infinity; for (let i=0;i<a.length;i++){ const v=f?f(a[i]):a[i]; if (v>m) m=v; } return m; }
+function arrMin(a, f){ let m=Infinity; for (let i=0;i<a.length;i++){ const v=f?f(a[i]):a[i]; if (v<m) m=v; } return m; }
 function noiseSigma(ys){
   const n=ys.length; if (n<4) return 0;
   const a=new Float64Array(n-2); for (let i=1;i<n-1;i++) a[i-1]=Math.abs(ys[i+1]-2*ys[i]+ys[i-1]);
@@ -2468,7 +2485,7 @@ function findPeaks(xs, ys, dir, sens, maxN){
   const m = Math.max(2, Math.min(Math.round(0.6*wch/2), Math.round(n/40)));
   const sm = sgSmooth(s0, 2*m+1), sig = sigRaw*sgNoiseGain(m), edge=Math.max(m,3);
   const cand = peakCandidates(sm).filter(c=>c.i>=edge && c.i<n-edge); if (!cand.length) return [];
-  const maxProm = Math.max(...cand.map(c=>c.prom));
+  const maxProm = arrMax(cand, c=>c.prom);
   const thr = Math.max(8*sig, (sens/100)*maxProm);
   return cand.filter(c=>c.prom>=thr).sort((a,b)=>b.prom-a.prom).slice(0,maxN).map(c=>{
     const i=c.i; let x=xs[i];
@@ -2849,7 +2866,7 @@ function hiddenBands(xs, ys, sig){
   sig = sig || noiseSigma(ys); let s=12345; const rnd=()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
   const wn=new Float64Array(n); for (let i=0;i<n;i+=2){ const u=rnd()||1e-12, v=rnd(), r=Math.sqrt(-2*Math.log(u)); wn[i]=r*Math.cos(2*Math.PI*v)*sig; if (i+1<n) wn[i+1]=r*Math.sin(2*Math.PI*v)*sig; }
   const dn=derivLS(xs, derivLS(xs, wn, m), m); let sd=0; for (let i=2*m;i<n-2*m;i++) sd+=dn[i]*dn[i]; sd=Math.sqrt(sd/Math.max(1,n-4*m))+1e-300;
-  const c=peakCandidates(neg).filter(q=>q.i>2*m && q.i<n-2*m), mx=Math.max(0,...c.map(q=>q.prom)), vx=Math.max(0,...c.map(q=>neg[q.i]));
+  const c=peakCandidates(neg).filter(q=>q.i>2*m && q.i<n-2*m), mx=Math.max(0, arrMax(c, q=>q.prom)), vx=Math.max(0, arrMax(c, q=>neg[q.i]));
   // valore e prominenza oltre 5σ: esclude il rumore isolato e i falsi massimi tra le code di due picchi vicini
   return c.filter(q=>q.prom>Math.max(5*sd, 0.04*mx) && neg[q.i]>Math.max(5*sd, 0.03*vx)).map(q=>({x:xs[q.i], i:q.i, prom:q.prom}));
 }
@@ -3321,6 +3338,8 @@ const fpSigArr=(P,s,l)=>{ const k=s+l; return P.sig[k]||(P.sig[k]=Float64Array.f
 function fpMuLayer(P, comp){ const m=new Float64Array(P.nb); for (const s in comp){ const a=fpMuArr(P,s), w=comp[s]; for (let b=0;b<P.nb;b++) m[b]+=w*a[b]; } return m; }
 /* riga analitica: Kα se lo spigolo K è eccitato bene dal tubo, altrimenti Lα */
 function fpLine(s, S){ const e=FP.el[s]; if (!e) return null; const kv=S?S.kv:40;
+  // l'elemento dell'anodo: la sua Kα coincide con la Kα del tubo diffusa (Rayleigh), quindi si misura con la Lα
+  if (S && s===S.anode && e.ln.La && e.ln.La.E>=1.0 && e.ed.L3 && e.ed.L3<kv) return 'La';
   if (e.ln.Ka && e.ln.Ka.E>=1.0 && e.ed.K && e.ed.K<0.9*kv) return 'Ka';
   if (e.ln.La && e.ln.La.E>=1.0 && e.ed.L3 && e.ed.L3<kv) return 'La';
   return e.ln.Ka && e.ln.Ka.E>=1.0 && e.ed.K<kv ? 'Ka' : null; }
@@ -3435,6 +3454,7 @@ function xrfFitLines(xs, ys, els, S, opt){
       else comps.push({id:s+' '+fam, el:s, fam, lines:F}); } }
   if (S && FP.el[S.anode]){ const A=FP.el[S.anode];
     for (const fam of ['K','L']){ const F=A.fam[fam], ed=A.ed[fam==='K'?'K':'L3']; if (!F || !ed || ed>=kv) continue;
+      if (fam==='L' && els.includes(S.anode)) continue;   // anodo anche nel campione: le righe L vengono dal campione (quelle del tubo diffuse sono deboli e le ruberebbero)
       for (const g of (fam==='K'?[['Ka'],['Kb']]:[['La','Ll'],['Lb1','Lb2','Ln']])){ const L=F.filter(q=>g.includes(q[0])); if (!L.length || L[0][1]<lo || L[0][1]>hi) continue;
         comps.push({id:'Rayleigh '+S.anode+' '+g[0], el:null, scat:'R', lines:L});
         comps.push({id:'Compton '+S.anode+' '+g[0], el:null, scat:'C', lines:L}); } } }
@@ -3602,6 +3622,13 @@ function eprSingleIntegral(B, y){ const n=y.length, e=Math.max(2,Math.round(n*0.
 /* ---- XRF: conteggi netti, incertezza di Poisson e limiti di Currie ---- */
 function currie(net, bkg){ const B=Math.max(0,bkg), LC=2.33*Math.sqrt(B), LD=2.71+4.65*Math.sqrt(B), s=Math.sqrt(Math.max(0,net)+2*B);
   return {net, bkg:B, sigma:s, LC, LD, detected: net>LD, critical: net>LC}; }
+/* spettro di conteggi veri (interi ≥ 0)? Solo allora valgono √conteggi e Currie */
+function isCounts(ys){ const n=ys?ys.length:0; if (n<20) return false; const st=Math.max(1, n>>10); for (let i=0;i<n;i+=st){ const v=ys[i]; if (!(v>=0) || v!==Math.round(v)) return false; } return true; }
+/* Currie per ogni riga trovata: conteggi netti entro ±FWHM sopra un fondo SNIP calcolato sullo spettro lisciato.
+   Con pochi conteggi le differenze seconde danno rumore 0 e il rumore di Poisson diventa «righe»: valgono solo quelle oltre L_D */
+function xrfCurrie(xs, ys, pxs){ const n=ys.length, dx=Math.abs(xs[n-1]-xs[0])/(n-1)||1, k=Math.max(1, Math.round(xrfFWHM(10)/dx));
+  const bg=baselineSNIP(smoothMA(ys, k), Math.round(2.2*xrfFWHM(10)/dx), true);
+  return pxs.map(x=>{ const w=xrfFWHM(Math.max(1,x)); let net=0, B=0; for (let i=0;i<n;i++) if (Math.abs(xs[i]-x)<=w){ net+=ys[i]-bg[i]; B+=bg[i]; } return currie(net, B); }); }
 
 /* ---- qualità del segnale ---- */
 /* rumore per S/N: con dati sovracampionati o filtrati dallo strumento (es. HPLC a 10–40 Hz) il rumore è correlato e le differenze
@@ -3612,12 +3639,15 @@ function noiseRobust(ys){
   for (let k=2; k<=lim && n/k>=200; k*=2){ const sub=new Float64Array(Math.floor(n/k)); for (let i=0;i<sub.length;i++) sub[i]=ys[i*k]; s=Math.max(s, noiseSigma(sub)); }
   return s;
 }
-function signalQuality(xs, ys, dir){
-  const n=ys.length, y=Float64Array.from(ys, v=>v*(dir||1)), sig=noiseRobust(y)||1e-30;
+function signalQuality(xs, ys, dir, counts){
+  const n=ys.length, y=Float64Array.from(ys, v=>v*(dir||1)); let sig=noiseRobust(y)||1e-30;
   let mn=Infinity, mx=-Infinity, im=0; for (let i=0;i<n;i++){ if (y[i]<mn) mn=y[i]; if (y[i]>mx){ mx=y[i]; im=i; } }
   let flat=1; for (let k=im+1;k<n && Math.abs(y[k]-mx)<=1e-9*Math.max(1,Math.abs(mx));k++) flat++; for (let k=im-1;k>=0 && Math.abs(y[k]-mx)<=1e-9*Math.max(1,Math.abs(mx));k--) flat++;
   const bl=baselineArPLS(xs, y), r=new Float64Array(n); let bmin=Infinity, bmax=-Infinity, rmax=0;
-  for (let i=0;i<n;i++){ r[i]=y[i]-bl[i]; if (bl[i]<bmin) bmin=bl[i]; if (bl[i]>bmax) bmax=bl[i]; if (r[i]>rmax) rmax=r[i]; }
+  let ir=0; for (let i=0;i<n;i++){ r[i]=y[i]-bl[i]; if (bl[i]<bmin) bmin=bl[i]; if (bl[i]>bmax) bmax=bl[i]; if (r[i]>rmax){ rmax=r[i]; ir=i; } }
+  // conteggi: con molti zeri le differenze seconde danno rumore 0 (S/N «infinito»); allora vale √fondo (Poisson, almeno 1 conteggio).
+  // Con molti conteggi la stima dai dati resta quella di prima
+  if (counts){ const pf=Math.sqrt(Math.max(1, bl[ir])); if (sig<0.5*pf) sig=pf; }
   const steps=[]; for (let i=1;i<Math.min(n,3000);i++) steps.push(Math.abs(xs[i]-xs[i-1])); const st=median(steps);
   const irregular = steps.filter(s=>s>3*st || s<st/3).length/(steps.length||1);
   return {n, snr: rmax/sig, noise:sig, flat, bgRatio:(bmax-bmin)/((rmax+(bmax-bmin))||1), wPts: peakWidthPts(r), irregular, max:mx, min:mn};
@@ -4497,14 +4527,17 @@ function autoPeaks(f, P){
   const n=S.maxPeaks, i=f.instr;
   if (i==='xrf' && P.kind==='I'){   // conteggi: ricerca sulla radice (Anscombe), così il rumore di Poisson è uguale ovunque e si vedono anche le tracce
     const yA=Float64Array.from(P.ys, v=>2*Math.sqrt(Math.max(v,0)+0.375));
-    return findPeaks(P.xs, yA, 1, S.sens, Math.round(n*1.7)).map(q=>({x:q.x, y:interpY(P.xs,P.ys,q.x), prom:q.prom}));
+    const N=Math.round(n*1.7), cnt=!f.uncal && isCounts(f.ys); let pk=findPeaks(P.xs, yA, 1, S.sens, cnt ? 4*N : N);
+    // conteggi veri: una riga vale solo oltre il limite di rivelabilità di Currie (con pochi conteggi il rumore di Poisson dà righe false)
+    if (cnt && pk.length){ const C=xrfCurrie(f.xs, f.ys, pk.map(q=>q.x)); f._currieOut=pk.filter((q,i)=>!C[i].detected).length; pk=pk.filter((q,i)=>C[i].detected); if (pk.length>N) pk=pk.slice().sort((a,b)=>b.prom-a.prom).slice(0,N).sort((a,b)=>a.x-b.x); } else f._currieOut=0;
+    return pk.map(q=>({x:q.x, y:interpY(P.xs,P.ys,q.x), prom:q.prom}));
   }
   if (i==='libs' && !P.deriv) return findPeaks(P.xs, P.ys, 1, S.sens, Math.round(n*2));
   if (i==='tga' && P.dtg) return findPeaks(P.xs, P.dtg, 1, S.sens, n).map(q=>({x:q.x, y:interpY(P.xs,P.ys,q.x), prom:q.prom}));
   if (i==='epr' && P.kind!=='N') return eprLines(P.xs, P.ys, S.sens, n);
   if (i==='dsc' && !P.deriv){ const h=Math.max(1,Math.ceil(n/2));
     const up=findPeaks(P.xs, P.ys, 1, S.sens, h).map(q=>Object.assign(q,{side:1})), dn=findPeaks(P.xs, P.ys, -1, S.sens, h).map(q=>Object.assign(q,{side:-1}));
-    const all=up.concat(dn), mx=Math.max(0, ...all.map(q=>q.prom)), thr=mx*Math.max(S.sens/100, 0.08);   // soglia comune ai due versi (gli scalini della linea di base non diventano picchi)
+    const all=up.concat(dn), mx=Math.max(0, arrMax(all, q=>q.prom)), thr=mx*Math.max(S.sens/100, 0.08);   // soglia comune ai due versi (gli scalini della linea di base non diventano picchi)
     return all.filter(q=>q.prom>=thr).sort((a,b)=>a.x-b.x); }
   return findPeaks(P.xs, P.ys, P.dir, S.sens, n);
 }
@@ -6413,7 +6446,7 @@ async function buildZip(extra){
     if (S.outSvg) folder.file(uniq('svg/'+dir, base, '.svg'), renderSvg(viewOf(f), wmm, hmm, fontPt));
     // picchi su una banda tagliata (saturazione segnalata dal controllo del dato): nota nell'elenco esportato
     // sui dati orientati come nel controllo del dato (in %T le bande sature sono minimi): FTIR oltre A = 2, oppure picchi sul tratto piatto segnalato
-    let satOf=()=>false; if (S.showPeaks && view.peaks.length){ try{ const P=processed(f), U=upData(P), uAt=x=>interpY(P.xs,U.y,x), flat=badItems(f).some(t=>/massimo è piatto/.test(t)), uMax=Math.max(...U.y);
+    let satOf=()=>false; if (S.showPeaks && view.peaks.length){ try{ const P=processed(f), U=upData(P), uAt=x=>interpY(P.xs,U.y,x), flat=badItems(f).some(t=>/massimo è piatto/.test(t)), uMax=arrMax(U.y);
       const absLike = f.instr==='ftir' && (P.kind==='A' || P.kind==='T') && !P.deriv;
       satOf=p=>{ const u=uAt(p.x); return (absLike && u>2) || (flat && u>=uMax-Math.abs(uMax)*0.005); }; }catch(e){} }
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], f.uncal?(LANG==='en'?'channel':'canale'):INSTR[f.instr].xPdf,
@@ -6559,16 +6592,17 @@ function assess(f, d){
   if (it==='epr' && P.xs.length && eprIsAbsorption(P.xs, P.ys)) add('bad','Lo spettro EPR sembra in assorbimento (un solo segno), non in derivata come di solito: il doppio integrale non vale, per la quantità di spin uso l\'integrale singolo. Se invece è una derivata molto asimmetrica, controlla la linea di base.');
   if (it==='epr'){ const v=Array.from(f.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(f.ys); if (sg>0 && v[v.length-1]/sg<200 && (peakFwhmPts(P.xs,Float64Array.from(f.ys,Math.abs),P.xs[f.ys.reduce((k,y,i,a)=>Math.abs(y)>Math.abs(a[k])?i:k,0)])||0)<0.1*f.ys.length) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
   { const sw=pSmooth(f); if (sw && d.peaks.length){ const up=upData(P), w=d.peaks.map(p=>peakFwhmPts(P.xs,up.y,p.x)).filter(v=>v>0).sort((a,b)=>a-b); if (w.length && w[0]<sw) add('warn',`Lo smoothing (${sw} punti) è più largo del picco più stretto (circa ${Math.round(w[0])} punti): altezze e aree si abbassano. Riducilo o scegline uno per questo spettro.`); } }
-  if (['hplc','raman','fluo','ftir','uv','xrf'].includes(it) && !P.deriv && S.showPeaks!==false){ try{ const up=upData(P), low=findPeaks(P.xs, up.y, 1, 0.3, 200), st=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, miss=low.filter(q=>!d.peaks.some(p=>Math.abs(p.x-q.x)<=6*st) && !(f.removed||[]).some(x=>Math.abs(x-q.x)<=6*st));
+  if (['hplc','raman','fluo','ftir','uv','xrf'].includes(it) && !P.deriv && S.showPeaks!==false){ try{ const up=upData(P), low=findPeaks(P.xs, up.y, 1, 0.3, 200), st=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, miss0=low.filter(q=>!d.peaks.some(p=>Math.abs(p.x-q.x)<=6*st) && !(f.removed||[]).some(x=>Math.abs(x-q.x)<=6*st)), cnt=it==='xrf' && !f.uncal && isCounts(f.ys), Cm=cnt ? xrfCurrie(f.xs, f.ys, miss0.map(q=>q.x)) : null, miss=cnt ? miss0.filter((q,i)=>Cm[i].detected) : miss0;   // conteggi: solo i segnali oltre il limite di Currie
       if (miss.length) add('warn', `${miss.length} segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a ${miss.slice(0,3).map(q=>fmtTick(q.x,2)).join(', ')}).${it==='hplc'?' Le percentuali di area non li contano.':''} Abbassa «Quanti picchi cerco» o aggiungili con un clic.`); }catch(e){} }
   if (it==='xrf' && !f.uncal && !f.ecal && f._auto && f._auto.length>=2){
     const fit=xrfAlignFit(f._auto.map(q=>({x:q.x, w:q.prom||1})), f.tube), sh = fit ? fit.a+(fit.b-1)*8 : 0;
     if (fit && Math.abs(sh)>0.025) add('warn', `La calibrazione in energia è spostata di circa ${Math.round(sh*1000)} eV (righe usate: ${fit.pairs.slice(0,4).map(q=>q.name).join(', ')}). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio.`,
       {lab:'🎯 Allinea sulle righe note', fn:()=>{ pkSnap(f); const r=alignXrf(f); changed(f); renderXrfBox(f); say('#tip2', r && !r.nochange ? `Allineato: correzione di ${Math.round((r.fit.a+(r.fit.b-1)*8)*1000)} eV a 8 keV. 🎯` : 'Non sono riuscito ad allineare: servono almeno due righe note. 🤔'); }});
   }
+  if (it==='xrf' && !f.uncal && f._currieOut>0) add('info', `${f._currieOut} massimi del rumore sono sotto il limite di rivelabilità di Currie e non sono stati presi come righe: con pochi conteggi gli elementi in traccia non si possono affermare. Per vederli misura più a lungo.`);
   if (it==='xrf' && f.uncal) add('bad','Il file XRF non contiene la calibrazione in energia: niente elementi né quantificazione. Esporta lo spettro calibrato dal software dello strumento.');
   if (shapeOk && raw.length>=20){
-    const q=signalQuality(f.xs, raw, 1);
+    const q=signalQuality(f.xs, raw, 1, it==='xrf' && !f.uncal && isCounts(raw));
     const sgA=it==='uv'&&f.kind!=='T'&&f.kind!=='N' ? noiseSigma(raw) : null;
     if (q.snr<10 && sgA!=null && sgA<0.002) add('info', `Bande deboli rispetto al rumore (S/N ≈ ${fmtSN(q.snr)}), ma il rumore è basso (σ ≈ ${fmtG(sgA,2)} di assorbanza): i valori in un punto, come A a 420 nm, restano affidabili; posizioni e aree delle bande deboli no.`);
     else if (q.snr<10 && it==='hplc' && !d.peaks.length) add('info', 'Nessun picco sopra il rumore: se è un bianco va bene così; se aspettavi dei picchi, controlla iniezione e rivelatore.');
@@ -6639,7 +6673,7 @@ function xrfElements(f, d){
     const ids = !p.custom ? autoIds : rawL[0]==='@' ? [...new Set(autoIds.concat([rawL.slice(1)]))] : [freeLine(rawL)];
     const all = !p.custom || rawL[0]==='@' ? SG.slice(0,3).map(g=>g.id).concat(ids) : ids, altEls=SG.slice(0,3).map(g=>lineOf(g.id)).filter(Boolean).map(L=>L.el);
     ids.forEach((id,k)=>{ const L=lineOf(id); if (!L) return; const e=by[L.el]=by[L.el]||{main:false, strong:false, lines:new Set(), prom:0}; e.lines.add(L.ln);
-      if (/^(Ka|La)$/.test(L.ln)){ e.main=true; e.prom=Math.max(e.prom,(p.prom||0)/mp); e.alt=new Set([...(e.alt||[]),...altEls]); if ((p.prom||0)/mp>=0.25) e.strong=true; } });
+      if (/^(Ka|La)$/.test(L.ln)){ e.main=true; if ((p.prom||0)/mp>=e.prom) e.mx=p.x; e.prom=Math.max(e.prom,(p.prom||0)/mp); e.alt=new Set([...(e.alt||[]),...altEls]); if ((p.prom||0)/mp>=0.25) e.strong=true; } });
     all.forEach(id=>{ const L=lineOf(id); if (L && by[L.el]) by[L.el].lines.add(L.ln); }); });
   const els=Object.entries(by).filter(([el,e])=>e.main && (e.lines.size>=2 || e.strong) && el!=='Ar' && el!=='Rh').map(([el])=>el);
   /* Righe che coincidono: As Kα = Pb Lα (10,54/10,55 keV); As Kβ vicina a Hg Lβ; W Lα vicina a Au Lℓ e W Lβ ad Au Lα.
@@ -6657,7 +6691,9 @@ function xrfElements(f, d){
   if (els.includes('Se') && els.includes('Pb') && !hasLine('Pb',/^L[gl]/)) drop('Pb');
   { const an=f.xrf&&f.xrf.tube; if (an==='Rh') ['Ru','Pd'].forEach(e=>{ if (els.includes(e) && !hasLine(e,/^L/)) drop(e); }); }
   { const kv=fpNum((f.xrf||{}).kv)||40; els.slice().forEach(e=>{ let Ek=null; try{ Ek=fpLineE(e,'Ka'); }catch(err){} if (Ek && Ek<0.6*kv && !hasLine(e,/^K/) && hasLine(e,/^L/)) drop(e); }); }
-  const oneLine=els.filter(e=>by[e].lines.size<2 && !by[e].strong), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
+  // riga principale che cade sul picco di fuga del Si (−1,74 keV) di un picco molto più alto: è la fuga, non un elemento (es. «Mg» sotto Ag Lα)
+  const isEsc=e=>e.mx!=null && d.peaks.some(q=>(q.prom||0)>=3*e.prom*mp && Math.abs(q.x-1.74-e.mx)<=tolFor('xrf', e.mx));
+  const oneLine=els.filter(e=>by[e].lines.size<2 && !by[e].strong), cands=els.length ? Object.entries(by).filter(([el,e])=>e.main && !els.includes(el) && !unsure.includes(el) && el!=='Ar' && el!=='Rh' && !isEsc(e) && ![...(e.alt||[])].some(o=>o!==el && (els.includes(o)||unsure.includes(o)))).map(([el])=>el) : [];
   const over=[];   // picchi dove due elementi presenti hanno righe sovrapposte
   d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg; if (p.custom && !p.suggAll) return; const es=[...new Set(SG.slice(0,3).map(g=>lineOf(g.id)).filter(L=>L && els.includes(L.el)).map(L=>L.el))];
     if (es.length>=2) over.push({x:p.x, num:p.num, names:SG.slice(0,3).filter(g=>{ const L=lineOf(g.id); return L && es.includes(L.el); }).map(g=>g.it.split(' · ')[0])}); });
@@ -6668,7 +6704,7 @@ function xrfElements(f, d){
   // guadagno o scostamento sbagliati: se un'altra calibrazione spiega molto meglio i picchi forti, gli elementi proposti non valgono
   if (!f.ecal && !f.uncal && f._auto && f._auto.length>=3){ try{ const key=f._auto.map(q=>q.x.toFixed(3)).join(','); if (f._alKey!==key){ f._alKey=key; f._al=xrfAlignFit(f._auto.map(q=>({x:q.x, w:q.prom||1})), f.tube); } const al=f._al, sh=al?al.a+(al.b-1)*8:0; if (Math.abs(sh)>0.06) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true, gainOff:sh}; }catch(e){} }
   if (d.peaks.length>=5 && assigned<0.5*d.peaks.length) return {els:[], over:[], unsure:[], oneLine:[], cands:[], shifted:true};
-  return {els, over, unsure, oneLine, cands};
+  return {els, over, unsure, oneLine, cands, strong:els.filter(e=>by[e].strong)};
 }
 function probableElements(f, d){
   if (f.instr==='xrf') return xrfElements(f, d).els;
@@ -7196,7 +7232,9 @@ function fpSensitivity(f){ const R0=fpRun(f); if (!R0||!R0.Q||!R0.Q.res) return 
   const vary=[{kv:Math.max(5,S0.kv-5)},{kv:Math.min(50,S0.kv+5)},{psi1:Math.max(10,R0.S.psi1-10)},{psi1:Math.min(90,R0.S.psi1+10)},{psi2:Math.max(10,R0.S.psi2-10)},{psi2:Math.min(90,R0.S.psi2+10)},{si:S0.si*0.6},{si:S0.si*2}];
   for (const v of vary){ try{ const r=xrfFP(D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),{mode:c.mode,balance:fpBalance(c)}); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
   const out={}; for (const e of Object.keys(R0.Q.res)){ const a=runs.map(q=>q[e]&&q[e].w).filter(v=>v!=null&&isFinite(v)); out[e]={w:R0.Q.res[e].w, lo:Math.min(R0.Q.res[e].w,...a), hi:Math.max(R0.Q.res[e].w,...a)}; } return {res:out, n:runs.length}; }
-function fpDefaultEls(f){ let e=[]; try{ const q=xrfElements(f, viewOf(f)); e=q.els.concat(q.cands); }catch(err){} const S=fpSetupOf(f); return e.filter(x=>x!==S.anode && x!=='Ar' && FP.el[x] && fpLine(x,S)); }
+/* l'elemento dell'anodo resta se le sue righe sono forti (oltre la sola diffusione del tubo): una lega d'argento misurata con un tubo ad argento */
+function fpAnodeKeep(q, S){ return !!(q && q.els.includes(S.anode) && (q.strong||[]).includes(S.anode)); }
+function fpDefaultEls(f){ let e=[], q=null; try{ q=xrfElements(f, viewOf(f)); e=q.els.concat(q.cands); }catch(err){} const S=fpSetupOf(f), keepA=fpAnodeKeep(q, S); return e.filter(x=>(x!==S.anode || keepA) && x!=='Ar' && FP.el[x] && fpLine(x,S)); }
 function fpBalance(c){ if (c.bal==='custom'){ const p=fpParseComp(c.balTxt); return p || fpMat('org').comp; } const m=fpMat(c.bal||'org'); return m ? m.comp : fpMat('org').comp; }
 function fpData(f){ return {xs:f.xs, ys:f.ys}; }   // conteggi grezzi (statistica di Poisson), con l'eventuale allineamento in energia
 function fpRun(f){
@@ -7224,6 +7262,9 @@ function fpNotes(f, R){ if (!R || !R.Q || !R.Q.res) return []; const c=fpCfg(f),
       if (Q.over) notes.unshift('⚠️ La somma supera il 100%: la parte invisibile scelta non è adatta o lo strato non è spesso e omogeneo.'); }
     notes.unshift(`Elementi considerati: ${els.join(', ')}. Ciò che non è in elenco non viene cercato né contato nella somma: controlla che non manchi nulla, aggiungilo sopra.`);
     { const ov=[]; for (const e of els){ const o=Q.res[e]; if (!o) continue; const E=fpLineE(e,o.line); for (const j of els){ if (j===e) continue; const Rj=Q.res[j]; if (!Rj||Rj.w<o.w) continue; const fam=FP.el[j].fam; if ([...(fam.K||[]),...(fam.L||[])].some(q=>q[2]>0.05&&Math.abs(q[1]-E)<0.6*xrfFWHM(E))) { ov.push(`${e} (riga vicina a ${j})`); break; } } } if (ov.length) notes.unshift(`⚠️ Valori poco sicuri per righe sovrapposte: ${ov.join(', ')}. Un elemento così può anche non esserci: cerca una seconda riga.`); }
+    // anodo: incluso con la Lα, oppure escluso anche se le sue righe si vedono (avviso, mai in silenzio)
+    if (els.includes(S.anode)) notes.unshift(`⚠️ ${S.anode} è anche l'anodo del tubo: la sua Kα coincide con quella del tubo diffusa, quindi ${S.anode} è stimato dalla riga Lα e una parte del segnale può venire dal tubo. Confronta con una misura fatta con un tubo diverso.`);
+    else { let q=null; try{ q=xrfElements(f, viewOf(f)); }catch(err){} if (q && q.els.includes(S.anode)) notes.unshift(`⚠️ Le righe di ${S.anode} si vedono, ma ${S.anode} è l'anodo del tubo e non è nel calcolo: le righe deboli possono venire dal tubo. Se il campione può contenere ${S.anode} (per esempio una lega d'argento con un tubo ad argento), aggiungilo all'elenco: i valori cambiano molto.`); }
     if (light.length && S.atm==='air') notes.push(`⚠️ ${light.join(', ')}: elementi leggeri in aria, le loro righe sono molto assorbite; il risultato è solo indicativo.`);
     if (R.autoGeom && R.fit.th) notes.push(`Il file non dice la geometria: dalla posizione del picco Compton l'angolo di diffusione è circa ${Math.round(R.fit.th)}°, quindi uso ${fmtG(R.fit.th/2,3)}° in entrata e in uscita (puoi scriverli in «Condizioni di misura»).`);
     else if (R.fit.th && Math.abs(R.fit.th-(R.S.psi1+R.S.psi2))>15) notes.push(`⚠️ Il picco Compton indica un angolo di diffusione di circa ${Math.round(R.fit.th)}°, ma gli angoli impostati danno ${Math.round(R.S.psi1+R.S.psi2)}°: controlla le condizioni di misura.`);
@@ -7265,7 +7306,7 @@ function renderCult(f){
   else {
     const Q=R.Q, rows=Object.entries(Q.res).sort((a,b)=>b[1].w-a[1].w), light=els.filter(e=>FP.el[e].Z<19), ox=c.mode==='oxides';
     h+=`<p class="why"><b>⚠️ Stima senza standard${c.mode==='norm'?', somma forzata a 100%':''}:</b> non è una concentrazione validata. Dipende da matrice, geometria, superficie e condizioni che qui sono presunte; il ± è solo statistica di conteggio.</p>`;
-    h+=`<div class="areawrap" style="margin-top:8px"><table class="areatab"><thead><tr><th>Elemento</th><th>Riga</th><th>% in peso (stima)</th>${ox?'<th>come ossido</th>':''}<th title="area netta della riga dall'adattamento">Conteggi netti</th></tr></thead><tbody>${rows.map(([e,o])=>{ const m=R.meas[e]||{};
+    h+=`<div class="areawrap" style="margin-top:8px"><table class="areatab fptab"><thead><tr><th>Elemento</th><th>Riga</th><th>% in peso (stima)</th>${ox?'<th>come ossido</th>':''}<th title="area netta della riga dall'adattamento">Conteggi netti</th></tr></thead><tbody>${rows.map(([e,o])=>{ const m=R.meas[e]||{};
         return `<tr><td><b>${e}</b> <small class="opt-l">${esc(elName(e))}</small></td><td>${esc(e+' '+o.line.replace('Ka','Kα').replace('La','Lα'))}</td><td><b>${fmtN(o.w, o.w<1?2:o.w<10?1:1)}</b> ± ${fmtN(o.sw, o.sw<0.1?2:1)}</td>${ox?`<td>${o.ox?`${esc(o.ox.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]))} ${fmtN(o.wox,1)}`:'—'}</td>`:''}<td>${m.I?fmtG(m.I,4):'—'}</td></tr>`; }).join('')}
       ${c.mode==='compton'?`<tr><td colspan="2">resto (${esc(c.bal==='custom'?(c.balTxt||'formula'):(fpMat(c.bal)||{}).it||'')})</td><td>${fmtN(Q.rest,1)}</td><td></td></tr>`:''}</tbody></table></div>`;
     const notes=fpNotes(f, R);
@@ -7294,14 +7335,19 @@ function renderCult(f){
   if ($('#fpCsv')) $('#fpCsv').onclick=()=>download(new Blob(['﻿'+fpCsvRows([f]).map(r=>r.map(q=>csvCell(q,';')).join(';')).join('\r\n')],{type:'text/csv'}), `composizione_FP_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`);
   bindLayer(f, R);
 }
+/* atmosfera nella lingua dell'esportazione (nel CSV e nel PDF italiani «air» restava in inglese) */
+function fpAtmName(a, en){ const m={air:['aria','air'], he:['elio','helium'], vac:['vuoto','vacuum']}[a]; return m ? m[en?1:0] : (a||''); }
 function fpCsvRows(list){ const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec), out=[['File','Nome','Modalità','Elemento','Riga','% in peso','± (conteggi)','Ossido','% ossido','Conteggi netti','Anodo','kV','Angolo ingresso','Angolo uscita','Tipo di valore','Somma %','Chi2 ridotto','Atmosfera','Be tubo (um)','Be rivelatore (um)','Si (um)','Distanza rivelatore (cm)','Filtro primario','Note']];
   for (const f of list){ const R=fpRun(f); if (!R || !R.Q || !R.Q.res) continue; const m=(FP_MODES.find(q=>q[0]===R.cfg.mode)||FP_MODES[0])[1], sum=Object.values(R.Q.res).reduce((t,o)=>t+o.w,0);
     // avvisi del pannello: quelli generali sulla prima riga dello spettro, quelli di un elemento sulla sua riga
     const warn=fpNotes(f,R).filter(t=>/⚠️/.test(t)).map(t=>t.replace(/<[^>]+>/g,'').replace(/⚠️\s*/g,'').trim()), kvP=(fpCfg(f).S||{}).kv==null && fpNum((f.xrf||{}).kv)==null;
     let H=null; try{ H=xrfElements(f, viewOf(f)); }catch(err){}
-    const elNote=e=>[...warn.filter(t=>new RegExp('\\b'+e+'\\b').test(t) && /sovrappost|poco sicur/.test(t)).map(()=>'poco sicuro per righe sovrapposte'), H&&(H.unsure||[]).includes(e)?'non distinguibile da un elemento con righe coincidenti':''].filter(Boolean).join('; ');
-    Object.entries(R.Q.res).forEach(([e,o],k)=>out.push([f.name, dispTitle(f), m, e, o.line, n(o.w), n(o.sw), o.ox||'', n(o.wox), n(R.meas[e]&&R.meas[e].I), R.S.anode, fpNum((f.xrf||{}).kv)!=null&&fpNum((f.xrf||{}).kv)!==R.S.kv?`${R.S.kv} (file: ${fpNum(f.xrf.kv)})`:kvP?`${R.S.kv} (presunti)`:R.S.kv, R.S.psi1, R.S.psi2, 'stima senza standard, non validata', n(sum), n(R.fit&&R.fit.chi2r), R.S.atm, R.S.beT, R.S.beD, R.S.si, R.S.d2, R.S.filt?`${R.S.filt.comp} ${R.S.filt.um} um`:'nessuno', [elNote(e), k===0?warn.filter(t=>!/sovrappost|poco sicur/.test(t)).join(' | '):''].filter(Boolean).join(' | ')]));
-    if (H && (H.unsure||[]).some(e=>!R.Q.res[e])) out.push([f.name, dispTitle(f), m, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'non distinguibili (non nel calcolo): '+(H.unsure||[]).filter(e=>!R.Q.res[e]).join(', ')]); }
+    // «poco sicuro» solo per l'elemento nominato prima di «(riga vicina a …)»: «As (riga vicina a Pb)» riguarda As, non Pb.
+    // Le parti della nota si traducono una per una (la cella intera non è nel dizionario)
+    const tr=t=>LANG==='en' && window.AcchI18n ? AcchI18n.tr(t) : t;
+    const elNote=e=>[...warn.filter(t=>/sovrappost|poco sicur/.test(t) && new RegExp('(^|[\\s:,])'+e+' \\(riga vicina a ').test(t)).slice(0,1).map(()=>tr('poco sicuro per righe sovrapposte')), H&&(H.unsure||[]).includes(e)?tr('non distinguibile da un elemento con righe coincidenti'):''].filter(Boolean).join('; ');
+    Object.entries(R.Q.res).forEach(([e,o],k)=>out.push([f.name, dispTitle(f), m, e, o.line, n(o.w), n(o.sw), o.ox||'', n(o.wox), n(R.meas[e]&&R.meas[e].I), R.S.anode, fpNum((f.xrf||{}).kv)!=null&&fpNum((f.xrf||{}).kv)!==R.S.kv?`${n(R.S.kv)} (file: ${n(fpNum(f.xrf.kv))})`:kvP?`${n(R.S.kv)} (${LANG==='en'?'assumed':'presunti'})`:n(R.S.kv), n(R.S.psi1), n(R.S.psi2), 'stima senza standard, non validata', n(sum), n(R.fit&&R.fit.chi2r), fpAtmName(R.S.atm, LANG==='en'), n(R.S.beT), n(R.S.beD), n(R.S.si), n(R.S.d2), R.S.filt?`${R.S.filt.comp} ${R.S.filt.um} um`:'nessuno', [elNote(e), k===0?warn.filter(t=>!/sovrappost|poco sicur/.test(t)).map(tr).join(' | '):''].filter(Boolean).join(' | ')]));
+    if (H && (H.unsure||[]).some(e=>!R.Q.res[e])) out.push([f.name, dispTitle(f), m, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', tr('non distinguibili (non nel calcolo):')+' '+(H.unsure||[]).filter(e=>!R.Q.res[e]).join(', ')]); }
   return out; }
 
 /* spessore di uno strato */
@@ -7637,7 +7683,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
   for (const f of inc){ const d=viewOf(f), Q=assess(f,d).filter(o=>o.lv==='warn'||o.lv==='bad'), H=hypotheses(f,d);
     line(`${dispTitle(f)} · ${T_().nome[f.instr]}`, 10, true); y+=0.5;
     if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili (ipotesi): ','Compatible pigments/materials (hypotheses): ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${hypTag(h,en)})`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
-    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${R.S.atm}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.els.includes('Cu')&&!R.els.includes('Sn')&&R.Q.res.Cu&&R.Q.res.Cu.w>50?T(' · Sn sotto il 5% può non essere rilevato',' · Sn below 5% may not be detected'):'')+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
+    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${fpAtmName(R.S.atm, en)}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.els.includes('Cu')&&!R.els.includes('Sn')&&R.Q.res.Cu&&R.Q.res.Cu.w>50?T(' · Sn sotto il 5% può non essere rilevato',' · Sn below 5% may not be detected'):'')+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
     if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) fpNotes(f,R).filter(t=>/⚠️/.test(t)).forEach(t=>{ const c=t.replace(/<[^>]+>/g,''), tt=en && window.AcchI18n ? AcchI18n.tr(c) : c; line('! '+tt.replace(/⚠️\s*/g,''), 8, false, 90); }); }
     if (H && H.kind==='els' && H.shifted) line(T('Asse spostato: elementi non proposti finché non è allineato.','Axis shifted: elements not proposed until it is aligned.'), 9);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
