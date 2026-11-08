@@ -52,6 +52,21 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 - HPLC: per ogni picco tempo di ritenzione, finestra, RRT rispetto allo standard interno, canale e λ, metodo e colonna, taratura (pendenza o fattore di risposta, intercetta, unità, intervallo, n, R², s_y/x, LOD, LOQ, data, strumento, lotto dello standard) con lo storico.
 - Regole della taratura salvata decise dal Capo Progetto il 7 novembre 2026 (su incarico del committente, dopo i pareri degli agenti scienziati): profili per tipo di analisi, aggiornamento con uno o due controlli del giorno, carta di controllo, incertezza estesa, messaggi ed esportazioni, prove di accettazione. Specifica completa in [SPEC-TARATURA-SALVATA.md](SPEC-TARATURA-SALVATA.md).
 - Validazione prima del rilascio: prove HPLC T1–T6, migrazione dei progetti, R4–R8 estesi alla libreria, test di usabilità con SUS ≥ 75.
+- Anche nella 2.3 (piano del Capo Progetto, 8 novembre 2026): fit con funzioni scritte dall'utente; polinomi e regressione multipla; statistica validata su NIST; ricette applicate in serie a una cartella. Prestazioni con grandi dati e accessibilità diventano obbligatorie. Ogni funzione nuova va confrontata sui benchmark pubblici con i programmi di riferimento (criterio in AGENTI.md).
+
+### 2.2.1, in più
+- Misura di base del tempo per arrivare al risultato su 5 compiti tipo (indice FTIR, taratura HPLC, deconvoluzione, XRF, NMR), da confrontare poi con i ricercatori pilota.
+
+### 3.0: oltre i programmi a pagamento
+- Mappe e dati iperspettrali; MCR-ALS; fit globale delle cinetiche; ricetta esportata come script Python; estensioni per nuovi formati; importazione dei progetti Origin (.opj).
+
+### Le capacità per cui sceglierlo (visione del committente)
+1. Dal file al risultato in un minuto: riconoscimento del file, ricette applicate a una cartella, rapporto con un clic.
+2. Incertezza su ogni numero: fit, tarature, XRF, integrali.
+3. Validazione pubblica e riproducibile (VALIDAZIONE.md e benchmark aperti).
+4. Conoscenza del campo: librerie, ipotesi prudenti, bozza dei metodi.
+5. Riproducibilità: la ricetta esportata come script Python.
+6. Senza barriere: dal browser, su tutti i sistemi, in italiano e in inglese.
 
 ## Da sviluppare
 
