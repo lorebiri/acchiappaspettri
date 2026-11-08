@@ -861,5 +861,16 @@
 "🙈 Ho saltato {0} di formato non riconosciuto: {1}.": "🙈 I skipped {0} of unrecognised format: {1}.",
 "🟡 Quanto è ingiallito?": "🟡 How yellowed is it?",
 "🤔 In {0} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): {1}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.": "🤔 In {0} file(s) I found fewer than two columns of numbers (empty, binary, or text instead of numbers): {1}. Open them in a text editor: if they are an instrument export, export them again as text or CSV.",
-"🧪 Taratura con standard di composizione nota (XRF)": "🧪 Calibration with standards of known composition (XRF)"
+"🧪 Taratura con standard di composizione nota (XRF)": "🧪 Calibration with standards of known composition (XRF)",
+"Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il canale «{0}» (blocco {1} di {2}, il più lungo); gli altri blocchi ({3} righe) non sono stati letti. Esportali come file separati.": "The file contains more than one data block on the same axis, probably other channels. I read channel «{0}» (block {1} of {2}, the longest); the other blocks ({3} rows) were not read. Export them as separate files.",
+"Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il blocco {0} di {1} (il più lungo); gli altri blocchi ({2} righe) non sono stati letti. Esportali come file separati.": "The file contains more than one data block on the same axis, probably other channels. I read block {0} of {1} (the longest); the other blocks ({2} rows) were not read. Export them as separate files.",
+"Canale di": "Channel of",
+"Canale scelto a mano:": "Channel chosen by hand:",
+"Sono caricati cromatogrammi di {0} canali diversi ({1}). Una retta di taratura vale per un solo canale: ora uso {2}; gli altri canali non entrano nella retta né nelle stime. Cambia canale con il menu «Canale» qui sopra.": "Chromatograms from {0} different channels are loaded ({1}). A calibration line applies to one channel only: now using {2}; the other channels are not used in the line or in the estimates. Change channel with the «Channel» menu above.",
+"In un file non riconosco il canale (né dal nome né dall'intestazione): resta fuori dalla retta e dalle stime finché non scegli il suo canale.": "In one file I cannot recognise the channel (neither from the name nor from the header): it stays out of the line and the estimates until you choose its channel.",
+"In {0} file non riconosco il canale (né dal nome né dall'intestazione): restano fuori dalla retta e dalle stime finché non scegli il loro canale.": "In {0} files I cannot recognise the channel (neither from the name nor from the header): they stay out of the line and the estimates until you choose their channel.",
+"il blocco {0} (il più lungo)": "block {0} (the longest)",
+"il canale «{0}»": "channel «{0}»",
+"nessun canale: escluso —": "no channel: left out —",
+"«{0}» contiene più di un canale: ho letto {1}, altre {2} righe non le ho lette (un canale per file). Esporta i canali in file separati": "«{0}» contains more than one channel: I read {1}, {2} other rows were not read (one channel per file). Export the channels as separate files"
 }

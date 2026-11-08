@@ -169,5 +169,15 @@
 "data to check in «{0}»",
 "thousands separators in «{0}»: numbers may be wrong",
 "{0} unread rows in «{1}»",
-"«{0}» contains a second channel ({1} rows) that was not read: one channel per file is read. Export the channels as separate files"
+"«{0}» contains a second channel ({1} rows) that was not read: one channel per file is read. Export the channels as separate files",
+"Channel of",
+"Channel chosen by hand:",
+"Chromatograms from {0} different channels are loaded ({1}). A calibration line applies to one channel only: now using {2}; the other channels are not used in the line or in the estimates. Change channel with the «Channel» menu above.",
+"In one file I cannot recognise the channel (neither from the name nor from the header): it stays out of the line and the estimates until you choose its channel.",
+"In {0} files I cannot recognise the channel (neither from the name nor from the header): they stay out of the line and the estimates until you choose their channel.",
+"block {0} (the longest)",
+"channel «{0}»",
+"no channel: left out —",
+"«{0}» contains more than one channel: I read {1}, {2} other rows were not read (one channel per file). Export the channels as separate files",
+"(and 1 more file)"
 ]
