@@ -3,15 +3,15 @@
 Decisa dal Capo Progetto il 7 novembre 2026, su incarico del committente, dopo i pareri di tre agenti scienziati (HPLC, chimico analitico, statistico e metrologo, con simulazioni Monte Carlo). Gli agenti sono tester virtuali, non persone reali; le soglie si basano su simulazioni e vanno riviste con dati reali di carte di controllo.
 
 ## Principi
-1. Una retta salvata non dà mai un numero da sola: va **aggiornata con i controlli del giorno**. Il solo «passa / non passa» lascia passare gli errori tra il 5 e il 10%; l'aggiornamento li riporta al livello della retta del giorno.
+1. **Decisione del committente (8 novembre 2026)**: nel profilo Ricerca la retta salvata calcola la concentrazione **anche senza controlli del giorno** (lo strumento è sempre lo stesso). Se ci sono controlli, la retta viene aggiornata con essi; se non ci sono, il risultato porta sempre il segno «taratura salvata senza controllo del giorno», con data ed età della taratura. Nota del Capo Progetto e degli agenti scienziati: senza controllo una deriva tra il 5 e il 10% non si vede; un controllo al giorno resta consigliato e il programma lo propone, senza imporlo.
 2. Le regole dipendono dal **tipo di analisi**: dove la prassi richiede la retta in ogni serie, la retta salvata non quantifica.
 3. L'età non decide nulla: le derive le trova la **carta di controllo**; i giorni sono un promemoria.
-4. Senza le condizioni richieste lo stato è sempre «**taratura non verificata oggi**: motivo», mai un numero senza avviso.
+4. Mai un numero senza dire come è stato ottenuto: retta del giorno, retta salvata aggiornata con 1 o 2 controlli, oppure retta salvata senza controllo. Se manca una condizione bloccante, lo stato è «**taratura non verificata oggi**: motivo».
 
 ## Profili (scelti al salvataggio in libreria, obbligatori)
 | Profilo | Retta salvata per quantificare | Note |
 |---|---|---|
-| Ricerca (predefinito) | sì, con le regole sotto | |
+| Ricerca (predefinito) | sì; con i controlli del giorno se presenti, altrimenti senza controllo (decisione del committente) | risultato senza controllo marcato «taratura salvata senza controllo del giorno» |
 | Esplorativa | sì, con regole più larghe | ogni risultato marcato «stima esplorativa» a schermo, nel CSV, nel PDF e nei metodi |
 | Impurezze | solo il fattore di risposta relativo (RRF) salvato, riferito a uno standard del principio attivo misurato nel giorno | |
 | Dosaggio | no: fattore o retta del giorno | |
@@ -39,7 +39,7 @@ Terminologia: «scostamento dal valore nominale», non «recupero».
 
 ## Modificabile e non modificabile
 - **Modificabile**: soglie e frequenza dei controlli (restringere sempre; allargare solo con una motivazione scritta, salvata nella libreria e riportata nel CSV e nei metodi, mai oltre i massimi della tabella); promemoria dell'età.
-- **Mai sbloccabile**: canale, λ, ampiezza di banda e riferimento, metodo, strumento e colonna coincidenti con quelli salvati; nessuna estrapolazione oltre l'intervallo della taratura; nessuna retta salvata da dati normalizzati; tR del controllo nella finestra della voce; idoneità del sistema superata, se inserita; controlli presenti; un evento registrato di manutenzione (lampada, colonna, cella) invalida le tarature salvate di quello strumento o di quella colonna; profili Dosaggio, Tracce e Bioanalisi.
+- **Mai sbloccabile**: canale, λ, ampiezza di banda e riferimento, metodo, strumento e colonna coincidenti con quelli salvati; nessuna estrapolazione oltre l'intervallo della taratura; nessuna retta salvata da dati normalizzati; tR del controllo nella finestra della voce; idoneità del sistema superata, se inserita; controlli presenti (salvo nel profilo Ricerca, vedi principio 1); un evento registrato di manutenzione (lampada, colonna, cella) invalida le tarature salvate di quello strumento o di quella colonna; profili Dosaggio, Tracce e Bioanalisi.
 
 ## Carta di controllo
 - Una carta per ogni voce della libreria, con il k di ogni serie; attiva dopo almeno 10 serie (prima valgono le soglie fisse). Limiti dalle prime 10 serie, ricalcolabili solo con motivazione scritta.
@@ -52,20 +52,21 @@ U (k = 2) accanto a ogni concentrazione:
 
 U = 2·x·√( s_r²·(1/m_c + 1/m_k) + u_std² + (s_a/b)²·(1/x − 1/x_c)² )
 
-s_r dalla carta di controllo (variabilità tra i giorni) se ci sono almeno 10 serie; altrimenti s_y/x della taratura più una componente predefinita del 5% tra i giorni, dichiarata. u_std è l'incertezza dello standard di controllo, inserita dall'utente; se manca vale 0 e lo si dichiara. La formula va anche in SCIENZA.md e nella bozza dei metodi.
+Senza controllo del giorno: m_c = ∞ e la componente tra i giorni (5% predefinito, o dalla carta se esiste) resta sempre dichiarata. s_r dalla carta di controllo (variabilità tra i giorni) se ci sono almeno 10 serie; altrimenti s_y/x della taratura più una componente predefinita del 5% tra i giorni, dichiarata. u_std è l'incertezza dello standard di controllo, inserita dall'utente; se manca vale 0 e lo si dichiara. La formula va anche in SCIENZA.md e nella bozza dei metodi.
 
 ## Messaggi
 - «Taratura salvata del gg/mm/aaaa (età N giorni), aggiornata oggi con 1 o 2 controlli; scostamenti −2,1% / +1,4%; deriva 1,8%.»
 - «Taratura non verificata oggi: [controllo assente | controllo fuori soglia (−12,3% su ±10%) | deriva 6,1% su 5% | controlli non coerenti | canale, metodo, strumento o colonna diversi | fuori intervallo | profilo che non ammette tarature salvate | carta di controllo: limite di azione superato | manutenzione registrata dopo la taratura]. Misura una retta del giorno.»
+- «Taratura salvata del gg/mm/aaaa (età N giorni), senza controllo del giorno: una deriva dello strumento non verrebbe vista. Consigliato un controllo.»
 - «Promemoria: taratura di oltre 180 giorni.» · «Stima esplorativa.»
 
 ## Esportazioni
-- CSV: profilo, metodo di taratura (retta del giorno / salvata + 1 controllo / salvata + 2 controlli / RRF), id della taratura e versione, data, età in giorni, livelli dei controlli, scostamenti %, deriva %, k, stato della carta, U (k = 2), stato, motivazione di soglie allargate.
+- CSV: profilo, metodo di taratura (retta del giorno / salvata + 1 controllo / salvata + 2 controlli / salvata senza controllo / RRF), id della taratura e versione, data, età in giorni, livelli dei controlli, scostamenti %, deriva %, k, stato della carta, U (k = 2), stato, motivazione di soglie allargate.
 - PDF: lo stesso riepilogo per ogni analita, con lo stato in evidenza.
 - Metodi: frase con il metodo e i riferimenti (ICH Q2(R2), Eurachem, Westgard, ISO 8466-1). Le altre norme citate dagli agenti a memoria (ICH M10, SANTE/11312/2021, USP <621>, Ph. Eur. 2.2.46, EPA serie 8000) vanno verificate dal revisore dei documenti prima di essere scritte.
 
 ## Prove di accettazione (automatiche nella pipeline, ripetute 3 volte)
-1. Ogni blocco impedisce il numero e dà il messaggio giusto: un test per ciascuno.
+1. Ogni blocco impedisce il numero e dà il messaggio giusto: un test per ciascuno. Nel profilo Ricerca senza controlli il numero c'è e porta il segno «senza controllo del giorno» a schermo, nel CSV, nel PDF e nei metodi.
 2. Monte Carlo con seme fisso, deriva 3, 5 e 8%: con un controllo risultati oltre ±10% ≤ 1,5%; con due controlli ≤ 0,5%; copertura di U95 tra 93 e 97%.
 3. Carta di controllo: salto dell'8% rilevato entro 1 serie; deriva dello 0,1% al giorno entro 40 serie; falsi allarmi ≤ 1% per serie.
 4. Calcoli (k, x, U, RRF) contro un calcolo Python indipendente: LRE ≥ 10.

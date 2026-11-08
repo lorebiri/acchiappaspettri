@@ -12,6 +12,7 @@
 - Avvisi nuovi: LOD maggiore degli standard più bassi, segnali sotto la soglia, colonne ignorate, elementi considerati e righe sovrapposte nelle concentrazioni FP.
 - Versione online più leggera: le funzioni di studio (tarature, PCA, miscele, composizione XRF, falsi colori) si aprono con «Mostra qui»; picchi e assegnazioni identici al desktop.
 - Ipotesi più prudenti: una banda o una riga sola è inconclusiva; righe XRF coincidenti dichiarate non distinguibili; bande condivise dichiarate; «Accetta i suggerimenti» non cambia l'esito; nessun elemento proposto se l'asse XRF è spostato.
+- HPLC con più canali: canale riconosciuto dal nome del file (DAD, VWD, FLD, UV_VIS, Ch1, Sig=254, «254 nm»); in «Più campioni» la taratura usa un canale alla volta, con avviso se i canali sono misti; canale nel PDF e nel CSV. Libreria dei nomi: eliminazione con conferma, voci con lo stesso codice unite. Empower .arw accettato.
 - Tarature: rette pesate 1/x e 1/x², ruoli standard, bianco e controllo con recupero, stato di ogni stima (estrapolato, < LOD, < LOQ, cima tagliata, coeluito, bordi, picco spostato, normalizzato, unità mancante) anche nel CSV e nel PDF.
 - XRF senza standard: ogni stima etichettata come non validata, condizioni nei file esportati, filtro primario, intervallo di sensibilità alle ipotesi.
 - Importazione: blocchi di dati riconosciuti (tabelle escluse, pause unite), celle vuote, colonna Y scelta dal nome, CSV con virgolette, canali XRF illeggibili, memoria legata all'impronta del file.
