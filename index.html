@@ -6641,7 +6641,7 @@ function assess(f, d){
   const shapeOk = !['tga','dsc','epr'].includes(it);
   (f.importNotes||[]).forEach(n=>add(/NTUPLES/.test(n)||(f.importBad||[]).includes(n)?'bad':'warn', n+'.'));
   if (/^(asse X in minuti|intervallo 150|intervallo IR|shift cm|conteggi interi)/.test(f.reason||'') && f.instr===f.autoInstr) add('info', `Tecnica dedotta solo dagli intervalli dei numeri (${f.reason}): controlla che sia giusta in «Dati dello spettro».`);
-  if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.');
+  if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: in «Dati dello spettro» scegli l'asse Y, «trasmittanza %» oppure «assorbanza» se il dato è già un'assorbanza.');
   if (it==='xrf'){ let neg=0; for (const v of f.ys) if (v<0) neg++; if (neg) add('warn',`${neg} canali con conteggi negativi: i conteggi veri non sono mai negativi, lo spettro è già stato elaborato e l'incertezza di conteggio non vale.`); }
   if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare un separatore delle migliaia (${q.thou} valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after && q.channel && f.instr!=='hplc') add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${q.after} righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato.`); else if (q.after && q.channel){ const lab=chanOf(f), k=(f.blockIx||0)+1, n=f.nBlocks||2; add('warn', lab ? `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il canale «${lab}» (blocco ${k} di ${n}, il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.` : `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il blocco ${k} di ${n} (il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.`); } else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
@@ -6780,7 +6780,13 @@ function probableElements(f, d){
     new Set(ids.map(elOf).filter(Boolean)).forEach(e=>cnt[e]=(cnt[e]||0)+1); });
   return Object.entries(cnt).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).map(([e])=>e);
 }
-function suspectT(f){ if (f.instr!=='ftir' || f.kind!=='A' || !f._p || (f.an&&f.an.ykind)) return false; const v=Array.from(f._p.ys).sort((a,b)=>a-b), hi=v[v.length-1], lo=v[0], q3=v[Math.floor(v.length*0.75)]; return lo>=-0.05*hi && hi<=1.05 && q3>0.5*hi && !/absorb|^abs|^a$/.test(headerInfo(f._p.meta||[]).yu.toLowerCase()); }
+// trasmittanza in frazione: fondo vicino al massimo e bande verso il basso (la mediana sta più vicina al massimo che al minimo).
+// Un'assorbanza con il fondo alto ha la mediana vicino al minimo: non va presa per trasmittanza. Il nome della colonna Y («Absorbance») decide.
+function suspectT(f){ if (f.instr!=='ftir' || f.kind!=='A' || !f._p || (f.an&&f.an.ykind)) return false;
+  const yc=f.ycolNow||(f.an&&f.an.ycol)||1, cn=f.colNames?String(f.colNames[yc]||'').toLowerCase():'';
+  if (/absorb|assorb|^abs\b|^a$|\(a\)|a\.u\./.test(cn) || /absorb|^abs|^a$/.test(headerInfo(f._p.meta||[]).yu.toLowerCase())) return false;
+  const v=Array.from(f._p.ys).sort((a,b)=>a-b), hi=v[v.length-1], lo=v[0], q3=v[Math.floor(v.length*0.75)], med=v[Math.floor(v.length*0.5)];
+  return lo>=-0.05*hi && hi<=1.05 && q3>0.5*hi && (hi-med)<(med-lo); }
 function hypotheses(f, d){
   if (f.an&&f.an.calc) return null; if (suspectT(f)) return null;
   const it=f.instr, P=processed(f);
@@ -7183,7 +7189,7 @@ function mvTable(instr){
   const T=list.map(f=>{ const v=mvValue(f, c.a, c.b, c.meas), r=R ? mvValue(f, c.c, c.d, c.meas==='value'?'value':c.meas==='area'?'area':'height') : null;
     // trasmittanza in frazione (0–1) letta come assorbanza: bande capovolte, il valore misurato non vale (indice sbagliato del 20–30%): nessun valore, avviso esplicito
     const tT=suspectT(f);
-    return {f, v, r, y: v==null || tT ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:tT ? 'trasmittanza letta come assorbanza: scegli «trasmittanza %» come asse Y in «Dati dello spettro»' : mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
+    return {f, v, r, y: v==null || tT ? null : R ? (r ? v/r : null) : v, conc: f.an && f.an.conc!=null ? f.an.conc : null, flag:tT ? 'sembra trasmittanza letta come assorbanza: in «Dati dello spettro» scegli l'asse Y, «trasmittanza %» oppure «assorbanza»' : mvFlag(f, c.a, c.b, c.meas), role:(f.an&&f.an.role)||'std', shape:mvShape(f, c.a, c.b)}; });
   const key=c.a+'|'+c.b, sameZone=k=>{ const [a,b]=String(k).split('|').map(Number), w=Math.abs(c.b-c.a)||1; return Math.abs(a-c.a)<=0.02*w && Math.abs(b-c.b)<=0.02*w; };
   // ogni zona (composto) ha le sue concentrazioni: passare a un altro composto e tornare indietro non le perde
   T.forEach(o=>{ const an=o.f.an||{}, z=an.concs ? Object.keys(an.concs).find(sameZone) : null; if (c.model!=='trend' && z!=null){ o.conc=an.concs[z]; return; }
