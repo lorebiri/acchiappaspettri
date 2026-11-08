@@ -2245,7 +2245,7 @@ function parseText1(text, opt){ const P0=xUnitFix(parseText0(text,opt)); if (!op
 // 2 l'asse riparte: torna di colpo (almeno 10 passi medi e un quinto dell'asse) dentro l'intervallo già letto, cioè un secondo canale o una seconda scansione.
 // Il ritorno vale solo in un blocco sempre monotono: dopo un passo indietro qualsiasi il blocco si legge come prima.
 function axisStep(xs, x){ const n=xs.length, span=xs[n-1]-xs[0], dir=Math.sign(span); if (!dir || !Number.isFinite(x)) return 0; const a=Math.abs(span), st=a/(n-1), back=(xs[n-1]-x)*dir;
-  if (back<=0.5*st) return 0; return back>10*st && back>0.2*a && (x-xs[0])*dir>=-0.05*a ? 2 : 1; }
+  if (back<=0.5*st) return 0; return back>10*st && back>0.2*a ? 2 : 1; }   // anche se riparte prima dell'inizio del primo blocco (seconda scansione più ampia): ciclo 26
 function parseText0(text, opt){
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
   const jc = parseJcamp(text); if (jc) return jc;

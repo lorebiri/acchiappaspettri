@@ -11,6 +11,8 @@ const chrom=(n,dt,peaks,base=0.5)=>Array.from({length:n},(_,i)=>{ const t=i*dt; 
 const fx=(r,sep='\t')=>r.map(([t,y])=>t.toFixed(4)+sep+y.toFixed(4)).join('\n');
 const cA=chrom(3000,0.004,[[5,0.05,80]]), cB=chrom(3000,0.004,[[5,0.05,20],[8,0.05,50]]), cB2=chrom(4000,0.004,[[5,0.05,20],[8,0.05,50]]);
 const ir=Array.from({length:1801},(_,i)=>{ const x=4000-i*2; return [x, 0.05+0.8*g(x,1730,8)+0.01*rnd()]; });
+const cA1=chrom(2751,0.004,[[6,0.05,80]]).map(([t,y])=>[t+1,y]), cB3=chrom(3001,0.004,[[5,0.05,20],[8,0.05,50]]);
+const ir1=Array.from({length:1551},(_,i)=>{ const x=3500-i*2; return [x, 0.05+0.4*g(x,1730,8)+0.01*rnd()]; }), irTxt2=r=>r.map(([x,y])=>x+'\t'+y.toFixed(5)).join('\n');
 const irTxt=k=>ir.map(([x,y])=>x+'\t'+(y*k).toFixed(5)).join('\n');
 const maxOf=p=>{ let k=0; for (let i=1;i<p.ys.length;i++) if (p.ys[i]>p.ys[k]) k=i; return {x:p.xs[k], y:p.ys[k]}; };
 const dupX=p=>{ let n=0; for (let i=1;i<p.xs.length;i++) if (p.xs[i]===p.xs[i-1]) n++; return n; };
@@ -24,6 +26,10 @@ const CASES={
   's10 CSV con intestazione': {txt:'Time (min),Signal (mAU)\n'+fx(cA,',')+'\n\n'+fx(cB,','), n:3000, after:3000, ymax:[80,1]},
   's10 a tabulazioni': {txt:fx(cA)+'\n\n'+fx(cB), n:3000, after:3000, ymax:[80,1]},
   'secondo blocco più lungo': {txt:fx(cA)+'\n'+fx(cB2), n:4000, after:3000, ymax:[50,1], xmax:8},
+  // ciclo 26: il secondo blocco comincia prima dell'inizio del primo (HPLC da 1 e da 0 min; FTIR 3500–400 poi 4000–400)
+  'secondo blocco che parte prima del primo (HPLC)': {txt:'Time (min)\tmAU\n'+fx(cA1)+'\n'+fx(cB3)+'\n', n:3001, after:2751, ymax:[50,1], xmax:8},
+  'FTIR, seconda scansione più ampia (riga vuota)': {txt:irTxt2(ir1)+'\n\n'+irTxt2(ir)+'\n', n:1801, after:1551, ymax:[0.85,0.03], xmax:1730},
+  'FTIR, seconda scansione più ampia (attaccata)': {txt:irTxt2(ir1)+'\n'+irTxt2(ir)+'\n', n:1801, after:1551, ymax:[0.85,0.03], xmax:1730},
 };
 test('R7 blocchi: due blocchi senza testo in mezzo, si legge un blocco e l\'altro è segnalato', ()=>{
   const bad=[];
