@@ -10,7 +10,7 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 
 | Componente | Dove | Licenza |
 |---|---|---|
-| jsPDF 2.5.1 (con fflate 0.4.x e moduli interni elencati sotto) | pagina web e app desktop (`vendor/jspdf.umd.min.js`) | MIT, più alcuni moduli interni con licenze proprie (vedi sotto) |
+| jsPDF 4.2.1 (con fflate 0.8.x e moduli interni elencati sotto) | pagina web e app desktop (`vendor/jspdf.umd.min.js`) | MIT, più alcuni moduli interni con licenze proprie (vedi sotto) |
 | JSZip 3.10.1 (con pako 1.0.11, lie 3.3.0, immediate 3.0.6, setimmediate 1.0.5) | pagina web e app desktop (`vendor/jszip.min.js`) | MIT (JSZip è MIT o GPL-3.0; si usa MIT); pako MIT e Zlib |
 | Carattere Nunito (@fontsource/nunito 5.1.0) | pagina web e app desktop (`vendor/fonts/`) | SIL Open Font License 1.1 |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
@@ -22,13 +22,13 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 
 ## 1. Librerie JavaScript incluse nella pagina
 
-### jsPDF 2.5.1
+### jsPDF 4.2.1
 https://github.com/parallax/jsPDF
 
 ```text
 Copyright
-(c) 2010-2021 James Hall, https://github.com/MrRio/jsPDF
-(c) 2015-2021 yWorks GmbH, https://www.yworks.com/
+(c) 2010-2025 James Hall, https://github.com/MrRio/jsPDF
+(c) 2015-2025 yWorks GmbH, https://www.yworks.com/
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -163,32 +163,6 @@ A class to parse color values
 
  Licensed under the MIT License.
  http://opensource.org/licenses/mit-license
-```
-
-```text
-@license
-
- Copyright (c) 2014 James Robb, https://github.com/jamesbrobb
-
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
-
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- ====================================================================
 ```
 
 ```text
@@ -378,7 +352,7 @@ WebPRiffParser dominikhlbg@gmail.com
  MIT License
 ```
 
-fflate 0.4.x (incluso in jsPDF), https://github.com/101arrowz/fflate:
+fflate 0.8.x (incluso in jsPDF), https://github.com/101arrowz/fflate:
 
 ```text
 MIT License

@@ -2,7 +2,7 @@
 
 | Componente | Uso | Licenza | Dove |
 |---|---|---|---|
-| jsPDF 2.5.1 | esportazione PDF | MIT | `vendor/` (distribuita) |
+| jsPDF 4.2.1 | esportazione PDF | MIT | `vendor/` (distribuita) |
 | JSZip 3.10.1 | ZIP, progetti, Excel | MIT o GPLv3 (si usa MIT) | `vendor/` (distribuita) |
 | Nunito | carattere | SIL OFL 1.1 (`vendor/fonts/OFL-LICENSE.txt`) | `vendor/fonts/` (distribuito) |
 | xraylib 4.x | genera le tabelle `FP_DATA` (non è distribuito il programma, solo dati calcolati) | BSD (da citare: Schoonjans et al. 2011) | solo `scripts/gen-fp-data.py` |
