@@ -45,6 +45,10 @@ jobs:
         with: { targets: "${{ matrix.rust_target }}" }
       - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with: { workspaces: src-tauri, key: "${{ matrix.rust_target }}" }
+      - name: Spotlight spento (macOS)
+        # hdiutil non riesce a staccare il disco temporaneo del DMG («Resource busy») se Spotlight lo sta indicizzando
+        if: startsWith(matrix.os, 'macos')
+        run: sudo mdutil -a -i off || true
       - name: Librerie di sistema (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libgtk-3-dev
