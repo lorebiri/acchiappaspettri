@@ -63,7 +63,7 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
     assert.equal(r.files[0].n, 1801); assert.equal(r.files[0].issue.after, 1801);
     const {ctx:c2,p:p2}=await page({desk}); const h=await load(p2, [['S_DAD.csv',F.s10],['ATT.txt',F.attaccati]]);
     for (const f of h.files){ assert.equal(f.n, 3000, f.name); assert.equal(f.dup, 0, f.name+': x ripetute'); assert.ok(f.issue && f.issue.channel, f.name+': secondo blocco non segnalato'); assert.equal(f.peaks5, 1, f.name+': picchi intorno a 5 min'); }
-    assert.match(h.toasts.join(' '), /secondo canale/, 'HPLC: il secondo blocco è un canale'); assert.deepStrictEqual(errors, []); await ctx.close(); await c2.close(); });
+    assert.match(h.toasts.join(' '), /più di un canale: ho letto/, 'HPLC: il secondo blocco è un canale e l\'avviso dice quale è stato letto'); assert.deepStrictEqual(errors, []); await ctx.close(); await c2.close(); });
 }
 test('inglese: testi degli avvisi tradotti, ⛔ in testa', async ()=>{
   const {ctx,p,errors}=await page({lang:'en'}); const r=await load(p, [['DAD.csv',F.canaleMigliaia]]);
