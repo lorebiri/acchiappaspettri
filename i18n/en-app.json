@@ -314,7 +314,7 @@
 "Nessun filtro primario sul fascio: se lo strumento ne usa uno, dichiaralo nelle condizioni (avanzate) perché le stime cambiano molto.": "No primary beam filter: if the instrument uses one, declare it in the (advanced) conditions, because the estimates change a lot.",
 "Nessun picco sopra il rumore: se è un bianco va bene così; se aspettavi dei picchi, controlla iniezione e rivelatore.": "No peak above the noise: fine if this is a blank; if you expected peaks, check injection and detector.",
 "Nessun progetto recente": "No recent projects",
-"Non c'è ancora nessuna versione pubblicata da scaricare.": "There is no published version to download yet.",
+"Nessuna versione pubblicata trovata, oppure il sito degli aggiornamenti non è raggiungibile: riprova più tardi.": "No published version found, or the update site cannot be reached: try again later.",
 "Non hai ancora creato confronti. Se vuoi sovrapporre più spettri, torna ai grafici e scegli": "You have not created any comparisons yet. To overlay several spectra, go back to the plots and choose",
 "Non ho il permesso di scrivere in questa cartella. Scegline un'altra.": "I don't have permission to write to this folder. Choose another one.",
 "Non ho il permesso di usare questo percorso.": "I don't have permission to use this path.",

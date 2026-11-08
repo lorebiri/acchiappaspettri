@@ -31,7 +31,8 @@ const TOOLS={
   linux:[
     {file:'AppRun-x86_64', repo:'tauri-apps/binary-releases', tag:'apprun-old', asset:'AppRun-x86_64', sha256:'f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f'},
     {file:'linuxdeploy-07333c6-x86_64.AppImage', repo:'tauri-apps/binary-releases', tag:'linuxdeploy-07333c6', asset:'linuxdeploy-x86_64.AppImage', sha256z:'bd9521cd5ff3ca351fecb78cd9b236a4e37b3621014ac05cac0c2d767ffa0474'},
-    // «continuous»: cambia nel tempo, non ha un hash fisso; si verifica con l'hash che GitHub pubblica per l'asset, se raggiungibile
+    // «continuous»: cambia nel tempo, non ha un hash fisso. Si verifica SEMPRE con l'hash che GitHub pubblica per l'asset (campo digest
+    // dell'API, obbligatorio): salvato accanto al file in cache (<file>.sha256) e riletto dall'API a ogni uso
     {file:'linuxdeploy-plugin-appimage.AppImage', repo:'linuxdeploy/linuxdeploy-plugin-appimage', tag:'continuous', asset:'linuxdeploy-plugin-appimage-x86_64.AppImage', elf:1048576},
     // l'appimagetool dentro il plugin scarica a ogni build il runtime dell'AppImage da github.com (src/appimagetool_fetch_runtime.cpp):
     // con github.com in 504 è il «failed to run linuxdeploy» di run 42464743191 e 42468588488. Il plugin passa --runtime-file
@@ -47,7 +48,9 @@ const TOOLS={
 };
 
 // controlla un file scaricato o già presente; restituisce null se va bene, altrimenti il motivo
+const continuous=t=>t.tag==='continuous', sidecar=(dir,t)=>path.join(dir,t.file+'.sha256');
 function checkData(t, buf, digest){
+  if (continuous(t) && !/^[0-9a-f]{64}$/.test(digest||'')) return 'manca l\'hash pubblicato da GitHub';
   if (t.sha1 && hash('sha1',buf)!==t.sha1) return 'SHA-1 diverso da quello atteso dal bundler';
   if (t.sha256 && hash('sha256',buf)!==t.sha256) return 'SHA-256 diverso da quello fissato';
   if (t.sha256z && hash('sha256',zero8(buf))!==t.sha256z) return 'SHA-256 diverso da quello fissato';
@@ -55,8 +58,17 @@ function checkData(t, buf, digest){
   if (digest && hash('sha256',buf)!==digest) return 'SHA-256 diverso da quello pubblicato da GitHub';
   return null;
 }
-function checkInstalled(t, dir){
+// digest: l'hash pubblicato ora da GitHub (solo «continuous»). Un file o un hash salvato alterati fermano tutto: non si riscarica
+// sopra una cache manomessa senza dirlo. Un hash salvato diverso da quello pubblicato ora vuol dire una nuova build a monte: si riscarica.
+function checkInstalled(t, dir, digest){
   const p=path.join(dir,t.file); if (!fs.existsSync(p)) return 'assente';
+  if (continuous(t)){ const sc=sidecar(dir,t); if (!fs.existsSync(sc)) return 'manca l\'hash salvato accanto al file';
+    const saved=fs.readFileSync(sc,'utf8').trim();
+    if (!/^[0-9a-f]{64}$/.test(saved)) die(`${t.file}: hash salvato in cache illeggibile (${sc}): cache alterata`);
+    const buf=fs.readFileSync(p);
+    if (hash('sha256',buf)!==saved) die(`${t.file}: SHA-256 del file in cache diverso dall'hash salvato: file o hash alterati`);
+    if (saved!==digest) return 'GitHub pubblica ora un altro hash (nuova build «continuous»)';
+    return checkData(t, buf, digest); }
   if (t.zip){ for (const r of [...t.required, ...Object.keys(t.inner)]) if (!fs.existsSync(path.join(p,r))) return 'manca '+r;
     for (const [f,h] of Object.entries(t.inner)) if (hash('sha1',fs.readFileSync(path.join(p,f)))!==h) return f+' con SHA-1 inatteso';
     return null; }
@@ -73,30 +85,42 @@ async function get(url, headers){
   return Buffer.from(await r.arrayBuffer());
 }
 const api=(p,accept)=>{ const tok=process.env.GH_TOKEN||process.env.GITHUB_TOKEN, h={accept:accept||'application/vnd.github+json'}; if (tok) h.authorization='Bearer '+tok; return get('https://api.github.com/'+p, h); };
+const DELAYS=[15,30,60,120,180,240,300];   // circa 16 minuti in tutto: abbastanza per un disturbo breve di github.com
+async function retry(what, fn){
+  for (let i=0;;i++){
+    try{ return await fn(); }
+    catch(e){ if (e.fatal || e instanceof Fatal || i>=DELAYS.length) die(`${what} (${e.message})`);
+      warn(`${what} (${e.message}); nuovo tentativo ${i+2} di ${DELAYS.length+1} fra ${DELAYS[i]} s`); await sleep(DELAYS[i]); }
+  }
+}
+// l'asset nell'API delle release: id per scaricarlo e hash pubblicato da GitHub (sha256:…)
+async function assetMeta(t){
+  const rel=JSON.parse(await api(`repos/${t.repo}/releases/tags/${t.tag}`)), a=(rel.assets||[]).find(x=>x.name===t.asset);
+  if (!a) throw new Fatal(`l'asset ${t.asset} non c'è nella release ${t.tag}`);
+  const d=/^sha256:([0-9a-f]{64})$/.exec(a.digest||'');
+  if (continuous(t) && !d) throw new Fatal(`GitHub non pubblica l'hash di ${t.asset}: senza hash non lo si usa`);
+  return {id:a.id, digest:d&&d[1]};
+}
 // due strade per lo stesso file: il download diretto da github.com e, in alternativa, l'asset tramite l'API
-async function downloadOnce(t){
+async function downloadOnce(t, meta){
   const errs=[]; let fatal=0;
   try{ return {buf:await get(`https://github.com/${t.repo}/releases/download/${t.tag}/${t.asset}`)}; }catch(e){ errs.push(e.message); if (e instanceof Fatal) fatal++; }
-  try{ const rel=JSON.parse(await api(`repos/${t.repo}/releases/tags/${t.tag}`)), a=(rel.assets||[]).find(x=>x.name===t.asset);
-    if (!a) throw new Fatal(`l'asset ${t.asset} non c'è nella release ${t.tag}`);
-    const digest=/^sha256:([0-9a-f]{64})$/.exec(a.digest||'');
-    return {buf:await api(`repos/${t.repo}/releases/assets/${a.id}`,'application/octet-stream'), digest:digest&&digest[1], via:'API'}; }
+  try{ const m=meta||await assetMeta(t);
+    return {buf:await api(`repos/${t.repo}/releases/assets/${m.id}`,'application/octet-stream'), via:'API'}; }
   catch(e){ errs.push(e.message); if (e instanceof Fatal) fatal++; }
   const e=new Error(errs.join('; ')); e.fatal=fatal===2; throw e;
 }
-const DELAYS=[15,30,60,120,180,240,300];   // circa 16 minuti in tutto: abbastanza per un disturbo breve di github.com
-async function download(t){
+async function download(t, meta){
   for (let i=0;;i++){
-    try{ const r=await downloadOnce(t), bad=checkData(t, r.buf, r.digest);
+    try{ const r=await downloadOnce(t, meta), bad=checkData(t, r.buf, meta&&meta.digest);
       if (bad) throw Object.assign(new Error(`${t.asset}: ${bad}`),{fatal:true});
-      if (t.elf && !r.digest) warn(`${t.asset}: hash pubblicato da GitHub non disponibile, controllato solo che sia un ELF completo`);
       if (r.via) warn(`${t.asset}: github.com non risponde, scaricato tramite l'API delle release`);
       return r.buf; }
     catch(e){ if (e.fatal || i>=DELAYS.length) die(`${t.asset}: download non riuscito (${e.message})`);
       warn(`${t.asset}: download non riuscito (${e.message}); nuovo tentativo ${i+2} di ${DELAYS.length+1} fra ${DELAYS[i]} s`); await sleep(DELAYS[i]); }
   }
 }
-function install(t, dir, buf){
+function install(t, dir, buf, digest){
   const dest=path.join(dir,t.file), tmp=path.join(dir,'.tmp-'+process.pid+'-'+path.basename(t.file));
   fs.rmSync(tmp,{recursive:true,force:true});
   if (t.zip){ fs.mkdirSync(tmp,{recursive:true}); const z=path.join(tmp,'a.zip'); fs.writeFileSync(z,buf);
@@ -106,6 +130,8 @@ function install(t, dir, buf){
     // l'eventuale dll già presente va rimessa dopo (la cartella NSIS viene sostituita intera)
     fs.rmSync(dest,{recursive:true,force:true}); fs.renameSync(path.join(tmp,t.zip),dest); fs.rmSync(tmp,{recursive:true,force:true}); }
   else { fs.mkdirSync(path.dirname(dest),{recursive:true}); fs.writeFileSync(tmp,buf,{mode:0o755}); fs.renameSync(tmp,dest); }
+  // l'hash pubblicato da GitHub va in cache con il file: a ogni uso si ricontrollano tutti e due
+  if (continuous(t)) fs.writeFileSync(sidecar(dir,t), digest+'\n');
 }
 
 (async()=>{
@@ -116,16 +142,19 @@ function install(t, dir, buf){
   if (v!==CLI) die(`@tauri-apps/cli è ${v}, questo elenco è per ${CLI}: rileggi percorsi, URL e hash nel sorgente di tauri-bundler della nuova versione e aggiorna .github/scripts/tauri-tools.js`);
   const list=TOOLS[platform]; if (!list){ console.log('nessuno strumento da scaricare su '+platform); return; }
   fs.mkdirSync(dir,{recursive:true});
+  const meta={};
   for (const t of list){
-    const why=checkInstalled(t,dir);
-    if (!why){ console.log('✓ '+t.file+' (già presente e verificato)'); continue; }
+    // anche con il file già in cache: l'hash si chiede all'API a ogni uso, e senza hash ci si ferma
+    if (continuous(t)) meta[t.file]=await retry(`${t.asset}: hash pubblicato da GitHub non disponibile`, ()=>assetMeta(t));
+    const digest=meta[t.file]&&meta[t.file].digest, why=checkInstalled(t,dir,digest);
+    if (!why){ console.log('✓ '+t.file+' (già presente e verificato'+(digest?', sha256 '+digest.slice(0,12)+'…':'')+')'); continue; }
     if (why!=='assente') warn(`${t.file}: ${why}, lo riscarico`);
-    install(t, dir, await download(t));
-    const after=checkInstalled(t,dir); if (after) die(`${t.file}: dopo l'installazione ${after}`);
+    install(t, dir, await download(t, meta[t.file]), digest);
+    const after=checkInstalled(t,dir,digest); if (after) die(`${t.file}: dopo l'installazione ${after}`);
     console.log('✓ '+t.file+' scaricato e verificato');
   }
   // ultimo controllo dell'insieme: la dll sta dentro NSIS, che può essere stato appena sostituito
-  for (const t of list){ const why=checkInstalled(t,dir); if (why) die(`${t.file}: ${why}`);
+  for (const t of list){ const why=checkInstalled(t,dir,meta[t.file]&&meta[t.file].digest); if (why) die(`${t.file}: ${why}`);
     for (const k of t.env||[]){ const v=path.join(dir,t.file); console.log(k+'='+v); if (process.env.GITHUB_ENV) fs.appendFileSync(process.env.GITHUB_ENV,k+'='+v+'\n'); } }
   console.log('Strumenti di Tauri pronti in '+dir);
 })().catch(e=>die(e.stack||String(e)));

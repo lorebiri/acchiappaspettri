@@ -77,7 +77,6 @@
   const SETTINGS_KEY='acch.update.auto';
   const autoOn=()=>lsG(SETTINGS_KEY)!==false;
   const canSelfUpdate=()=>info.kind!=='system-package';
-  function compare(a,b){ const p=s=>String(s).split('-')[0].split('.').map(Number); const A=p(a),B=p(b); for (let i=0;i<3;i++){ if ((A[i]||0)!==(B[i]||0)) return (A[i]||0)-(B[i]||0); } return 0; }
   function showUpdate(version, notes, manual){ const d=$('#dlgUpdate'); $('#upCur').textContent=APP_VERSION_FULL(); $('#upNew').textContent=version; $('#upNotes').textContent=notes||''; $('#upMsg').textContent=manual?tr('Questa installazione (pacchetto di sistema) non si aggiorna da sola: scarica il nuovo pacchetto dalla pagina ufficiale.'):''; $('#upBarBox').hidden=true; $('#upGo').disabled=false; $('#upGo').textContent=tr(manual?'Apri la pagina di download':'Scarica e aggiorna'); $('#upLater').disabled=false;
     $('#upGo').onclick=manual ? ()=>{ T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri/releases/latest'); d.close(); } : installUpdate;
     $('#upLater').onclick=()=>{ lsS(LATER_KEY,{v:version,t:Date.now()}); d.close(); }; if (!d.open) d.showModal(); }
@@ -88,7 +87,8 @@
       if (msg) msg.textContent='';
       const later=lsG(LATER_KEY); if (!manual && later && later.v===up.version && Date.now()-later.t<24*3600*1000) return up;
       showUpdate(up.version, up.body, !canSelfUpdate()); return up;
-    }catch(e){ console.warn('update check',e); win.AcchDesktop.lastError=String(e); if (manual) say(/valid release JSON|404/i.test(String(e)) ? 'Non c\'è ancora nessuna versione pubblicata da scaricare.' : 'Non riesco a controllare gli aggiornamenti: controlla la connessione e riprova.'); return null; } }
+    }catch(e){ console.warn('update check',e); win.AcchDesktop.lastError=String(e); // l'updater dà lo stesso errore per 404 (nessuna release stabile) e per 5xx/429 (GitHub non risponde): il messaggio copre i due casi
+      if (manual) say(/valid release JSON|404/i.test(String(e)) ? 'Nessuna versione pubblicata trovata, oppure il sito degli aggiornamenti non è raggiungibile: riprova più tardi.' : 'Non riesco a controllare gli aggiornamenti: controlla la connessione e riprova.'); return null; } }
   async function installUpdate(){ const up=curUpdate; if (!up) return; const go=$('#upGo'), lt=$('#upLater'), box=$('#upBarBox'), bar=$('#upBar'), m=$('#upMsg');
     // prima di riavviare: l'utente salva o decide
     $('#dlgUpdate').close(); const okSave=await win.AcchProject.guard(); $('#dlgUpdate').showModal(); if (!okSave) return;
@@ -97,7 +97,7 @@
     try{ await up.download(ev=>{ if (ev.event==='Started') total=ev.data.contentLength||0; else if (ev.event==='Progress'){ got+=ev.data.chunkLength; if (total) bar.style.width=Math.min(100,100*got/total)+'%'; } else if (ev.event==='Finished') bar.style.width='100%'; });
       m.textContent=tr('Firma verificata. Installo e riavvio…'); await up.install(); closing=true; await T.process.relaunch();
     }catch(e){ console.error(e); m.textContent=tr('Aggiornamento non riuscito: il pacchetto non è stato installato e la versione attuale resta intatta. Riprova più tardi.'); go.disabled=false; lt.disabled=false; box.hidden=true; installing=false; win.AcchProject.lock(false); try{ curUpdate=await T.updater.check({timeout:20000}); }catch(_){} } }
-  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, compare, get info(){ return info; }, openPath, openDialog };
+  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog };
 
   /* lingua al primo avvio: dall'installer di Windows se c'è, altrimenti si chiede */
   async function firstRunLanguage(){ if (win.AcchI18n.isChosen) return; const fromInstaller=await inv('installer_language').catch(()=>null);

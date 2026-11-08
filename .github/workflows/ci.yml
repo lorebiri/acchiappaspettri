@@ -4,8 +4,9 @@ on:
   push:
     branches: ["**"]
     tags-ignore: ["**"]
-    # i soli documenti non fanno girare la CI, tranne CHANGELOG.md: lo leggono check-version.js e la pubblicazione
-    paths: ["**", "!**.md", "!docs/**", "CHANGELOG.md"]
+    # i soli documenti non fanno girare la CI, tranne CHANGELOG.md (lo leggono check-version.js e la pubblicazione)
+    # e THIRD-PARTY-NOTICES.md (va dentro i pacchetti, che check-packages.js controlla)
+    paths: ["**", "!**.md", "!docs/**", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md"]
   pull_request:
   workflow_dispatch:
   workflow_call:

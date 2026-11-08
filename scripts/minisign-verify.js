@@ -23,4 +23,6 @@ function verify(confPubkey, signature, data){
   if (!crypto.verify(null, Buffer.concat([sig, Buffer.from(tc,'utf8')]), pk.key, g)) return 'commento firmato non valido';
   return null;
 }
-module.exports={verify, pubKey};
+// Il commento firmato (verificato da verify): tauri ci scrive «timestamp:…\tfile:…\tversion:…».
+function trustedComment(signature){ try{ const l=b64lines(signature).find(x=>/^trusted comment:/i.test(x)); return l ? l.replace(/^trusted comment:\s?/i,'') : null; }catch(e){ return null; } }
+module.exports={verify, pubKey, trustedComment};

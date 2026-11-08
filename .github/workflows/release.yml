@@ -56,7 +56,9 @@ jobs:
           - { os: windows-2025, args: "--bundles nsis" }   # stesse immagini della CI
           - { os: macos-26, args: "--target aarch64-apple-darwin --bundles app,dmg", rust_target: aarch64-apple-darwin }
           - { os: macos-15-intel, args: "--target x86_64-apple-darwin --bundles app,dmg", rust_target: x86_64-apple-darwin }   # compilato su un Mac Intel vero
-          - { os: ubuntu-22.04, args: "--bundles appimage,deb" }
+          # .deb solo per le versioni stabili: per dpkg «2.2.0-rc.N» è più nuova di «2.2.0» (rc = revisione Debian),
+          # quindi chi installasse una rc dal .deb vedrebbe la stabile come una retrocessione
+          - { os: ubuntu-22.04, args: "--bundles appimage,deb", args_pre: "--bundles appimage" }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -88,7 +90,7 @@ jobs:
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
-          args: ${{ matrix.args }}
+          args: ${{ contains(github.ref_name, '-') && matrix.args_pre || matrix.args }}
           # come in ci.yml: nuovi tentativi solo per hdiutil «Resource busy» e download falliti per la rete, con ::warning::
           # (retryAttempts di tauri-action ripete qualsiasi errore senza avviso: non si usa)
           tauriScript: node .github/scripts/tauri-build.js
@@ -96,7 +98,10 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         run: |
-          dpkg-query -W -f='${Package}\t${Version}\t${source:Package}\t${source:Version}\n' | sort > librerie-linux-ubuntu-22.04.tsv
+          # elenco completo della macchina di compilazione: comprende tutte le librerie copiate nell'AppImage (e altre); la riga # lo dice
+          { echo "# Pacchetti Ubuntu 22.04 installati sulla macchina che ha costruito l'AppImage: elenco completo, più ampio delle sole librerie incluse nell'AppImage (che ci sono tutte). Full package list of the build machine: a superset of the libraries bundled in the AppImage."
+            printf '# pacchetto\tversione\tpacchetto sorgente\tversione sorgente\n'
+            dpkg-query -W -f='${Package}\t${Version}\t${source:Package}\t${source:Version}\n' | sort; } > librerie-linux-ubuntu-22.04.tsv
           gh release upload "$GITHUB_REF_NAME" librerie-linux-ubuntu-22.04.tsv --clobber
       - name: Controlla i pacchetti che verranno pubblicati
         shell: bash
