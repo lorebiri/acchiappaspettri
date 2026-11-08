@@ -1,5 +1,9 @@
 # Novità delle versioni
 
+## 2.2.0-rc.2
+
+Versione di prova (release candidate) della 2.2.0, con le stesse novità elencate sotto. Serve a provare la pubblicazione e i pacchetti prima della versione stabile: è una pre-release e non viene proposta agli utenti come aggiornamento.
+
 ## 2.2.0
 
 - Acchiappaspettri Desktop per Windows, macOS e Linux: funziona senza internet e avvisa quando esce una nuova versione.
