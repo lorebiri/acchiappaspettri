@@ -122,7 +122,7 @@
   const isWarnMsg=t=>/😕|⚠️|⛔/.test(String(t)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible|accepted))(?=\s|$|[.,:;!?])/i.test(String(t));
   let lastMsg='', lastWarn='', sticky=null, impErr=null; function pushMsg(t, forCur){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean;
     // un problema grave (⛔) sullo spettro aperto resta nella barra finché si resta su quello spettro: i suggerimenti d'uso vanno solo nel registro
-    const err=/^⛔/.test(String(t)); if (sticky && (typeof cur==='undefined' || cur!==sticky)) sticky=null; if (err) sticky=forCur!=null?forCur:(typeof cur!=='undefined'?cur:null);
+    const err=/^⛔/.test(String(t)); if (err && impErr && (forCur!=null?forCur:(typeof cur!=='undefined'?cur:null))!==impErr.cur) impErr=null;   // un ⛔ di un altro spettro sostituisce quello d'importazione if (sticky && (typeof cur==='undefined' || cur!==sticky)) sticky=null; if (err) sticky=forCur!=null?forCur:(typeof cur!=='undefined'?cur:null);
     if (!err && sticky!=null && !isWarnMsg(t)){ const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); return; }
     stMsg.textContent=clean; stMsg.title=clean; stMsg.classList.toggle('warn', isWarnMsg(t) && !err); stMsg.classList.toggle('err', err); const r=el('div',{class:'lg'},el('span',{class:'t','data-noi18n':''},new Date().toTimeString().slice(0,8)),el('span',{'data-noi18n':''},clean)); r._orig=t; log.prepend(r); while (log.childNodes.length>200) log.lastChild.remove(); }
   const oToast=win.toast, oSay=win.say;

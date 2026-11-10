@@ -18,10 +18,15 @@ for (const lang of ['it','en']) describe(`R5 barra di stato del desktop: ⛔ d'i
       R=await p.evaluate(async ([DUE,RIGHE])=>{ const bar=document.querySelector('#shMsg'), wait=ms=>new Promise(r=>setTimeout(r,ms));
         await addEntries([['due_DAD1A.csv',DUE],['righe_DAD1A.csv',RIGHE]].map(([n,t])=>({file:new File([t],n),path:n})));
         await wait(1000); const first={text:bar.textContent, err:bar.classList.contains('err'), cur:files[cur]&&files[cur].name};
-        return {first}; }, [DUE,RIGHE]).catch(e=>({e:String(e)}));
+        // andata e ritorno: aperto il file con il problema e poi di nuovo quello pulito, la barra torna normale (ciclo 26, riverifica)
+        const pick=async i=>{ document.querySelector(`#flist .fitem[data-i="${i}"]`).click(); await wait(700); };
+        const c0=cur, rg=files.findIndex(g=>/righe/.test(g.name)); await pick(rg); const onBad={err:bar.classList.contains('err')}; await pick(c0);
+        const back={text:bar.textContent, err:bar.classList.contains('err'), cur:files[cur]&&files[cur].name};
+        return {first, onBad, back}; }, [DUE,RIGHE]).catch(e=>({e:String(e)}));
       R.errors=errors; await ctx.close();
     } finally { await br.close(); server.close(); } }, {timeout:3*60*1000});
   it('dopo il caricamento la barra mostra il ⛔ del file con il problema', ()=>{ assert.ok(R.first, JSON.stringify(R));
     assert.ok(R.first.err && /righe_DAD1A/.test(R.first.text), JSON.stringify(R.first)); });
+  it('tornando allo spettro senza problemi la barra non resta rossa', ()=>{ assert.ok(R.back && R.onBad, JSON.stringify(R)); assert.ok(R.onBad.err, 'sul file con il problema la barra è rossa'); assert.ok(!R.back.err, JSON.stringify(R.back)); });
   it('nessun errore nella pagina', ()=>assert.deepStrictEqual(R.errors, []));
 });
