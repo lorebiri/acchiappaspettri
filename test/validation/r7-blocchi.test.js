@@ -69,10 +69,23 @@ test('R7 blocchi: separatore delle migliaia sull\'asse, nessun falso blocco e �
     'Raman 100–3200, «1,000»': Array.from({length:3101},(_,i)=>100+i).map(x=>fmt(x,',')+'\t'+(0.5+g(x,1086,6)).toFixed(4)).join('\n'),
     'Raman 200–3200, «1.000»': Array.from({length:3001},(_,i)=>200+i).map(x=>fmt(x,'.')+'\t'+(0.1+g(x,1600,8)).toFixed(4)).join('\n'),
     'UV 190–1100, «1,000»': Array.from({length:911},(_,i)=>190+i).map(x=>fmt(x,',')+'\t'+(0.05+g(x,280,10)).toFixed(4)).join('\n'),
+    'FTIR 4000–400 decrescente, «4,000»': Array.from({length:1801},(_,i)=>4000-2*i).map(x=>fmt(x,',')+'\t'+(0.05+0.8*g(x,1730,8)).toFixed(4)).join('\n'),
   };
   const bad=[];
   for (const [k,t] of Object.entries(M)){ const p=C.parseText('X\tY\n'+t), q=p.importIssue||{};
     if (!q.thou) bad.push(`${k}: manca il ⛔ delle migliaia (${JSON.stringify(p.importIssue)})`);
     if (q.channel || q.after) bad.push(`${k}: falso secondo blocco (${JSON.stringify(p.importIssue)})`); }
+  assert.deepStrictEqual(bad, []);
+});
+
+// ciclo 26, seconda riverifica: un asse con tre decimali veri («200.000») non è un separatore delle migliaia: due scansioni restano separate
+test('R7 blocchi: asse a tre decimali, due scansioni separate con l\'avviso', ()=>{
+  const sc=(a,b,st,c,w)=>Array.from({length:Math.round((b-a)/st)+1},(_,i)=>a+i*st).map(x=>x.toFixed(3)+'\t'+(0.05+g(x,c,w)).toFixed(4)).join('\n');
+  const M={ 'UV 200.000–800.000 ×2 (riga vuota)': sc(200,800,0.5,280,5)+'\n\n'+sc(200,800,0.5,280,5),
+            'UV 200.000–800.000 ×2 (attaccate)': sc(200,800,0.5,280,5)+'\n'+sc(200,800,0.5,280,5),
+            'Raman 100.000–1800.000 ×2': sc(100,1800,1,1086,4)+'\n'+sc(100,1800,1,1086,4) };
+  const bad=[];
+  for (const [k,t] of Object.entries(M)){ const p=C.parseText('X\tY\n'+t), q=p.importIssue||{}, n=t.split('\n').filter(l=>l.trim()).length/2;
+    if (p.xs.length!==n || !q.after) bad.push(`${k}: ${p.xs.length} punti, attesi ${n} con l'avviso del secondo blocco (${JSON.stringify(p.importIssue)})`); }
   assert.deepStrictEqual(bad, []);
 });
