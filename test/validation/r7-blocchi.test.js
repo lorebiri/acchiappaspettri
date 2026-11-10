@@ -60,3 +60,19 @@ test('R7 blocchi: nessun falso blocco su assi decrescenti, passo irregolare e ri
     if (q && (q.after || q.channel)) bad.push(`${k}: falso secondo blocco (${JSON.stringify(q)})`); }
   assert.deepStrictEqual(bad, []);
 });
+
+// ciclo 26, riverifica: con il separatore delle migliaia sull'asse («1,000», «1.000») l'asse sembra tornare da 999 a 1.
+// Non è un secondo blocco: resta il ⛔ «separatori delle migliaia» e nessun avviso di blocco.
+test('R7 blocchi: separatore delle migliaia sull\'asse, nessun falso blocco e ⛔ delle migliaia', ()=>{
+  const fmt=(x,s)=>x>=1000?Math.floor(x/1000)+s+String(x%1000).padStart(3,'0'):String(x);
+  const M={
+    'Raman 100–3200, «1,000»': Array.from({length:3101},(_,i)=>100+i).map(x=>fmt(x,',')+'\t'+(0.5+g(x,1086,6)).toFixed(4)).join('\n'),
+    'Raman 200–3200, «1.000»': Array.from({length:3001},(_,i)=>200+i).map(x=>fmt(x,'.')+'\t'+(0.1+g(x,1600,8)).toFixed(4)).join('\n'),
+    'UV 190–1100, «1,000»': Array.from({length:911},(_,i)=>190+i).map(x=>fmt(x,',')+'\t'+(0.05+g(x,280,10)).toFixed(4)).join('\n'),
+  };
+  const bad=[];
+  for (const [k,t] of Object.entries(M)){ const p=C.parseText('X\tY\n'+t), q=p.importIssue||{};
+    if (!q.thou) bad.push(`${k}: manca il ⛔ delle migliaia (${JSON.stringify(p.importIssue)})`);
+    if (q.channel || q.after) bad.push(`${k}: falso secondo blocco (${JSON.stringify(p.importIssue)})`); }
+  assert.deepStrictEqual(bad, []);
+});

@@ -1580,7 +1580,7 @@
   "yMax": 0.95499,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo IR e valori %T/A): controlla che sia giusta in «Dati dello spettro».",
-   "warn: Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.",
+   "warn: Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: in «Dati dello spettro» scegli l'asse Y, «trasmittanza %» oppure «assorbanza» se il dato è già un'assorbanza.",
    "bad: Il massimo è piatto su 644 punti: banda satura (assorbanza troppo alta). Posizione e area delle bande tagliate non sono affidabili: usa un film più sottile, l'ATR invece della trasmissione, oppure diluisci il campione.",
    "warn: Il fondo pesa circa il 55% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
   ],
@@ -1798,7 +1798,6 @@
   "xMax": 400,
   "yMax": 1,
   "avvisi": [
-   "warn: Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: moltiplica per 100 prima di caricare.",
    "info: Il file ha 3 colonne: Y è la colonna 2. La puoi cambiare in «Dati dello spettro».",
    "bad: Segnale costante su 1801 punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».",
    "warn: Il fondo pesa circa il 72% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
