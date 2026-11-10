@@ -69,6 +69,9 @@ test('R7 blocchi: separatore delle migliaia sull\'asse, nessun falso blocco e �
     'Raman 100–3200, «1,000»': Array.from({length:3101},(_,i)=>100+i).map(x=>fmt(x,',')+'\t'+(0.5+g(x,1086,6)).toFixed(4)).join('\n'),
     'Raman 200–3200, «1.000»': Array.from({length:3001},(_,i)=>200+i).map(x=>fmt(x,'.')+'\t'+(0.1+g(x,1600,8)).toFixed(4)).join('\n'),
     'UV 190–1100, «1,000»': Array.from({length:911},(_,i)=>190+i).map(x=>fmt(x,',')+'\t'+(0.05+g(x,280,10)).toFixed(4)).join('\n'),
+    // quarta riverifica: passo grande (950 → «1,000», passo 25 e 50), crescente e decrescente
+    'passo 25, 100–3000, «1,000»': Array.from({length:117},(_,i)=>100+25*i).map(x=>fmt(x,',')+'\t'+(0.5+g(x,1100,60)).toFixed(4)).join('\n'),
+    'passo 50, 3000–100 decrescente, «1.000»': Array.from({length:59},(_,i)=>3000-50*i).map(x=>fmt(x,'.')+'\t'+(0.5+g(x,1100,120)).toFixed(4)).join('\n'),
     'FTIR 4000–400 decrescente, «4,000»': Array.from({length:1801},(_,i)=>4000-2*i).map(x=>fmt(x,',')+'\t'+(0.05+0.8*g(x,1730,8)).toFixed(4)).join('\n'),
   };
   const bad=[];
