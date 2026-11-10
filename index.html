@@ -6754,7 +6754,9 @@ function xrfElements(f, d){
   else if (PbSeen && !PbOk && !AsK && els.includes('As')) drop('As');
   // senza Pb affermato e senza As Kβ libera, la riga a 10,5 keV può essere As Kα o Pb Lα (pochi conteggi: le Lβ di Pb restano sotto Currie).
   // As non va nel calcolo da solo: nel calcolo entra Pb (più comune nelle leghe di rame), tutti e due segnati «non distinguibili».
-  const asPb = !PbSeen && !(AsK && !Hg) && !!(els.includes('As') || (by.As && by.As.main));
+  // Vale solo se la Pb Lβ attesa (almeno 0,6 × la riga a 10,5 keV) resterebbe sotto il limite di Currie: se dovrebbe vedersi e non c'è, Pb manca e la riga è As (bronzi arsenicali).
+  let lbHidden=false; if (!PbSeen && !(AsK && !Hg) && !f.uncal && isCounts(f.ys)){ try{ const [la, lb]=xrfCurrie(f.xs, f.ys, [10.54, 12.61]); lbHidden = 0.6*Math.max(0,la.net) <= lb.LD; }catch(err){} }
+  const asPb = lbHidden && !PbSeen && !(AsK && !Hg) && !!(els.includes('As') || (by.As && by.As.main));
   if (asPb){ drop('As'); if (!unsure.includes('Pb')) unsure.push('Pb'); }
   if (els.includes('Au') && els.includes('W')) drop('W');
   // Ti Kα/Kβ (4,51/4,93 keV) cadono sotto Ba Lα/Lβ (4,47/4,83): con il bario il titanio non si distingue

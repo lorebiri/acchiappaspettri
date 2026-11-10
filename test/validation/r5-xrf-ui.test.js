@@ -44,6 +44,8 @@ test('XRF: anodo, pochi conteggi, stagno puro, asse spostato, tutorial 3 (online
       assert.ok(!r.hyp.some(h=>/cadmio|cobalto|Scheele|manganese/.test(h)), `${f}: ipotesi false ${r.hyp}`);
       const sn=r.qual.find(t=>/S\/N/.test(t)); assert.ok(sn && !/100[.,]000/.test(sn), `${f}: ${sn}`);
     }
+    // ciclo 26, riverifica: bronzo arsenicale senza Pb con molti conteggi: la Pb Lβ si vedrebbe e manca, quindi la riga a 10,5 keV è As
+    { const f='B_CuSnAs_noPb.mca', r=await inspect(p, f, rd(path.join(FX,f))); assert.ok(r.res && r.res.As && Math.abs(r.res.As.w-2)<0.5 && !r.res.Pb, `${f}: ${JSON.stringify(r.res)}`); }
     // A5: stagno puro con asse giusto
     for (const f of ['P3_pureSn.mca','R1_Sn_seed2.mca','R2_Sn_seed3.mca','R6_Sn_35kV.mca']){
       const r=await inspect(p, f, rd(path.join(FX,f)));
