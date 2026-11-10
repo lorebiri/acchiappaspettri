@@ -63,7 +63,7 @@
 - **Pacchetto .deb**: chi ha installato una 2.2.0-rc dal .deb installa la 2.2.0 con `sudo apt install --allow-downgrades ./…deb`. Il controllo degli aggiornamenti non distingue tra «nessuna versione pubblicata» e «GitHub non raggiungibile».
 - **PDF**: nel testo i caratteri fuori dalla codifica WinAnsi (cinese, giapponese, ł, greco non mappato) diventano «?» e alcune lettere perdono l'accento (č → c); i metadati restano interi. «cm-1» è scritto senza apice. Le note delle misure di banda restano in italiano nel PDF e nel CSV inglesi.
 - **XRF**: con tubo ad argento, argento fino a circa il 30% in una lega di rame può non essere proposto (anche senza avviso): aggiungilo a mano. Nelle leghe di stagno possono comparire Sb e I falsi; un elemento con stima 0 non compare in tabella e un ± maggiore del valore non dà avviso. Con picchi sotto 1000 conteggi può comparire un avviso di asse spostato di 20–30 eV.
-- **XRF, pochi conteggi**: As Kα e Pb Lα coincidono; senza As Kβ né Pb Lβ sopra il limite di rilevabilità sono segnati «non distinguibili» e nel calcolo entra Pb. A volte non compare nessuna ipotesi.
+- **XRF, pochi conteggi**: As Kα e Pb Lα coincidono; senza As Kβ né Pb Lβ sopra il limite di rilevabilità sono segnati «non distinguibili» e nel calcolo entra Pb. Con poche centinaia di conteggi, raramente As resta da solo con un ± grande quanto il valore; a volte non compare nessuna ipotesi. In un rame arsenicale senza Pb può comparire Pb al posto di As.
 - **XRF, peltro**: il giallo di Napoli può essere proposto anche se non c'è.
 - **Libreria dei riferimenti**: nei nomi possono comparire gli identificativi interni (`@…`).
 - **PDF**: ∞ e √ diventano «?»; ≠ diventa «!=».
