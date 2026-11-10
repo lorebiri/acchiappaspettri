@@ -67,4 +67,4 @@
 - **XRF, peltro**: il giallo di Napoli può essere proposto anche se non c'è.
 - **Libreria dei riferimenti**: nei nomi possono comparire gli identificativi interni (`@…`).
 - **PDF**: ∞ e √ diventano «?»; ≠ diventa «!=».
-- **FTIR senza nome della colonna Y**: se trasmittanza o assorbanza si deduce dalla forma dello spettro; nel dubbio scegli l'asse Y in «Dati dello spettro».
+- **FTIR senza «Absorbance» nel nome della colonna Y** (colonna senza nome, «T», «Value»…): trasmittanza o assorbanza si deducono dalla forma dello spettro; nel dubbio scegli l'asse Y in «Dati dello spettro».
