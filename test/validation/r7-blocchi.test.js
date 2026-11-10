@@ -80,10 +80,14 @@ test('R7 blocchi: separatore delle migliaia sull\'asse, nessun falso blocco e �
 
 // ciclo 26, seconda riverifica: un asse con tre decimali veri («200.000») non è un separatore delle migliaia: due scansioni restano separate
 test('R7 blocchi: asse a tre decimali, due scansioni separate con l\'avviso', ()=>{
+  const sc2=(a,b,st,c,w,d)=>Array.from({length:Math.round((b-a)/st)+1},(_,i)=>a+i*st).map(x=>x.toFixed(d)+'\t'+(0.05+g(x,c,w)).toFixed(4)).join('\n');
   const sc=(a,b,st,c,w)=>Array.from({length:Math.round((b-a)/st)+1},(_,i)=>a+i*st).map(x=>x.toFixed(3)+'\t'+(0.05+g(x,c,w)).toFixed(4)).join('\n');
   const M={ 'UV 200.000–800.000 ×2 (riga vuota)': sc(200,800,0.5,280,5)+'\n\n'+sc(200,800,0.5,280,5),
             'UV 200.000–800.000 ×2 (attaccate)': sc(200,800,0.5,280,5)+'\n'+sc(200,800,0.5,280,5),
-            'Raman 100.000–1800.000 ×2': sc(100,1800,1,1086,4)+'\n'+sc(100,1800,1,1086,4) };
+            'Raman 100.000–1800.000 ×2': sc(100,1800,1,1086,4)+'\n'+sc(100,1800,1,1086,4),
+            // terza riverifica: canali di 1000 punti che partono da Δt (l'ultima x è 1000 × la prima): non sono migliaia
+            'HPLC 0.01–10 min ×2 (1000 punti)': sc2(0.01,10,0.01,5,0.05,2)+'\n'+sc2(0.01,10,0.01,5,0.05,2),
+            'HPLC 1–1000 s ×2': sc2(1,1000,1,300,3,0)+'\n\n'+sc2(1,1000,1,300,3,0) };
   const bad=[];
   for (const [k,t] of Object.entries(M)){ const p=C.parseText('X\tY\n'+t), q=p.importIssue||{}, n=t.split('\n').filter(l=>l.trim()).length/2;
     if (p.xs.length!==n || !q.after) bad.push(`${k}: ${p.xs.length} punti, attesi ${n} con l'avviso del secondo blocco (${JSON.stringify(p.importIssue)})`); }
