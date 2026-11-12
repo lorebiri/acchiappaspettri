@@ -19,7 +19,7 @@ test('ogni voce: italiano e inglese senza Gino, emoji, «!», «browser», «dow
 test('il dizionario riceve le traduzioni del desktop', ()=>{ const w=load(true); assert.equal(w.ACCH_EN['Caricamento di {0} file…'], 'Loading {0} files…'); assert.equal(w.ACCH_EN['Esportazione completata.'], 'Export completed.'); });
 test('messaggi: voci, modelli e rete di sicurezza', ()=>{ const P=load(true).ACCH_DESK.pro;
   assert.equal(P('Gino sta acchiappando 12 file…'), 'Caricamento di 12 file…');
-  assert.equal(P('✅ Fatto! Trovi il file nella cartella Download (o qui sotto).'), 'Esportazione completata. Il file prodotto è elencato qui sotto.');
+  assert.equal(P('✅ Fatto! Trovi il file nella cartella Download (o qui sotto).'), 'Esportazione completata: file salvato.');
   assert.equal(P('Acchiappati 3 spettri! 👻 Gino è contentissimo: 2 FTIR, 1 Raman. 🎉'), 'Caricati 3 spettri: 2 FTIR, 1 Raman.');
   assert.equal(P('💾 Progetto salvato: 4 spettri e tutto il lavoro, nel file «a.acchspettri».'), 'Progetto salvato in «a.acchspettri»: 4 spettri.');
   assert.equal(P('Salvato: rapporto!.pdf'), 'Salvato: rapporto!.pdf', 'un «!» dentro un nome di file resta');
