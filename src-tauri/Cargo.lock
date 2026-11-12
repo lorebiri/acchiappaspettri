@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "acchiappaspettri"
-version = "2.2.0"
+version = "3.0.0-rc.1"
 dependencies = [
  "serde",
  "serde_json",
