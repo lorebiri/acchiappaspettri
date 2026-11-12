@@ -115,7 +115,7 @@ describe('Desktop: dialoghi e file', {timeout:10*60*1000}, ()=>{
     const o=await desk();
     const r=await o.p.evaluate(async ()=>{ localStorage.setItem('acch.seenVersion', JSON.stringify('2.1')); checkNews(); await new Promise(r=>setTimeout(r,1200));
       const opened=$('#dlgNews').open, n=document.querySelectorAll('#nwList [data-nv]').length, bad=[];
-      for (let i=0;i<n;i++){ document.querySelectorAll('dialog[open]').forEach(d=>d.close()); showNews(NOVITA.filter(v=>v.v==='2.2')); const b=document.querySelectorAll('#nwList [data-nv]')[i]; const t=b.closest('.nv').querySelector('b').textContent; b.click(); await new Promise(r=>setTimeout(r,100)); if ($('#dlgDownload').open) bad.push(t); }
+      for (let i=0;i<n;i++){ document.querySelectorAll('dialog[open]').forEach(d=>d.close()); showNews(NOVITA.filter(v=>v.v==='2.2')); const b=document.querySelectorAll('#nwList [data-nv]')[i]; const t=b.closest('.nv').querySelector('b').textContent; b.click(); await new Promise(r=>setTimeout(r,100)); { const dl=$("#dlgDownload"); if (dl && dl.open) bad.push(t); } }
       return {opened, n, bad}; });
     const errs=await close(o);
     assert.deepStrictEqual(errs, []);
