@@ -1289,7 +1289,7 @@ const L10N = {
        chan:'Canale', cnt:'conteggi', net:'conteggi netti', nu:'u.n.', logS:'scala log',
        dec:',', title:'Report spettri', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
        cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
-       csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo','Origine del nome'], csvOrig:['proposta dalla banca dati: ipotesi','scritto a mano'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
+       csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo','Origine del nome'], csvOrig:['proposta dalla banca dati: ipotesi','scritto a mano','dalla libreria personale'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
        locale:'it-IT', csvNote:'Nota', satNote:'banda satura: posizione e intensità non affidabili', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
   en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', fluo:'Wavelength (nm)', hplc:'Retention time (min)', xrf:'Energy (keV)', libs:'Wavelength (nm)', tga:'Temperature (°C)', dsc:'Temperature (°C)', nmr:'Chemical shift δ (ppm)', epr:'Magnetic field (mT)', gen:'X'},
        y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', U:'Intensity (a.u.)', FL:'Fluorescence intensity (a.u.)', W:'Mass (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Heat flow', E:'EPR signal, derivative (a.u.)', D1:'First derivative', D2:'Second derivative', '':'Y'},
@@ -1298,7 +1298,7 @@ const L10N = {
        chan:'Channel', cnt:'counts', net:'net counts', nu:'n.u.', logS:'log scale',
        dec:'.', title:'Spectra report', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
        cols:['#','Sample','Instrument','X range','Peaks'], fileLbl:'file',
-       csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type','Name origin'], csvOrig:['proposed from the database: hypothesis','typed by hand'], csvArea:['Area','Area unit','Area %','Integration start','Integration end'], man:'manual', auto:'automatic',
+       csv:['File','Name','Instrument','X unit','Peak position','Y value','Label','Type','Name origin'], csvOrig:['proposed from the database: hypothesis','typed by hand','from the personal library'], csvArea:['Area','Area unit','Area %','Integration start','Integration end'], man:'manual', auto:'automatic',
        locale:'en-GB', csvNote:'Note', satNote:'saturated band: position and intensity not reliable', zip:'plots_png', csvName:'peak_list.csv', dataDir:'processed_data', ovName:'comparison' }
 };
 let LANG = 'it';
@@ -1896,7 +1896,7 @@ function parseXRF(text){
   let A=null, B=null, C2=0;
   if (poly && poly.slice(0,3).some(v=>v!==0)){ A=poly[0]||0; B=poly[1]||0; C2=poly[2]||0; }
   else {
-    const pts=cal.filter(q=>q[1]>0 && q[0]>=0);
+    const pts=cal.filter(q=>q[0]>=0);   // l'energia di un punto può essere negativa (scostamento: «Calibration1: 0 -0.100»); scartarla toglieva lo scostamento (ciclo 25)
     if (pts.length>=2){ const n=pts.length, mx=pts.reduce((t,q)=>t+q[0],0)/n, my=pts.reduce((t,q)=>t+q[1],0)/n;
       let sxx=0, sxy=0; for (const q of pts){ sxx+=(q[0]-mx)**2; sxy+=(q[0]-mx)*(q[1]-my); } if (sxx>0){ B=sxy/sxx; A=my-B*mx; } }
     else if (pts.length===1 && pts[0][0]>0){ A=0; B=pts[0][1]/pts[0][0]; }
@@ -2246,6 +2246,17 @@ function parseText1(text, opt){ const P0=xUnitFix(parseText0(text,opt)); if (!op
 // Il ritorno vale solo in un blocco sempre monotono: dopo un passo indietro qualsiasi il blocco si legge come prima.
 function axisStep(xs, x){ const n=xs.length, span=xs[n-1]-xs[0], dir=Math.sign(span); if (!dir || !Number.isFinite(x)) return 0; const a=Math.abs(span), st=a/(n-1), back=(xs[n-1]-x)*dir;
   if (back<=0.5*st) return 0; return back>10*st && back>0.2*a ? 2 : 1; }   // anche se riparte prima dell'inizio del primo blocco (seconda scansione più ampia): ciclo 26
+// punto di svolta di un asse fatto di due tratti monotoni opposti (x uguali ammesse), ognuno di almeno 10 punti e sullo stesso intervallo: indice del primo punto del ritorno, altrimenti -1
+function splitTurn(xs){ const n=xs.length, d0=Math.sign(xs[1]-xs[0])||Math.sign(xs[2]-xs[0]); if (!d0) return -1; let t=1; while (t<n && (xs[t]-xs[t-1])*d0>=0) t++;
+  if (t>2 && xs[t-1]===xs[t-2] && xs[t]!==xs[t-1]) t--;   // la x della svolta ripetuta è il primo punto del ritorno
+  if (t<10 || n-t<10) return -1; for (let i=t+1;i<n;i++) if ((xs[i]-xs[i-1])*d0>0) return -1;
+  const a0=Math.min(xs[0],xs[t-1]), a1=Math.max(xs[0],xs[t-1]), b0=Math.min(xs[t],xs[n-1]), b1=Math.max(xs[t],xs[n-1]), ov=Math.min(a1,b1)-Math.max(a0,b0);
+  return ov>0.5*Math.min(a1-a0,b1-b0) ? t : -1; }
+// colonna X che va in un verso solo (tempo, numero d'onda, lunghezza d'onda, spostamento Raman, 2θ, ppm, energia): letta dalla riga dei nomi o da XUNITS.
+// Potenziale, temperatura e campo possono andare e tornare nella stessa misura.
+function oneWayAxis(hdr){ const xu=headerInfo(hdr).xu, h=(hdr.slice().reverse().find(l=>headerCells(String(l).replace(/^#\s*/,'')).length>=2)||''), x=(xu||headerCells(String(h).replace(/^#\s*/,''))[0]||'').toLowerCase();
+  if (!x || /potential|potenzial|voltage|tensione|temperat|°c|\bk\b|field|campo|gauss|\bmt\b|\bv\b/.test(x)) return false;
+  return /time|tempo|\bmin|\bsec|\bs\b|\brt\b|retention|ritenzion|wavenumber|numero d.onda|cm-1|cm⁻¹|1\/cm|shift|spostamento|wavelength|lunghezza d.onda|\bnm\b|theta|θ|ppm|energ|kev|\bev\b/.test(x); }
 function parseText0(text, opt){
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
   const jc = parseJcamp(text); if (jc) return jc;
@@ -2296,25 +2307,35 @@ function parseText0(text, opt){
     // a tre decimali veri («200.000» dopo 800); solo la continuità unirebbe due canali di 1000 punti che partono da Δt (0,01–10 min). Ciclo 26.
     if (p && cur.xs.length>=2 && !cur.rev){ const last=cur.xs[cur.xs.length-1], st=Math.abs(last-cur.xs[0])/(cur.xs.length-1), near=(u,v,s)=>Math.abs(u-v)<=Math.max(0.02*Math.max(Math.abs(u),Math.abs(v)), 2.5*s); const xt=String(tk[0]||'').replace(/"/g,'').trim(), th=t=>DOT3.test(t)||COMMA3.test(t); let r=axisStep(cur.xs, p[0]); if (r===2 && ((th(xt) && near(p[0]*1000,last,st)) || (th(cur.lastXt||'') && near(p[0],last*1000,1000*st)))) r=1; if (r===2 && cur.xs.length>=3){ blocks.push(cur); cur=newB(); } else if (r) cur.rev=true; }   // l'asse riparte (due canali o due scansioni senza testo in mezzo): nuovo blocco, come dopo una riga di testo
     if (p){ dropped+=pending; pending=0; if (cur.xs.length===2){ dropped+=headBad; headBad=0; }   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
-      [0,ycol].forEach((c,k)=>{ const t=String(tk[c]||'').replace(/"/g,'').trim(), C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (COMMA3.test(t)) C.com=(C.com||0)+1; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)) C.other++; });
+      [0,ycol].forEach((c,k)=>{ const t=String(tk[c]||'').replace(/"/g,'').trim(), C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (COMMA3.test(t)) C.com=(C.com||0)+1; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)){ C.other++; if (t.includes('.')) C.pd=(C.pd||0)+1; if (t.includes(',')) C.pc=(C.pc||0)+1; } });
       cur.xs.push(p[0]); cur.ys.push(p[1]); cur.lastXt=String(tk[0]||'').replace(/"/g,'').trim(); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
     else if (cur.xs.length < 3){ if (/^"?[-+]?\d/.test(l) && /[\t;,]/.test(l) && !p && (l.match(/(^|[\t;,\s"])[-+]?\d+([.,]\d+)?([eE][-+]?\d+)?(?=$|[\t;,\s"])/g)||[]).length>=2) headBad++; if (cur.xs.length) cur=newB(); if (blocks.length){ if (tail.length<120) tail.push(l); } else meta.push(l); }
     else if (tail.length < 120) tail.push(l);
   }
   if (cur.xs.length>=3 || !blocks.length) blocks.push(cur); else after+=cur.xs.length;
+  // asse che torna indietro dallo stesso punto (A crescente, poi B decrescente, x ripetute): se la colonna X è un tempo o un asse spettrale
+  // non può essere un'andata e ritorno (voltammetria, riscaldamento e raffreddamento), quindi sono due blocchi. Ciclo 25, LIMITAZIONI «Blocchi di dati».
+  for (let k=0;k<blocks.length;k++){ const q=blocks[k]; if (!q.rev || q.xs.length<20) continue; const t=splitTurn(q.xs); if (t<0 || !oneWayAxis(q.hdr.length?q.hdr:meta)) continue;
+    const r=newB(q.hdr); r.xs=q.xs.splice(t); r.ys=q.ys.splice(t); r.extra=q.extra; r.cols=q.cols.map(c=>Object.assign({},c)); q.rev=false; blocks.splice(k+1,0,r); k++; }
   // il blocco più lungo sono i dati; un altro vi si aggiunge solo se prosegue l'asse senza buchi (una pausa nella misura), altrimenti è una tabella e non diventa punti dello spettro
   const mainIx=blocks.reduce((b,q,k)=>q.xs.length>blocks[b].xs.length?k:b,0), M=blocks[mainIx], dir=Math.sign(M.xs[M.xs.length-1]-M.xs[0])||1;
   const xs=M.xs.slice(), ys=M.ys.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
   const left=blocks.map((q,k)=>k).filter(k=>k!==mainIx); let grew=true;
   while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=arrMin(q.xs), qhi=arrMax(q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
-      if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.com=(C.com||0)+(q.cols[u].com||0); C.int+=q.cols[u].int; C.other+=q.cols[u].other; }); left.splice(t,1); t--; grew=true; } } }
-  let channel=false; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && arrMin(q.xs)<=hi && arrMax(q.xs)>=lo) channel=true; });
+      if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.com=(C.com||0)+(q.cols[u].com||0); C.int+=q.cols[u].int; C.other+=q.cols[u].other; C.pd=(C.pd||0)+(q.cols[u].pd||0); C.pc=(C.pc||0)+(q.cols[u].pc||0); }); left.splice(t,1); t--; grew=true; } } }
+  // un blocco lungo almeno metà e sullo stesso asse è un altro canale; uno corto è una tabella riassuntiva e non si conta fra i canali (ciclo 26)
+  let channel=false, afterCh=0; const chK=[mainIx]; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && arrMin(q.xs)<=hi && arrMax(q.xs)>=lo){ channel=true; afterCh+=q.xs.length; chK.push(k); } });
+  chK.sort((a,b)=>a-b);
   const cols=M.cols;
   const idx = xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]);
   const X = new Float64Array(idx.length), Y = new Float64Array(idx.length);
   idx.forEach((k,i)=>{X[i]=xs[k]; Y[i]=ys[k];});
   for (const c of cols){ if (c.dot && c.int && !c.other) thou+=c.dot; if (c.com && c.int && !c.other) thou+=c.com; }
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length};
+  // asse X tutto «1,100…2,500» senza interi, con la Y a punto decimale («0.5»): nello stesso file la virgola non fa da decimale, quindi sono migliaia (e viceversa «1.100» con «0,5»).
+  // Solo sull'asse: una Y «4,836» con la X «100.0» resta ambigua (corpus c/50), come lo stesso separatore nelle due colonne. Tappa I1, decisione del Capo Progetto.
+  { const c=cols[0], o=cols[1], only=!c.int && !c.other;
+    if (only && c.com && !c.dot && o.pd && !o.pc && !o.com) thou+=c.com; else if (only && c.dot && !c.com && o.pc && !o.pd && !o.dot) thou+=c.dot; }
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -4395,7 +4416,10 @@ const files = []; let cur = -1; let uid = 0;
 const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
 // nomi di file uguali (cartelle .D di ChemStation: STD1.D/DAD1A.CSV, STD2.D/DAD1A.CSV): si aggiunge la cartella, o un numero se anche questa coincide
 const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
-  const dir=g=>String(g.path||'').split(/[\\/]/).slice(0,-1).pop()||'', d=dir(f); return ' ('+(d && all.filter(g=>dir(g)===d).length===1 ? d : all.indexOf(f)+1)+')'; };
+  // la cartella più vicina che basta a distinguerlo (SEQ1/STD1.D e SEQ2/STD1.D, ciclo 26); il numero solo se i percorsi coincidono
+  const dirs=g=>String(g.path||'').split(/[\\/]/).slice(0,-1).filter(Boolean), D=dirs(f);
+  for (let k=1;k<=D.length;k++){ const t=D.slice(-k).join('/'); if (all.filter(g=>dirs(g).slice(-k).join('/')===t).length===1) return ' ('+t+')'; }
+  return ' ('+(all.indexOf(f)+1)+')'; };
 const dispTitle = f => ((f.title && f.title.trim()) || f.name)+sameNameTag(f)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
@@ -4450,7 +4474,7 @@ function insetKeyFile(f){ return [S.conv[f.instr], pBase(f), pSmooth(f), f.kind,
 function insetKeyCmp(c){ const m=members(c); return [c.mode, c.gap, ...m.map(f=>S.conv[f.instr]+'/'+S.base[f.instr]+'/'+f.kind), !!S.logY[c.instr]].join('|'); }
 function insetFor(o, key){ return o && o.inset ? Object.assign({}, o.inset, {auto: o.inset.yk!==key}) : null; }
 /* allineamento in energia (XRF): x_nuovo = a + b·x_file; picchi ed etichette vengono spostati di conseguenza */
-function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.ycolNow=c; delete f._chan; f.removed=[];   /* il canale va riletto dalla colonna e dal blocco nuovi */ f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
+function applyYCol(f, c){ const p=parseText(decodeBuffer(f.raw),{ycol:c}); if (!p || p.xs.length<5) return false; const px=p.xs; f.xs0=px; f.xs=f.ecal?Float64Array.from(px,x=>f.ecal.a+f.ecal.b*x):px; f.ys=p.ys; f._p.ys=p.ys; f.importIssue=p.importIssue||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=c; delete f._chan; f.removed=[];   /* il canale va riletto dalla colonna e dal blocco nuovi */ f.added=[]; f.labels={}; f.fit=null; f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f.kind=kindOf(f); return true; }
 function kindOf(f){ return (f.an&&f.an.ykind) || (f.an&&f.an.calc&&['ftir','uv'].includes(f.instr) ? 'U' : yKindFor(f.instr, f._p)); }
 function bindAxisFields(){
   const cur1=()=>files[cur], sync=()=>{ const f=cur1(); if (!f) return; const e=f.ecal; $('#axB').value=e?e.b:''; $('#axA').value=e?e.a:''; $('#axLX').value=(f.an&&f.an.axX)||''; $('#axLY').value=(f.an&&f.an.axY)||''; $('#ykindBox').hidden=!['ftir','uv'].includes(f.instr); $('#ykindSel').value=(f.an&&f.an.ykind)||''; $('#calcChk').checked=!!(f.an&&f.an.calc); $('#pSmSel').value=f.an&&f.an.pSm!=null?String(f.an.pSm):''; [...$('#pBmSel').options].forEach(o=>{ o.hidden=o.disabled=!baseAllowed(f.instr, o.value||null); }); $('#pBmSel').value=(f.an&&f.an.pBm&&baseAllowed(f.instr,f.an.pBm))?f.an.pBm:''; const n=f.nCols||2, sel=$('#ycolSel'); $('#ycolBox').hidden=n<=2; if (n>2){ sel.innerHTML=''; for (let c=1;c<n;c++){ const o=document.createElement('option'); o.value=c; o.textContent=String(c+1)+(f.colNames&&f.colNames[c]?' · '+f.colNames[c]:''); o.setAttribute('data-noi18n',''); sel.appendChild(o); } sel.value=(f.an&&f.an.ycol)||1; } };
@@ -4915,7 +4939,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -4953,12 +4977,12 @@ async function addEntries(entries){
       const sevI=f=>{ const q=f.importIssue; return (q.thou||q.dropped||q.midText)?2:1; }, w=bad.slice().sort((a,b)=>sevI(b)-sevI(a))[0], sev=sevI(w);
       const q=w.importIssue, nm=w.name, en=uiEn(), more=bad.length>2?(en?` (and ${bad.length-1} more files)`:` (e altri ${bad.length-1} file)`):bad.length===2?(en?" (and 1 more file)":" (e un altro file)"):"";
       const chrom=w.instr==="hplc";   // due scansioni FTIR o due spettri in coda non sono «un canale»
-      const lab=q.channel&&chrom?chanOf(w):"", k=(w.blockIx||0)+1, rd=lab?(en?`channel «${lab}»`:`il canale «${lab}»`):(en?`block ${k} (the longest)`:`il blocco ${k} (il più lungo)`);   // si dice quale canale è stato letto: può essere il secondo
+      const lab=q.channel&&chrom?chanOf(w):"", k=(w.chIx!=null?w.chIx:(w.blockIx||0))+1, qCh=w.afterCh!=null?w.afterCh:q.after, rd=lab?(en?`channel «${lab}»`:`il canale «${lab}»`):(en?`block ${k} (the longest)`:`il blocco ${k} (il più lungo)`);   // si dice quale canale è stato letto: può essere il secondo
       const why = q.thou ? (en?`thousands separators in «${nm}»: numbers may be wrong`:`separatori delle migliaia in «${nm}»: i numeri possono essere sbagliati`)
         : q.dropped ? (en?`${q.dropped} unread rows in «${nm}»`:`${q.dropped} righe non lette in «${nm}»`)
         : q.midText ? (en?`a line of text interrupts the data in «${nm}»`:`una riga di testo interrompe i dati in «${nm}»`)
-        : q.channel ? (chrom ? (en?`«${nm}» contains more than one channel: I read ${rd}, ${q.after} other rows were not read (one channel per file). Export the channels as separate files`:`«${nm}» contiene più di un canale: ho letto ${rd}, altre ${q.after} righe non le ho lette (un canale per file). Esporta i canali in file separati`)
-            : (en?`«${nm}» contains a second block of data (${q.after} rows), for example another scan, that was not read: one block per file is read`:`«${nm}» contiene un secondo blocco di dati (${q.after} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file`))
+        : q.channel ? (chrom ? (en?`«${nm}» contains more than one channel: I read ${rd}, ${qCh} other rows were not read (one channel per file). Export the channels as separate files`:`«${nm}» contiene più di un canale: ho letto ${rd}, altre ${qCh} righe non le ho lette (un canale per file). Esporta i canali in file separati`)
+            : (en?`«${nm}» contains a second block of data (${qCh} rows), for example another scan, that was not read: one block per file is read`:`«${nm}» contiene un secondo blocco di dati (${qCh} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file`))
         : (en?`data to check in «${nm}»`:`dati da controllare in «${nm}»`);
       toast((sev===2?'⛔ ':'⚠️ ')+why+more+(en?'. See «Data check».':'. Vedi «Controllo del dato».'));
       msgs.push(`${sev===2?'⛔':'⚠️'} Da controllare: ${list(bad.map(f=>f.path))}. Il motivo è in «Controllo del dato» di ogni file.`); } }
@@ -5682,6 +5706,8 @@ function pkUndo(){ const f=files[cur]; if (!f || !f._hist || !f._hist.length){ s
   const st=JSON.parse(f._hist.pop()); const axisBack=JSON.stringify(st.e)!==JSON.stringify(f.ecal||null); if (axisBack) setEcal(f,st.e); f.added=st.a; f.removed=st.r; f.labels=st.l; closePop(); if (axisBack){ persist(f); syncDerived(f); } changed(f); say('#tip2','Annullato! ↶'); }
 /* nome del picco */
 function peakSug(f, d, p){ return suggest(f.instr, p.x, d.peaks.map(q=>q.x), f.sample||S.sample, Object.assign({y:p.y}, sugCtx(f, d.peaks))); }
+// origine del nome nel CSV: un rimando «@id» a una voce della libreria personale non è una proposta della banca dati (ciclo 26, «@cTEST1»)
+function nameOrigin(raw, Lx){ raw=String(raw||''); if (raw[0]!=='@') return Lx.csvOrig[1]; const id=raw.slice(1); const db=xrfArtName(id) || fluoArtName(id) || Object.values(BANDS).some(L=>L.some(b=>b[0]===id)); return !db && LIB.some(e=>e.id===id) ? (Lx.csvOrig[2]||Lx.csvOrig[0]) : Lx.csvOrig[0]; }
 function nameToRaw(f, p, v, sug){
   v=(v||'').trim(); if (!v || v===p.num) return '';
   const g=(sug||[]).find(g=>uiName(g)===v || g.en===v); if (g) return '@'+g.id;
@@ -6523,7 +6549,7 @@ async function buildZip(extra){
       const absLike = f.instr==='ftir' && (P.kind==='A' || P.kind==='T') && !P.deriv;
       satOf=p=>{ const u=uAt(p.x); return (absLike && u>2) || (flat && u>=uMax-Math.abs(uMax)*0.005); }; }catch(e){} }
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], f.uncal?(LANG==='en'?'channel':'canale'):INSTR[f.instr].xPdf,
-      String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?(String(f.labels[lblKey(p.x)]||'').startsWith('@')?Lx.csvOrig[0]:Lx.csvOrig[1]):'']
+      String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?nameOrigin(f.labels[lblKey(p.x)], Lx):'']
       .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
         p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satOf(p) ? Lx.satNote : '']));
     if (S.csvData){
@@ -6664,8 +6690,10 @@ function assess(f, d){
   if (/^(asse X in minuti|intervallo 150|intervallo IR|shift cm|conteggi interi)/.test(f.reason||'') && f.instr===f.autoInstr) add('info', `Tecnica dedotta solo dagli intervalli dei numeri (${f.reason}): controlla che sia giusta in «Dati dello spettro».`);
   if (suspectT(f)) add('warn','Valori tra 0 e 1 con il fondo in alto: sembra trasmittanza in frazione, letta come assorbanza. In questo caso le bande sono invertite e le ipotesi sbagliate: in «Dati dello spettro» scegli l\'asse Y, «trasmittanza %» oppure «assorbanza» se il dato è già un\'assorbanza.');
   if (it==='xrf'){ let neg=0; for (const v of f.ys) if (v<0) neg++; if (neg) add('warn',`${neg} canali con conteggi negativi: i conteggi veri non sono mai negativi, lo spettro è già stato elaborato e l'incertezza di conteggio non vale.`); }
-  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare un separatore delle migliaia (${q.thou} valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); if (q.after && q.channel && f.instr!=='hplc') add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${q.after} righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato.`); else if (q.after && q.channel){ const lab=chanOf(f), k=(f.blockIx||0)+1, n=f.nBlocks||2; add('warn', lab ? `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il canale «${lab}» (blocco ${k} di ${n}, il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.` : `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il blocco ${k} di ${n} (il più lungo); gli altri blocchi (${q.after} righe) non sono stati letti. Esportali come file separati.`); } else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
+  if (f.importIssue){ const q=f.importIssue; if (q.thou) add('bad', `Il file sembra usare un separatore delle migliaia (${q.thou} valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.`); if (q.dropped && f.xrf) add('bad', `${q.dropped} canali illeggibili sostituiti con la media dei vicini. Controlla il file.`); else if (q.dropped) add('bad', `${q.dropped} righe con numeri su ${q.total} non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.`); const qCh=f.afterCh!=null?f.afterCh:q.after, qTab=q.after-qCh;   // righe di altri canali e righe di tabelle riassuntive, contate a parte (ciclo 26)
+    if (q.after && q.channel && f.instr!=='hplc') add('warn', `Il file contiene un secondo blocco di dati sullo stesso asse (${qCh} righe), per esempio un'altra scansione o un'altra misura: non è stato letto. Esportalo come file separato.`); else if (q.after && q.channel){ const lab=chanOf(f), k=(f.chIx!=null?f.chIx:(f.blockIx||0))+1, n=f.nChan||f.nBlocks||2; add('warn', lab ? `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il canale «${lab}» (blocco ${k} di ${n}, il più lungo); gli altri blocchi (${qCh} righe) non sono stati letti. Esportali come file separati.` : `Il file contiene più blocchi di dati sullo stesso asse, probabilmente altri canali. Ho letto il blocco ${k} di ${n} (il più lungo); gli altri blocchi (${qCh} righe) non sono stati letti. Esportali come file separati.`); } if (q.after && q.channel){ if (qTab) add('info', `Altre ${qTab} righe di numeri, più brevi dei canali, sono in genere tabelle riassuntive e non sono state usate.`); } else if (q.after) add('warn', `${q.after} righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.`); }
   if (f.importIssue && f.importIssue.midText) add('bad','Una riga di testo interrompe i dati: ho tenuto i numeri di entrambe le parti, ma controlla che siano lo stesso spettro.');
+  if (it==='hplc') chanWarn(f).forEach(t=>add('warn', t));
   if (f.nCols>2) add('info', `Il file ha ${f.nCols} colonne: Y è la colonna ${(f.an&&f.an.ycol||1)+1}. La puoi cambiare in «Dati dello spettro».`);
   if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
   if (it==='epr' && f.freq>0 && P.xs.length){ const B=eprLineField(P.xs, P.ys), g=B>0?71.4477*f.freq/B:0; if (g<1.2||g>12) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss, mT o tesla?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
@@ -6729,7 +6757,7 @@ function assess(f, d){
     if (gaps.length){ const edge=d.peaks.filter(p=>gaps.some(([a,b])=>Math.min(Math.abs(p.x-a),Math.abs(p.x-b))<=3*ms)); add(edge.length?'bad':'warn', `L'asse X ha ${gaps.length===1?'un buco':gaps.length+' buchi'} (${gaps.slice(0,3).map(([a,b])=>fmtTick(Math.min(a,b),2)+'–'+fmtTick(Math.max(a,b),2)).join(', ')}) senza dati.${edge.length?` Il picco a ${edge.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')} cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.`:' Un picco dentro il buco non si vede.'}`); } } }
   if (it==='hplc' && d.peaks.length){ const ft=flatTopPeaks(P.xs, upData(P).y, d.peaks); { const up=upData(P).y, as=d.peaks.filter(p=>peakShape(P.xs,up,p.x).asym); if (as.length) add('warn',`Picco asimmetrico a ${as.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}: coda o interferente non separato. L'area può comprendere un altro composto.`); }
     if (ft.length) add('warn', `Cima piatta in ${ft.length===1?'un picco':ft.length+' picchi'} (${ft.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.`); }
-  if (it==='hplc' && d.peaks.length>1){ const up=upData(P), cm=chromMetrics(P.xs, up.y, d.peaks.map(p=>({x:p.x})));
+  if (it==='hplc' && d.peaks.length){ const up=upData(P), cm=chromMetrics(P.xs, up.y, d.peaks.map(p=>({x:p.x})));   // la coda si controlla anche con un picco solo (ciclo 26): la tabella la segnala già
     const noRs=cm.filter((c,k)=>k>0 && c.rs==null).length;
     if (noRs) add('warn', `Per ${noRs} pic${noRs===1?'co':'chi'} la risoluzione non è calcolabile, spesso perché è ancora attaccato al vicino: l'area può essere molto sbagliata.`);
     const bad=cm.filter(c=>c.rs!=null && c.rs<1.5).length, tail=cm.filter(c=>c.tailing>2).length;
@@ -7152,6 +7180,14 @@ function chanOf(f){ if (f._chan===undefined){ const yc=f.ycolNow||(f.an&&f.an.yc
     if (!w) for (const q of src.slice(multi?0:1)) if (q.w && (!q.d || q.d===d || !d)){ w=q.w; break; }
     f._chan=[d, w&&w+' nm'].filter(Boolean).join(' '); }
   return f._chan || (f.an&&typeof f.an.chan==='string'?f.an.chan:''); }
+// avvisi sul canale di un file a una colonna (ciclo 26): l'intestazione del blocco letto nomina più segnali, oppure il nome del file dice un canale diverso dall'intestazione
+function chanWarn(f){ const out=[]; if ((f.nCols||2)>2) return out; const head=(f.blockHead||f.meta||[]).slice(0,60), lab=q=>[q.d, q.w&&q.w+' nm'].filter(Boolean).join(' ');
+  const sig=[...new Set(head.map(l=>chanParse(String(l))).filter(q=>q.d).map(lab))];
+  const sl=sig.slice(0,4).map(x=>'«'+x+'»').join(', ');
+  if (sig.length>1 && !(f.importIssue && f.importIssue.channel)) out.push(`L'intestazione nomina ${sig.length} segnali (${sl}), ma nel file c'è un solo blocco di dati: non so a quale segnale appartengano i numeri. Ho usato il canale «${chanOf(f)}»: controlla che sia quello giusto.`);
+  const h=chanParse(head.join('\n')), n=chanParse(f.name||'');
+  if ((h.d && n.d && h.d!==n.d) || (h.w && n.w && h.w!==n.w)) out.push(`Il nome del file indica il canale «${lab(n)}», l'intestazione «${lab(h)}»: ho usato quello dell'intestazione. Controlla che il file sia quello giusto.`);
+  return out; }
 // lo stesso canale scritto in due modi («DAD1A» e «DAD1A 254 nm», «254 nm» e «DAD1A 254 nm») diventa uno solo, se non c'è ambiguità
 function chanMap(L){ const raw=new Map(L.map(f=>[f, chanOf(f)])), P=s=>{ const m=/^(.*?)\s*(\d{3}) nm$/.exec(s); return m?{d:m[1],w:m[2]}:{d:s,w:''}; }, ws={}, wd={};
   for (const s of raw.values()) if (s){ const {d,w}=P(s); if (d){ ws[d]=ws[d]||new Set(); if (w) ws[d].add(w); } }
