@@ -55,7 +55,8 @@ describe('Esporta e finestre', {timeout:10*60*1000}, ()=>{
     assert.match(r.tip, /Ultimo passo/);
     assert.ok(!(r.on && /Ultimo passo/.test(r.toast)), 'messaggio ripetuto nell\'avviso: '+r.toast);
   });
-  for (const desk of [false,true]) for (const theme of ['light','dark']) it(`finestra di download (${desk?'desktop':'online'}, ${theme}): fuoco sul primo installer, dimensione leggibile`, async ()=>{
+  // la finestra di download esiste solo online: nel desktop (3.0.0) non c'è, vedi tono-desktop.test.js
+  for (const desk of [false]) for (const theme of ['light','dark']) it(`finestra di download (${desk?'desktop':'online'}, ${theme}): fuoco sul primo installer, dimensione leggibile`, async ()=>{
     const o=await page({desk});
     await o.p.evaluate(fr=>{ localStorage.setItem('acch.ui.theme', JSON.stringify(fr)); AcchUi.applyTheme(); }, theme);
     const r=await o.p.evaluate(async rel=>{ await AcchUi.openDownload(async()=>({status:200, ok:true, json:async()=>rel})); await new Promise(r=>setTimeout(r,100));

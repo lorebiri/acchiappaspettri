@@ -19,6 +19,7 @@
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
 <script src="i18n/en.js"></script>
+<script src="app/testi-desktop.js"></script>
 <script src="app/i18n.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/project.js"></script>
@@ -4902,13 +4903,15 @@ function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;'
 
 const frame = () => new Promise(r=>{ let done=false; const go=()=>{ if (!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go, 120); });   // in una scheda nascosta requestAnimationFrame si ferma: il caricamento prosegue comunque
 let ldTimer=null;
+// nel desktop i messaggi escono con il tono del software scientifico (app/testi-desktop.js); online restano quelli di Gino
+function deskT(t){ return window.ACCH_DESK && t ? ACCH_DESK.pro(t) : t; }
 function loader(show, title, sub, frac){
   const L=$('#loader');
   clearTimeout(ldTimer);
   if (!show){ L.hidden=true; document.body.classList.remove('busy'); return; }
   L.hidden=false; document.body.classList.add('busy');
-  if (title!=null) $('#ldTitle').textContent=title;
-  $('#ldSub').textContent = sub || '\u00a0';
+  if (title!=null) $('#ldTitle').textContent=deskT(title);
+  $('#ldSub').textContent = deskT(sub) || '\u00a0';
   const bar=$('#ldBar'); if (frac==null){ bar.classList.add('indet'); } else { bar.classList.remove('indet'); bar.firstElementChild.style.width=(Math.max(0,Math.min(1,frac))*100)+'%'; }
 }
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
@@ -5081,7 +5084,7 @@ $('#inFolder').onchange=e=>fromInput(e,true);
 
 /* ---------------- OMINO ---------------- */
 /* messaggi di Gino: nel fumetto e, se il fumetto non è visibile (pagina scorsa più in basso), anche in un avviso in fondo allo schermo */
-function say(sel, txt){ const b=$(sel); if (!b) return; b.textContent=txt;
+function say(sel, txt){ const b=$(sel); if (!b) return; b.textContent=deskT(txt);
   if (performance.now()<3000) return;   // i saluti all'apertura della pagina restano nel fumetto
   const r=b.getBoundingClientRect(), z=zf(), shown=b.offsetParent!==null && r.bottom>70*z && r.top<innerHeight-40; if (!shown) toast(txt); }
 let toastT=null, toastCur=null, toastQ=[];
@@ -5093,7 +5096,7 @@ function toast(txt){ txt=String(txt); const t=$('#toast'); if (!t) return; const
     if (s0>0){ toastQ.unshift(toastCur); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); } }
   else if (toastQ.length){ if (!toastQ.includes(txt)) toastQ.push(txt); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); txt=toastQ.shift(); }   // fra un avviso e il successivo: prima il più grave
   toastShow(txt); }
-function toastShow(txt){ const t=$('#toast'), s=toastSev(txt); toastCur=txt; $('#toastTxt').textContent=txt; t.classList.toggle('warn', s>0); t.classList.toggle('err', s===2); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(toastHide, Math.max(s===2?10000:3200, txt.length*55)); }
+function toastShow(txt){ const t=$('#toast'), s=toastSev(txt); toastCur=txt; $('#toastTxt').textContent=deskT(txt); t.classList.toggle('warn', s>0); t.classList.toggle('err', s===2); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(toastHide, Math.max(s===2?10000:3200, txt.length*55)); }
 function toastHide(){ const t=$('#toast'); clearTimeout(toastT); if (t) t.classList.remove('on'); toastCur=null; if (toastQ.length) toastT=setTimeout(()=>{ if (toastQ.length) toastShow(toastQ.shift()); }, 250); }
 $('#toastX').onclick=toastHide;
 document.addEventListener('keydown', e=>{ if (e.key==='Escape' && toastCur!=null && toastSev(toastCur)>0 && $('#toast').classList.contains('on') && !document.querySelector('dialog[open]')){ toastHide(); e.stopPropagation(); } }, true);   // Esc chiude prima l'avviso in vista
@@ -5105,7 +5108,7 @@ const GREET = ['Ciao! 👋 Io e Gino 👻 acchiappiamo i tuoi spettri e li trasf
   'Buongiorno, scienziato! ☕ Quali spettri acchiappiamo oggi?',
   'Ehilà! 👋 Trascina qui i file: FTIR, Raman, UV-Vis, HPLC… li prendo tutti!',
   'Niente paura, gli spettri li acchiappo io. 👻🔬'];
-say('#hello', GREET[Math.floor(Math.random()*GREET.length)]);
+if (!window.ACCH_SHELL) say('#hello', GREET[Math.floor(Math.random()*GREET.length)]);
 const TIPS2 = window.TIPS2 = ['Sotto al grafico trovi gli strumenti divisi per cosa vuoi fare. L\'etichetta colorata ti dice a chi si applica.',
   'Tocca un punto vuoto del grafico per aggiungere un picco, tocca un picco per dargli un nome. Maiusc+clic lo toglie; il clic destro apre il menu del picco.',
   'Puoi dare un nome più chiaro allo spettro e aggiungere una descrizione qui sotto. ✍️',
@@ -5117,7 +5120,7 @@ let tipI=0;
 const GINO = ['Buuuh! 👻 …scherzo, sono Gino.','Gino dice: «io sono uno spettro, ma tu hai degli spettri da graficare?» 👻',
   'Gino è un fantasma IR: si vede solo tra 4000 e 400 cm⁻¹. 👻','Gino sta cercando il suo picco preferito… è a 1647! 👻',
   'Non solleticare Gino, ha una banda molto sensibile! 😂','Gino non ha la linea di base: fluttua. 👻'];
-$('#gino').addEventListener('click', ()=>{ say('#hello', GINO[Math.floor(Math.random()*GINO.length)]); happy(); });
+if (!window.ACCH_SHELL) $('#gino').addEventListener('click', ()=>{ say('#hello', GINO[Math.floor(Math.random()*GINO.length)]); happy(); });
 
 /* ---------------- NAVIGAZIONE ---------------- */
 let curView=1;
@@ -5130,7 +5133,7 @@ function go(n){
   window.scrollTo({top:0});   // prima del fumetto: se si vede, say() non ripete lo stesso messaggio in un avviso
   if (n===2){ say('#tip2', TIPS2[tipI++ % TIPS2.length]); renderPreview(); }
   if (n===3){ say('#tip3', 'Ultimo passo! Spunta cosa vuoi ricevere, poi premi il pulsante blu. 👇'); renderSummary(); }
-  if (n===2 && !lsGet('acch.tourDone')) setTimeout(()=>{ if (curView===2) startTour(); }, 500);
+  if (n===2 && !lsGet('acch.tourDone') && !window.ACCH_SHELL) setTimeout(()=>{ if (curView===2) startTour(); }, 500);
 }
 $$('[data-go]').forEach(b=>b.addEventListener('click', ()=>go(+b.dataset.go)));
 function refreshAll(){
@@ -6152,7 +6155,7 @@ function renderSummary(){
 
 /* ---------------- EXPORT ---------------- */
 function progress(fr){ const p=$('#prog'); p.style.display = fr==null?'none':'block'; p.firstElementChild.style.width=((fr||0)*100)+'%'; }
-function status(t){ $('#status').textContent=t; }
+function status(t){ $('#status').textContent=deskT(t); }
 const tick = () => new Promise(r=>setTimeout(r,0));
 function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`; }
 function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 4000); }
@@ -6170,7 +6173,9 @@ function safeName(s){ let t=String(s).replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*
 const PDF_MAP={'α':'a','β':'b','γ':'g','η':'n','ℓ':'l','ν':'v','δ':'d','λ':'lambda ','Φ':'Phi','Δ':'D','σ':'s','χ':'chi','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','⁴':'4','⁻':'-','≈':'~','≠':'!=','≥':'>=','≤':'<=','−':'-','✓':'v','✗':'x','⚠':'!','→':'->'};   // il font standard del PDF non ha greco e pedici
 // i caratteri WinAnsi (’ “ ” € • ‰ – … ² ³ ° µ ±) passano: jsPDF li codifica da sé per i font standard. Gli altri: lettera senza accento (č → c) o «?» (CJK, ł)
 const PDF_WIN=String.fromCharCode(0x2018,0x2019,0x201A,0x201C,0x201D,0x201E,0x2020,0x2021,0x2022,0x2026,0x2030,0x2039,0x203A,0x20AC,0x2122,0x0152,0x0153,0x0160,0x0161,0x0178,0x017D,0x017E,0x0192,0x02C6,0x02DC,0x2013,0x2014);
-function pdfText(s){ return String(s).replace(/⁻¹/g,'-1').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
+// prefisso degli avvisi nel PDF: «!» online, una parola nel desktop
+function pdfWarn(){ return window.ACCH_SHELL ? (LANG==='en'?'WARNING: ':'AVVISO: ') : '! '; }
+function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); return String(s).replace(/⁻¹/g,'-1').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
   .replace(/[^\x20-\x7E\xA0-\xFF·]/gu, c=>{ if (PDF_WIN.includes(c)) return c; const b=c.normalize('NFD').replace(/[\u0300-\u036F]/g,''); return /^[\x20-\x7E\xA0-\xFF]+$/.test(b) ? b : '?'; }); }
 // metadati (Title, Subject, Author): jsPDF li scrive in UTF-16, quindi restano interi anche fuori da WinAnsi; si tolgono solo le emoji
 const pdfMeta = s => String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/\s+/g,' ').trim();
@@ -7861,7 +7866,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     line(`${dispTitle(f)} · ${T_().nome[f.instr]}`, 10, true); y+=0.5;
     if (H && H.pig && H.pig.length) line(T('Pigmenti/materiali compatibili (ipotesi): ','Compatible pigments/materials (hypotheses): ')+H.pig.slice(0,4).map(h=>(en?h.en:h.it)+(h.score!=null&&h.ev?` (${hypTag(h,en)})`:'')+(h.date?' ['+h.date+']':'')).join('; '), 8.5);
     if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) line(T('Stima senza standard, non validata (parametri fondamentali), % in peso: ','Estimate without standards, not validated (fundamental parameters), wt%: ')+Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`${e} ${fmtN(o.w,o.w<10?1:0)}`).join(', ')+` · ${R.S.anode} ${R.S.kv} kV${fpNum((f.xrf||{}).kv)!=null&&fpNum(f.xrf.kv)!==R.S.kv?T(` (il file dichiara ${fpNum(f.xrf.kv)})`,` (file declares ${fpNum(f.xrf.kv)})`):''} · ${R.S.psi1}°/${R.S.psi2}° · ${fpAtmName(R.S.atm, en)}${R.S.filt?` · ${R.S.filt.comp} ${R.S.filt.um} µm`:''} · ${(FP_MODES.find(m=>m[0]===R.cfg.mode)||FP_MODES[0])[1]}`+(R.els.includes('Cu')&&!R.els.includes('Sn')&&R.Q.res.Cu&&R.Q.res.Cu.w>50?T(' · Sn sotto il 5% può non essere rilevato',' · Sn below 5% may not be detected'):'')+(R.cfg.mode==='norm'?T(' · somma forzata a 100%: per pitture, vetri e patine non sono concentrazioni del materiale',' · sum forced to 100%: for paints, glasses and patinas these are not material concentrations'):'')+T(` · elementi considerati: ${R.els.join(', ')}; un elemento sotto la soglia di rivelazione può mancare e la sua quota finisce sugli altri`,` · elements considered: ${R.els.join(', ')}; an element below the detection threshold may be missing and its share goes to the others`), 8.5); }
-    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) fpNotes(f,R).filter(t=>/⚠️/.test(t)).forEach(t=>{ const c=t.replace(/<[^>]+>/g,''), tt=en && window.AcchI18n ? AcchI18n.tr(c) : c; line('! '+tt.replace(/⚠️\s*/g,''), 8, false, 90); }); }
+    if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)){ const R=fpRun(f); if (R && R.Q && R.Q.res) fpNotes(f,R).filter(t=>/⚠️/.test(t)).forEach(t=>{ const c=t.replace(/<[^>]+>/g,''), tt=en && window.AcchI18n ? AcchI18n.tr(c) : c; line(pdfWarn()+tt.replace(/⚠️\s*/g,''), 8, false, 90); }); }
     if (H && H.kind==='els' && H.shifted) line(T('Asse spostato: elementi non proposti finché non è allineato.','Axis shifted: elements not proposed until it is aligned.'), 9);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
@@ -7869,7 +7874,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     // prima i problemi gravi, ben visibili: rosso e grassetto; poi gli avvisi
     const trW=t=>{ const c=t.replace(/<[^>]+>/g,''); return en && window.AcchI18n ? AcchI18n.tr(c) : c; };
     Q.filter(o=>o.lv==='bad').forEach(o=>line(T('GRAVE: ','SERIOUS: ')+trW(o.t), 8.5, true, [179,38,30]));
-    Q.filter(o=>o.lv!=='bad').forEach(o=>line('! '+trW(o.t), 8, false, 90));
+    Q.filter(o=>o.lv!=='bad').forEach(o=>line(pdfWarn()+trW(o.t), 8, false, 90));
     if (!Q.length && !(H && ((H.pig&&H.pig.length)||(H.list&&H.list.length)||(H.els&&H.els.length))) && !fitValid(f)) line(T('nessun avviso','no warnings'), 8, false, 120);
     y+=2; }
   footer();
@@ -8147,9 +8152,9 @@ const NOVITA=[
 ];
 const cmpV=(a,b)=>{ const A=String(a).split('.').map(Number), B=String(b).split('.').map(Number); for (let i=0;i<Math.max(A.length,B.length);i++){ const d=(A[i]||0)-(B[i]||0); if (d) return d; } return 0; };
 function showNews(list){
-  list=list||NOVITA.slice(0,1); const last=list[0];
-  $('#nwTitle').textContent=`🎉 Novità di Acchiappaspettri ${last.v}`;
-  $('#nwSub').textContent = list.length>1 ? `Dall'ultima volta che sei passato sono uscite ${list.length} versioni. Ecco cosa è cambiato:` : `Versione ${last.v} · ${last.data}. Ecco cosa c'è di nuovo:`;
+  list=list||NOVITA.slice(0,1); if (window.ACCH_DESK) list=ACCH_DESK.novita(list); const last=list[0];
+  $('#nwTitle').textContent=deskT(`🎉 Novità di Acchiappaspettri ${last.v}`);
+  $('#nwSub').textContent = deskT(list.length>1 ? `Dall'ultima volta che sei passato sono uscite ${list.length} versioni. Ecco cosa è cambiato:` : `Versione ${last.v} · ${last.data}. Ecco cosa c'è di nuovo:`);
   const acts=[]; $('#nwList').innerHTML=list.map(n=>(list.length>1?`<div class="ver">Versione ${n.v} · ${n.data}</div>`:'')+n.voci.filter(v=>v[4]!=='web'||document.documentElement.classList.contains('web')).map(([ic,t,d,fn])=>{ if (fn && window.__TAURI__ && /openDownload/.test(String(fn))) fn=null;   // nel desktop non si scarica il desktop
     if (fn) acts.push(fn); return `<div class="nv"><span class="ic">${ic}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${fn?`<button class="btn small" type="button" data-nv="${acts.length-1}">Mostrami</button>`:''}</div>`; }).join('')).join('');
   $$('#nwList [data-nv]').forEach(b=>b.onclick=()=>{ $('#dlgNews').close(); acts[+b.dataset.nv](); });
@@ -8223,7 +8228,7 @@ function commands(){
   add('Aspetto','🇮🇹','Grafici in italiano',()=>{ S.lang='it'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='it', kw:'lingua italiano'});
   add('Aspetto','🇬🇧','Grafici in inglese',()=>{ S.lang='en'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='en', kw:'lingua english inglese'});
   add('Aspetto','🔠','Testo più grande / più piccolo',()=>$('#zoomTxt').click(),{kw:'testo grande zoom caratteri'});
-  add('Aspetto','◐',S.sober?'Aspetto normale':'Aspetto sobrio (senza mascotte ed emoji)',()=>$('#soberBtn').click(),{kw:'sobrio professionale'});
+  if (!window.ACCH_SHELL) add('Aspetto','◐',S.sober?'Aspetto normale':'Aspetto sobrio (senza mascotte ed emoji)',()=>$('#soberBtn').click(),{kw:'sobrio professionale'});   // il desktop è sempre sobrio
   add('Aspetto','⚙️',S.expert?'Nascondi le opzioni avanzate':'Mostra le opzioni avanzate',()=>{ S.expert=!S.expert; saveS(); syncControls(); applyExpert(); },{kw:'esperto avanzate'});
   add('Aiuto','🎉','Novità di questa versione',()=>showNews(),{kw:'novita nuove funzioni cosa c e di nuovo changelog versione '+APP_VERSION});
   add('Aiuto','⌨️','Scorciatoie da tastiera',showKeys,{kw:'tasti shortcut aiuto',key:'?'});
@@ -8474,7 +8479,7 @@ let tourI=-1, tourTimer=null;
 /* il riquadro evidenziato segue l'elemento anche se la pagina scorre o si ridisegna */
 function placeTourHole(el){ const hole=$('#tourHole'); if (!hole || !el) return; const z=zf(), r=el.getBoundingClientRect(), pad=6;
   Object.assign(hole.style,{left:(r.left/z-pad)+'px', top:(r.top/z-pad)+'px', width:(r.width/z+pad*2)+'px', height:(r.height/z+pad*2)+'px'}); }
-function startTour(){ if (viewMode!=='one') setView('one'); tourI=0; showTour(); clearInterval(tourTimer); tourTimer=setInterval(()=>{ if (tourI>=0 && TOUR[tourI]) placeTourHole($(TOUR[tourI].sel)); }, 250); }
+function startTour(){ if (window.ACCH_SHELL){ showKeys(); return; } if (viewMode!=='one') setView('one'); tourI=0; showTour(); clearInterval(tourTimer); tourTimer=setInterval(()=>{ if (tourI>=0 && TOUR[tourI]) placeTourHole($(TOUR[tourI].sel)); }, 250); }
 function endTour(){ tourI=-1; clearInterval(tourTimer); tourTimer=null; $('#tourHole')?.remove(); $('#tourBox')?.remove(); lsSet('acch.tourDone', true); }
 function showTour(){
   const st=TOUR[tourI]; if(!st){ endTour(); return; }
@@ -8501,7 +8506,7 @@ window.addEventListener('resize', ()=>{ if (tourI>=0) showTour(); });
 
 /* coriandoli */
 function confetti(){
-  if (S.sober) return;
+  if (S.sober || window.ACCH_SHELL) return;
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const c=$('#confetti'), ctx=c.getContext('2d'); c.width=innerWidth; c.height=innerHeight;
   const cols=['#2563c9','#4cc38a','#ffc84a','#ff7a7a','#9b6cf0'];
