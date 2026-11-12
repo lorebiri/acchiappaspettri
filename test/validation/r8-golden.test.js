@@ -11,17 +11,25 @@ const BENCH=['peak-benchmark.js','area-benchmark.js','analysis-benchmark.js','fo
 // analysis-benchmark finiva in ETIMEDOUT, e il blocco del ciclo degli eventi impediva anche al timeout del test di agire.
 // Limite di sicurezza alto e regolabile (R8_LIMITE_MIN, minuti); se scatta, il messaggio dice da quanto girava e il carico.
 const LIMITE_MIN=+process.env.R8_LIMITE_MIN || 90;
+// processi figli ancora vivi: si chiudono comunque all'uscita, così un benchmark non resta appeso dopo un test fermato
+const FIGLI=new Set();
+function killAll(){ for (const c of FIGLI){ try{ c.kill('SIGKILL'); }catch(e){} } FIGLI.clear(); }
+process.on('exit', killAll);
 function runBench(f, opt){
   opt=opt||{};
   // ACCH_INDEX non vale per i benchmark (leggono index.html della propria cartella): per una copia sabotata si usa BENCH_ROOT
   const dir=process.env.BENCH_ROOT ? path.resolve(process.env.BENCH_ROOT) : ROOT, script=opt.script || path.join(dir,'test',f), lim=(opt.limitMin!=null?opt.limitMin:LIMITE_MIN)*60*1000, t0=Date.now();
   return new Promise((res, rej)=>{
-    const c=spawn(process.execPath, [script], {env:Object.assign({}, process.env, {N:'20'}), stdio:['ignore','pipe','pipe']}); let out='', err='';
+    const c=spawn(process.execPath, [script], {env:Object.assign({}, process.env, {N:'20'}), stdio:['ignore','pipe','pipe']}); let out='', err='', done=false; FIGLI.add(c);
+    const end=fn=>{ if (done) return; done=true; clearTimeout(t); FIGLI.delete(c); fn(); };
     c.stdout.setEncoding('utf8'); c.stderr.setEncoding('utf8'); c.stdout.on('data', d=>{ out+=d; }); c.stderr.on('data', d=>{ err+=d; });
-    const t=setTimeout(()=>{ c.kill(); rej(new Error(`${f}: fermato dopo ${((Date.now()-t0)/60000).toFixed(1)} minuti (limite R8_LIMITE_MIN=${lim/60000}); carico medio della macchina ${os.loadavg().map(x=>x.toFixed(1)).join(' / ')} su ${os.cpus().length} processori`)); }, lim);
-    c.on('error', e=>{ clearTimeout(t); rej(e); });
-    c.on('close', code=>{ clearTimeout(t); if (code!==0) return rej(new Error(`${f}: uscito con codice ${code}\n${err.slice(-2000)}`));
-      res(out.split('\n').map(l=>l.replace(/\s+$/,'')).filter(l=>l && !/ExperimentalWarning|--trace-warnings/.test(l))); });
+    // limite: SIGKILL (non si può ignorare) e risposta subito, senza aspettare la chiusura dei flussi del figlio; timer senza ref
+    const t=setTimeout(()=>end(()=>{ try{ c.kill('SIGKILL'); }catch(e){} c.stdout.destroy(); c.stderr.destroy();
+      rej(new Error(`${f}: fermato dopo ${((Date.now()-t0)/60000).toFixed(1)} minuti (limite R8_LIMITE_MIN=${lim/60000}); carico medio della macchina ${os.loadavg().map(x=>x.toFixed(1)).join(' / ')} su ${os.cpus().length} processori`)); }), lim);
+    t.unref();
+    c.on('error', e=>end(()=>rej(e)));
+    c.on('close', code=>end(()=>{ if (code!==0) return rej(new Error(`${f}: uscito con codice ${code}\n${err.slice(-2000)}`));
+      res(out.split('\n').map(l=>l.replace(/\s+$/,'')).filter(l=>l && !/ExperimentalWarning|--trace-warnings/.test(l))); }));
   });
 }
 const r6=v=>v==null||!Number.isFinite(+v)?v:+(+v).toPrecision(6);
@@ -32,7 +40,7 @@ function corpusNode(){
       stop:r.stopImport, importBad:r.importBad.length, importIssue:r.importIssue}; }
   return o;
 }
-module.exports={corpusNode, runBench, LIMITE_MIN};
+module.exports={corpusNode, runBench, killAll, FIGLI, LIMITE_MIN};
 
 if (require.main===module){
   for (const f of BENCH) test(`R8 golden del benchmark ${f} (N=20)`, {timeout:(LIMITE_MIN+5)*60*1000}, async ()=>{ assert.deepStrictEqual(G.compare('bench-'+f.replace(/\.js$/,''), await runBench(f)), []); });
