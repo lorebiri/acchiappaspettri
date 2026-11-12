@@ -4888,6 +4888,7 @@ function loader(show, title, sub, frac){
   const bar=$('#ldBar'); if (frac==null){ bar.classList.add('indet'); } else { bar.classList.remove('indet'); bar.firstElementChild.style.width=(Math.max(0,Math.min(1,frac))*100)+'%'; }
 }
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
+const LOADING=new Set();   // file in lettura: il controllo dei doppioni vale anche per due caricamenti contemporanei dello stesso file
 async function addEntries(entries){
   let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[];
   const tot=entries.length; let done=0, lastPaint=0;
@@ -4900,9 +4901,11 @@ async function addEntries(entries){
       if (/\.(acchiappa\.json|acchspettri)$/i.test(file.name)){ projects.push(file); continue; }
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
       if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
-      if (files.some(f=>f.path===path && f.size===file.size)){ dup++; continue; }
+      const lkey=path+'\u0000'+file.size;
+      if (files.some(f=>f.path===path && f.size===file.size) || LOADING.has(lkey)){ dup++; continue; }
+      LOADING.add(lkey);
       let buf;
-      try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); continue; }
+      try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
       try{
         const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
@@ -4936,6 +4939,7 @@ async function addEntries(entries){
         if (p.extraCols>0 && !(f.an && f.an.ycol>1)) extra.push(`${path} (${p.extraCols})`);   // con la colonna Y già scelta (dal file o dal lavoro salvato) «uso solo le prime due» non è vero
         files.push(f); added++;
       }catch(e){ console.error(e); errors.push(path); }
+      finally{ LOADING.delete(lkey); }
     }
   }catch(e){ console.error(e); }
   const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
@@ -6132,7 +6136,7 @@ function setReady(list){
   READY.forEach(r=>URL.revokeObjectURL(r.url));
   READY=list.map(o=>({name:o.name, url:URL.createObjectURL(o.blob), size:o.blob.size}));
   const kb=n=> n>1048576 ? (n/1048576).toFixed(1).replace('.',',')+' MB' : Math.max(1,Math.round(n/1024))+' kB';
-  $('#readyBox').hidden=!READY.length;
+  $('#readyBox').hidden=!READY.length || !!window.__TAURI__;   // nel desktop ogni file passa dal salvataggio nativo
   $('#readyList').innerHTML=READY.map((r,i)=>`<a class="btn small" href="${r.url}" download="${esc(r.name)}">⬇️ ${esc(r.name)} <small class="opt-l">${kb(r.size)}</small></a>`).join('');
 }
 // nomi dei file nello ZIP: al massimo 80 caratteri (e mai oltre 120 byte), perché Windows e macOS non estraggono nomi oltre 255 byte e al nome si aggiungono suffissi
@@ -6386,7 +6390,10 @@ function bindRename(){
   $('#rnReset').onclick=()=>{ rnTargets().forEach(f=>{ f.title=''; persist(f); }); renderRename(); renderList(); renderPreview(); renderSummary(); };
   $('#rnUndo').onclick=()=>{ if (!renUndo) return; renUndo.forEach(u=>{ u.f.title=u.t; persist(u.f); }); renUndo=null; $('#rnUndo').hidden=true; renderRename(); renderList(); renderPreview(); renderSummary(); };
 }
+let pdfLibP=null;
+function ensurePdfLib(){ if (window.jspdf) return Promise.resolve(); return pdfLibP || (pdfLibP=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='vendor/jspdf.umd.min.js'; sc.onload=()=>res(); sc.onerror=()=>{ pdfLibP=null; sc.remove(); rej(new Error('jspdf')); }; document.head.appendChild(sc); })); }
 async function buildPdf(){
+  await ensurePdfLib();
   const { jsPDF } = window.jspdf, Lx=T_();
   const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10, G=5;
   const doc = new jsPDF({orientation:S.orient, unit:'mm', format:'a4', compress:true});
@@ -6540,6 +6547,7 @@ async function buildZip(extra){
   return await zip.generateAsync({type:'blob', compression:'STORE'}, m=>progress(0.9+m.percent/1000));
 }
 async function runExport(what){
+  try{ if (S.outPdf) await ensurePdfLib(); }catch(e){ console.error(e); }
   if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
   const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
   say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
@@ -6557,11 +6565,19 @@ async function runExport(what){
       if (zipNeeded){ progress(0); out.push({name:T_().zip+'_'+stamp()+'.zip', blob: await buildZip()}); }
       else if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); progress(0.5); out.push({name:'per_Origin_'+stamp()+'.xlsx', blob: await buildOriginXlsx()}); }
     }
-    out.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
-    setReady(out);
+    let saved=out.length;
+    if (window.__TAURI__){   // desktop: download() apre il salvataggio nativo e dice com'è andata
+      saved=0; for (const o of out){ if (await download(o.blob, o.name)!==true) break; saved++; }
+    } else {
+      out.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
+      setReady(out);
+    }
+    if (saved<out.length) status('');   // annullato o non scritto: nessun messaggio di successo
+    else {
     status(out.length>1 ? '✅ Fatto! Se nella cartella Download manca un file, il browser l\'ha bloccato: scaricalo qui sotto con un clic.' : '✅ Fatto! Trovi il file nella cartella Download (o qui sotto).');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
+    }
   }catch(e){ console.error(e); status('😬 Qualcosa è andato storto: '+e.message); say('#tip3','Ops… riproviamo? 🙈'); }
   progress(null); renderSummary();
 }
@@ -8098,7 +8114,8 @@ function showNews(list){
   list=list||NOVITA.slice(0,1); const last=list[0];
   $('#nwTitle').textContent=`🎉 Novità di Acchiappaspettri ${last.v}`;
   $('#nwSub').textContent = list.length>1 ? `Dall'ultima volta che sei passato sono uscite ${list.length} versioni. Ecco cosa è cambiato:` : `Versione ${last.v} · ${last.data}. Ecco cosa c'è di nuovo:`;
-  const acts=[]; $('#nwList').innerHTML=list.map(n=>(list.length>1?`<div class="ver">Versione ${n.v} · ${n.data}</div>`:'')+n.voci.filter(v=>v[4]!=='web'||document.documentElement.classList.contains('web')).map(([ic,t,d,fn])=>{ if (fn) acts.push(fn); return `<div class="nv"><span class="ic">${ic}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${fn?`<button class="btn small" type="button" data-nv="${acts.length-1}">Mostrami</button>`:''}</div>`; }).join('')).join('');
+  const acts=[]; $('#nwList').innerHTML=list.map(n=>(list.length>1?`<div class="ver">Versione ${n.v} · ${n.data}</div>`:'')+n.voci.filter(v=>v[4]!=='web'||document.documentElement.classList.contains('web')).map(([ic,t,d,fn])=>{ if (fn && window.__TAURI__ && /openDownload/.test(String(fn))) fn=null;   // nel desktop non si scarica il desktop
+    if (fn) acts.push(fn); return `<div class="nv"><span class="ic">${ic}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${fn?`<button class="btn small" type="button" data-nv="${acts.length-1}">Mostrami</button>`:''}</div>`; }).join('')).join('');
   $$('#nwList [data-nv]').forEach(b=>b.onclick=()=>{ $('#dlgNews').close(); acts[+b.dataset.nv](); });
   const d=$('#dlgNews'); if (!d.open) d.showModal();
 }

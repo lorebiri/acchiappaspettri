@@ -4,10 +4,11 @@
 //! apertura dei progetti dal sistema operativo. Tutta la scienza resta nella pagina web, identica a quella online.
 //! La pagina può leggere o scrivere solo i percorsi scelti dall'utente in una finestra di dialogo (o passati dal sistema operativo),
 //! più i progetti `.acchspettri` dell'elenco «recenti»: nessun accesso libero al disco.
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use tauri::ipc::{InvokeBody, Request, Response};
@@ -24,6 +25,97 @@ struct Grants {
 struct Picked {
     path: String,
     name: String,
+}
+
+/// File di una cartella scelta o trascinata: `rel` è il percorso dentro la cartella, come `webkitRelativePath` nella pagina online.
+#[derive(serde::Serialize, Clone, Debug, PartialEq)]
+struct PickedRel {
+    path: String,
+    name: String,
+    rel: String,
+}
+
+/// Ultima cartella usata nei dialoghi, separata per tipo (spettri, progetti, esportazioni…), salvata in `dialog-dirs.json`.
+#[derive(Default)]
+struct Dirs {
+    map: Mutex<HashMap<String, PathBuf>>,
+    file: Mutex<Option<PathBuf>>,
+}
+const KINDS: [&str; 5] = ["spectra", "project", "export", "images", "settings"];
+fn kind_of(k: Option<&str>) -> &'static str {
+    KINDS.iter().find(|x| Some(**x) == k).copied().unwrap_or("other")
+}
+/// Cartella iniziale: l'ultima usata per quel tipo, se esiste ancora; altrimenti Documenti.
+fn start_dir(map: &HashMap<String, PathBuf>, kind: &str, docs: Option<PathBuf>) -> Option<PathBuf> {
+    map.get(kind).filter(|p| p.is_dir()).cloned().or(docs)
+}
+fn parse_dirs(txt: &str) -> HashMap<String, PathBuf> {
+    serde_json::from_str::<HashMap<String, String>>(txt)
+        .map(|m| m.into_iter().map(|(k, v)| (k, PathBuf::from(v))).collect())
+        .unwrap_or_default()
+}
+fn dialog_dir(app: &AppHandle, kind: &str) -> Option<PathBuf> {
+    let d = app.state::<Dirs>();
+    let m = d.map.lock().unwrap();
+    start_dir(&m, kind, app.path().document_dir().ok())
+}
+fn remember_dir(app: &AppHandle, kind: &str, dir: Option<&Path>) {
+    let Some(dir) = dir else { return };
+    let d = app.state::<Dirs>();
+    let mut m = d.map.lock().unwrap();
+    m.insert(kind.to_string(), dir.to_path_buf());
+    let file = d.file.lock().unwrap().clone();
+    if let Some(f) = file.as_ref() {
+        let out: HashMap<&String, String> = m.iter().map(|(k, v)| (k, v.to_string_lossy().into_owned())).collect();
+        if let (Ok(j), Some(parent)) = (serde_json::to_vec_pretty(&out), f.parent()) {
+            let _ = fs::create_dir_all(parent);
+            let _ = write_atomic(f, &j, false);
+        }
+    }
+}
+
+/// Elenco dei file sotto una cartella (ordinati, senza seguire i collegamenti simbolici), con un tetto per non bloccare l'app.
+const MAX_FILES: usize = 20000;
+const MAX_DEPTH: usize = 16;
+fn list_tree(dir: &Path, base: &str, out: &mut Vec<(PathBuf, String)>, depth: usize) {
+    if depth > MAX_DEPTH || out.len() >= MAX_FILES {
+        return;
+    }
+    let Ok(rd) = fs::read_dir(dir) else { return };
+    let mut ents: Vec<_> = rd.filter_map(|e| e.ok()).collect();
+    ents.sort_by_key(|e| e.file_name());
+    for e in ents {
+        if out.len() >= MAX_FILES {
+            return;
+        }
+        let Ok(ft) = e.file_type() else { continue };
+        let rel = format!("{}{}", base, e.file_name().to_string_lossy());
+        if ft.is_dir() {
+            list_tree(&e.path(), &format!("{rel}/"), out, depth + 1);
+        } else if ft.is_file() {
+            out.push((e.path(), rel));
+        }
+    }
+}
+/// File e cartelle scelti o trascinati → file con il percorso relativo («cartella/sotto/file.csv»).
+fn expand(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
+    let mut out = Vec::new();
+    for p in paths {
+        if p.is_dir() {
+            list_tree(p, &format!("{}/", file_name(p)), &mut out, 0);
+        } else if p.is_file() {
+            out.push((p.clone(), file_name(p)));
+        }
+    }
+    out
+}
+fn grant_all(g: &State<Grants>, list: &[(PathBuf, String)]) -> Vec<PickedRel> {
+    list.iter()
+        .map(|(p, rel)| {
+            grant(g, p);
+            PickedRel { path: p.to_string_lossy().into_owned(), name: file_name(p), rel: rel.clone() }
+        })
+        .collect()
 }
 
 fn is_project(p: &Path) -> bool {
@@ -81,9 +173,14 @@ fn pick_open(
     title: String,
     filter_name: String,
     extensions: Vec<String>,
+    kind: Option<String>,
 ) -> Result<Option<Picked>, String> {
+    let kind = kind_of(kind.as_deref());
     let ext: Vec<&str> = extensions.iter().map(|s| s.as_str()).collect();
     let mut d = app.dialog().file().set_title(title);
+    if let Some(dir) = dialog_dir(&app, kind) {
+        d = d.set_directory(dir);
+    }
     if !ext.is_empty() {
         d = d.add_filter(filter_name, &ext);
     }
@@ -92,22 +189,58 @@ fn pick_open(
         Some(f) => {
             let p = fp(f)?;
             grant(&g, &p);
+            remember_dir(&app, kind, p.parent());
             Ok(Some(Picked { name: file_name(&p), path: p.to_string_lossy().into_owned() }))
         }
     }
 }
 
 #[tauri::command(async)]
-fn pick_many(app: AppHandle, g: State<'_, Grants>, title: String) -> Result<Vec<Picked>, String> {
+fn pick_many(
+    app: AppHandle,
+    g: State<'_, Grants>,
+    title: String,
+    filter_name: Option<String>,
+    extensions: Option<Vec<String>>,
+    kind: Option<String>,
+) -> Result<Vec<Picked>, String> {
+    let kind = kind_of(kind.as_deref());
+    let mut d = app.dialog().file().set_title(title);
+    if let Some(dir) = dialog_dir(&app, kind) {
+        d = d.set_directory(dir);
+    }
+    if let (Some(n), Some(e)) = (filter_name, extensions.as_ref()) {
+        let ext: Vec<&str> = e.iter().map(|s| s.as_str()).collect();
+        if !ext.is_empty() {
+            d = d.add_filter(n, &ext);
+        }
+    }
     let mut out = Vec::new();
-    if let Some(list) = app.dialog().file().set_title(title).blocking_pick_files() {
+    if let Some(list) = d.blocking_pick_files() {
         for f in list {
             let p = fp(f)?;
             grant(&g, &p);
             out.push(Picked { name: file_name(&p), path: p.to_string_lossy().into_owned() });
         }
+        if let Some(first) = out.first() {
+            remember_dir(&app, kind, PathBuf::from(&first.path).parent());
+        }
     }
     Ok(out)
+}
+
+/// Cartella intera, come «Scegli cartella» della pagina online: tutti i file, con il percorso relativo.
+#[tauri::command(async)]
+fn pick_folder(app: AppHandle, g: State<'_, Grants>, title: String, kind: Option<String>) -> Result<Vec<PickedRel>, String> {
+    let kind = kind_of(kind.as_deref());
+    let mut d = app.dialog().file().set_title(title);
+    if let Some(dir) = dialog_dir(&app, kind) {
+        d = d.set_directory(dir);
+    }
+    let Some(f) = d.blocking_pick_folder() else { return Ok(Vec::new()) };
+    let dir = fp(f)?;
+    remember_dir(&app, kind, Some(&dir));
+    Ok(grant_all(&g, &expand(&[dir])))
 }
 
 #[tauri::command(async)]
@@ -118,8 +251,13 @@ fn pick_save(
     suggested: String,
     filter_name: Option<String>,
     extensions: Option<Vec<String>>,
+    kind: Option<String>,
 ) -> Result<Option<Picked>, String> {
+    let kind = kind_of(kind.as_deref());
     let mut d = app.dialog().file().set_title(title).set_file_name(suggested);
+    if let Some(dir) = dialog_dir(&app, kind) {
+        d = d.set_directory(dir);
+    }
     if let (Some(n), Some(e)) = (filter_name, extensions.as_ref()) {
         let ext: Vec<&str> = e.iter().map(|s| s.as_str()).collect();
         d = d.add_filter(n, &ext);
@@ -133,6 +271,7 @@ fn pick_save(
                 p.set_extension(e);
             }
             grant(&g, &p);
+            remember_dir(&app, kind, p.parent());
             Ok(Some(Picked { name: file_name(&p), path: p.to_string_lossy().into_owned() }))
         }
     }
@@ -300,6 +439,24 @@ fn fit_to_screen(app: &tauri::AppHandle) {
     }
 }
 
+/// La finestra parte nascosta (tauri.conf.json, `visible: false`) e si mostra quando la pagina ha disegnato:
+/// niente finestra bianca all'avvio. Se la pagina non risponde, la si mostra comunque dopo qualche secondo.
+static SHOWN: AtomicBool = AtomicBool::new(false);
+fn show_main(app: &AppHandle) {
+    if SHOWN.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    fit_to_screen(app);
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+#[tauri::command]
+fn app_ready(app: AppHandle) {
+    show_main(&app);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -315,18 +472,43 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Grants::default())
+        .manage(Dirs::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
-            fit_to_screen(app.handle());
+            if let Ok(dir) = app.path().app_config_dir() {
+                let f = dir.join("dialog-dirs.json");
+                let d = app.state::<Dirs>();
+                *d.map.lock().unwrap() = fs::read_to_string(&f).map(|t| parse_dirs(&t)).unwrap_or_default();
+                *d.file.lock().unwrap() = Some(f);
+            }
+            let h = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(5));
+                let h2 = h.clone();
+                let _ = h.run_on_main_thread(move || show_main(&h2));
+            });
             Ok(())
+        })
+        // trascinamento nativo: i percorsi trascinati (anche le cartelle, espanse) diventano leggibili, poi la pagina li riceve
+        .on_window_event(|w, ev| {
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = ev {
+                let app = w.app_handle().clone();
+                let paths = paths.clone();
+                std::thread::spawn(move || {
+                    let list = expand(&paths);
+                    let g = app.state::<Grants>();
+                    let out = grant_all(&g, &list);
+                    let _ = app.emit("acch-dropped", out);
+                });
+            }
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_save, read_file, write_file, take_pending_open, install_info, installer_language
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_save, read_file, write_file, take_pending_open, install_info, installer_language,
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder
@@ -366,6 +548,40 @@ mod tests {
         assert!(is_legacy_project(Path::new("y.acchiappa.json")));
         assert!(!is_project(Path::new("/etc/passwd")));
         assert!(!is_legacy_project(Path::new("/x/y.json")));
+    }
+    #[test]
+    fn dialog_start_dir_per_kind() {
+        let dir = std::env::temp_dir().join(format!("acch-dirs-{}", std::process::id()));
+        let (spe, exp) = (dir.join("spettri"), dir.join("esportazioni"));
+        fs::create_dir_all(&spe).unwrap();
+        fs::create_dir_all(&exp).unwrap();
+        let docs = Some(PathBuf::from("/Documenti"));
+        let txt = serde_json::json!({ "spectra": spe, "export": exp, "project": dir.join("sparita") }).to_string();
+        let m = parse_dirs(&txt);
+        assert_eq!(start_dir(&m, "spectra", docs.clone()), Some(spe.clone()));
+        assert_eq!(start_dir(&m, "export", docs.clone()), Some(exp.clone()));
+        // cartella non più esistente o mai usata: Documenti
+        assert_eq!(start_dir(&m, "project", docs.clone()), docs);
+        assert_eq!(start_dir(&m, "images", docs.clone()), docs);
+        assert_eq!(start_dir(&parse_dirs("non json"), "spectra", docs.clone()), docs);
+        assert_eq!(kind_of(Some("export")), "export");
+        assert_eq!(kind_of(Some("../x")), "other");
+        assert_eq!(kind_of(None), "other");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+    #[test]
+    fn folder_expansion_keeps_relative_paths() {
+        let dir = std::env::temp_dir().join(format!("acch-tree-{}", std::process::id()));
+        let root = dir.join("campioni");
+        fs::create_dir_all(root.join("sub")).unwrap();
+        fs::write(root.join("b.csv"), "1").unwrap();
+        fs::write(root.join("sub").join("a.csv"), "1").unwrap();
+        fs::write(dir.join("solo.txt"), "1").unwrap();
+        let l = expand(&[root.clone(), dir.join("solo.txt"), dir.join("manca.csv")]);
+        let rel: Vec<&str> = l.iter().map(|(_, r)| r.as_str()).collect();
+        assert_eq!(rel, vec!["campioni/b.csv", "campioni/sub/a.csv", "solo.txt"]);
+        assert_eq!(l[1].0, root.join("sub").join("a.csv"));
+        fs::remove_dir_all(&dir).unwrap();
     }
     #[test]
     fn url_decoding() {

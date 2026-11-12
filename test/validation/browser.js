@@ -20,8 +20,9 @@ async function launch(){
 async function openPage(browser, server, opt){
   opt=opt||{};
   const ctx=await browser.newContext({locale:opt.lang==='en'?'en-GB':'it-IT', viewport:{width:1400,height:900}, acceptDownloads:true});
+  for (const f of [].concat(opt.init||[])) await ctx.addInitScript(f);   // per esempio il finto Tauri di tauri-mock.js
   await ctx.addInitScript(({lang,desk})=>{ try{ localStorage.setItem('acch.welcomeDone','true'); localStorage.setItem('acch.seenVersion',JSON.stringify('99')); localStorage.setItem('acch.tourDone','true'); localStorage.setItem('acch.ui.entryDone','1'); if (lang) localStorage.setItem('acch.ui.lang', JSON.stringify(lang)); }catch(e){} if (desk) window.ACCH_SHELL_PREVIEW=true; }, {lang:opt.lang||null, desk:!!opt.desk});
-  const external=[]; await ctx.route('**/*', route=>{ const u=route.request().url(); if (u.startsWith('http://127.0.0.1')||u.startsWith('data:')||u.startsWith('blob:')) return route.continue(); external.push(u); return route.abort(); });
+  const external=[]; await ctx.route('**/*', route=>{ const u=route.request().url(); if (opt.html && /\/index\.html$/.test(u.split('?')[0])) return route.fulfill({body:opt.html, contentType:'text/html; charset=utf-8'}); if (u.startsWith('http://127.0.0.1')||u.startsWith('data:')||u.startsWith('blob:')) return route.continue(); external.push(u); return route.abort(); });
   const p=await ctx.newPage(); const errors=[]; p.on('pageerror',e=>errors.push(String(e.stack||e))); p.on('dialog',d=>d.accept().catch(()=>{}));
   await p.goto(`http://127.0.0.1:${server.address().port}/index.html`); await p.waitForFunction(()=>window.AcchProject && window.AcchUi);
   await p.evaluate(()=>{ try{ endTour(); }catch(e){} document.querySelectorAll('dialog[open]').forEach(d=>d.close()); });

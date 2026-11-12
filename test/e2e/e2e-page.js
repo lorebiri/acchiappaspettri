@@ -27,7 +27,7 @@ window.AcchE2E=async function(info){
       for (const [n,f] of [['updater.check',T.updater&&T.updater.check],['process.relaunch',T.process&&T.process.relaunch],['opener.openUrl',T.opener&&T.opener.openUrl],['menu.Menu',T.menu&&T.menu.Menu]]) check('API '+n, typeof f==='function');
       await T.window.getCurrentWindow().setTitle('Prova').then(()=>check('titolo finestra',true),e=>check('titolo finestra',false,String(e)));
       const up=await T.updater.check({timeout:15000}).then(r=>'ok',e=>String(e)); check('permesso di controllare gli aggiornamenti', !/not allowed|permission/i.test(up), up); res.updateCheck=up;
-      check('librerie locali', !!window.jspdf && !!window.JSZip);
+      check('jsPDF non caricato all\'avvio', !window.jspdf); await ensurePdfLib().catch(e=>{}); check('librerie locali', !!window.jspdf && !!window.JSZip);
       check('menu nativo costruito', AcchDesktop.menuBuilt===true);
       // spettri: XRF sintetico
       let txt='# Tube Anode: Rh\n# Tube Voltage: 40\n# Incident beam angle: 68\n# Fluorescence beam: 63,5\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'; for (let i=0;i<2048;i++){ const E=i*0.02; txt+=Math.round(20+5000*Math.exp(-0.5*((E-8.04)/0.07)**2)+700*Math.exp(-0.5*((E-8.9)/0.07)**2))+'\n'; }
@@ -37,8 +37,8 @@ window.AcchE2E=async function(info){
       check('modifiche non salvate', AcchProject.isDirty());
       // salvataggio vero su disco, con il comando nativo
       const path=dir+sep+'prova e2e è.acchspettri'; await inv('e2e_grant',{path});
-      const host=AcchProject.host, oldAs=host.saveAs; host.saveAs=async b=>{ await inv('write_file', b, {headers:{'x-acch-path':encodeURIComponent(path)}}); return {path, name:'prova e2e è.acchspettri'}; };
-      check('salva', await AcchProject.saveAs()); host.saveAs=oldAs; check('nessuna modifica dopo il salvataggio', !AcchProject.isDirty());
+      const host=AcchProject.host, oldPick=host.pickSave; host.pickSave=async ()=>({path, name:'prova e2e è.acchspettri'});   // il dialogo nativo non si può guidare: il percorso è già concesso
+      check('salva', await AcchProject.saveAs()); host.pickSave=oldPick; check('nessuna modifica dopo il salvataggio', !AcchProject.isDirty());
       files[0].title='Prova 2'; persist(files[0]); check('salva di nuovo sullo stesso file', await AcchProject.save());
       await AcchProject.closeProject(); check('chiudi', files.length===0);
       check('riapri dal disco', await AcchDesktop.openPath(path,'prova e2e è.acchspettri')); check('stato ritrovato', files[0] && files[0].title==='Prova 2' && files[0].instr==='xrf', files[0]&&files[0].title);

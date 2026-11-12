@@ -52,9 +52,12 @@
   async function doSave(as){
     if (!files.length){ toast('Non c\'è ancora niente da salvare: carica qualche spettro. 🙂'); return false; }
     if (busy){ toast('Sto già salvando il progetto: un momento…'); return false; } busy=true;
-    try{ loader(true,'Gino sta salvando il progetto…','',0.5); await frame();
-      const b=await buildVerified(), suggested=stampName();
-      const r=(as || !path || !api.host.overwrite) ? await api.host.saveAs(b.bytes, suggested) : await api.host.overwrite(b.bytes, path);
+    try{ const suggested=stampName(), pick=as || !path || !api.host.overwrite;
+      // desktop: prima si sceglie dove salvare, poi si prepara il file (l'attesa non compare dietro al dialogo, né se si annulla)
+      let target=null; if (pick && api.host.pickSave){ target=await api.host.pickSave(suggested); if (!target) return false; }
+      loader(true,'Gino sta salvando il progetto…','',0.5); await frame();
+      const b=await buildVerified();
+      const r=target ? await api.host.writeTo(b.bytes, target) : pick ? await api.host.saveAs(b.bytes, suggested) : await api.host.overwrite(b.bytes, path);
       if (!r) return false;   // annullato
       name=r.name||suggested; path=r.path||null; createdAt=createdAt||new Date().toISOString();
       busy=false; markSaved();

@@ -887,5 +887,6 @@
 "⛔ Da controllare:": "⛔ To check:",
 "{0} Da controllare:": "{0} To check:",
 "una riga di testo interrompe i dati in «{0}»": "a line of text interrupts the data in «{0}»",
-"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
+"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read",
+"Gino sta guardando cosa hai trascinato…": "Gino is looking at what you dropped…"
 }
