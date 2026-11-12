@@ -268,7 +268,7 @@
   "yMax": 1.01801,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo IR e valori %T/A): controlla che sia giusta in «Dati dello spettro».",
-   "warn: Il file contiene un secondo blocco di dati sullo stesso asse (1801 righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato."
+   "warn: Il file contiene un secondo blocco di dati sullo stesso asse (1801 righe), per esempio un'altra scansione o un'altra misura: non è stato letto. Esportalo come file separato."
   ],
   "picchi": [
    [
@@ -2333,35 +2333,35 @@
  },
  "xrf/A10_bronzo_off-150eV.mca": {
   "instr": "xrf",
-  "n": 2048,
-  "xMax": 8.01251,
+  "n": 2041,
+  "xMax": 7.9,
   "yMax": 50376,
   "avvisi": [
-   "warn: La calibrazione in energia è spostata di circa 39 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
+   "warn: La calibrazione in energia è spostata di circa 151 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
   ],
   "picchi": [
    [
-    3.41056,
+    3.28226,
     286.606,
     null
    ],
    [
-    8.00338,
+    7.89084,
     50244.1,
     null
    ],
    [
-    8.86362,
+    8.75404,
     7423.56,
     null
    ],
    [
-    10.5014,
+    10.3974,
     474.87,
     null
    ],
    [
-    12.5602,
+    12.4633,
     380.768,
     null
    ]
