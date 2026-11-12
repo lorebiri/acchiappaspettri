@@ -145,3 +145,102 @@ test('XRF: As da solo con pochi conteggi, «1 warning», aria/elio/vuoto, PDF co
     await D.ctx.close();
   } finally { await br.close(); server.close(); }
 });
+
+// ---- aggiunte del committente (stesso pacchetto, secondo giro) ----
+const epr=(lo,hi,c,n)=>{ const L=['Field (mT)\tIntensity']; for (let i=0;i<n;i++){ const b=lo+(hi-lo)*i/(n-1), t=(b-c)/0.5; L.push(b.toFixed(5)+'\t'+(-2*t/(1+t*t)**2/0.5+0.1).toFixed(9)); } return L.join('\n'); };
+// singolare e asse «rapporto area» (inglese, desktop)
+test('I1 bis, singolare e asse del grafico piccolo in inglese', {timeout:5*60*1000}, async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    { const {ctx, p, errors}=await B.openPage(br, server, {lang:'en', desk:true});
+      await load(p, dirFiles('hplc-taratura-sintetico').filter(([n])=>/06_STD6/.test(n)), 'en');
+      const q=await p.evaluate(async ()=>{ await new Promise(r=>setTimeout(r,300)); return assess(files[0], viewOf(files[0])).map(o=>o.t); });
+      assert.ok(q.some(t=>/^Un segnale sopra il rumore non è nell'elenco/.test(t)) && !q.some(t=>/^1 segnali/.test(t)), 'singolare: '+q.join(' | '));
+      const en=await p.evaluate(()=>AcchI18n.tr(assess(files[0], viewOf(files[0])).find(o=>/^Un segnale/.test(o.t)).t));
+      assert.match(en, /^One signal above the noise is not in the peak list/, en);
+      await load(p, dirFiles('ftir-polietilene-sintetico'), 'en');
+      const lab=await p.evaluate(async ()=>{ const seen=[], ft=CanvasRenderingContext2D.prototype.fillText; CanvasRenderingContext2D.prototype.fillText=function(t){ if (this.canvas && this.canvas.id==='trendCv') seen.push(String(t)); return ft.apply(this, arguments); };
+        const c=mvCfg('ftir'), pr=BAND_PRESETS.ftir[0]; c.a=pr[1]; c.b=pr[2]; c.c=pr[3]; c.d=pr[4]; c.meas=pr[5]; c.preset=0; c.model='trend'; c.unit='h'; mvSave(); openTab('multi'); $('#mvInstr').value='ftir';
+        mvFiles('ftir',c).forEach((f,i)=>anSet(f,'conc',[0,100,250,500,750,1000][i])); renderMulti(); await new Promise(r=>setTimeout(r,300)); return seen; });
+      assert.ok(lab.includes('area ratio') && !lab.some(t=>/rapporto/.test(t)), 'asse del grafico piccolo: '+lab.join(' | '));
+      assert.deepEqual(errors, []); await ctx.close(); }
+  } finally { await br.close(); server.close(); }
+});
+
+// spalle ripetute: 13C a un decimale, due bande a 77,07 e 77,11 tolte dall'elenco dei picchi → stesso valore scritto «77,1»
+test('I1 bis, spalle ripetute contate una volta', {timeout:5*60*1000}, async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    { const {ctx, p, errors}=await B.openPage(br, server, {lang:'it'});
+      const L=['ppm\tIntensity']; let s=3; const r=()=>{ s=(s*16807)%2147483647; return s/2147483647-0.5; };
+      for (let i=0;i<15000;i++){ const x=90-i*0.002, lz=(c,ww,hh)=>hh/(1+((x-c)/ww)**2); L.push(x.toFixed(4)+'\t'+(lz(77,0.04,100)+lz(77.07,0.01,15)+lz(77.11,0.01,15)+lz(70,0.02,50)+0.02*r()).toFixed(5)); }
+      await load(p, [['cdcl3_13C.txt', L.join('\n')]]);
+      const m=await p.evaluate(()=>{ const f=files[0]; f.removed=viewOf(f).peaks.filter(q=>q.x>77.05&&q.x<77.2).map(q=>q.x); f._pk=null; f._autoKey=null; return assess(f, viewOf(f)).map(o=>o.t).find(t=>/derivata seconda/.test(t))||''; });
+      const at=(/ a (.*?)[…:]/.exec(m)||[])[1]||'', vals=at.split(', ');
+      assert.ok(vals.length>=2 && vals.includes('77,1'), 'il caso non prova nulla: '+m);
+      assert.equal(new Set(vals).size, vals.length, 'valore ripetuto: '+m);
+      assert.match(m, new RegExp(vals.length===1?'una banda nascosta':vals.length+' bande nascoste'), 'conteggio diverso dai valori: '+m);
+      assert.deepEqual(errors, []); await ctx.close(); }
+  } finally { await br.close(); server.close(); }
+});
+
+// EPR: zone di fondo scelte, provenienza a schermo, nel CSV e nel PDF; ali della riga segnalate
+test('I1 bis, EPR: zone di fondo scelte, provenienza, ali della riga', {timeout:5*60*1000}, async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    { const {ctx, p, errors}=await B.openPage(br, server, {lang:'it'});
+      await load(p, [['riga_fuori_centro.txt', epr(300,700,340,20000)], ['riga_stretta.txt', epr(330,340,335,4096)]]);
+      const r=await p.evaluate(async ()=>{ files.forEach(f=>{ f.instr='epr'; f.kind=kindOf(f); f._pk=null; }); const f=files[0], g=files[1]; cur=0; go(2); openTab('an'); refreshAll(); await new Promise(r=>setTimeout(r,300));
+        const before=assess(f, viewOf(f)).map(o=>o.t), wing=assess(g, viewOf(g)).map(o=>o.t);
+        anSet(f,'eprZ1a',680); anSet(f,'eprZ1b',700); refreshAll(); renderAnalysis(); await new Promise(r=>setTimeout(r,300));
+        const o=techMetrics(f, viewOf(f)), after=assess(f, viewOf(f)).map(o=>o.t);
+        Object.assign(S,{outPdf:true, outAnalysis:true}); const u=new Uint8Array(await (await buildPdf()).arrayBuffer());
+        return {before, wing, after, head:o.head, row:o.rows.find(x=>/riga_fuori/.test(x[0])), tech:$('#anTech').innerText, csv:(analysisFiles().find(([n])=>/parametri_per_tecnica/.test(n))||['',''])[1], pdf:Array.from(u), di:eprDoubleIntegral(processed(f).xs, processed(f).ys, eprZonesOf(f)).di/(Math.PI*0.5)}; });
+      assert.ok(r.before.some(t=>/ali della riga/.test(t)), 'riga fuori centro: ali non segnalate: '+r.before.join(' | '));
+      assert.ok(r.wing.some(t=>/ali della riga \(forma lorentziana\) arrivano nelle finestre/.test(t)), 'lorentziana a ±10 semilarghezze: '+r.wing.join(' | '));
+      assert.ok(!r.after.some(t=>/ali della riga/.test(t)), 'con la zona lontana l\'avviso deve sparire');
+      assert.ok(Math.abs(r.di-1)<0.01, 'doppio integrale con la zona scelta: '+r.di);
+      assert.ok(r.head.includes('Base') && /zone di fondo scelte 680,00–700,00 mT/.test(r.row[4]), JSON.stringify(r.row));
+      assert.match(r.tech, /Zona di fondo 1/); assert.match(r.csv, /zone di fondo scelte 680,00–700,00 mT/);
+      assert.match(pdfText(Buffer.from(r.pdf)).join(' '), /base: zone di fondo scelte 680,00–700,00 mT/);
+      assert.deepEqual(errors, []); await ctx.close(); }
+  } finally { await br.close(); server.close(); }
+});
+
+// XRF desktop: ⚠️ delle note della stima FP nel pannello, nel CSV e nel PDF
+test('I1 bis, XRF desktop: ⚠️ delle note nel pannello, nel CSV e nel PDF', {timeout:5*60*1000}, async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    { const {ctx, p, errors}=await B.openPage(br, server, {lang:'it', desk:true});
+      await load(p, [['B.mca', rd(path.join(EX,'xrf-lega-sintetico','BRONZO_SIMULATO_Rh40kV_SINTETICO.mca'))]]);
+      const r=await p.evaluate(async ()=>{ go(2); openTab('an'); $('#secCult').open=true; const f=files[0], c=fpCfg(f); c.els=['Sn','Cu','Pb','Zn','As','S']; fpSaveCfg(f,c); refreshAll(); await new Promise(r=>setTimeout(r,800));
+        const w=[...document.querySelectorAll('#anCult .fpwarn')].map(d=>({t:d.textContent, fw:getComputedStyle(d).fontWeight}));
+        Object.assign(S,{outPdf:true, outAnalysis:true}); const u=new Uint8Array(await (await buildPdf()).arrayBuffer());
+        return {w, raw:fpNotes(f, fpRun(f)).filter(t=>/⚠️/.test(t)).length, csv:fpCsvRows([f]).map(x=>x[x.length-1]).join(' | '), pdf:Array.from(u)}; });
+      assert.ok(r.raw>=2 && r.w.length===r.raw, `note con ⚠️ ${r.raw}, nel pannello ${r.w.length}`);
+      r.w.forEach(x=>{ assert.ok(/^\s*⚠/.test(x.t), 'segno perso nel pannello: '+x.t); assert.ok(+x.fw>=600, 'avviso senza risalto'); });
+      assert.ok((r.csv.match(/(^|\| )! /g)||[]).length>=r.raw-1, 'avvisi senza segno nel CSV: '+r.csv);
+      assert.ok(pdfText(Buffer.from(r.pdf)).filter(l=>/^! /.test(l)).length>=r.raw, 'avvisi senza segno nel PDF');
+      assert.deepEqual(errors, []); await ctx.close(); }
+
+  } finally { await br.close(); server.close(); }
+});
+
+test('PDF con font Unicode: caricato solo se serve, mai all\'avvio; č, ł, greco, ², ³ e ⁻¹ nel PDF', {timeout:5*60*1000}, async t=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    const {ctx, p, errors}=await B.openPage(br, server, {lang:'it'}), asked=[]; p.on('request', q=>{ if (/DejaVuSans/.test(q.url())) asked.push(q.url()); });
+    await p.reload(); await p.waitForFunction(()=>window.AcchProject && window.AcchUi); await p.evaluate(()=>{ try{ endTour(); }catch(e){} document.querySelectorAll('dialog[open]').forEach(d=>d.close()); });
+    assert.deepEqual(asked, [], 'font caricato all\'avvio');
+    await load(p, dirFiles('ftir-polietilene-sintetico').slice(0,1));
+    await p.evaluate(async ()=>{ Object.assign(S,{outPdf:true, outAnalysis:false}); await buildPdf(); });
+    assert.deepEqual(asked, [], 'font caricato per un PDF con soli caratteri WinAnsi');
+    const have=fs.existsSync(path.join(B.ROOT,'vendor','fonts','DejaVuSans.ttf'));
+    const r=await p.evaluate(async ()=>{ files[0].title='Vzorek č ł αβ x² y³ cm⁻¹'; Object.assign(S,{outPdf:true, outAnalysis:false, summary:true}); const u=new Uint8Array(await (await buildPdf()).arrayBuffer()); let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return s; });
+    assert.equal(asked.length, 1, 'il font va chiesto una volta, per il PDF che ne ha bisogno');
+    if (!have){ t.skip('vendor/fonts/DejaVuSans.ttf assente: va aggiunto al repository (serve l\'approvazione per scaricarlo)'); return; }
+    assert.match(r, /\/FontFile2/, 'font non incorporato');
+    for (const cp of ['010D','0142','03B1','00B2','00B3','207B']) assert.ok(new RegExp('<'+cp+'>','i').test(r), 'manca U+'+cp+' nella mappa ToUnicode');
+    assert.deepEqual(errors, []); await ctx.close();
+  } finally { await br.close(); server.close(); }
+});
