@@ -343,6 +343,7 @@ body.busy, body.busy *{cursor:progress !important}
 .slider input{flex:1;accent-color:var(--accent)}
 .signote{margin-top:10px;background:#fff8e6;border:1px solid #f1d39b;color:#5c4300;border-radius:12px;padding:10px 12px;font-size:13.5px;max-width:80ch}
 .signote b{color:#3d2c00}
+.chanlab{margin:4px 12px 0 0;display:inline-flex;max-width:100%;min-width:0;vertical-align:top}.chanlab>span{overflow-wrap:break-word;min-width:0}.chanlab .chanin{max-width:min(280px,100%);min-width:0}
 .areawrap{max-width:100%;overflow-x:auto;margin-top:6px}
 .areatab{border-collapse:collapse;font-size:13.5px;min-width:420px}
 .areatab th,.areatab td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
@@ -422,7 +423,7 @@ body.busy, body.busy *{cursor:progress !important}
 }
 .preview.big .wkR{display:none}
 /* avvisi, sezioni richiudibili, aspetto sobrio */
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);z-index:80;background:#1c2230;color:#fff;padding:11px 18px;border-radius:13px;font-size:14.5px;line-height:1.4;box-shadow:0 10px 30px rgba(10,20,40,.3);max-width:min(560px,92vw);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);z-index:80;background:#1c2230;color:#fff;padding:11px 18px;border-radius:13px;font-size:14.5px;line-height:1.4;box-shadow:0 10px 30px rgba(10,20,40,.3);width:max-content;max-width:min(560px,92vw);box-sizing:border-box;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toastX{background:none;border:0;color:inherit;font-size:18px;line-height:1;margin-left:10px;padding:0 2px;cursor:pointer;opacity:.8;vertical-align:middle}.toast.on .toastX{pointer-events:auto}.toast:not(.warn) .toastX{display:none}#toast.warn.err{border-left:4px solid #d32f2f}
 details.ansec{border:1px solid var(--line);border-radius:14px;margin:0 0 10px;background:#fff}
@@ -915,7 +916,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
       <!-- ANALISI -->
       <div class="panel" data-panel="an">
         <div class="recipes" id="recipes"></div>
-        <details class="ansec" id="secQual" open><summary><b>🩺 Controllo dello spettro <button type="button" class="gl" data-gl="sn" title="Cosa vuol dire?">?</button></b><span class="secsum" id="sumQual"></span><span class="scope s-one">solo questo spettro</span></summary><div class="in">
+        <details class="ansec" id="secQual" open><summary><b>🩺 Controllo del dato <button type="button" class="gl" data-gl="sn" title="Cosa vuol dire?">?</button></b><span class="secsum" id="sumQual"></span><span class="scope s-one">solo questo spettro</span></summary><div class="in">
         <p class="why">Controllo automatico della qualità del dato, con consigli tratti dalla letteratura. Quando c'è un rimedio, lo applichi con un clic.</p>
         <div id="anQual"></div>
         </div></details>
@@ -4875,6 +4876,8 @@ function cmpViewOf(c){ const list=members(c); if (!list.length) return null; if 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// nomi di file nelle colonne strette: si va a capo dopo _ e - o prima dell'estensione, mai a metà («STD1_DAD1A.cs / v»)
+function escName(s){ return esc(s).replace(/([_\-])(?=.)/g,'$1<wbr>').replace(/\.(?=[^.<]+$)/,'<wbr>.'); }
 
 const frame = () => new Promise(r=>{ let done=false; const go=()=>{ if (!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go, 120); });   // in una scheda nascosta requestAnimationFrame si ferma: il caricamento prosegue comunque
 let ldTimer=null;
@@ -5556,7 +5559,10 @@ $('#daOk').onclick=()=>{
 function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0}; if (!Array.isArray(list)) return out;
   for (const e of list){ if (!(e&&typeof e.id==='string'&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b))){ out.scartate++; continue; }
     const v={id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}, old=LIB.find(x=>x.id===v.id);
-    if (!old){ LIB.push(v); out.nuove++; } else if (old.i===v.i && old.a===v.a && old.b===v.b && old.n===v.n) out.uguali++;
+    const same=x=>x.i===v.i && +x.a===v.a && +x.b===v.b && String(x.n).slice(0,120)===v.n;   // confronto sui valori normalizzati come v (nome tagliato a 120)
+    if (!old){ LIB.push(v); out.nuove++; } else if (same(old)) out.uguali++;
+    // stessa voce già aggiunta con un altro codice (riapertura dello stesso progetto): non si duplica a ogni apertura
+    else if (LIB.some(x=>same(x) && x.id.startsWith(v.id.slice(0,30)+'_'))) out.uguali++;
     else { v.id=(v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8)); LIB.push(v); out.rinominate++; } }
   if (out.nuove||out.rinominate) saveLib(); return out; }
 window.libMerge=libMerge;
@@ -7270,9 +7276,9 @@ function renderMulti(){
       const nc=mvChanList(instr, c).filter(f=>{ chanOf(f); return !f._chan; });
       if (nc.length){ const free=nc.filter(f=>!(f.an&&f.an.chan)).length, opt=f=>`<option value="">${L('— nessun canale: escluso —','— no channel: left out —')}</option>`+ch.map(k=>`<option value="${esc(k)}" ${f.an&&f.an.chan===k?'selected':''}>${esc(k)}</option>`).join('');
         html+=`<div class="nochan" style="margin-top:6px">${free?(free===1?L('In un file non riconosco il canale (né dal nome né dall\'intestazione): resta fuori dalla retta e dalle stime finché non scegli il suo canale.','In one file I cannot recognise the channel (neither from the name nor from the header): it stays out of the line and the estimates until you choose its channel.'):L(`In ${free} file non riconosco il canale (né dal nome né dall'intestazione): restano fuori dalla retta e dalle stime finché non scegli il loro canale.`,`In ${free} files I cannot recognise the channel (neither from the name nor from the header): they stay out of the line and the estimates until you choose their channel.`)):L('Canale scelto a mano:','Channel chosen by hand:')}</div>`
-          +nc.map(f=>`<label class="ibf" style="margin:4px 12px 0 0;display:inline-flex"><span data-noi18n>${esc(dispTitle(f))}</span><select class="chanin" style="max-width:280px" data-fi="${files.indexOf(f)}" aria-label="${esc(L('Canale di ','Channel of ')+dispTitle(f))}">${opt(f)}</select></label>`).join(''); }
+          +nc.map(f=>`<label class="ibf chanlab"><span data-noi18n>${escName(dispTitle(f))}</span><select class="chanin" data-fi="${files.indexOf(f)}" aria-label="${esc(L('Canale di ','Channel of ')+dispTitle(f))}">${opt(f)}</select></label>`).join(''); }
       html+='</div>'; } }
-  if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${esc(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?numOut(f.an.conc):''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
+  if (!rows && c.model==='pls'){ const list=mvFiles(instr,c); html+=`<div class="areawrap" style="max-height:300px"><table class="areatab"><thead><tr><th>Spettro</th><th>Concentrazione nota${c.unit?` (${esc(c.unit)})`:''}</th></tr></thead><tbody>${list.map((f,i)=>`<tr><td>${escName(dispTitle(f))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-f="${i}" value="${f.an&&f.an.conc!=null?numOut(f.an.conc):''}" placeholder="—"></td></tr>`).join('')}</tbody></table></div><div id="plsOut"></div>`;
     setTimeout(()=>$$('#mvOut .concin[data-f]').forEach(el=>el.onchange=()=>numField(el, v=>{ anSet(list[+el.dataset.f], 'conc', v); rerenderKeep(renderMulti); }, {pos:true})), 0); }
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
@@ -7288,7 +7294,7 @@ function renderMulti(){
       else if (cal && cal.predict && o.y!=null && o.role==='qc'){ const pr=cal.predict(o.y,1); const rq=o.conc>0?100*pr.x/o.conc:null; pred=`${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)}${rq!=null?` · recupero ${fmtN(rq,1)}%${rq<80||rq>120?' ⚠️ fuori 80–120%':''}`:''}`; }
       else if (cal && cal.predict && o.y!=null){ if (o.conc==null){ const pr=cal.predict(o.y,1); pred=`${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)}${!pr.inRange?' <span title="fuori dall\'intervallo di taratura">⚠️ estrapolato</span>':''}${pr.belowLod?' <span title="sotto il limite di rilevabilità">&lt; LOD</span>':pr.belowLoq?' <span title="sotto il limite di quantificazione">&lt; LOQ</span>':''}`; }
         else { const k=cal.pts.findIndex(p=>p.f===o.f); const sr=k>=0&&cal.stdRes?cal.stdRes[k]:null; const rc=cal.b&&o.conc>0?100*((o.y-cal.a)/cal.b)/o.conc:null; pred=sr!=null?`residuo std ${fmtN(sr,2)}${rc!=null?` · recupero ${fmtN(rc,1)}%`:''}${Math.abs(sr)>2.5?' ⚠️ possibile anomalo':''}`:''; } }
-      return `<tr><td>${esc(dispTitle(o.f))}</td><td>${o.y!=null?fmtG(o.y,5):'—'}${o.flag?` <small>⚠️ ${esc(o.flag)}</small>`:''}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-i="${i}" value="${o.conc!=null?numOut(o.conc):''}" placeholder="—"> <select class="rolein" ${c.model==='trend'?'hidden':''} data-i="${i}" title="Solo gli standard entrano nella retta">${Object.entries(MV_ROLE).map(([k,t])=>`<option value="${k}" ${o.role===k?'selected':''}>${t}</option>`).join('')}</select></td><td>${pred}</td></tr>`; }).join('')}</tbody></table></div>
+      return `<tr><td>${escName(dispTitle(o.f))}</td><td>${o.y!=null?fmtG(o.y,5):'—'}${o.flag?` <small>⚠️ ${esc(o.flag)}</small>`:''}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="concin" data-i="${i}" value="${o.conc!=null?numOut(o.conc):''}" placeholder="—"> <select class="rolein" ${c.model==='trend'?'hidden':''} data-i="${i}" title="Solo gli standard entrano nella retta">${Object.entries(MV_ROLE).map(([k,t])=>`<option value="${k}" ${o.role===k?'selected':''}>${t}</option>`).join('')}</select></td><td>${pred}</td></tr>`; }).join('')}</tbody></table></div>
       <div class="row" style="margin-top:6px"><span class="opt-l">${c.model==='trend'?'Scrivi per ogni spettro il valore di x (ore, dose, temperatura…).':'Scrivi la concentrazione degli standard: con almeno 3 calcolo la retta di taratura e stimo gli altri campioni.'}</span><span class="spacer"></span><label class="ibf" style="margin:0" ${c.model==='trend'?'hidden':''}><span>Pesi della retta</span><select id="mvW"><option value="">nessuno</option><option value="1/x" ${c.weight==='1/x'?'selected':''}>1/x</option><option value="1/x2" ${c.weight==='1/x2'?'selected':''}>1/x²</option></select></label><button class="btn small ghost" id="mvCsv">⬇️ CSV</button></div>`;
     setTimeout(()=>{ const w=$('#mvW'); if (w) w.onchange=e=>{ c.weight=e.target.value||undefined; mvSave(); rerenderKeep(renderMulti, true, e.target); }; },0);
     if (c.model==='pls') html+='<div id="plsOut"></div>';
@@ -7603,7 +7609,7 @@ function renderXrfQuant(instr){
     <div class="ibfields"><label class="check" style="margin:0"><input type="checkbox" id="xq100" ${c.q100!==false?'checked':''}> Normalizza a 100% (lega: tutti gli elementi principali sono misurati)</label>
       <label class="ibf adv"><span>Modello</span><select id="xqModel"><option value="auto" ${(c.qModel||'auto')==='auto'?'selected':''}>automatico</option><option value="linear" ${c.qModel==='linear'?'selected':''}>retta per elemento</option><option value="ltp" ${c.qModel==='ltp'?'selected':''}>Lucas-Tooth &amp; Price (effetti di matrice)</option><option value="fp" ${c.qModel==='fp'?'selected':''}>parametri fondamentali (anche con 0–2 standard)</option></select></label></div>`;
   html+=`<div class="areawrap" style="max-height:340px;margin-top:8px"><table class="areatab"><thead><tr><th>Spettro</th>${els.map(e=>`<th>${esc(e)}</th>`).join('')}${M&&M.fit?'<th>Somma grezza</th>':''}</tr></thead><tbody>${list.map((f,i)=>{ const r=M?M.rows[i]:null, isStd=r && els.some(e=>r.C[e]!=null);
-      return `<tr><td>${esc(dispTitle(f))}${isStd?' <small class="opt-l">standard</small>':''}</td>${els.map(e=>{ const known=r&&r.C[e]!=null?numOut(r.C[e]):'', pv=r&&r.pred&&r.pred[e]!=null?r.pred[e]:null, sd=M&&M.fit&&M.fit[e]&&M.fit[e].ok?M.fit[e].rmsecv:null;
+      return `<tr><td>${escName(dispTitle(f))}${isStd?' <small class="opt-l">standard</small>':''}</td>${els.map(e=>{ const known=r&&r.C[e]!=null?numOut(r.C[e]):'', pv=r&&r.pred&&r.pred[e]!=null?r.pred[e]:null, sd=M&&M.fit&&M.fit[e]&&M.fit[e].ok?M.fit[e].rmsecv:null;
         return `<td><input type="text" inputmode="decimal" autocomplete="off" class="concin xq" data-i="${i}" data-e="${esc(e)}" value="${esc(known)}" placeholder="${pv!=null?fmtN(pv,pv<10?2:1)+(sd?' ±'+fmtN(sd,sd<1?2:1):''):'nota?'}" title="${known!==''?'composizione nota (standard)':'scrivi la % nota se è uno standard; altrimenti il valore in grigio è la stima'}" style="width:92px"></td>`; }).join('')}${M&&M.fit?`<td>${r&&r.tot?fmtN(r.tot,1):'—'}</td>`:''}</tr>`; }).join('')}</tbody></table></div>`;
   if (!M || !M.fit) html+=`<div class="signote">${M && M.stds.length ? `Hai ${M.stds.length} standard: ne servono almeno 3.` : 'Nessuno standard: scrivi le percentuali note di almeno 3 campioni di riferimento.'} Senza standard posso dare solo confronti relativi: vedi gli indici «elemento / Compton» qui sotto.</div>`;
   else if (M.fp) html+=`<div class="calbox">${M.cal&&M.cal.skipped?`<div>⚠️ ${M.cal.skipped} standard ignorati: la somma delle percentuali scritte è sotto il 90%. Per un calcolo corretto serve la composizione completa dello standard.</div>`:''}<div><b>Parametri fondamentali</b> ${M.stds.length ? `tarati su ${M.stds.length} standard (fattore di sensibilità per ogni elemento; gli elementi senza standard usano il fattore medio)` : '<b>senza standard</b>: errore relativo con mediana di circa 3–4% e 90° percentile fino a 20–30%, di più per gli elementi minori'}. I valori in grigio sono le stime${M.stds.length>=2?' ± errore in validazione incrociata':''}.</div>${M.stds.length>=2?M.els.map(e=>{ const F=M.fit[e]; return F&&F.rmsecv!=null?`<div>${e}: <b>in validazione ±${fmtN(F.rmsecv,2)} %</b></div>`:''; }).join(''):''}
@@ -7648,7 +7654,7 @@ function renderPLS(instr){
   box.innerHTML=`<div class="calbox"><div><b>Modello PLS</b> su tutto lo spettro (pretrattamento: ${esc($('#pcPre').selectedOptions[0].text)}) · <b>${R.A}</b> variabil${R.A===1?'e':'i'} latent${R.A===1?'e':'i'} · n = ${R.idx.length}</div>
     <div>R² = ${fmtN(R.r2,4)} · <b>Q² (validazione incrociata) = ${fmtN(R.q2,4)}</b> · RMSEC = ${fmtG(R.rmsec,3)}${u} · <b>RMSECV = ${fmtG(R.rmsecv,3)}${u}</b></div>
     <div class="opt-l">${R.q2>0.9?'✅ buona capacità predittiva in validazione incrociata (conferma con campioni indipendenti)':R.q2>0.5?'🟡 modello discreto: aggiungi standard o restringi la zona':'⚠️ modello poco predittivo: la concentrazione non si legge bene dallo spettro'} · l'errore tipico di una stima è circa ± RMSECV</div>
-    <div class="areawrap" style="max-height:220px;margin-top:6px"><table class="areatab"><thead><tr><th>Spettro</th><th>Nota</th><th>Stimata (PLS)</th></tr></thead><tbody>${R.list.map((f,i)=>{ const k=R.idx.indexOf(i); return `<tr><td>${esc(dispTitle(f))}</td><td>${k>=0?fmtG(R.y[k],4):'—'}</td><td>${k>=0?fmtG(R.cvPred[k],4)+' <small class="opt-l">(in validazione)</small>':'<b>'+fmtG(R.pred[i],4)+' ± '+fmtG(R.rmsecv,2)+'</b>'+(R.pred[i]<Math.min(...R.y)||R.pred[i]>Math.max(...R.y)?' <span title="fuori dall\'intervallo degli standard: la stima è poco affidabile">⚠️ estrapolato</span>':'')}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="areawrap" style="max-height:220px;margin-top:6px"><table class="areatab"><thead><tr><th>Spettro</th><th>Nota</th><th>Stimata (PLS)</th></tr></thead><tbody>${R.list.map((f,i)=>{ const k=R.idx.indexOf(i); return `<tr><td>${escName(dispTitle(f))}</td><td>${k>=0?fmtG(R.y[k],4):'—'}</td><td>${k>=0?fmtG(R.cvPred[k],4)+' <small class="opt-l">(in validazione)</small>':'<b>'+fmtG(R.pred[i],4)+' ± '+fmtG(R.rmsecv,2)+'</b>'+(R.pred[i]<Math.min(...R.y)||R.pred[i]>Math.max(...R.y)?' <span title="fuori dall\'intervallo degli standard: la stima è poco affidabile">⚠️ estrapolato</span>':'')}</td></tr>`; }).join('')}</tbody></table></div>
     <canvas id="plsC" class="minic" height="220"></canvas></div>`;
   drawPlsChart($('#plsC'), instr, R);
 }

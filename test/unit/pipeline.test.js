@@ -94,11 +94,17 @@ function sign(k, data, file, ver){ const sig=crypto.sign(null, crypto.createHash
   const g=crypto.sign(null, Buffer.concat([sig,Buffer.from(tc)]), k.privateKey);
   return b64('untrusted comment: signature from tauri secret key\n'+Buffer.concat([Buffer.from('ED'),k.id,sig]).toString('base64')+'\ntrusted comment: '+tc+'\n'+g.toString('base64')+'\n'); }
 const CHANGELOG='# Novità delle versioni\n\n## 2.2.1\n\n- Correzioni.\n\n## 2.2.0-rc.4\n\nVersione di prova della 2.2.0, con le stesse novità elencate sotto.\n\n## 2.2.0\n\n- Novità della stabile: app desktop.\n\n## 2.1.0\n\n- Vecchia.\n';
-// una release finta completa: k firma i pacchetti; opt.deb aggiunge il .deb; opt.macVer firma i .app.tar.gz con un'altra versione
+// .deb minimo (ar + control.tar.gz con il solo file control) con la versione Debian data
+function fakeDeb(v){ const D=require(path.join(root,'scripts/deb-version.js')), zlib=require('zlib');
+  const th=n=>{ const h=Buffer.alloc(512); h.write(n,0,'latin1'); h.write('0000644\0',100,'latin1'); h.write('0000000\0',108,'latin1'); h.write('0000000\0',116,'latin1'); h.write('00000000000\0',136,'latin1'); h.write('0',156,'latin1'); h.write('ustar\0',257,'latin1'); h.write('00',263,'latin1'); return h; };
+  const ctl=zlib.gzipSync(D.writeTar([{h:th('./control'), data:Buffer.from(`Package: acchiappaspettri\nVersion: ${v}\nArchitecture: amd64\n`)}]));
+  const ah=n=>{ const b=Buffer.alloc(60,0x20); b.write(n,0,'latin1'); b.write('`\n',58,'latin1'); return b; };
+  return D.writeAr([['debian-binary',Buffer.from('2.0\n')],['control.tar.gz',ctl],['data.tar.gz',zlib.gzipSync(Buffer.alloc(1024))]].map(([n,data])=>({h:ah(n),data}))); }
+// una release finta completa: k firma i pacchetti; opt.deb aggiunge il .deb (opt.debVer: versione Debian scritta dentro); opt.macVer firma i .app.tar.gz con un'altra versione
 function release(k, ver, opt={}){ const d=tmp('rel-'), tag='v'+ver, pre=`https://github.com/lorebiri/acchiappaspettri/releases/download/${tag}/`, P={};
   const put=(n,body)=>{ fs.writeFileSync(path.join(d,n), body||crypto.randomBytes(64)); return fs.readFileSync(path.join(d,n)); };
   put('librerie-linux-ubuntu-22.04.tsv','# x\na\t1\n'); put(`Acchiappaspettri_${ver}_aarch64.dmg`); put(`Acchiappaspettri_${ver}_x64.dmg`);
-  if (opt.deb) put(`Acchiappaspettri_${ver}_amd64.deb`);
+  if (opt.deb) put(`Acchiappaspettri_${ver}_amd64.deb`, fakeDeb(opt.debVer||ver.replace('-','~')));
   const entry=(keys,n,v)=>{ const s=sign(k, put(n), n, v||ver); for (const key of keys) P[key]={url:pre+n, signature:s}; };
   entry(['windows-x86_64','windows-x86_64-nsis'], `Acchiappaspettri_${ver}_x64-setup.exe`);
   entry(['darwin-aarch64','darwin-aarch64-app'], 'Acchiappaspettri_aarch64.app.tar.gz', opt.macVer);
@@ -106,38 +112,46 @@ function release(k, ver, opt={}){ const d=tmp('rel-'), tag='v'+ver, pre=`https:/
   entry(['linux-x86_64','linux-x86_64-appimage'], `Acchiappaspettri_${ver}_amd64.AppImage`);
   fs.writeFileSync(path.join(d,'latest.json'), JSON.stringify({version:ver, platforms:P}));
   return {d, tag}; }
-function publishTree(k){ const d=tmp('pub-'); copyScript('scripts/publish-release.js', d); copyScript('scripts/minisign-verify.js', d);
+function publishTree(k){ const d=tmp('pub-'); copyScript('scripts/publish-release.js', d); copyScript('scripts/minisign-verify.js', d); copyScript('scripts/deb-version.js', d);
   fs.mkdirSync(path.join(d,'src-tauri')); fs.writeFileSync(path.join(d,'src-tauri/tauri.conf.json'), JSON.stringify({plugins:{updater:{pubkey:k.pub}}}));
   fs.writeFileSync(path.join(d,'CHANGELOG.md'), CHANGELOG); return d; }
 async function check(ver, opt){ const k=keyPair(), t=publishTree(k), r=release(k, ver, opt), notes=path.join(r.d,'..',path.basename(r.d)+'-note.md');
   const out=await run([path.join(t,'scripts/publish-release.js'), r.tag, '--check-only', r.d, '--notes-out', notes],{env:Object.assign({},process.env,{GITHUB_REPOSITORY:'lorebiri/acchiappaspettri'})});
   out.notes=fs.existsSync(notes)?fs.readFileSync(notes,'utf8'):null; return out; }
 
-test('publish-release: una pre-release senza .deb si pubblica', async()=>{ const r=await check('2.2.0-rc.4'); assert.equal(r.code,0,r.out); });
-test('publish-release: una pre-release con il .deb si ferma', async()=>{ const r=await check('2.2.0-rc.4',{deb:true}); assert.equal(r.code,1,r.out); assert.match(r.out,/Pre-release con un \.deb/); });
+test('publish-release: una pre-release con il .deb «X~rc.N» si pubblica; senza .deb si ferma', async()=>{ const r=await check('2.2.0-rc.4',{deb:true}); assert.equal(r.code,0,r.out); assert.match(r.out,/versione Debian 2\.2\.0~rc\.4/);
+  const n=await check('2.2.0-rc.4'); assert.equal(n.code,1); assert.match(n.out,/Mancano: Linux \.deb/); });
+test('publish-release: un .deb di prova con «X-rc.N» dentro (dpkg lo crederebbe più nuovo della stabile) si ferma', async()=>{ const r=await check('2.2.0-rc.4',{deb:true, debVer:'2.2.0-rc.4'}); assert.equal(r.code,1,r.out); assert.match(r.out,/versione Debian «2\.2\.0-rc\.4», attesa «2\.2\.0~rc\.4»/); });
 test('publish-release: la stabile senza .deb si ferma, con il .deb si pubblica', async()=>{ const a=await check('2.2.0'); assert.equal(a.code,1); assert.match(a.out,/Mancano: Linux \.deb/);
   const b=await check('2.2.0',{deb:true}); assert.equal(b.code,0,b.out); });
-test('publish-release: .app.tar.gz di un\'altra versione (commento firmato) → si ferma', async()=>{ const r=await check('2.2.0-rc.4',{macVer:'2.2.0-rc.3'}); assert.equal(r.code,1,r.out);
+test('publish-release: .app.tar.gz di un\'altra versione (commento firmato) → si ferma', async()=>{ const r=await check('2.2.0-rc.4',{deb:true, macVer:'2.2.0-rc.3'}); assert.equal(r.code,1,r.out);
   assert.match(r.out,/darwin-aarch64: pacchetto della versione 2\.2\.0-rc\.3, non 2\.2\.0-rc\.4/); });
-test('publish-release: note della rc con le novità della stabile, file per sistema, guida e avvisi', async()=>{ const r=await check('2.2.0-rc.4'); assert.equal(r.code,0,r.out); const n=r.notes; assert.ok(n,'note scritte');
+test('publish-release: note della rc con le novità della stabile, file per sistema, guida e avvisi', async()=>{ const r=await check('2.2.0-rc.4',{deb:true}); assert.equal(r.code,0,r.out); const n=r.notes; assert.ok(n,'note scritte');
   assert.match(n,/stesse novità elencate sotto/); assert.match(n,/Novità della stabile: app desktop/); assert.ok(n.indexOf('elencate sotto')<n.indexOf('Novità della stabile'));
   assert.ok(!/Vecchia|Correzioni/.test(n),'solo le sezioni giuste');
   assert.match(n,/\[docs\/INSTALLAZIONE\.md\]\(https:\/\/github\.com\/lorebiri\/acchiappaspettri\/blob\/v2\.2\.0-rc\.4\/docs\/INSTALLAZIONE\.md\)/);
   assert.match(n,/Windows 10\/11\*\* → `Acchiappaspettri_2\.2\.0-rc\.4_x64-setup\.exe`/); assert.match(n,/Mac Apple Silicon\*\*.* → `Acchiappaspettri_2\.2\.0-rc\.4_aarch64\.dmg`/);
-  assert.match(n,/Mac Intel\*\* → `Acchiappaspettri_2\.2\.0-rc\.4_x64\.dmg`/); assert.match(n,/Linux\*\* → `Acchiappaspettri_2\.2\.0-rc\.4_amd64\.AppImage`/);
+  assert.match(n,/Mac Intel\*\* → `Acchiappaspettri_2\.2\.0-rc\.4_x64\.dmg`/); assert.match(n,/Linux\*\* → `Acchiappaspettri_2\.2\.0-rc\.4_amd64\.AppImage` o · or `Acchiappaspettri_2\.2\.0-rc\.4_amd64\.deb`/);
   assert.match(n,/SmartScreen.*«Ulteriori informazioni».*«Esegui comunque»/); assert.match(n,/Gatekeeper.*«Apri comunque»/);
-  assert.ok(!/allow-downgrades/.test(n)); });
+  assert.ok(!/allow-downgrades/.test(n));
+  // ciclo 26: prima il file da scaricare, poi gli avvisi (Edge → SmartScreen → Avviso di sicurezza, Smart App Control, Avast/AVG), poi le novità
+  const at=re=>{ const m=re.exec(n); assert.ok(m, 'manca '+re); return m.index; };
+  assert.ok(n.startsWith('### Quale file scaricare'), 'la pagina non comincia dal file da scaricare'); assert.ok(at(/Quale file scaricare/)<at(/\*\*Edge\*\*/));
+  assert.ok(at(/\*\*Edge\*\*/)<at(/\*\*SmartScreen\*\*/) && at(/\*\*SmartScreen\*\*/)<at(/\*\*Avviso di sicurezza\*\*/), 'ordine degli avvisi');
+  assert.ok(at(/Smart App Control/)<at(/Novità · What's new/) && at(/Avast \/ AVG/)<at(/Novità · What's new/)); assert.ok(at(/Avviso di sicurezza/)<at(/stesse novità elencate sotto/));
+  assert.match(n,/%LOCALAPPDATA%\\Acchiappaspettri\\acchiappaspettri\.exe/); assert.match(n,/Source code \(zip\)/); });
 test('publish-release: solo la 2.2.0 stabile spiega l\'installazione sopra una rc dal .deb', async()=>{ const a=await check('2.2.0',{deb:true}); assert.equal(a.code,0,a.out);
   assert.match(a.notes,/sudo apt install --allow-downgrades \.\/Acchiappaspettri_2\.2\.0_amd64\.deb/); assert.match(a.notes,/Linux\*\* → `Acchiappaspettri_2\.2\.0_amd64\.AppImage` o · or `Acchiappaspettri_2\.2\.0_amd64\.deb`/);
   const b=await check('2.2.1',{deb:true}); assert.equal(b.code,0,b.out); assert.ok(!/allow-downgrades/.test(b.notes)); });
 
 /* ---------- configurazione della pipeline ---------- */
 const rd=f=>fs.readFileSync(path.join(root,f),'utf8');
-test('release.yml: niente .deb per i tag pre-release, .deb per le stabili', ()=>{ const y=rd('.github/workflows/release.yml');
-  assert.match(y,/args: \$\{\{ contains\(github\.ref_name, '-'\) && matrix\.args_pre \|\| matrix\.args \}\}/);
-  assert.match(y,/ubuntu-22\.04, args: "--bundles appimage,deb", args_pre: "--bundles appimage" \}/); });
-test('release.yml: l\'elenco delle librerie Linux dice in testa che è l\'elenco completo della macchina', ()=>{ const y=rd('.github/workflows/release.yml');
-  assert.match(y,/echo "# Pacchetti Ubuntu 22\.04 installati sulla macchina che ha costruito l'AppImage: elenco completo/); });
+test('release.yml: .deb anche per le prove, con la versione Debian riscritta in X~rc.N e la firma rifatta', ()=>{ const y=rd('.github/workflows/release.yml');
+  assert.match(y,/ubuntu-22\.04, args: "--bundles appimage,deb" \}/); assert.doesNotMatch(y,/args_pre/);
+  const i=y.indexOf('node scripts/deb-version.js "$deb" "$GITHUB_REF_NAME"'), j=y.indexOf('node scripts/check-packages.js'); assert.ok(i>0 && i<j, 'riscrittura prima del controllo dei pacchetti');
+  assert.match(y,/npx tauri signer sign "\$deb"/); assert.match(y,/gh release upload "\$GITHUB_REF_NAME" "\$\{up\[@\]\}" --clobber/); });
+test('release.yml: l\'elenco delle librerie Linux viene dalle librerie dell\'AppImage (dpkg -S), non da tutta la macchina', ()=>{ const y=rd('.github/workflows/release.yml');
+  assert.match(y,/node scripts\/linux-libs-tsv\.js/); assert.doesNotMatch(y,/elenco completo/); });
 test('ci.yml: una modifica a THIRD-PARTY-NOTICES.md (dentro i pacchetti) fa girare la CI', ()=>{ const y=rd('.github/workflows/ci.yml'), m=/paths: (\[.*\])/.exec(y);
   const p=JSON.parse(m[1]); assert.ok(p.indexOf('THIRD-PARTY-NOTICES.md')>p.indexOf('!**.md'), m[1]); });
 test('desktop.js: con una risposta in errore dell\'updater non si dice che non c\'è nessuna versione, e niente compare() inutilizzata', ()=>{ const s=rd('app/desktop.js');

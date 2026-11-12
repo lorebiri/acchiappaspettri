@@ -35,7 +35,7 @@ Cu 86,3 · Sn 8,3 · Pb 5,4
 
 Come accorgersene:
 - il riquadro in alto a destra sul grafico scrive **(As?)**: l'arsenico è possibile ma non sicuro;
-- nella sezione **🩺 Controllo dello spettro** (*app desktop:* scheda **Controllo del dato** sotto il grafico) il programma segnala segnali non elencati, tra cui uno a **8,63 keV**: è la riga Kα dello zinco, nascosta tra le due righe del rame.
+- nella sezione **🩺 Controllo del dato** (*app desktop:* scheda **Controllo del dato** sotto il grafico) il programma segnala segnali non elencati, tra cui uno a **8,63 keV**: è la riga Kα dello zinco, nascosta tra le due righe del rame.
 
 Aggiungi gli elementi: nella riga **Elementi:** premi **Zn** e poi **As**. Il pulsante diventa blu e il calcolo riparte.
 

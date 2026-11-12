@@ -887,5 +887,7 @@
 "⛔ Da controllare:": "⛔ To check:",
 "{0} Da controllare:": "{0} To check:",
 "una riga di testo interrompe i dati in «{0}»": "a line of text interrupts the data in «{0}»",
-"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
+"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read",
+"🩺 Controllo del dato": "🩺 Data check",
+"Il progetto è integro, ma nessuno dei suoi spettri si può leggere: i file originali che contiene non sono in un formato riconosciuto o hanno troppo pochi punti. I dati già caricati non sono stati toccati.": "The project file is intact, but none of its spectra can be read: the original files it contains are not in a recognised format or have too few points. The data already loaded were not touched."
 }

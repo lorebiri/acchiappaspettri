@@ -82,6 +82,6 @@ html.web #mvOut .areawrap{overflow-x:auto}
 /* il pannello è largo circa 440 px anche a 1366–1920: testi a capo, ruolo sotto la concentrazione, così la stima ± IC si vede senza scorrere */
 html.web #mvOut .areatab{min-width:0;width:100%}
 html.web #mvOut .areatab th,html.web #mvOut .areatab td{white-space:normal;padding:6px 6px}
-html.web #mvOut .areatab td:first-child{overflow-wrap:anywhere;min-width:8.5em}
+html.web #mvOut .areatab td:first-child{overflow-wrap:break-word;min-width:8.5em}   /* break-word, non anywhere: si va a capo ai <wbr> di escName, non a metà del nome */
 html.web #mvOut .areatab .concin{width:5.5em}
 html.web #mvOut .areatab .rolein{display:block;margin:3px 0 0 auto}

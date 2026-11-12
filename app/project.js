@@ -9,7 +9,8 @@
     'not-a-project':'Questo file non è un progetto di Acchiappaspettri.', 'empty':'Il file del progetto è vuoto.', 'corrupted':'Il file del progetto è danneggiato e non si può aprire. I dati già caricati non sono stati toccati.',
     'integrity':'Il file del progetto è danneggiato: un dato non corrisponde alla sua impronta di controllo. Non l\'ho aperto per non mostrarti numeri sbagliati.', 'missing-entry':'Nel file del progetto manca una parte necessaria: è incompleto o danneggiato.',
     'invalid-json':'Il file del progetto contiene dati illeggibili.', 'invalid-schema':'Il file del progetto contiene dati non validi.', 'unsafe-path':'Il file contiene percorsi non sicuri e non è stato aperto.',
-    'too-large':'Il file del progetto è troppo grande per essere aperto in sicurezza.', 'newer-format':'Questo progetto è stato salvato con una versione più recente di Acchiappaspettri: aggiorna l\'applicazione per aprirlo.', 'no-migration':'Non riesco a convertire questo progetto dalla sua versione del formato.', 'no-zip':'Manca la libreria per leggere i progetti: ricarica la pagina.'
+    'too-large':'Il file del progetto è troppo grande per essere aperto in sicurezza.', 'newer-format':'Questo progetto è stato salvato con una versione più recente di Acchiappaspettri: aggiorna l\'applicazione per aprirlo.', 'no-migration':'Non riesco a convertire questo progetto dalla sua versione del formato.', 'no-zip':'Manca la libreria per leggere i progetti: ricarica la pagina.',
+    'no-spectra':'Il progetto è integro, ma nessuno dei suoi spettri si può leggere: i file originali che contiene non sono in un formato riconosciuto o hanno troppo pochi punti. I dati già caricati non sono stati toccati.'
   };
   let name=null, path=null, createdAt=null, baseline=null, busy=false, sigTimer=null;
   const listeners=[];
@@ -100,7 +101,8 @@
       const ents=P.spectra.map(s=>({file:new File([s.bytes], s.name), path:s.path}));
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
-      if (ents.length && !files.length) throw new (F().ProjectError)('corrupted','nessuno spettro leggibile');
+      // contenitore valido (impronte verificate) ma nessuno spettro leggibile: non è un file danneggiato, e il messaggio lo dice
+      if (ents.length && !files.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
       const lost=ents.length-files.length;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));

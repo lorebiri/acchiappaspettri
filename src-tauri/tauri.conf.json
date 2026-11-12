@@ -89,7 +89,9 @@
     "publisher": "Lorenzo Birindelli",
     "resources": {
       "../LICENSE": "LICENSE",
-      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
+      "../dist-desktop/licenze/LICENSE.txt": "LICENSE.txt",
+      "../dist-desktop/licenze/THIRD-PARTY-NOTICES.txt": "THIRD-PARTY-NOTICES.txt"
     },
     "license": "GPL-3.0-or-later"
   },
