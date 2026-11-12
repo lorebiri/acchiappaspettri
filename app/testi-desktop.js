@@ -116,6 +116,12 @@
   /* Novità del desktop, scritte per il desktop. Le versioni che non sono qui usano quelle online ripulite (vedi novita()). */
   const ICON='<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1.5 13.5h13M3 13.5C5.5 13.5 6 3 8 3s2.5 10.5 5 10.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
   const NOVITA={
+    '3.0':[
+      ['Dialoghi di sistema', 'Tutte le scelte di file usano i dialoghi del sistema, aperti nell\'ultima cartella usata; trascinamento nativo di file e cartelle.', 'System dialogs', 'All file choices use the system dialogs, opened in the last folder used; native drag and drop of files and folders.'],
+      ['Interfaccia professionale', 'Testi sobri, senza simboli decorativi; la finestra compare già pronta.', 'Professional interface', 'Sober wording without decorative symbols; the window appears ready.'],
+      ['Controllo dei dati', 'Separatore delle migliaia riconosciuto anche con valori oltre 1000; assi che tornano indietro letti come blocchi separati; nuovi avvisi HPLC.', 'Data checks', 'Thousands separator recognised also with values above 1000; axes turning back read as separate blocks; new HPLC warnings.'],
+      ['Analisi', 'Zone di fondo scelte per il doppio integrale EPR, con la provenienza nei risultati; avvisi su picchi negativi NMR e su As/Pb in XRF; PDF con simboli leggibili.', 'Analysis', 'User-chosen background zones for the EPR double integral, with the source in the results; warnings for negative NMR peaks and As/Pb in XRF; PDF with readable symbols.'],
+    ],
     '2.2':[
       ['Applicazione desktop', 'Applicazione per Windows, macOS e Linux: funziona senza connessione e installa gli aggiornamenti firmati solo dopo conferma.', 'Desktop application', 'Application for Windows, macOS and Linux: it works offline and installs signed updates only after confirmation.'],
       ['Controllo dei dati importati', 'Segnalazione di righe non lette, separatori delle migliaia e tabelle dopo i dati. In «Dati» si sceglie la colonna Y, si trasforma l\'asse X con scala e spostamento e si modificano le etichette degli assi.', 'Checks on imported data', 'Unread rows, thousands separators and tables after the data are reported. In «Data» you can choose the Y column, transform the X axis with scale and offset, and edit the axis labels.', ()=>{ if (files.length){ go(2); openTab('zone'); } }],

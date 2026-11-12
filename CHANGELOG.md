@@ -1,5 +1,22 @@
 # Novità delle versioni
 
+## 3.0.0-rc.1
+
+Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Contiene la prima tappa della 3.0.0 (correzioni dei collaudi e desktop professionale); le altre funzioni della 3.0.0 arrivano nelle prove successive.
+
+## 3.0.0
+
+- Desktop professionale: testi sobri da software scientifico, senza mascotte, emoji, esclamazioni né coriandoli; Novità proprie; nessun riferimento al browser. La versione online non cambia.
+- Desktop: «Aggiungi spettri» e tutte le scelte di file usano i dialoghi del sistema (prima su Windows la finestra si bloccava); i dialoghi si aprono nell'ultima cartella usata per spettri, progetti ed esportazioni, altrimenti in Documenti; l'esportazione conferma solo dopo aver scritto il file; trascinamento nativo di file e cartelle; finestra mostrata già disegnata; Analisi → Preimpostazioni apre la sezione giusta. Lo stesso file caricato due volte insieme entra una volta sola.
+- Importazione: un asse con il separatore delle migliaia e tutti i valori ≥ 1000 («1,100» con la Y a punto decimale) dà ⛔; un asse di tempo o spettrale che torna indietro dallo stesso punto si legge come due blocchi; XRF .mca con energia negativa nella calibrazione letta per intero.
+- HPLC: avvisi per due segnali con un solo blocco e per un canale del nome diverso dall'intestazione; nomi uguali distinti dalla cartella; tabelle riassuntive non contate come canali; fattore di coda > 2 anche con un picco solo. CSV: nomi della libreria personale non più indicati come proposte.
+- Andamento: l'unità di x anche nella pendenza del CSV. Riga di Mandel, numero di pagine, intervalli di confidenza nel CSV, avviso con LOD = 0, S/N, piatti teorici e riepilogo corretti in inglese; avvisi al singolare.
+- EPR: zone di fondo scelte per il doppio integrale, con la provenienza nei risultati; avviso quando le ali della riga entrano nella base; niente ⛔ falso con una base curva. NMR: avviso sul picco negativo, «2H» nel nome non è più il deuterio, scala negativa per δ = σrif − σ, avviso sui bastoncini.
+- XRF: avviso As/Pb con pochi conteggi; testi tradotti; gli avvisi della stima restano segnati anche nel CSV e sul desktop.
+- PDF: cm⁻¹, ∞ e √ leggibili; font Unicode caricato solo quando serve.
+- Interfaccia: sezione «Controllo del dato» con un solo nome; avvisi, nomi dei file e menu dei canali leggibili sugli schermi stretti; riepilogo di Esporta intero a 720 px. Progetti: le voci della libreria non si duplicano più a ogni riapertura; un progetto integro con spettri illeggibili non viene più detto danneggiato.
+- Rilascio: pagina con il file da scaricare in cima e le istruzioni per Edge, SmartScreen, Smart App Control e Avast/AVG; .deb delle versioni di prova ordinati prima della stabile; licenze anche in .txt.
+
 ## 2.2.0-rc.4
 
 Versione di prova (release candidate) della 2.2.0, con le stesse novità elencate sotto e le correzioni del ciclo di collaudo 25. È una pre-release: non viene proposta agli utenti come aggiornamento ed esce senza il pacchetto .deb.

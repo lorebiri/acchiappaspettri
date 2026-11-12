@@ -947,5 +947,12 @@
 "zone di fondo scelte {0} mT": "chosen background zones {0} mT",
 "Le percentuali di area non lo contano.": "Area percentages do not count it.",
 "non affidabile (segnale nella base o valore negativo)": "not reliable (signal in the baseline or negative value)",
-"ali della riga nella base: sottostimato": "line wings in the baseline: underestimated"
+"ali della riga nella base: sottostimato": "line wings in the baseline: underestimated",
+"Dati controllati meglio": "Better checked data",
+"Ora ti avviso se un asse usa il separatore delle migliaia anche con valori sopra 1000 («1,100»). Un asse che torna indietro si legge come due blocchi, e per l'HPLC ti segnalo due segnali con un solo blocco o un canale del nome diverso dall'intestazione.": "I now warn you when an axis uses the thousands separator even with values above 1000 («1,100»). An axis that turns back is read as two blocks, and for HPLC I flag two signals with a single block or a channel in the file name that differs from the header.",
+"EPR e NMR più precisi": "More precise EPR and NMR",
+"Per il doppio integrale EPR puoi scegliere tu le zone di fondo, e ti avviso se le ali della riga entrano nella base. In NMR ti avviso quando un picco è negativo.": "For the EPR double integral you can choose the background zones yourself, and I warn you when the line wings reach the baseline. In NMR I warn you when a peak is negative.",
+"Esportazioni più pulite": "Cleaner exports",
+"Nel PDF cm⁻¹, ∞ e √ si leggono bene; nel CSV gli intervalli di confidenza stanno in due celle e la pendenza ha la sua unità.": "In the PDF cm⁻¹, ∞ and √ are readable; in the CSV confidence intervals are in two cells and the slope has its unit.",
+"Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.": "Folder too large: the first {0} files were loaded (limit 20,000 files and 16 subfolder levels). Drop the remaining subfolders one at a time."
 }

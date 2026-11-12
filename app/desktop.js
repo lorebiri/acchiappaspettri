@@ -58,7 +58,7 @@
       if (input.id==='openProjIn'){ await openDialog(); return; }   // così il progetto ricorda il suo percorso
       const folder=input.hasAttribute('webkitdirectory'), kind=PICK_KIND[input.id]||'other', ext=acceptExt(input), filt=ext.length?{filterName:ext.map(e=>e.toUpperCase()).join(', '), extensions:ext}:{};
       let L;
-      if (folder) L=await inv('pick_folder',{title:tr('Scegli cartella'), kind});
+      if (folder) L=await inv('pick_folder',{title:tr('Scegli cartella'), kind}); if (folder) tooBig(L);
       else if (input.multiple) L=await inv('pick_many',Object.assign({title:tr('Scegli file'), kind},filt));
       else { const p=await inv('pick_open',Object.assign({title:tr('Scegli file'), kind, filterName:'', extensions:[]},filt)); L=p?[p]:[]; }
       if (!L || !L.length){ input.dispatchEvent(new Event('cancel')); return; }
@@ -91,7 +91,8 @@
   const dropBox=()=>document.getElementById('drop');
   try{ T.webview.getCurrentWebview().onDragDropEvent(ev=>{ const t=ev.payload && ev.payload.type, d=dropBox(); if (!d) return;
     if (t==='enter' || t==='over') d.classList.add('over'); else d.classList.remove('over'); }); }catch(e){ console.warn(e); }
-  T.event.listen('acch-dropped', async ev=>{ const L=(ev && ev.payload)||[]; if (!L.length) return;
+  const MAX_TREE=20000, tooBig=L=>{ if (L && L.length>=MAX_TREE) win.toast('⚠️ '+tr('Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.').replace('{0}', L.length)); };
+  T.event.listen('acch-dropped', async ev=>{ const L=(ev && ev.payload)||[]; if (!L.length) return; tooBig(L);
     try{ loader(true, 'Gino sta guardando cosa hai trascinato…', '', null); await frame();
       const got=await readPicked(L, true);
       const ents=got.map(g=>({file:g.file, path:g.p.rel||g.p.name}));
