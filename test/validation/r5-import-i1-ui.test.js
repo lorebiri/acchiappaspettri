@@ -49,7 +49,7 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
   test(`${W}: la tabella riassuntiva non è contata fra i canali (toast e «Controllo del dato»)`, async ()=>{
     const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['DAD.csv',F.canaliTabella]]);
     const tt=r.toasts.join(' | '); assert.match(tt, /contiene più di un canale: ho letto il canale «DAD1A 254 nm», altre 3000 righe/, tt);
-    const a=r.files[0].assess.join('\n'); assert.match(a, /blocco 1 di 2, il più lungo\); gli altri blocchi \(3000 righe\)/, a); assert.match(a, /Altre 5 righe di numeri, più brevi dei canali/, a);
+    const a=r.files[0].assess.join('\n'); assert.match(a, /blocco 1 di 2, il più lungo\); gli altri blocchi \(3000 righe\)/, a); assert.match(a, /Altre 5 righe di numeri, più brevi dei canali/, a); assert.doesNotMatch(a, /fuori dal blocco principale/, a);
     assert.deepStrictEqual(errors, []); await ctx.close(); });
   test(`${W}: fattore di coda > 2 segnalato anche con un picco solo`, async ()=>{
     const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['CODA.csv',F.coda]], ()=>{ const f=files[0], v=viewOf(f), up=upData(processed(f)); return chromMetrics(processed(f).xs, up.y, v.peaks.map(q=>({x:q.x}))).map(c=>c.tailing); });
@@ -58,7 +58,7 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
     assert.deepStrictEqual(errors, []); await ctx.close(); });
   test(`${W}: due scansioni FTIR: il «Controllo del dato» non parla di canale`, async ()=>{
     const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['FTIR.txt',F.ftirDue]]);
-    const a=r.files[0].assess.join('\n'); assert.match(a, /secondo blocco di dati sullo stesso asse \(1801 righe\), per esempio un'altra scansione/, a); assert.doesNotMatch(a, /canale/, a);
+    const a=r.files[0].assess.join('\n'); assert.match(a, /secondo blocco di dati sullo stesso asse \(1801 righe\), per esempio un'altra scansione/, a); assert.doesNotMatch(a, /canale/, a); assert.doesNotMatch(a, /fuori dal blocco principale/, 'il secondo blocco contato anche come tabella: '+a);
     assert.deepStrictEqual(errors, []); await ctx.close(); });
 }
 

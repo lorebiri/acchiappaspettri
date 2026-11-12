@@ -891,5 +891,7 @@
 "Il file contiene un secondo blocco di dati sullo stesso asse ({0} righe), per esempio un'altra scansione o un'altra misura: non è stato letto. Esportalo come file separato.": "The file contains a second data block on the same axis ({0} rows), for example another scan or another measurement: it was not read. Export it as a separate file.",
 "Altre {0} righe di numeri, più brevi dei canali, sono in genere tabelle riassuntive e non sono state usate.": "Another {0} rows of numbers, shorter than the channels, are usually summary tables and were not used.",
 "L'intestazione nomina {0} segnali ({1}), ma nel file c'è un solo blocco di dati: non so a quale segnale appartengano i numeri. Ho usato il canale «{2}»: controlla che sia quello giusto.": "The header names {0} signals ({1}), but the file contains only one data block: I cannot tell which signal the numbers belong to. I used channel «{2}»: check that it is the right one.",
-"Il nome del file indica il canale «{0}», l'intestazione «{1}»: ho usato quello dell'intestazione. Controlla che il file sia quello giusto.": "The file name indicates channel «{0}», the header «{1}»: I used the one in the header. Check that this is the right file."
+"Il nome del file indica il canale «{0}», l'intestazione «{1}»: ho usato quello dell'intestazione. Controlla che il file sia quello giusto.": "The file name indicates channel «{0}», the header «{1}»: I used the one in the header. Check that this is the right file.",
+"dalla libreria personale": "from the personal library",
+"from the personal library": "from the personal library"
 }
