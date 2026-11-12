@@ -52,6 +52,8 @@ Con i file d'esempio devi ottenere questi valori (provati più volte, online e d
 
 Pendenza: 8,52e-4 ± 6,9e-5 per h, R² 0,975.
 
+La pendenza è «per h» perché in **Unità di x** hai scritto `h`: la stessa unità compare a schermo, nel PDF e nella riga «Andamento» del CSV. Se lasci la casella vuota, il programma scrive «per unità di x».
+
 Come leggerli:
 - **L'avviso ⚠️ a 0 ore è normale.** Il campione non è ancora ossidato: la banda non c'è e l'area è circa zero (qui un po' sotto lo zero, per il rumore). Il programma lo dice invece di dare un numero sicuro.
 - **A 100 ore la banda è appena sopra il rumore.** Il programma non dà avvisi, ma il valore è piccolo e incerto: non dargli troppo peso.

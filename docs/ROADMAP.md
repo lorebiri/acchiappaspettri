@@ -84,7 +84,7 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 |---|---|---|---|---|
 | 1 | Regioni d'integrazione NMR con numero di nuclei (riusa la misura di banda) | NMR | O | giorni |
 | 2 | Lettura BES3T 1D e Bruker `1r` con `procs`, conservando guadagno e potenza | NMR/EPR | P | giorni ciascuno |
-| 3 | Incertezza del doppio integrale da zone di fondo; controllo delle ali e della deriva | EPR | O | 1–2 settimane |
+| 3 | Incertezza del doppio integrale dalle zone di fondo | EPR | O | 1–2 settimane |
 | 4 | Integrazione manuale HPLC (inizio, fine, taglio) | HPLC, analitica | O | settimane |
 | 5 | Sequenze con repliche, diluizioni e più analiti per iniezione; bianco confrontato con il LOD | HPLC, analitica | O | settimane |
 | 6 | Avviso se standard e campioni hanno elaborazioni diverse | analitica | O | giorni |

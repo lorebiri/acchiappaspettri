@@ -342,6 +342,7 @@ body.busy, body.busy *{cursor:progress !important}
 .opt-l{font-weight:400;color:var(--muted);font-size:12.5px}
 .slider{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);max-width:560px}
 .slider input{flex:1;accent-color:var(--accent)}
+.fpwarn{color:#5c4300;font-weight:600;border-left:3px solid #f1d39b;padding-left:6px}
 .signote{margin-top:10px;background:#fff8e6;border:1px solid #f1d39b;color:#5c4300;border-radius:12px;padding:10px 12px;font-size:13.5px;max-width:80ch}
 .signote b{color:#3d2c00}
 .chanlab{margin:4px 12px 0 0;display:inline-flex;max-width:100%;min-width:0;vertical-align:top}.chanlab>span{overflow-wrap:break-word;min-width:0}.chanlab .chanin{max-width:min(280px,100%);min-width:0}
@@ -3640,7 +3641,15 @@ function amideI(xs, yA){   // xs crescenti, yA in assorbanza (picchi in su)
 }
 
 /* ---- EPR: doppio integrale (proporzionale al numero di spin) ---- */
-function eprDoubleIntegral(B, y){
+// zone di fondo scelte dall'utente (1 o 2 intervalli di campo, lontani dalla riga): base costante con una zona, retta dei minimi quadrati con due.
+// Senza zone il calcolo resta quello di sempre (finestre del 5% agli estremi)
+function eprZoneIdx(B, zones){ if (!Array.isArray(zones)) return null; const Z=zones.filter(z=>Array.isArray(z) && isFinite(z[0]) && isFinite(z[1]) && z[0]!==z[1]).slice(0,2).map(z=>{ const lo=Math.min(z[0],z[1]), hi=Math.max(z[0],z[1]), ks=[]; for (let k=0;k<B.length;k++) if (B[k]>=lo && B[k]<=hi) ks.push(k); return ks; });
+  return Z.length && Z.every(ks=>ks.length>=3) ? Z : null; }
+function eprBaseFit(ks, v){ const all=[].concat(...ks), m=all.length; let sk=0, sv=0; for (const k of all){ sk+=k; sv+=v(k); } const km=sk/m, vm=sv/m; if (ks.length<2) return k=>vm;
+  let sxy=0, sxx=0; for (const k of all){ sxy+=(k-km)*(v(k)-vm); sxx+=(k-km)*(k-km); } const b=sxx>0?sxy/sxx:0; return k=>vm+b*(k-km); }
+function eprDoubleIntegral(B, y, zones){
+  const Z=eprZoneIdx(B, zones); if (Z){ const n=y.length, f1=eprBaseFit(Z, k=>y[k]), I=new Float64Array(n); for (let k=1;k<n;k++) I[k]=I[k-1]+0.5*(y[k]-f1(k)+y[k-1]-f1(k-1))*(B[k]-B[k-1]);
+    const f2=eprBaseFit(Z, k=>I[k]), abs=Float64Array.from(I, (v,k)=>v-f2(k)); let DI=0; for (let k=1;k<n;k++) DI+=0.5*(abs[k]+abs[k-1])*(B[k]-B[k-1]); return {di:DI, abs, zones:true}; }
   const n=y.length; if (n<20) return null; const e=Math.max(2, Math.round(n*0.05)), avg=(a,b)=>{ let s=0; for (let k=a;k<b;k++) s+=y[k]; return s/(b-a); };
   const k0=(e-1)/2, k1=n-1-k0, y0=avg(0,e), y1=avg(n-e,n), c=k=>y[k]-(y0+(y1-y0)*(k-k0)/(k1-k0));   // le medie valgono al centro delle finestre
   const I=new Float64Array(n); for (let k=1;k<n;k++) I[k]=I[k-1]+0.5*(c(k)+c(k-1))*(B[k]-B[k-1]);
@@ -3657,13 +3666,43 @@ function eprSingleIntegral(B, y){ const n=y.length, e=Math.max(2,Math.round(n*0.
 
 // segnale negli estremi usati come base del doppio integrale: dopo la retta tra le medie delle due finestre una finestra pulita è piatta;
 // se la sua pendenza propria supera 5 σ (rumore) e lo 0,2 % del picco-picco, la riga entra nella base e il DI è sbagliato (anche di segno)
-function eprEdgeSignal(B, y){
+function eprEdgeSignal(B, y, zones){
+  // zone scelte dall'utente: c'è segnale se dentro una zona la pendenza propria (tolta la base delle zone) supera la soglia
+  { const Z=eprZoneIdx(B, zones); if (Z){ const sg=noiseSigma(y); let mx=-Infinity, mn=Infinity; for (const v of y){ if (v>mx) mx=v; if (v<mn) mn=v; } const fb=eprBaseFit(Z, k=>y[k]);
+      const bad=Z.map(ks=>{ const e=ks.length, m=ks.reduce((t,k)=>t+k,0)/e, r=k=>y[k]-fb(k), rm=ks.reduce((t,k)=>t+r(k),0)/e; let sxy=0, sxx=0; for (const k of ks){ sxy+=(k-m)*(r(k)-rm); sxx+=(k-m)*(k-m); } return Math.abs(sxy/sxx)*(e-1) > Math.max(5*sg*Math.sqrt(12/e), 0.002*(mx-mn)); });
+      return {left:bad[0], right:!!bad[1], edge:bad.some(Boolean), zones:true}; } }
   const n=y.length; if (n<20) return null; const e=Math.max(2, Math.round(n*0.05)), sg=noiseSigma(y); let mx=-Infinity, mn=Infinity; for (const v of y){ if (v>mx) mx=v; if (v<mn) mn=v; }
   if (!(mx>mn) || !isFinite(mx-mn)) return null;
   const mean=(a,b)=>{ let s=0; for (let k=a;k<b;k++) s+=y[k]; return s/(b-a); }, slope=(a,b)=>{ const m=(a+b-1)/2, ym=mean(a,b); let sxy=0, sxx=0; for (let k=a;k<b;k++){ sxy+=(k-m)*(y[k]-ym); sxx+=(k-m)*(k-m); } return sxy/sxx; };
-  const k0=(e-1)/2, k1=n-1-k0, ch=(mean(n-e,n)-mean(0,e))/(k1-k0), L=Math.abs(slope(0,e)-ch)*(e-1), R=Math.abs(slope(n-e,n)-ch)*(e-1);
+  const k0=(e-1)/2, k1=n-1-k0, ch=(mean(n-e,n)-mean(0,e))/(k1-k0); let L=Math.abs(slope(0,e)-ch)*(e-1), R=Math.abs(slope(n-e,n)-ch)*(e-1);
+  // una base curva (parabola comune alle due finestre) non sposta il doppio integrale: la sua parte pari si annulla per simmetria.
+  // Prima dava ⛔ «segnale agli estremi» (ciclo 26): ora conta solo ciò che una parabola non spiega
+  { const c=(n-1)/2, ks=[]; for (let k=0;k<e;k++) ks.push(k); for (let k=n-e;k<n;k++) ks.push(k);
+    const M=[[0,0,0],[0,0,0],[0,0,0]], v=[0,0,0]; for (const k of ks){ const t=(k-c)/c, b=[1,t,t*t]; for (let i=0;i<3;i++){ v[i]+=b[i]*y[k]; for (let j=0;j<3;j++) M[i][j]+=b[i]*b[j]; } }
+    const det=A=>A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1])-A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0])+A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0]), D=det(M);
+    if (Math.abs(D)>1e-300){ const q=[0,1,2].map(i=>det(M.map((r,a)=>r.map((x,j)=>j===i?v[a]:x)))/D), res=k=>{ const t=(k-c)/c; return y[k]-(q[0]+q[1]*t+q[2]*t*t); };
+      const rs=(a,b)=>{ const m=(a+b-1)/2; let r=0, sxy=0, sxx=0; for (let k=a;k<b;k++) r+=res(k); r/=(b-a); for (let k=a;k<b;k++){ sxy+=(k-m)*(res(k)-r); sxx+=(k-m)*(k-m); } return Math.abs(sxy/sxx)*(e-1); };
+      L=Math.min(L, rs(0,e)); R=Math.min(R, rs(n-e,n)); } }
   const lim=Math.max(5*sg*Math.sqrt(12/e), 0.002*(mx-mn)); return {left:L>lim, right:R>lim, edge:L>lim||R>lim};
 }
+// ali della riga nelle finestre di base: una riga con ali lunghe (lorentziana) vicina alle finestre perde area nella base senza ⛔
+// (lorentziana a ±10 semilarghezze: 82% del vero). Ali lunghe = derivata ancora oltre l'1% del picco a 3 larghezze picco-picco dal centro;
+// avviso se la perdita stimata supera il 2%
+function eprWings(B, y, zones){
+  const n=y.length; if (n<20) return null; let a=0, b=0; for (let k=1;k<n;k++){ if (y[k]>y[a]) a=k; if (y[k]<y[b]) b=k; }
+  const pp=y[a]-y[b], dB=Math.abs(B[a]-B[b]), Bc=(B[a]+B[b])/2; if (!(pp>0) || !(dB>0)) return null;
+  // prima si toglie la retta tra le medie delle finestre estreme (offset e deriva)
+  const e5=Math.max(2, Math.round(n*0.05)), m0=y.slice(0,e5).reduce((t,v)=>t+v,0)/e5, m1=y.slice(n-e5).reduce((t,v)=>t+v,0)/e5, k0=(e5-1)/2, k1=n-1-k0, ch=k=>m0+(m1-m0)*(k-k0)/(k1-k0);
+  const at=x=>{ let k=0; while (k<n-1 && (B[k]-x)*(B[0]<B[n-1]?1:-1)<0) k++; return y[k]-ch(k); }, lo=Math.min(B[0],B[n-1]), hi=Math.max(B[0],B[n-1]);
+  if (Bc-3*dB<lo || Bc+3*dB>hi) return {lor:false, warn:false};
+  // parte antisimmetrica a 3 e 6 larghezze: una deriva lineare raddoppia, l'ala lorentziana scende di 8 volte; si toglie la deriva
+  const T3=(at(Bc-3*dB)-at(Bc+3*dB))/2, T6=Bc-6*dB>=lo && Bc+6*dB<=hi ? (at(Bc-6*dB)-at(Bc+6*dB))/2 : null, tail=Math.abs(T6==null ? T3 : (2*T3-T6)*8/15);
+  const sg=noiseSigma(y), lor=tail>0.01*pp && tail>5*sg, w=dB*Math.sqrt(3)/2;
+  let inL=lo, inR=hi; const Z=eprZoneIdx(B, zones);
+  if (Z){ const ed=Z.map(ks=>[Math.min(B[ks[0]],B[ks[ks.length-1]]), Math.max(B[ks[0]],B[ks[ks.length-1]])]); const L=ed.filter(e=>e[1]<=Bc), R=ed.filter(e=>e[0]>=Bc); inL=L.length?Math.max(...L.map(e=>e[1])):-Infinity; inR=R.length?Math.min(...R.map(e=>e[0])):Infinity; }   // con una zona sola il lato senza zona conta solo per il troncamento
+  else { const e=Math.max(2, Math.round(n*0.05)), d=(hi-lo)*e/(n-1); inL=lo+d; inR=hi-d; }
+  // perdita stimata per una lorentziana ≈ 0,75·w·L/R² (L = larghezza della scansione), tarata su ±10, ±40, ±100 semilarghezze e su una riga fuori centro
+  const R=Math.min(Bc-inL, inR-Bc), loss=R>0 ? 0.75*w*(hi-lo)/(R*R) + (Z ? w/Math.PI*(1/(Bc-lo)+1/(hi-Bc)) : 0) : 1; return {lor, w, R, loss, warn: lor && loss>0.02}; }
 // frequenza delle microonde (GHz) dall'intestazione; la virgola decimale degli export europei («MWFQ 9,400000e9») vale come punto
 function eprFreqFromHead(head){
   const num=s=>{ s=String(s).replace(/[.,]+$/,''); s = /,.*,/.test(s) || /,.*\.|\..*,/.test(s) ? s.replace(/,/g,'') : s.replace(',', '.'); return toNum(s); }; let m;
@@ -4448,7 +4487,8 @@ function postDetect(f, p){
   // la conversione fatta resta in f.eprConv per l'avviso in «Controllo del dato»
   f.eprConv=null;
   if (f.instr==='epr' && (!p.epr || p.epr.unitK==null) && !/\bmT\b/.test(head)){ const c=eprFieldUnitK(f.xs, f.ys, f.freqH); if (c.k!==1) f.xs=f.xs0=Float64Array.from(f.xs, v=>v*c.k); f.eprConv=c; }
-  const nm=/(?:^|[^a-z0-9])(1H|H1|13C|C13|29Si|31P|27Al|15N|19F|2H|11B)(?:[^a-z0-9]|$)/i.exec(head);
+  // «2H» nel nome del file è quasi sempre una durata («campione_2h»): vale come deuterio solo nell'intestazione o accanto a «NMR»
+  const nucRe=/(?:^|[^a-z0-9])(1H|H1|13C|C13|29Si|31P|27Al|15N|19F|2H|11B)(?:[^a-z0-9]|$)/i, nm=nucRe.exec(meta.join('\n')) || f.name.split(/[^a-z0-9]+/i).map(t=>nucRe.exec(t)).find(q=>q && (q[1].toUpperCase()!=='2H' || /2H[\s_-]*NMR|NMR[\s_-]*2H|deuter/i.test(f.name)));
   if (nm){ const t=nm[1].toUpperCase(); f.nucH = ({H1:'1H',C13:'13C'})[t] || t.replace(/^(\d+)([A-Z])([A-Z]?)$/, (q,a,b,c)=>a+b+(c||'').toLowerCase()); }
   if ((m=/(?:^|[^a-z])ex(?:citation)?[\s_:=-]*(?:wl|wavelength|λ)?[\s_:=-]*(\d{3}(?:[.,]\d+)?)/i.exec(head))) f.lexH=toNum(m[1].replace(',', '.'));
   f.endoH = /endo\s*up|pyris|perkin/i.test(head) ? 'up' : 'down';
@@ -4487,7 +4527,8 @@ function bindAxisFields(){
   $('#pBmSel').onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,'pBm',e.target.value||null); redo(f); };
   document.querySelector('#tabs [data-tab="proc"]').addEventListener('click',sync);
   $('#ycolSel').onchange=e=>{ const f=cur1(); if (!f) return; const c=+e.target.value; anSet(f,'ycol',c>1?c:null); applyYCol(f,c); persist(f); syncDerived(f); refreshAll(); };
-  $('#axApply').onclick=()=>{ const f=cur1(); if (!f) return; const b=numIn($('#axB').value), a=numIn($('#axA').value), B=b==null?1:b, A=a==null?0:a; if (f.instr==='xrf' ? !(B>=0.9&&B<=1.1) : !(B>=1e-4&&B<=1e4)){ toast(f.instr==='xrf'?'⚠️ La scala deve stare tra 0,9 e 1,1.':'⚠️ La scala deve stare tra 0,0001 e 10000.'); return; } pkSnap(f); setEcal(f,(B===1&&A===0)?null:{a:A,b:B}); persist(f); syncDerived(f); refreshAll(); sync(); };
+  // la scala può essere negativa: schermature GIAO → spostamenti chimici (δ = σ_rif − σ)
+  $('#axApply').onclick=()=>{ const f=cur1(); if (!f) return; const b=numIn($('#axB').value), a=numIn($('#axA').value), B=b==null?1:b, A=a==null?0:a; if (f.instr==='xrf' ? !(B>=0.9&&B<=1.1) : !(Math.abs(B)>=1e-4&&Math.abs(B)<=1e4)){ toast(f.instr==='xrf'?'⚠️ La scala deve stare tra 0,9 e 1,1.':'⚠️ La scala deve stare tra 0,0001 e 10000 (anche negativa, per esempio −1 per δ = σ_rif − σ).'); return; } pkSnap(f); setEcal(f,(B===1&&A===0)?null:{a:A,b:B}); persist(f); syncDerived(f); refreshAll(); sync(); };
   $('#axReset').onclick=()=>{ const f=cur1(); if (!f) return; pkSnap(f); setEcal(f,null); persist(f); syncDerived(f); refreshAll(); sync(); };
   for (const [id,k] of [['#axLX','axX'],['#axLY','axY']]) $(id).onchange=e=>{ const f=cur1(); if (!f) return; anSet(f,k,e.target.value.trim()||null); renderPreview(); };
   document.querySelector('#tabs [data-tab="zone"]').addEventListener('click',sync);
@@ -4498,7 +4539,7 @@ function setEcal(f, ec){
   const T = x => nw.a + nw.b*((x-old.a)/old.b);
   f.added=f.added.map(T); f.removed=f.removed.map(T);
   const nl={}; for (const [k,v] of Object.entries(f.labels)) nl[lblKey(T(+k))]=v; f.labels=nl;
-  if (f.xr) f.xr=f.xr.map(T);
+  if (f.xr) f.xr=f.xr.map(T).sort((a,b)=>a-b);   // con la scala negativa l'intervallo si rovescia
   if (f.an && f.an.nmrX!=null) f.an.nmrX=T(f.an.nmrX);
   if (f.inset){ f.inset.x=f.inset.x.map(T); f.inset.shape=f.inset.shape.map(([x,y])=>[T(x),y]); }
   f.ecal=ec||null; f.xs=f.ecal ? Float64Array.from(f.xs0, x=>nw.a+nw.b*x) : f.xs0;
@@ -4962,7 +5003,7 @@ async function addEntries(entries){
           if (typeof saved.refShow==='string') f.refShow=saved.refShow;
           f.an=cleanAn(saved.an); f.fit=cleanFit(saved.fit);
           syncDerived(f);
-          if (saved.ecal && isFinite(+saved.ecal.a) && isFinite(+saved.ecal.b) && (f.instr==='xrf' ? +saved.ecal.b>=0.9 && +saved.ecal.b<=1.1 : +saved.ecal.b>=1e-4 && +saved.ecal.b<=1e4)){ f.ecal={a:+saved.ecal.a, b:+saved.ecal.b}; f.xs=Float64Array.from(f.xs0, x=>f.ecal.a+f.ecal.b*x); }
+          if (saved.ecal && isFinite(+saved.ecal.a) && isFinite(+saved.ecal.b) && (f.instr==='xrf' ? +saved.ecal.b>=0.9 && +saved.ecal.b<=1.1 : Math.abs(+saved.ecal.b)>=1e-4 && Math.abs(+saved.ecal.b)<=1e4)){ f.ecal={a:+saved.ecal.a, b:+saved.ecal.b}; f.xs=Float64Array.from(f.xs0, x=>f.ecal.a+f.ecal.b*x); }
         }
         f.kind=kindOf(f);
         if (f.an && f.an.ycol>1 && !f.rawBin){ const keep=[f.removed,f.added,f.labels,f.fit]; applyYCol(f,f.an.ycol); [f.removed,f.added,f.labels,f.fit]=keep; }
@@ -6129,7 +6170,7 @@ function included(){
 }
 function renderSummary(){
   const inc=included(), ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0;
-  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov;
+  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length?pdfAnalysisPageCount():0);
   const zipParts=[];
   const ovPng = (S.outPng && S.cmpPng) ? ovAll : 0;
   if (S.outPng) zipParts.push(`${inc.length+ovPng} immagin${inc.length+ovPng===1?'e':'i'} PNG${ovPng?` (di cui ${ovPng} di confronto)`:''}`);
@@ -6143,7 +6184,7 @@ function renderSummary(){
   const items=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
   else {
-    items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b>${S.lang==='en'?'inglese':'italiano'}</b></li>`);
+    items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b data-noi18n>${uiEn()?(S.lang==='en'?'English':'Italian'):(S.lang==='en'?'inglese':'italiano')}</b></li>`);   // il nome della lingua nella lingua dell'interfaccia («plots in inglese»)
     if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 <span>${S.orient==='landscape'?'orizzontale':'verticale'}</span>, <span>${S.perPage===1?'1 grafico per pagina':S.perPage+' grafici per pagina'}</span>, <span>${pages===1?'circa 1 pagina':'circa '+pages+' pagine'}</span>${ov?`, <span>${ov===1?'1 pagina di confronto':ov+' pagine di confronto'}</span>`:''}</li>`);
     if (zipParts.length) items.push(S.oneFile && (S.outPdf||originAlone) ? `<li>🗜️ nello ZIP anche ${zipParts.join(', ')}</li>` : `<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
     if (originAlone) items.push('<li>📈 <b>1 file Excel per Origin</b>: un foglio per spettro e i fogli con gli spettri affiancati</li>');
@@ -6176,12 +6217,24 @@ function setReady(list){
 }
 // nomi dei file nello ZIP: al massimo 80 caratteri (e mai oltre 120 byte), perché Windows e macOS non estraggono nomi oltre 255 byte e al nome si aggiungono suffissi
 function safeName(s){ let t=String(s).replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').trim(); const cut=Array.from(t); if (cut.length>80) t=cut.slice(0,80).join('').trim()+'…'; while (new TextEncoder().encode(t).length>120) t=Array.from(t).slice(0,-2).join('')+'…'; return t || 'grafico'; }
-const PDF_MAP={'α':'a','β':'b','γ':'g','η':'n','ℓ':'l','ν':'v','δ':'d','λ':'lambda ','Φ':'Phi','Δ':'D','σ':'s','χ':'chi','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','⁴':'4','⁻':'-','≈':'~','≠':'!=','≥':'>=','≤':'<=','−':'-','✓':'v','✗':'x','⚠':'!','→':'->'};   // il font standard del PDF non ha greco e pedici
+const PDF_MAP={'α':'a','β':'b','γ':'g','η':'n','ℓ':'l','ν':'v','δ':'d','λ':'lambda ','Φ':'Phi','Δ':'D','σ':'s','χ':'chi','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','⁴':'4','⁻':'-','≈':'~','≠':'!=','≥':'>=','≤':'<=','−':'-','✓':'v','✗':'x','⚠':'!','→':'->','∞':'inf','√':'sqrt'};   // ∞ e √ prima diventavano «?»   // il font standard del PDF non ha greco e pedici
 // i caratteri WinAnsi (’ “ ” € • ‰ – … ² ³ ° µ ±) passano: jsPDF li codifica da sé per i font standard. Gli altri: lettera senza accento (č → c) o «?» (CJK, ł)
 const PDF_WIN=String.fromCharCode(0x2018,0x2019,0x201A,0x201C,0x201D,0x201E,0x2020,0x2021,0x2022,0x2026,0x2030,0x2039,0x203A,0x20AC,0x2122,0x0152,0x0153,0x0160,0x0161,0x0178,0x017D,0x017E,0x0192,0x02C6,0x02DC,0x2013,0x2014);
 // prefisso degli avvisi nel PDF: «!» online, una parola nel desktop
 function pdfWarn(){ return window.ACCH_SHELL ? (LANG==='en'?'WARNING: ':'AVVISO: ') : '! '; }
-function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); return String(s).replace(/⁻¹/g,'-1').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
+// «⁻¹» diventa «-¹» (¹ è nel font standard): pdfSup, al momento di scrivere, lo disegna come esponente «-1» rialzato e più piccolo
+// font Unicode (DejaVu Sans) caricato solo per i PDF con testi fuori da WinAnsi (č, ł, greco, CJK…): con il font il testo resta com'è
+let PDF_UNI=false; const PDF_FONT_URL='vendor/fonts/DejaVuSans.ttf';
+const pdfFits=t=>!/[^\x20-\x7E\xA0-\xFF·\n]/.test(String(t).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/[⁻¹₀-₉⁰⁴≈≠≥≤−✓✗→∞√αβγηℓνδλΦΔσχ]/g,'').split('').filter(c=>!PDF_WIN.includes(c)).join(''));
+// testi scritti dall'utente o presi dai file (nomi, titoli, etichette, descrizioni): sono loro a portare caratteri che il font standard non ha
+function pdfUserTexts(){ const inc=included(), out=[S.docTitle, S.docAuthor, S.docProject]; inc.forEach(f=>{ out.push(dispTitle(f), f.desc, f.path, f.name); Object.values(f.labels||{}).forEach(v=>out.push(v)); const mi=f.minfo||{}; out.push(mi.op, mi.inst); }); return out.filter(Boolean).map(String); }
+async function pdfUseUnicodeFont(doc){
+  if (pdfUserTexts().every(pdfFits)) return false;
+  try{ const r=await fetch(PDF_FONT_URL); if (!r.ok) return false; const u=new Uint8Array(await r.arrayBuffer()); let b=''; for (let i=0;i<u.length;i+=0x8000) b+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000));
+    doc.addFileToVFS('DejaVuSans.ttf', btoa(b)); for (const st of ['normal','bold','italic','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st);
+    const sf=doc.setFont.bind(doc); doc.setFont=(fam, st)=>sf(fam==='helvetica'?'DejaVu':fam, st); doc.setFont('helvetica','normal'); return true; }catch(e){ console.warn(e); return false; } }
+function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); if (PDF_UNI) return String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\uFE0F]/gu, c=>PDF_MAP[c]||'');
+  return String(s).replace(/⁻¹/g,'-\u00B9').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→∞√]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
   .replace(/[^\x20-\x7E\xA0-\xFF·]/gu, c=>{ if (PDF_WIN.includes(c)) return c; const b=c.normalize('NFD').replace(/[\u0300-\u036F]/g,''); return /^[\x20-\x7E\xA0-\xFF]+$/.test(b) ? b : '?'; }); }
 // metadati (Title, Subject, Author): jsPDF li scrive in UTF-16, quindi restano interi anche fuori da WinAnsi; si tolgono solo le emoji
 const pdfMeta = s => String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/\s+/g,' ').trim();
@@ -6429,11 +6482,20 @@ function bindRename(){
 }
 let pdfLibP=null;
 function ensurePdfLib(){ if (window.jspdf) return Promise.resolve(); return pdfLibP || (pdfLibP=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='vendor/jspdf.umd.min.js'; sc.onload=()=>res(); sc.onerror=()=>{ pdfLibP=null; sc.remove(); rej(new Error('jspdf')); }; document.head.appendChild(sc); })); }
+// esponenti «-¹» (da «cm⁻¹») scritti come «-1» rialzato e più piccolo; il resto del testo passa invariato
+function pdfSup(doc){ const txt=doc.text.bind(doc), SUP='-\u00B9';
+  doc.text=function(t, x, y, opt){ const one=l=>typeof l==='string' && l.includes(SUP);
+    if (!(one(t) || (Array.isArray(t) && t.some(one))) || (opt && opt.align && opt.align!=='left') || typeof x!=='number') return txt(t, x, y, opt);
+    const L=Array.isArray(t)?t:[t], fs=doc.getFontSize(), lh=(opt&&opt.lineHeightFactor||doc.getLineHeightFactor())*fs*25.4/72/doc.internal.scaleFactor*72/25.4;
+    L.forEach((l,i)=>{ const yy=y+i*lh; if (!one(l)){ txt(l, x, yy, opt); return; } let cx=x; l.split(SUP).forEach((part,k)=>{ if (k){ doc.setFontSize(fs*0.7); txt('-1', cx, yy-fs*0.3528*0.35); cx+=doc.getTextWidth('-1'); doc.setFontSize(fs); } if (part){ txt(part, cx, yy); cx+=doc.getTextWidth(part); } }); });
+    return doc; };
+  return doc; }
 async function buildPdf(){
   await ensurePdfLib();
   const { jsPDF } = window.jspdf, Lx=T_();
   const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10, G=5;
   const doc = new jsPDF({orientation:S.orient, unit:'mm', format:'a4', compress:true});
+  pdfSup(doc); PDF_UNI=await pdfUseUnicodeFont(doc);
   doc.setProperties({title:pdfMeta(S.docTitle || Lx.title), subject:pdfMeta(S.docProject || Lx.title), author:pdfMeta(S.docAuthor||''), creator:'', keywords:'spectra'});
   const inc=included(), [cols,rows]=gridFor(S.perPage,S.orient);
   const cw=(PW-2*M-(cols-1)*G)/cols, ch=(PH-2*M-8-(rows-1)*G)/rows;
@@ -6472,7 +6534,7 @@ async function buildPdf(){
       doc.setFont('helvetica','normal').setFontSize(8.5);
       doc.text(pdfText(Lx.nome[f.instr]), X[2], y);
       const P=processed(f);
-      doc.text(pdfText(`${fmtTick(P.xs[0],0)}–${fmtTick(P.xs[P.xs.length-1],0)} ${f.uncal?(LANG==='en'?'channel':'canale'):INSTR[f.instr].xPdf}`), X[3], y);
+      doc.text(pdfText(`${fmtTick(P.xs[0],0)}–${fmtTick(P.xs[P.xs.length-1],0)} ${f.uncal?(LANG==='en'?'channel':'canale'):INSTR[f.instr].xPdf.replace('cm-1','cm⁻¹')}`), X[3], y);
       if (pkL.length){ doc.setFontSize(7.5); doc.text(pkL, X[4], y); }
       doc.setDrawColor(235); doc.line(M, y+h-3, PW-M, y+h-3);
       y+=h;
@@ -6506,6 +6568,7 @@ async function buildPdf(){
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text(pdfText([title, date, S.docAuthor].filter(Boolean).join('  ·  ')), M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
   { const tot=doc.internal.getNumberOfPages(); for (let i=1;i<=tot;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(140); doc.text('Acchiappaspettri '+APP_VERSION_FULL(), doc.internal.pageSize.getWidth()/2, doc.internal.pageSize.getHeight()-2, {align:'center'}); } doc.setProperties({creator:'Acchiappaspettri '+APP_VERSION_FULL()}); }
+  PDF_UNI=false;
   return doc.output('blob');
 }
 
@@ -6693,6 +6756,15 @@ const pm = (v, s, d) => {   // valore ± incertezza, entrambi arrotondati alla c
   return v.toFixed(dec).replace('.',T_().dec)+' ± '+s.toFixed(dec).replace('.',T_().dec); };
 
 /* --- assistente: controllo di qualità con consigli tratti dalla letteratura --- */
+// bastoncini: pochi punti con passo molto irregolare, oppure più di metà dei valori esattamente zero con righe isolate (0, I, 0)
+function sticksLike(xs, ys){ const n=xs?xs.length:0; if (n<3 || n>5000) return false;
+  let z=0, iso=0; for (let i=0;i<n;i++){ if (ys[i]===0) z++; else if ((i===0||ys[i-1]===0) && (i===n-1||ys[i+1]===0)) iso++; }
+  if (z>=0.5*n && iso>=3 && iso>=0.8*(n-z)) return true;
+  if (n>500) return false; const d=[]; for (let i=1;i<n;i++) d.push(Math.abs(xs[i]-xs[i-1])); const m=d.slice().sort((a,b)=>a-b)[d.length>>1];
+  if (!(m>0)) return false; const odd=d.filter(v=>v>1.5*m||v<m/1.5).length; return Math.max(...d)>5*m && odd>=0.2*d.length; }
+// zone di fondo del doppio integrale EPR scelte dall'utente (f.an.eprZ1a…eprZ2b, salvate nel progetto): null se nessuna zona completa
+function eprZonesOf(f){ const a=f&&f.an||{}, z=[[a.eprZ1a,a.eprZ1b],[a.eprZ2a,a.eprZ2b]].filter(q=>q[0]!=null && q[1]!=null && isFinite(q[0]) && isFinite(q[1]) && q[0]!==q[1]); return z.length ? z : null; }
+const eprZonesTxt=(Z, en)=>Z ? (en?'chosen background zones ':'zone di fondo scelte ')+Z.map(z=>`${fmtN(Math.min(...z),2)}–${fmtN(Math.max(...z),2)}`).join(en?' and ':' e ')+' mT' : (en?'5% windows at the ends':'finestre del 5% agli estremi');
 function assess(f, d){
   const it=f.instr, P=processed(f), out=[], add=(lv, t, act)=>out.push({lv, t, act});
   const raw = f.kind==='T' ? transformY(f.ys,'T','A').ys : f.ys;
@@ -6709,19 +6781,29 @@ function assess(f, d){
   if (['libs','xrf'].includes(it) && !f.uncal && d.peaks.length>=5 && d.peaks.filter(p=>p.custom||(p.sugg&&p.sugg.length)).length<0.5*d.peaks.length) add('warn','Più di metà delle righe trovate non ha un\'assegnazione: forse l\'asse X è spostato, e gli elementi proposti non sono affidabili. Correggilo in «Dati dello spettro».');
   if (it==='epr' && f.freq>0 && P.xs.length){ const B=eprLineField(P.xs, P.ys), g=B>0?71.4477*f.freq/B:0; if (g<1.2||g>12) add('bad',`Con questo campo il fattore g verrebbe circa ${fmtN(g,3)}: l'unità del campo è probabilmente sbagliata (gauss, mT o tesla?). Fattore g e doppio integrale non sono affidabili. Correggi con la scala in «Dati dello spettro».`); }
   if (it==='nmr' && d.peaks.some(p=>p.area!=null)){ const an=f.an||{}; if (an.nmrX!=null && !d.peaks.some(p=>p.area!=null && Math.abs(p.x-an.nmrX)<0.02)) add('warn',`Il picco di riferimento degli integrali (${fmtN(an.nmrX,2)} ppm) non è più nell'elenco: gli integrali sono riferiti al primo picco.`); add('warn','Gli integrali sono calcolati picco per picco: un multipletto (doppietto, tripletto, quartetto…) risulta sottostimato del 10–20% perché le code delle righe vicine non sono contate. Per i rapporti tra gruppi integra regioni intere con la misura di banda in «Più campioni» (area), che su spettri simulati sbaglia meno dell\'1%.'); }
+  // NMR: un picco negativo (fase sbagliata, segnale soppresso) non entra nell'elenco né negli integrali: prima taceva
+  if (it==='nmr' && !P.deriv && P.kind!=='N' && P.xs.length>=50){ try{ const pos=findPeaks(P.xs, P.ys, 1, 1, 3), top=pos.length?Math.max(...pos.map(q=>q.prom)):0, med=Float64Array.from(P.ys).sort()[P.ys.length>>1], neg=top>0?findPeaks(P.xs, P.ys, -1, 1, 6).filter(q=>med-q.y>=0.05*top):[];   // sotto la linea di base, non solo una valle tra due picchi
+      if (neg.length){ const at=[...new Set(neg.map(q=>fmtPeak(it,q.x,f.uncal,f)))].join(', '), pct=fmtN(100*Math.max(...neg.map(q=>med-q.y))/top,0);
+        add('warn', neg.length===1 ? `Picco negativo a ${at} ppm (${pct}% del picco più alto): di solito è la fase da correggere. Non è nell'elenco dei picchi né negli integrali.` : `Picchi negativi a ${at} ppm (fino al ${pct}% del picco più alto): di solito è la fase da correggere. Non sono nell'elenco dei picchi né negli integrali.`); } }catch(e){} }
   // avviso sulla conversione fatta davvero in postDetect (prima guardava l'asse già convertito e taceva)
   if (it==='epr' && f.eprConv && f.eprConv.by==='range' && f.eprConv.k===0.1) add('warn','Campo senza unità dichiarata: i valori oltre 1000 sono stati presi per gauss e divisi per 10 (ora in mT). Se erano già mT, i campi mostrati sono 10 volte troppo piccoli: correggi con la scala in «Dati dello spettro».');
   else if (it==='epr' && !(f.freq>0) && P.xs[P.xs.length-1]>1000 && !(f.eprConv && f.eprConv.k!==1)) add('warn','Campo oltre 1000 senza unità dichiarata e senza frequenza: potrebbe essere in gauss. Controlla l\'unità prima di confrontare doppi integrali.');
-  if (f.an&&f.an.calc){ add('info','Dato calcolato: niente controlli di rumore, saturazione o ipotesi, che valgono per le misure; restano quelli su file, unità e asse.'); if (f.xs.length<60) add('warn',`Solo ${f.xs.length} punti: se sono bastoncini (frequenze e intensità di un calcolo), il programma non li allarga in bande e i picchi non si trovano. Allarga lo spettro nel programma di calcolo prima di caricarlo.`); return out; }
+  // bastoncini di un calcolo (DFT: frequenze e intensità) caricati come spettro: passo irregolare, oppure righe isolate tra zeri.
+  // Prima l'avviso c'era solo con «Dato calcolato» e meno di 60 punti
+  const stick=sticksLike(f.xs, f.ys);
+  if (stick && !(f.an&&f.an.calc)) add('warn','Sembrano bastoncini di un calcolo (frequenze e intensità), non uno spettro misurato: il programma non li allarga in bande, quindi picchi, aree, rumore e ipotesi non valgono. Spunta «Dato calcolato» in «Dati dello spettro» e allarga lo spettro nel programma di calcolo prima di caricarlo.');
+  if (f.an&&f.an.calc){ add('info','Dato calcolato: niente controlli di rumore, saturazione o ipotesi, che valgono per le misure; restano quelli su file, unità e asse.'); if (f.xs.length<60) add('warn',`Solo ${f.xs.length} punti: se sono bastoncini (frequenze e intensità di un calcolo), il programma non li allarga in bande e i picchi non si trovano. Allarga lo spettro nel programma di calcolo prima di caricarlo.`); else if (stick) add('warn','Sembrano bastoncini (frequenze e intensità del calcolo): il programma non li allarga in bande, quindi picchi e aree non valgono. Allarga lo spettro nel programma di calcolo prima di caricarlo.'); return out; }
   // riga vicina al bordo o doppio integrale negativo: la base presa agli estremi contiene segnale e il DI può essere sbagliato anche di segno
-  if (it==='epr' && P.kind==='E' && !P.deriv && P.xs.length>=20){ const ab=eprIsAbsorption(P.xs, P.ys), ed=eprEdgeSignal(P.xs, P.ys), di=ab ? null : eprDoubleIntegral(P.xs, P.ys);
+  if (it==='epr' && P.kind==='E' && !P.deriv && P.xs.length>=20){ const Zs=eprZonesOf(f), ab=eprIsAbsorption(P.xs, P.ys), ed=eprEdgeSignal(P.xs, P.ys, Zs), di=ab ? null : eprDoubleIntegral(P.xs, P.ys, Zs), wg=ab ? null : eprWings(P.xs, P.ys, Zs);
+    if (wg && wg.warn && !(ed && ed.edge)) add('warn', Zs ? `Le ali della riga (forma lorentziana) arrivano ancora nelle zone di fondo scelte: il doppio integrale risulta sottostimato (per una lorentziana di circa il ${fmtN(100*wg.loss,0)}%). Scegli zone più lontane dalla riga o allarga la scansione.` : `Le ali della riga (forma lorentziana) arrivano nelle finestre di base agli estremi: il doppio integrale risulta sottostimato (per una lorentziana di circa il ${fmtN(100*wg.loss,0)}%). Allarga la scansione oppure scegli zone di fondo lontane dalla riga in «Doppio integrale».`);
     if (ed && ed.edge) add('bad','Agli estremi dello spettro c\'è ancora segnale (riga vicina al bordo, troppo larga per la finestra, oppure linea di base curva): la linea di base dell\'integrale (doppio o singolo) lo contiene e il valore non è affidabile, anche di molte volte o di segno. Misura con la riga al centro di una finestra larga almeno 10 volte la riga.');
     else if (di && di.di<0) add('bad','Il doppio integrale è negativo: la fase del segnale è invertita o la linea di base è sbagliata. Il valore non è affidabile per confrontare quantità di spin: controlla fase e base.'); }
   if (it==='epr' && P.xs.length && eprIsAbsorption(P.xs, P.ys)) add('bad','Lo spettro EPR sembra in assorbimento (un solo segno), non in derivata come di solito: il doppio integrale non vale, per la quantità di spin uso l\'integrale singolo. Se invece è una derivata molto asimmetrica, controlla la linea di base.');
   if (it==='epr'){ const v=Array.from(f.ys,Math.abs).sort((a,b)=>a-b), sg=noiseSigma(f.ys); if (sg>0 && v[v.length-1]/sg<200 && (peakFwhmPts(P.xs,Float64Array.from(f.ys,Math.abs),P.xs[f.ys.reduce((k,y,i,a)=>Math.abs(y)>Math.abs(a[k])?i:k,0)])||0)<0.1*f.ys.length) add('warn','Rapporto picco/rumore basso: su spettri simulati sotto 200 il doppio integrale varia oltre il 10%, e anche il solo rumore dà un numero. Ripeti la misura o accumula di più.'); }
   { const sw=pSmooth(f); if (sw && d.peaks.length){ const up=upData(P), w=d.peaks.map(p=>peakFwhmPts(P.xs,up.y,p.x)).filter(v=>v>0).sort((a,b)=>a-b); if (w.length && w[0]<sw) add('warn',`Lo smoothing (${sw} punti) è più largo del picco più stretto (circa ${Math.round(w[0])} punti): altezze e aree si abbassano. Riducilo o scegline uno per questo spettro.`); } }
   if (['hplc','raman','fluo','ftir','uv','xrf'].includes(it) && !P.deriv && S.showPeaks!==false){ try{ const up=upData(P), low=findPeaks(P.xs, up.y, 1, 0.3, 200), st=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, miss0=low.filter(q=>!d.peaks.some(p=>Math.abs(p.x-q.x)<=6*st) && !(f.removed||[]).some(x=>Math.abs(x-q.x)<=6*st)), cnt=it==='xrf' && !f.uncal && isCounts(f.ys), Cm=cnt ? xrfCurrie(f.xs, f.ys, miss0.map(q=>q.x)) : null, miss=cnt ? miss0.filter((q,i)=>Cm[i].detected) : miss0;   // conteggi: solo i segnali oltre il limite di Currie
-      if (miss.length) add('warn', `${miss.length} segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a ${miss.slice(0,3).map(q=>fmtTick(q.x,2)).join(', ')}).${it==='hplc'?' Le percentuali di area non li contano.':''} Abbassa «Quanti picchi cerco» o aggiungili con un clic.`); }catch(e){} }
+      if (miss.length===1) add('warn', `Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a ${fmtTick(miss[0].x,2)}).${it==='hplc'?' Le percentuali di area non lo contano.':''} Abbassa «Quanti picchi cerco» o aggiungilo con un clic.`);   // singolare: prima «1 segnali» / «1 signals»
+      else if (miss.length) add('warn', `${miss.length} segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a ${miss.slice(0,3).map(q=>fmtTick(q.x,2)).join(', ')}).${it==='hplc'?' Le percentuali di area non li contano.':''} Abbassa «Quanti picchi cerco» o aggiungili con un clic.`); }catch(e){} }
   if (it==='xrf' && !f.uncal && !f.ecal && f._auto && f._auto.length>=2){
     const fit=xrfAlignFit(f._auto.map(q=>({x:q.x, w:q.prom||1})), f.tube), sh = fit ? fit.a+(fit.b-1)*8 : 0;
     if (fit && Math.abs(sh)>0.025) add('warn', `La calibrazione in energia è spostata di circa ${Math.round(sh*1000)} eV (righe usate: ${fit.pairs.slice(0,4).map(q=>q.name).join(', ')}). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio.`,
@@ -6736,7 +6818,7 @@ function assess(f, d){
     else if (q.snr<10 && it==='hplc' && !d.peaks.length) add('info', 'Nessun picco sopra il rumore: se è un bianco va bene così; se aspettavi dei picchi, controlla iniezione e rivelatore.');
     else if (q.snr<10) add('bad', `Rapporto segnale/rumore basso (S/N ≈ ${fmtSN(q.snr)}): posizioni e soprattutto aree sono poco affidabili. Aumenta scansioni o tempo di integrazione; lo smoothing migliora solo la lettura, non l'informazione.`);
     else if (q.snr<50) add('warn', `S/N ≈ ${fmtSN(q.snr)}: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).`);
-    else add('ok', `Buon rapporto segnale/rumore (S/N ≈ ${fmtSN(q.snr)}).`);
+    else add('ok', !isFinite(q.snr) || q.snr>1e5 ? `Buon rapporto segnale/rumore (S/N > ${(1e5).toLocaleString(T_().locale)}).` : `Buon rapporto segnale/rumore (S/N ≈ ${fmtSN(q.snr)}).`);   // «≈ > 100.000» diceva due cose insieme
     if (q.flat>=3 && q.flat>=0.5*raw.length) add('bad', `Segnale costante su ${q.flat} punti: forse è stata letta la colonna sbagliata. Scegli la colonna Y in «Dati dello spettro».`);
     else if (q.flat>=3 && it==='ftir' && f.kind!=='U') add('bad', `Il massimo è piatto su ${q.flat} punti: banda satura (assorbanza troppo alta). Posizione e area delle bande tagliate non sono affidabili: usa un film più sottile, l'ATR invece della trasmissione, oppure diluisci il campione.`);
     else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
@@ -6776,7 +6858,8 @@ function assess(f, d){
     if (tail) add('warn', `${tail} pic${tail===1?'co':'chi'} con fattore di coda > 2 (limite usuale USP <621>): interazioni secondarie con la colonna o colonna degradata.`); }
   if (shapeOk && !['xrf','libs'].includes(it) && !P.deriv && P.kind!=='N'){
     const up=upData(P), hb=hiddenBands(P.xs, up.y), xs=d.peaks.map(p=>p.x), tol=(P.xs[P.xs.length-1]-P.xs[0])*0.006;
-    const hid=hb.filter(h=>!xs.some(x=>Math.abs(x-h.x)<tol));
+    // due spalle che si scrivono uguali (NMR a due decimali) contano una volta: prima il valore compariva due volte
+    const hid=hb.filter(h=>!xs.some(x=>Math.abs(x-h.x)<tol)).filter((h,i,a)=>a.findIndex(g=>fmtPeak(it,g.x,f.uncal,f)===fmtPeak(it,h.x,f.uncal,f))===i);
     const satTop = out.some(o=>o.lv==='bad' && /^Il massimo è piatto/.test(o.t));   // banda tagliata: le «spalle» sono i bordi del plateau, la deconvoluzione darebbe numeri falsi
     if (hid.length && !satTop) add(it==='hplc'?'warn':'info', `La derivata seconda mostra ${hid.length===1?'una banda nascosta (spalla)':hid.length+' bande nascoste (spalle)'} a ${hid.slice(0,6).map(h=>fmtPeak(it,h.x,f.uncal,f)).join(', ')}${hid.length>6?'…':''}: la deconvoluzione può separarl${hid.length===1?'a':'e'} e misurarl${hid.length===1?'a':'e'}.`, {lab:'Deconvolvi', fn:()=>{ $('#fitMode').value='auto'; runFitUI(true); }});
   }
@@ -7021,14 +7104,16 @@ function techMetrics(f, d){   // restituisce {title, why, head:[], rows:[[]], ex
   }
   if (it==='epr' && P.kind==='E'){
     o.title='🧮 Doppio integrale (quantità relativa di spin)'; o.why='Il doppio integrale dello spettro in derivata è proporzionale al numero di spin. Il confronto vale solo tra spettri misurati con stessi guadagno, potenza, modulazione, tempo e fattore Q della cavità (Eaton et al. 2010). Per concentrazioni assolute serve uno standard (es. TEMPOL, DPPH, Mn²⁺).';
-    const all=files.filter(g=>g.instr==='epr').map(g=>{ const Q=processed(g); if (Q.kind!=='E' || Q.deriv) return {g, di:null}; const ab=eprIsAbsorption(Q.xs, Q.ys); return {g, ab, di: ab ? {di:eprSingleIntegral(Q.xs, Q.ys)} : eprDoubleIntegral(Q.xs, Q.ys)}; }).filter(o=>o.di);
+    const all=files.filter(g=>g.instr==='epr').map(g=>{ const Q=processed(g); if (Q.kind!=='E' || Q.deriv) return {g, di:null}; const ab=eprIsAbsorption(Q.xs, Q.ys); const Z=eprZonesOf(g); return {g, ab, Z, wg:ab?null:eprWings(Q.xs, Q.ys, Z), di: ab ? {di:eprSingleIntegral(Q.xs, Q.ys)} : eprDoubleIntegral(Q.xs, Q.ys, Z)}; }).filter(o=>o.di);
     const mx=Math.max(...all.map(o=>Math.abs(o.di.di)), 1e-300);
     // con spettri in assorbimento il valore è l'integrale singolo: il titolo della colonna lo dice
-    o.head=['Spettro', all.some(o=>o.ab)?'Doppio o singolo integrale':'Doppio integrale','Relativo al massimo (%)','Nota'];
+    o.head=['Spettro', all.some(o=>o.ab)?'Doppio o singolo integrale':'Doppio integrale','Relativo al massimo (%)','Nota','Base'];
+    // zone di fondo: l'utente ne indica 1 o 2 lontane dalla riga (campo in mT); la provenienza della base è nella colonna «Base», nel CSV e nel PDF
+    o.inputs=[['eprZ1a','Zona di fondo 1: da (mT)','es. 300'],['eprZ1b','a (mT)','es. 305'],['eprZ2a','Zona di fondo 2: da (mT)','facoltativa'],['eprZ2b','a (mT)','']];
     const odd=g=>{ if (!(g.freq>0)) return g.xs[g.xs.length-1]>1000 || !!(g.eprConv && g.eprConv.by==='range' && g.eprConv.k!==1); const B=eprLineField(g.xs, g.ys), gg=B>0?71.4477*g.freq/B:0; return gg<1.2||gg>12; };
-    const edgeBad=o=>{ const Q=processed(o.g), ed=eprEdgeSignal(Q.xs, Q.ys); return !!(ed && ed.edge) || (!o.ab && o.di.di<0); };
+    const edgeBad=o=>{ const Q=processed(o.g), ed=eprEdgeSignal(Q.xs, Q.ys, o.Z); return !!(ed && ed.edge) || (!o.ab && o.di.di<0); };
     { const W=all.filter(o=>!o.ab).map(o=>{ try{ const Q=processed(o.g), y=Q.ys; let a=0,b=0; for (let k=1;k<y.length;k++){ if (y[k]>y[a]) a=k; if (y[k]<y[b]) b=k; } return Math.abs(Q.xs[a]-Q.xs[b]); }catch(e){ return null; } }).filter(v=>v>0); if (W.length>=2){ const mn=Math.min(...W), mxw=Math.max(...W); if (mxw>1.5*mn) o.extra=(o.extra||'')+`<div class="signote">⚠️ Le larghezze di riga (picco–picco) vanno da ${fmtG(mn,3)} a ${fmtG(mxw,3)}: con righe di larghezza molto diversa il doppio integrale su questa finestra può sbagliare di alcuni punti percentuali (circa 6% in simulazione). Usa una finestra di campo uguale e larga almeno 10 volte la riga più larga.</div>`; } }
-    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1), [o.ab?'⚠️ spettro in assorbimento, non in derivata: integrale singolo':'', edgeBad(o)?'⛔ segnale agli estremi o valore negativo: non affidabile':'', odd(o.g)?'⚠️ unità del campo da controllare':''].filter(Boolean).join('; ')]);
+    o.rows=all.map(o=>[(o.g===f?'▶ ':'')+dispTitle(o.g), fmtG(o.di.di,4), fmtN(100*Math.abs(o.di.di)/mx,1), [o.ab?'⚠️ spettro in assorbimento, non in derivata: integrale singolo':'', edgeBad(o)?(o.Z?'⛔ segnale nelle zone di fondo o valore negativo: non affidabile':'⛔ segnale agli estremi o valore negativo: non affidabile'):o.wg&&o.wg.warn?'⚠️ ali della riga nella base: valore sottostimato':'', odd(o.g)?'⚠️ unità del campo da controllare':''].filter(Boolean).join('; '), o.ab?'':eprZonesTxt(o.Z, uiEn())]);
   }
   if (it==='nmr'){
     o.title='🧮 Integrali relativi (NMR)'; o.why='Scegli il picco di riferimento e quanti nuclei rappresenta: gli altri integrali vengono scalati di conseguenza (qNMR: Bharti & Roy 2012). Per una purezza assoluta servono uno standard interno pesato, D1 ≥ 5·T₁ e una fase/base corrette.';
@@ -7127,7 +7212,9 @@ function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualB
   const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
 function secSummaries(f, d){
   const Q=assess(f, d), bad=Q.filter(o=>o.lv==='bad').length, warn=Q.filter(o=>o.lv==='warn').length, H=hypotheses(f, d);
-  const sq=$('#sumQual'); sq.textContent = bad ? `⛔ ${bad} problem${bad===1?'a':'i'}${warn?`, ${warn} avvis${warn===1?'o':'i'}`:''}` : warn ? `⚠️ ${warn} avvis${warn===1?'o':'i'}` : '✅ tutto a posto'; sq.classList.toggle('warn', !!(bad||warn));
+  // conteggio già nella lingua dell'interfaccia, con il singolare: il modello del dizionario dava «1 warnings»
+  const sq=$('#sumQual'), en=uiEn(), nB=k=>en?`${k} problem${k===1?'':'s'}`:`${k} problem${k===1?'a':'i'}`, nW=k=>en?`${k} warning${k===1?'':'s'}`:`${k} avvis${k===1?'o':'i'}`; sq.setAttribute('data-noi18n','');
+  sq.textContent = bad ? `⛔ ${nB(bad)}${warn?`, ${nW(warn)}`:''}` : warn ? `⚠️ ${nW(warn)}` : (en?'✅ all good':'✅ tutto a posto'); sq.classList.toggle('warn', !!(bad||warn));
   let hs=''; if (H){ const top = H.pig && H.pig.length ? H.pig[0] : H.list && H.list.length ? H.list[0] : null;
     if (top) hs = ((uiEn()&&top.en)||top.it||'').split(' (')[0] + (top.score!=null && top.ev ? ` · ${hypTag(top,uiEn())}` : '');
     else if (H.kind==='els' && H.els.length) hs = 'elementi: '+H.els.join(', '); }
@@ -7166,7 +7253,7 @@ const BAND_PRESETS = {
   nmr:[['Integrale di una zona (qNMR)',null,null,null,null,'area']],
   hplc:[['Area di un picco (taratura esterna)',null,null,null,null,'area']]
 };
-function mvIndexName(instr, c){ const p=c&&c.preset!=null&&(BAND_PRESETS[instr]||[])[c.preset]; if (!p || p[1]!==c.a || p[2]!==c.b || (p[3]??null)!==(c.c??null) || (p[4]??null)!==(c.d??null)) return null; return String(p[0]).split(/[:(]/)[0].trim(); }
+function mvIndexName(instr, c){ const p=c&&c.preset!=null&&(BAND_PRESETS[instr]||[])[c.preset]; if (!p || p[1]!==c.a || p[2]!==c.b || (p[3]??null)!==(c.c??null) || (p[4]??null)!==(c.d??null)) return null; const t=LANG==='en'&&window.AcchI18n ? AcchI18n.tr(p[0]) : p[0]; return String(t).split(/:|\s\(/)[0].trim(); }   // nella lingua delle esportazioni; «I(D)/I(G)» non va spezzato alla prima parentesi
 const MEAS_NAME={height:'altezza', area:'area', value:'valore in un punto', centroid:'baricentro', fwhm:'FWHM'};
 // canale del rivelatore (DAD1 A, Sig=254, VWD1 A, FLD1 A, UV_VIS_1, Detector A-Ch1, Ch1, 254 nm…) in un testo.
 // Vince la sigla più specifica: «Agilent 1260 DAD» è lo strumento, «DAD1 A» è il segnale. Un DAD/VWD/MWD/PDA senza numero né lettera non è un canale.
@@ -7307,7 +7394,10 @@ function mvCalib(rows){ if (rows && rows.trend) return null; const ok=(rows||[])
   if (pts.length<3) return null; const cal=Object.assign(calibrate(pts,{weight:rows.weight})||{}, {pts, excluded:excl});
   // varianze non omogenee (tipiche dell'HPLC): il test di Mandel presuppone varianze costanti e dà falsi allarmi
   try{ if (cal.b!=null && pts.length>=6){ const r=pts.map(p=>({x:p.x, e:Math.abs(p.y-(cal.a+cal.b*p.x))})).sort((p,q)=>p.x-q.x), t=Math.floor(r.length/3), lo=r.slice(0,t), hi=r.slice(-t), m=a=>a.reduce((s,p)=>s+p.e*p.e,0)/a.length; cal.hetero = m(lo)>0 ? m(hi)/m(lo)>9 : m(hi)>0; } }catch(e){}
+  // punti esattamente sulla retta (dati sintetici, copiati o arrotondati): s_y/x ≈ 0, quindi LOD e LOQ ≈ 0 senza significato
+  { const xs=pts.map(p=>p.x), rg=Math.max(...xs)-Math.min(...xs); cal.perfect = cal.b!=null && cal.b!==0 && rg>0 && isFinite(cal.lod) && cal.lod<=1e-6*rg; }
   return cal; }
+const MV_PERFECT=['⚠️ I punti degli standard stanno esattamente sulla retta (s_y/x ≈ 0): LOD e LOQ risultano zero e non hanno significato. Succede con dati sintetici, copiati o arrotondati; per i limiti servono misure vere con le loro repliche o bianchi.','⚠️ The standards lie exactly on the line (s_y/x ≈ 0): LOD and LOQ come out as zero and are meaningless. This happens with synthetic, copied or rounded data; the limits need real measurements with their replicates or blanks.'];
 function renderMulti(){
   const box=$('#mvBody'); if (!files.length){ if (box) box.innerHTML=''; return; }
   const counts={}; files.forEach(f=>counts[f.instr]=(counts[f.instr]||0)+1);
@@ -7358,16 +7448,18 @@ function renderMulti(){
     else if (c.model==='trend'){ const pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); html+=`<p class="why">Andamento della misura con la grandezza che scrivi (ore, dose, temperatura…). Nessuna retta di taratura, nessun LOD: solo i punti e, se vuoi un'indicazione, la pendenza.</p>`;
       if (pts.length<rows.length) html+=`<div class="signote">⚠️ ${rows.length-pts.length} di ${rows.length} spettri non sono nel grafico: manca il valore di x (scrivilo nella colonna, senza separatore delle migliaia) o la misura. ${rows.filter(o=>!pts.includes(o)).slice(0,6).map(o=>esc(dispTitle(o.f))).join(', ')}</div>`;
       if (pts.length>=2){ const L=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); html+=`<canvas id="trendCv" width="640" height="300" style="width:100%;max-width:640px;margin-top:6px"></canvas>${L&&pts.length>=3?`<div class="opt-l">Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+esc(c.unit):'per unità di x'} · R² ${fmtN(L.r2,3)} (solo descrittiva: l'andamento può non essere lineare)</div>`:''}`;
-        setTimeout(()=>{ const cv=$('#trendCv'); if (!cv) return; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs); miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L&&pts.length>=3?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:yl}); },0); } }
+        setTimeout(()=>{ const cv=$('#trendCv'); if (!cv) return; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs); miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L&&pts.length>=3?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:uiEn()&&window.AcchI18n?AcchI18n.tr(yl):yl}); },0); } }   // il canvas non passa dal traduttore del DOM: «rapporto area» restava in italiano
     else if (cal && cal.b!=null && cal.n>=3){
       const u=c.unit?' '+esc(c.unit):'';
       html+=`<div class="calbox"><div><b>Retta di taratura</b> y = ${fmtG(cal.a,4)} + ${fmtG(cal.b,4)}·x · R² = ${fmtN(cal.r2,5)} · n = ${cal.n}</div>
         <div>Pendenza ${fmtG(cal.b,4)} (IC 95%: ${fmtG(cal.ciB?cal.ciB[0]:NaN,3)} – ${fmtG(cal.ciB?cal.ciB[1]:NaN,3)}) · intercetta ${fmtG(cal.a,4)} (IC 95%: ${fmtG(cal.ciA?cal.ciA[0]:NaN,3)} – ${fmtG(cal.ciA?cal.ciA[1]:NaN,3)})${cal.ciA&&cal.ciA[0]<=0&&cal.ciA[1]>=0?' ✓ compatibile con zero':''}</div>
         ${(()=>{ const low=cal.pts.map(p=>p.x).filter(v=>v>0); const nb=low.filter(v=>v<cal.lod).length; return nb?`<div>⚠️ Il LOD calcolato supera ${nb} dei tuoi standard: su un intervallo così ampio i valori bassi non sono affidabili: restringi l'intervallo o prova i pesi 1/x o 1/x².</div>`:''; })()}
         <div>s<sub>y/x</sub> = ${fmtG(cal.syx,3)} · <b>LOD = ${fmtG(cal.lod,3)}${u}</b> · <b>LOQ = ${fmtG(cal.loq,3)}${u}</b> <small>(3,3·s/b e 10·s/b, ICH Q2)</small></div>
+        ${cal.perfect?`<div data-noi18n>${uiEn()?MV_PERFECT[1]:MV_PERFECT[0]}</div>`:''}
         ${cal.excluded&&cal.excluded.length?`<div>⚠️ <b>${cal.excluded.length} standard con la cima tagliata (rivelatore saturo) esclus${cal.excluded.length===1?'o':'i'} dalla retta</b>: ${cal.excluded.map(o=>esc(dispTitle(o.f))).join(', ')}. Diluiscili o riducine l'iniezione; senza di loro l'intervallo di taratura si accorcia.</div>`:''}
         ${(()=>{ const xs=cal.pts.map(p=>p.x), lv=new Set(xs.map(v=>+v.toPrecision(6))).size; return `<div>Intervallo di taratura ${fmtG(Math.min(...xs),3)} – ${fmtG(Math.max(...xs),3)}${u} · ${lv} livelli, ${xs.length} standard</div>`; })()}
-        ${cal.mandel?`<div>Test di linearità di Mandel: PG = ${fmtN(cal.mandel.PG,2)} contro F(99%) = ${fmtN(cal.mandel.F,2)} → ${cal.mandel.nonlinear?(cal.hetero?'⚠️ <b>curvatura segnalata</b>, ma la dispersione cresce con la concentrazione: il test presuppone varianze omogenee (ISO 8466-1) e qui può dare un falso allarme. Prova i pesi 1/x o 1/x².':'⚠️ <b>la curvatura è significativa</b>: restringi l\'intervallo di lavoro (il programma non offre un modello quadratico).'):'✅ la retta è adeguata'}</div>`:rows.weight?'<div class="opt-l">Con i pesi il test di Mandel non si applica: vale per la retta non pesata.</div>':cal.n<5?'<div class="opt-l">Con almeno 5 standard eseguo anche il test di linearità di Mandel (ISO 8466).</div>':''}
+        ${cal.mandel?(()=>{ const L=(a,b)=>uiEn()?b:a;   // riga già nella lingua dell'interfaccia: con i numeri dentro il dizionario non la riconosceva
+          return `<div data-noi18n>${L('Test di linearità di Mandel','Mandel linearity test')}: PG = ${fmtN(cal.mandel.PG,2)} ${L('contro','vs')} F(99%) = ${fmtN(cal.mandel.F,2)} → ${cal.mandel.nonlinear?(cal.hetero?L('⚠️ <b>curvatura segnalata</b>, ma la dispersione cresce con la concentrazione: il test presuppone varianze omogenee (ISO 8466-1) e qui può dare un falso allarme. Prova i pesi 1/x o 1/x².','⚠️ <b>curvature flagged</b>, but the scatter grows with concentration: the test assumes uniform variances (ISO 8466-1) and here it may give a false alarm. Try 1/x or 1/x² weights.'):L('⚠️ <b>la curvatura è significativa</b>: restringi l\'intervallo di lavoro (il programma non offre un modello quadratico).','⚠️ <b>the curvature is significant</b>: narrow the working range (the program offers no quadratic model).')):L('✅ la retta è adeguata','✅ the line is adequate')}</div>`; })():rows.weight?'<div class="opt-l">Con i pesi il test di Mandel non si applica: vale per la retta non pesata.</div>':cal.n<5?'<div class="opt-l">Con almeno 5 standard eseguo anche il test di linearità di Mandel (ISO 8466).</div>':''}
         ${cal.hetero&&!rows.weight?'<div>⚠️ La dispersione dei punti cresce con la concentrazione: con la retta non pesata LOD, LOQ e intervalli di confidenza sono poco realistici. Prova i pesi 1/x o 1/x².</div>':''}
         <canvas id="calC" class="minic" height="220"></canvas></div>`;
     }
@@ -7450,6 +7542,8 @@ function fpNotes(f, R){ if (!R || !R.Q || !R.Q.res) return []; const c=fpCfg(f),
       if (Q.over) notes.unshift('⚠️ La somma supera il 100%: la parte invisibile scelta non è adatta o lo strato non è spesso e omogeneo.'); }
     notes.unshift(`Elementi considerati: ${els.join(', ')}. Ciò che non è in elenco non viene cercato né contato nella somma: controlla che non manchi nulla, aggiungilo sopra.`);
     { const ov=[]; for (const e of els){ const o=Q.res[e]; if (!o) continue; const E=fpLineE(e,o.line); for (const j of els){ if (j===e) continue; const Rj=Q.res[j]; if (!Rj||Rj.w<o.w) continue; const fam=FP.el[j].fam; if ([...(fam.K||[]),...(fam.L||[])].some(q=>q[2]>0.05&&Math.abs(q[1]-E)<0.6*xrfFWHM(E))) { ov.push(`${e} (riga vicina a ${j})`); break; } } } if (ov.length) notes.unshift(`⚠️ Valori poco sicuri per righe sovrapposte: ${ov.join(', ')}. Un elemento così può anche non esserci: cerca una seconda riga.`); }
+    // As da solo nel calcolo (Pb assente o a zero) con As Kβ sotto il limite di Currie: la riga a 10,5 keV può essere Pb Lα; prima nessun avviso (ciclo 26, B_300_s10)
+    if (Q.res.As && !(Q.res.Pb && Q.res.Pb.w>0) && !f.uncal && isCounts(f.ys)){ let kb=null; try{ kb=xrfCurrie(f.xs, f.ys, [fpLineE('As','Kb')])[0]; }catch(err){} if (kb && !kb.detected) notes.unshift('⚠️ As non distinguibile da Pb: la riga As Kα coincide con Pb Lα e la As Kβ è sotto il limite di rilevabilità (pochi conteggi). Il valore di As può essere Pb: misura più a lungo.'); }
     // anodo: incluso con la Lα, oppure escluso anche se le sue righe si vedono (avviso, mai in silenzio)
     if (els.includes(S.anode)) notes.unshift(`⚠️ ${S.anode} è anche l'anodo del tubo: la sua Kα coincide con quella del tubo diffusa, quindi ${S.anode} è stimato dalla riga Lα e una parte del segnale può venire dal tubo. Confronta con una misura fatta con un tubo diverso.`);
     else { let q=null; try{ q=xrfElements(f, viewOf(f)); }catch(err){} if (q && q.els.includes(S.anode)) notes.unshift(`⚠️ Le righe di ${S.anode} si vedono, ma ${S.anode} è l'anodo del tubo e non è nel calcolo: le righe deboli possono venire dal tubo. Se il campione può contenere ${S.anode} (per esempio una lega d'argento con un tubo ad argento), aggiungilo all'elenco: i valori cambiano molto.`); }
@@ -7498,7 +7592,8 @@ function renderCult(f){
         return `<tr><td><b>${e}</b> <small class="opt-l">${esc(elName(e))}</small></td><td>${esc(e+' '+o.line.replace('Ka','Kα').replace('La','Lα'))}</td><td><b>${fmtN(o.w, o.w<1?2:o.w<10?1:1)}</b> ± ${fmtN(o.sw, o.sw<0.1?2:1)}</td>${ox?`<td>${o.ox?`${esc(o.ox.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]))} ${fmtN(o.wox,1)}`:'—'}</td>`:''}<td>${m.I?fmtG(m.I,4):'—'}</td></tr>`; }).join('')}
       ${c.mode==='compton'?`<tr><td colspan="2">resto (${esc(c.bal==='custom'?(c.balTxt||'formula'):(fpMat(c.bal)||{}).it||'')})</td><td>${fmtN(Q.rest,1)}</td><td></td></tr>`:''}</tbody></table></div>`;
     const notes=fpNotes(f, R);
-    h+=`<div class="calbox">${notes.map(t=>`<div>${t}</div>`).join('')}<canvas id="fpC" class="minic" height="200"></canvas>
+    // avvisi della stima FP: classe propria, così la gravità resta visibile anche dove il desktop toglie i simboli
+    h+=`<div class="calbox">${notes.map(t=>/⚠️/.test(t)?`<div class="fpwarn">${t}</div>`:`<div>${t}</div>`).join('')}<canvas id="fpC" class="minic" height="200"></canvas>
       <div class="row" style="margin-top:6px"><span class="opt-l">Grafico: spettro (grigio), modello (blu) e fondo (tratteggio), in radice dei conteggi.</span><span class="spacer"></span><button class="btn small ghost" id="fpCsv">⬇️ CSV</button></div></div>`;
   }
   if (R && R.Q && R.Q.res) h+=`<div class="row" style="margin-top:8px"><button class="btn small ghost" id="fpSens" type="button">Quanto dipende dalle condizioni?</button></div><div id="fpSensOut"></div>`;
@@ -7525,16 +7620,17 @@ function renderCult(f){
 }
 /* atmosfera nella lingua dell'esportazione (nel CSV e nel PDF italiani «air» restava in inglese) */
 function fpAtmName(a, en){ const m={air:['aria','air'], he:['elio','helium'], vac:['vuoto','vacuum']}[a]; return m ? m[en?1:0] : (a||''); }
+// nella colonna Note gli avvisi hanno «! » davanti, come nel PDF: prima il ⚠️ si toglieva senza nulla al suo posto
 function fpCsvRows(list){ const dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(5)).replace('.',dec), out=[['File','Nome','Modalità','Elemento','Riga','% in peso','± (conteggi)','Ossido','% ossido','Conteggi netti','Anodo','kV','Angolo ingresso','Angolo uscita','Tipo di valore','Somma %','Chi2 ridotto','Atmosfera','Be tubo (um)','Be rivelatore (um)','Si (um)','Distanza rivelatore (cm)','Filtro primario','Note']];
   for (const f of list){ const R=fpRun(f); if (!R || !R.Q || !R.Q.res) continue; const m=(FP_MODES.find(q=>q[0]===R.cfg.mode)||FP_MODES[0])[1], sum=Object.values(R.Q.res).reduce((t,o)=>t+o.w,0);
     // avvisi del pannello: quelli generali sulla prima riga dello spettro, quelli di un elemento sulla sua riga
-    const warn=fpNotes(f,R).filter(t=>/⚠️/.test(t)).map(t=>t.replace(/<[^>]+>/g,'').replace(/⚠️\s*/g,'').trim()), kvP=(fpCfg(f).S||{}).kv==null && fpNum((f.xrf||{}).kv)==null;
+    const warn=fpNotes(f,R).filter(t=>/⚠️/.test(t)).map(t=>t.replace(/<[^>]+>/g,'').replace(/⚠️\s*/g,'').trim()), wTag=t=>'! '+t, kvP=(fpCfg(f).S||{}).kv==null && fpNum((f.xrf||{}).kv)==null;
     let H=null; try{ H=xrfElements(f, viewOf(f)); }catch(err){}
     // «poco sicuro» solo per l'elemento nominato prima di «(riga vicina a …)»: «As (riga vicina a Pb)» riguarda As, non Pb.
     // Le parti della nota si traducono una per una (la cella intera non è nel dizionario)
     const tr=t=>LANG==='en' && window.AcchI18n ? AcchI18n.tr(t) : t;
     const elNote=e=>[...warn.filter(t=>/sovrappost|poco sicur/.test(t) && new RegExp('(^|[\\s:,])'+e+' \\(riga vicina a ').test(t)).slice(0,1).map(()=>tr('poco sicuro per righe sovrapposte')), H&&(H.unsure||[]).includes(e)?tr('non distinguibile da un elemento con righe coincidenti'):''].filter(Boolean).join('; ');
-    Object.entries(R.Q.res).forEach(([e,o],k)=>out.push([f.name, dispTitle(f), m, e, o.line, n(o.w), n(o.sw), o.ox||'', n(o.wox), n(R.meas[e]&&R.meas[e].I), R.S.anode, fpNum((f.xrf||{}).kv)!=null&&fpNum((f.xrf||{}).kv)!==R.S.kv?`${n(R.S.kv)} (file: ${n(fpNum(f.xrf.kv))})`:kvP?`${n(R.S.kv)} (${LANG==='en'?'assumed':'presunti'})`:n(R.S.kv), n(R.S.psi1), n(R.S.psi2), 'stima senza standard, non validata', n(sum), n(R.fit&&R.fit.chi2r), fpAtmName(R.S.atm, LANG==='en'), n(R.S.beT), n(R.S.beD), n(R.S.si), n(R.S.d2), R.S.filt?`${R.S.filt.comp} ${R.S.filt.um} um`:'nessuno', [elNote(e), k===0?warn.filter(t=>!/sovrappost|poco sicur/.test(t)).map(tr).join(' | '):''].filter(Boolean).join(' | ')]));
+    Object.entries(R.Q.res).forEach(([e,o],k)=>out.push([f.name, dispTitle(f), m, e, o.line, n(o.w), n(o.sw), o.ox||'', n(o.wox), n(R.meas[e]&&R.meas[e].I), R.S.anode, fpNum((f.xrf||{}).kv)!=null&&fpNum((f.xrf||{}).kv)!==R.S.kv?`${n(R.S.kv)} (file: ${n(fpNum(f.xrf.kv))})`:kvP?`${n(R.S.kv)} (${LANG==='en'?'assumed':'presunti'})`:n(R.S.kv), n(R.S.psi1), n(R.S.psi2), 'stima senza standard, non validata', n(sum), n(R.fit&&R.fit.chi2r), fpAtmName(R.S.atm, LANG==='en'), n(R.S.beT), n(R.S.beD), n(R.S.si), n(R.S.d2), R.S.filt?`${R.S.filt.comp} ${R.S.filt.um} um`:'nessuno', [elNote(e), k===0?warn.filter(t=>!/sovrappost|poco sicur/.test(t)).map(t=>wTag(tr(t))).join(' | '):''].filter(Boolean).join(' | ')]));
     if (H && (H.unsure||[]).some(e=>!R.Q.res[e])) out.push([f.name, dispTitle(f), m, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', tr('non distinguibili (non nel calcolo):')+' '+(H.unsure||[]).filter(e=>!R.Q.res[e]).join(', ')]); }
   return out; }
 
@@ -7724,7 +7820,8 @@ function mvCsvRows(instr){
   const c=mvCfg(instr), rows=mvTable(instr)||[], cal=mvCalib(rows), dec=T_().dec, n=v=>v==null||!isFinite(v)?'':String(+(+v).toPrecision(7)).replace('.',dec), E=LANG==='en', L=(it,en)=>E?en:it;
   const H0=[L('File','File'),L('Nome','Name'),L('Strumento','Technique'),L('Banda da','Band from'),L('Banda fino a','Band to'),L('Misura','Measure'),L('Rif. da','Ref. from'),L('Rif. fino a','Ref. to'),L('Valore','Value')];
   if (c.model==='trend'){ const o2=[H0.concat([L('x','x'),L('Unità di x','Unit of x'),L('Stato','Status')])]; rows.forEach(o=>o2.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), c.unit||'', o.flag||'']));
-    const pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length>=3){ const R=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); if (R){ o2.push([]); o2.push([L('Andamento','Trend'),L('pendenza','slope'),n(R.b),'±',n(R.sb),'R²',n(R.r2),L('solo descrittiva','descriptive only')]); } } return o2; }
+    // pendenza con l'unità di x scritta dall'utente, come a schermo e nel PDF
+    const pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length>=3){ const R=linReg(pts.map(o=>o.conc),pts.map(o=>o.y)); if (R){ o2.push([]); o2.push([L('Andamento','Trend'),L('pendenza','slope'),n(R.b),'±',n(R.sb),c.unit?L('per ','per ')+c.unit:L('per unità di x','per unit of x'),'R²',n(R.r2),L('solo descrittiva','descriptive only')]); } } return o2; }
   const out=[H0.concat([L('Concentrazione nota','Known concentration'),L('Concentrazione stimata','Estimated concentration'),L('IC 95%','95% CI'),L('Unità','Unit'),L('Stato','Status')])];
   rows.forEach(o=>{ const est=cal&&cal.predict&&o.y!=null&&!mvNoEstimate(o);
     const pr=est&&((o.role==='std'&&o.conc==null)||o.role==='qc') ? cal.predict(o.y,1) : null, rq=o.role==='qc'&&pr&&o.conc>0?100*pr.x/o.conc:null;
@@ -7733,9 +7830,11 @@ function mvCsvRows(instr){
     const pb=o.role==='blank'&&cal&&cal.predict&&o.y!=null&&!mvNoEstimate(o)?cal.predict(o.y,1):null, blk=pb?(pb.x>cal.lod?L(`sopra il LOD (${fmtG(pb.x,3)})`,`above LOD (${fmtG(pb.x,3)})`):L(`stima del bianco ${fmtG(pb.x,3)}, sotto il LOD`,`blank estimate ${fmtG(pb.x,3)}, below LOD`)):'';
     // sotto il LOD il numero stimato non va in una colonna di numeri: Excel lo tratterebbe come gli altri
     const cv=pr ? (pr.belowLod ? '< LOD' : n(pr.x)) : '';
-    out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), cv, pr&&!pr.belowLod?n(pr.ci):'', c.unit||'', [o.role!=='std'?MV_ROLE[o.role]:'', rec, blk, pr&&pr.belowLod?L(`stima ${fmtG(pr.x,3)} sotto il LOD`,`estimate ${fmtG(pr.x,3)} below LOD`):'', mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
+    out.push([o.f.name, dispTitle(o.f), NOME_IT[instr], n(c.a), n(c.b), MEAS_NAME[c.meas], n(c.c), n(c.d), n(o.y), n(o.conc), cv, pr&&!pr.belowLod?n(pr.ci):'', c.unit||'', [o.role!=='std'?L(MV_ROLE[o.role],{blank:'blank',qc:'control'}[o.role]||o.role):'', rec, blk, pr&&pr.belowLod?L(`stima ${fmtG(pr.x,3)} sotto il LOD`,`estimate ${fmtG(pr.x,3)} below LOD`):'', mvStatus(o,pr,c,instr)].filter(Boolean).join('; ')]); });
   if (cal && cal.b!=null){ const st=rows.filter(o=>o.role==='std'&&o.conc!=null&&o.y!=null), cs=st.map(o=>o.conc), lv=new Set(cs.map(v=>+v.toPrecision(6))).size;
-    out.push([]); out.push([L('Retta','Line'),L('pesi','weights'),cal.weight||L('nessuno','none'),'n',cal.n,L('IC95 di a (intercetta)','95% CI of a (intercept)'),n(cal.ciA&&cal.ciA[0])+' / '+n(cal.ciA&&cal.ciA[1]),L('IC95 di b (pendenza)','95% CI of b (slope)'),n(cal.ciB&&cal.ciB[0])+' / '+n(cal.ciB&&cal.ciB[1]),L('a (intercetta)','a (intercept)'),n(cal.a),L('b (pendenza)','b (slope)'),n(cal.b),'R²',n(cal.r2),'s(y/x)',n(cal.syx),'LOD',n(cal.lod),'LOQ',n(cal.loq)]);
+    // estremi dell'IC in due celle: «-0,15 / 0,024» era testo, non un numero, e il segno meno lo faceva proteggere con l'apostrofo
+    out.push([]); out.push([L('Retta','Line'),L('pesi','weights'),cal.weight||L('nessuno','none'),'n',cal.n,L('IC95 di a (intercetta)','95% CI of a (intercept)'),n(cal.ciA&&cal.ciA[0]),n(cal.ciA&&cal.ciA[1]),L('IC95 di b (pendenza)','95% CI of b (slope)'),n(cal.ciB&&cal.ciB[0]),n(cal.ciB&&cal.ciB[1]),L('a (intercetta)','a (intercept)'),n(cal.a),L('b (pendenza)','b (slope)'),n(cal.b),'R²',n(cal.r2),'s(y/x)',n(cal.syx),'LOD',n(cal.lod),'LOQ',n(cal.loq)]);
+    if (cal.perfect) out.push([L('Avviso','Warning'), L(MV_PERFECT[0],MV_PERFECT[1]).replace(/^⚠️\s*/,'')]);
     if (mvChans(instr,c).length) out.push([L('Canale','Channel'), c.chan, L('altri canali esclusi dalla retta','other channels excluded from the line')]);
     if (cs.length) out.push([L('Intervallo di taratura','Calibration range'), n(Math.min(...cs)), n(Math.max(...cs)), c.unit||'', L('livelli','levels'), lv, L('standard','standards'), cs.length]);
     if (cal.mandel) out.push(['Mandel','PG',n(cal.mandel.PG),'F99',n(cal.mandel.F),L('non lineare','non-linear'),cal.mandel.nonlinear?L('sì','yes'):L('no','no')]); }
@@ -7861,8 +7960,18 @@ function mixtureOf(f){
 
 /* pagine di analisi nel PDF: riepilogo per spettro (avvisi e ipotesi), rette di taratura, PLS, PCA */
 function offCanvas(wmm, hmm){ const c=document.createElement('canvas'); c.dataset.w=String(Math.round(wmm*3.78)); c.dataset.dpr='3'; c.setAttribute('height', String(Math.round(hmm*3.78))); return c; }
+/* pagine di analisi che finiranno nel PDF, per il riepilogo prima di scaricare: le stesse funzioni su un documento finto
+   (testo spezzato con una larghezza media dei caratteri, immagini non disegnate). Prima si contavano solo i grafici («circa 3» contro 5) */
+function pdfAnalysisPageCount(){
+  const L=S.orient==='landscape', PW=L?297:210, PH=L?210:297, M=10; let pages=0, fs=9;
+  const wrap=(t,w)=>{ const out=[]; for (const para of String(t).split('\n')){ let cur=''; for (const word of para.split(' ')){ const nx=cur?cur+' '+word:word; if (cur && nx.length*fs*0.3528*0.5>w){ out.push(cur); cur=word; } else cur=nx; } out.push(cur); } return out; };
+  const doc=new Proxy({}, {get:(t,k)=>k==='setFontSize'?(v=>{ fs=v; return doc; }):k==='splitTextToSize'?wrap:k==='getNumberOfPages'?(()=>pages):(()=>doc)});
+  const td=HTMLCanvasElement.prototype.toDataURL; HTMLCanvasElement.prototype.toDataURL=function(){ return 'data:,'; };
+  try{ pdfAnalysisPages(doc, PW, PH, M, ()=>{ pages++; }, ()=>{}); }catch(e){ console.warn(e); } finally{ HTMLCanvasElement.prototype.toDataURL=td; }
+  return pages; }
 function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
   const en=LANG==='en', T=(it,e)=>en?e:it, inc=included(); let y=0;
+  const trO=t=>t&&en&&window.AcchI18n ? AcchI18n.tr(t) : t;   // note delle misure di banda: la riga intera non è nel dizionario, i pezzi sì
   const head=t=>{ newPage(); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(0); doc.text(pdfText(t), M, M+6); y=M+14; };
   const color=c=>Array.isArray(c)?doc.setTextColor(c[0],c[1],c[2]):doc.setTextColor(c||0);
   const line=(t, sz, bold, col)=>{ doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(sz||9); color(col); const L=doc.splitTextToSize(pdfText(t), PW-2*M);
@@ -7876,6 +7985,9 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (H && H.kind==='els' && H.shifted) line(T('Asse spostato: elementi non proposti finché non è allineato.','Axis shifted: elements not proposed until it is aligned.'), 9);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
+    // EPR: doppio integrale con la provenienza della base (finestre agli estremi o zone scelte dall'utente)
+    if (f.instr==='epr'){ try{ const Pe=processed(f); if (Pe.kind==='E' && !Pe.deriv && !eprIsAbsorption(Pe.xs, Pe.ys)){ const Z=eprZonesOf(f), r=eprDoubleIntegral(Pe.xs, Pe.ys, Z), wg=eprWings(Pe.xs, Pe.ys, Z), ed=eprEdgeSignal(Pe.xs, Pe.ys, Z);
+      if (r) line(`${T('Doppio integrale','Double integral')} ${fmtG(r.di,4)} · ${T('base','baseline')}: ${eprZonesTxt(Z, en)}${(ed&&ed.edge)||r.di<0?T(' · non affidabile (segnale nella base o valore negativo)',' · not reliable (signal in the baseline or negative value)'):wg&&wg.warn?T(' · ali della riga nella base: sottostimato',' · line wings in the baseline: underestimated'):''}`, 8.5); } }catch(e){} }
     if (fitValid(f)) line(T('Deconvoluzione: ','Deconvolution: ')+f.fit.peaks.map(q=>`${fmtPeak(f.instr,q.c)} (${fmtN(q.pct,q.pct<1?3:1)}%)`).join(', ')+` · R² ${fmtN(f.fit.r2,4)}`, 8.5);
     // prima i problemi gravi, ben visibili: rosso e grassetto; poi gli avvisi
     const trW=t=>{ const c=t.replace(/<[^>]+>/g,''); return en && window.AcchI18n ? AcchI18n.tr(c) : c; };
@@ -7891,21 +8003,22 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
       R.list.forEach((f,i)=>{ if (R.idx.indexOf(i)<0) line(`${dispTitle(f)}: ${fmtG(R.pred[i],4)} ± ${fmtG(R.rmsecv,2)} ${c.unit||''}${R.pred[i]<Math.min(...R.y)||R.pred[i]>Math.max(...R.y)?T(' (estrapolato)',' (extrapolated)'):''}`, 9); }); footer(); continue; }
     if (c.a==null || c.b==null) continue;
     if (c.model==='trend'){ const rows=mvTable(instr)||[], pts=rows.filter(o=>o.conc!=null&&o.y!=null&&isFinite(o.y)); if (pts.length<2) continue; head(T('Andamento · ','Trend · ')+T_().nome[instr]);
-      line(`${mvIndexName(instr,c)?mvIndexName(instr,c)+' · ':''}${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''}`, 9.5);
+      line(`${mvIndexName(instr,c)?mvIndexName(instr,c)+' · ':''}${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${trO(MEAS_NAME[c.meas])})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''}`, 9.5);
       if (pts.length<rows.length) line(T(`${rows.length-pts.length} spettri senza valore di x o senza misura non sono nel grafico: ${rows.filter(o=>!pts.includes(o)).map(o=>dispTitle(o.f)).join(', ')}`,`${rows.length-pts.length} spectra without an x value or a measurement are not in the chart: ${rows.filter(o=>!pts.includes(o)).map(o=>dispTitle(o.f)).join(', ')}`), 8.5, false, 90);
-      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:mvIndexName(instr,c)||(c.c!=null&&c.d!=null?T('rapporto ','ratio ')+MEAS_NAME[c.meas]:c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:MEAS_NAME[c.meas])}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
-      pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}${o.flag?' ['+o.flag+']':''}`, 9)); continue; }
+      try{ const cv=document.createElement('canvas'); cv.dataset.w='900'; cv.dataset.h='380'; cv.dataset.dpr='2'; const xs=pts.map(o=>o.conc), lo=Math.min(...xs), hi=Math.max(...xs), L=pts.length>=3?linReg(xs,pts.map(o=>o.y)):null; miniPlot(cv,{points:pts.map(o=>({x:o.conc,y:o.y,color:'#1f5fbf',label:dispTitle(o.f)})), lines:L?[{xs:[lo,hi],ys:[L.a+L.b*lo,L.a+L.b*hi],color:'#9aa4b2',dash:[3,3],w:1}]:[], xLabel:c.unit?`x (${c.unit})`:'x', yLabel:mvIndexName(instr,c)||(c.c!=null&&c.d!=null?T('rapporto ','ratio ')+trO(MEAS_NAME[c.meas]):c.meas==='value'&&instr==='uv'?`A (${fmtN(c.a,0)} nm)`:trO(MEAS_NAME[c.meas]))}); const w=PW-2*M, h=w*380/900; if (y+h>PH-M-12){ footer(); head(T('Andamento (continua)','Trend (continued)')); } doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,w,h); y+=h+4; if (L) line(T(`Pendenza ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unità di x'}, R² ${fmtN(L.r2,3)} (solo descrittiva)`,`Slope ${fmtG(L.b,3)}${L.sb>=Math.abs(L.b)*1e-3?' ± '+fmtG(L.sb,2):''} ${c.unit?'per '+c.unit:'per unit of x'}, R² ${fmtN(L.r2,3)} (descriptive only)`), 9); }catch(e){ console.warn(e); }
+      pts.forEach(o=>line(`${dispTitle(o.f)}: x = ${fmtG(o.conc,4)} ${c.unit||''} · ${fmtG(o.y,4)}${o.flag?' ['+trO(o.flag)+']':''}`, 9)); continue; }
     const rows=mvTable(instr), cal=mvCalib(rows); if (!cal || cal.b==null) continue;
     head(T('Retta di taratura · ','Calibration line · ')+T_().nome[instr]+(mvChans(instr,c).length?' · '+c.chan:''));
-    line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${MEAS_NAME[c.meas]})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''} · y = ${fmtG(cal.a,4)} + ${fmtG(cal.b,4)}·x · R² ${fmtN(cal.r2,5)} · n ${cal.n}`, 9.5);
+    line(`${T('Banda','Band')} ${fmtN(c.a,2)}–${fmtN(c.b,2)} (${trO(MEAS_NAME[c.meas])})${c.c!=null&&c.d!=null?` / ${fmtN(c.c,2)}–${fmtN(c.d,2)}`:''} · y = ${fmtG(cal.a,4)} + ${fmtG(cal.b,4)}·x · R² ${fmtN(cal.r2,5)} · n ${cal.n}`, 9.5);
     line(`LOD ${fmtG(cal.lod,3)} · LOQ ${fmtG(cal.loq,3)} ${c.unit||''} (ICH Q2)${cal.mandel?` · Mandel: ${cal.mandel.nonlinear?(cal.hetero?T('curvatura segnalata con varianze non omogenee (possibile falso allarme)','curvature flagged with non-uniform variances (possible false alarm)'):T('curvatura significativa','significant curvature')):T('retta adeguata','line adequate')}`:''}`, 9.5);
+    if (cal.perfect) line('! '+T(MV_PERFECT[0],MV_PERFECT[1]).replace(/^⚠️\s*/,''), 8.5, false, 90);
     { const xs=cal.pts.map(p=>p.x); line(`${T('Intervallo di taratura','Calibration range')} ${fmtG(Math.min(...xs),3)}–${fmtG(Math.max(...xs),3)} ${c.unit||''} · ${new Set(xs.map(v=>+v.toPrecision(6))).size} ${T('livelli','levels')}, ${xs.length} standard`, 9.5); }
     if (cal.excluded&&cal.excluded.length) line(`⛔ ${cal.excluded.length} ${T('standard con la cima tagliata (rivelatore saturo) esclusi dalla retta','standards with a clipped top (saturated detector) excluded from the line')}: ${cal.excluded.map(o=>dispTitle(o.f)).join(', ')}`, 9.5);
     const cv=offCanvas(150,95); drawCalChart(cv, instr, rows, cal); doc.addImage(cv.toDataURL('image/png'),'PNG', M, y+2, 150, 95, undefined, 'FAST'); y+=100;
     if (cal.weight) line(T('Retta pesata ','Weighted line ')+cal.weight, 9.5);
     rows.filter(o=>o.role==='qc' && o.y!=null && !mvNoEstimate(o)).forEach(o=>{ const pr=cal.predict(o.y,1); line(`${T('Controllo','Control')} ${dispTitle(o.f)}: ${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)} ${c.unit||''}${o.conc>0?` · ${T('recupero','recovery')} ${fmtN(100*pr.x/o.conc,1)}%${(100*pr.x/o.conc<80||100*pr.x/o.conc>120)?T(' (fuori 80-120%)',' (outside 80-120%)'):''}`:''}`, 9); });
-    rows.filter(o=>o.role==='blank' && o.y!=null).forEach(o=>{ if (mvNoEstimate(o)){ line(`${T('Bianco','Blank')} ${dispTitle(o.f)}: ${T('nessuna stima','no estimate')} (${o.flag})`, 9); return; } const pr=cal.predict(o.y,1); line(`${T('Bianco','Blank')} ${dispTitle(o.f)}: ${fmtG(pr.x,3)} ${c.unit||''}${pr.x>cal.lod?T(' (sopra il LOD)',' (above the LOD)'):T(' (sotto il LOD)',' (below the LOD)')}`, 9); });
-    rows.filter(o=>o.conc==null && o.y!=null && o.role==='std' && !mvNoEstimate(o)).forEach(o=>{ const pr=cal.predict(o.y,1); line(`${dispTitle(o.f)}: ${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)} ${c.unit||''}${o.flag?' ['+o.flag+']':''}${pr.belowLod?' (< LOD)':pr.belowLoq?' (< LOQ)':''}${S.conv[instr]==='norm'?T(' [normalizzato]',' [normalised]'):''}${!c.unit?T(' [unità mancante]',' [unit missing]'):''}${!pr.inRange?T(' (estrapolato)',' (extrapolated)'):''}`, 9); });
+    rows.filter(o=>o.role==='blank' && o.y!=null).forEach(o=>{ if (mvNoEstimate(o)){ line(`${T('Bianco','Blank')} ${dispTitle(o.f)}: ${T('nessuna stima','no estimate')} (${trO(o.flag)})`, 9); return; } const pr=cal.predict(o.y,1); line(`${T('Bianco','Blank')} ${dispTitle(o.f)}: ${fmtG(pr.x,3)} ${c.unit||''}${pr.x>cal.lod?T(' (sopra il LOD)',' (above the LOD)'):T(' (sotto il LOD)',' (below the LOD)')}`, 9); });
+    rows.filter(o=>o.conc==null && o.y!=null && o.role==='std' && !mvNoEstimate(o)).forEach(o=>{ const pr=cal.predict(o.y,1); line(`${dispTitle(o.f)}: ${fmtG(pr.x,4)} ± ${fmtG(pr.ci,2)} ${c.unit||''}${o.flag?' ['+trO(o.flag)+']':''}${pr.belowLod?' (< LOD)':pr.belowLoq?' (< LOQ)':''}${S.conv[instr]==='norm'?T(' [normalizzato]',' [normalised]'):''}${!c.unit?T(' [unità mancante]',' [unit missing]'):''}${!pr.inRange?T(' (estrapolato)',' (extrapolated)'):''}`, 9); });
     footer(); }
   for (const instr of Object.keys(MVres)){ const R=MVres[instr]; if (!R || R.err) continue;
     head(T('PCA e gruppi · ','PCA and groups · ')+T_().nome[instr]);
@@ -7987,12 +8100,12 @@ function methodsText(inc, used){
   if (cite.has('lm')) parts.push(T('Le bande sovrapposte sono state separate con profili '+profIt+' e una linea di base polinomiale, mediante minimi quadrati non lineari di Levenberg–Marquardt (Levenberg, 1944; Marquardt, 1963).'+(cite.has('bic')?' Il numero di componenti è stato scelto a partire dai minimi della derivata seconda (Maddams & Mead, 1982) con il criterio di informazione bayesiano (Schwarz, 1978), accettando un componente aggiuntivo solo per ΔBIC > 6.':'')+' Le incertezze sono gli errori standard ottenuti dalla matrice di covarianza dei parametri.',
     'Overlapping bands were resolved with '+profEn+' profiles on a polynomial baseline by Levenberg–Marquardt non-linear least squares (Levenberg, 1944; Marquardt, 1963).'+(cite.has('bic')?' The number of components was selected starting from the minima of the second derivative (Maddams & Mead, 1982) using the Bayesian information criterion (Schwarz, 1978), accepting an additional component only for ΔBIC > 6.':'')+' Uncertainties are standard errors from the parameter covariance matrix.'));
   if (cite.has('ich') && Object.values(MV).some(m=>m&&m.weight)) parts.push(T('Dove indicato, retta pesata (1/x o 1/x²): LOD e LOQ riferiti alla dispersione allo standard più basso.','Where stated, weighted line (1/x or 1/x²): LOD and LOQ refer to the dispersion at the lowest standard.'));
-  { const L_=T_(), bl=[]; for (const ins of Object.keys(MV||{})){ const c=MV[ins]; if (!c || c.a==null || c.b==null || !inc.some(f=>f.instr===ins) || c.model==='pls') continue; const u=(INSTR[ins]&&INSTR[ins].xPdf)||'', dg=Math.abs(c.b-c.a)>=50?0:Math.abs(c.b-c.a)>=1?2:3, m=MEAS_NAME[c.meas]||c.meas, pr=(BAND_PRESETS[ins]||[])[c.preset], prOk=pr&&pr[1]===c.a&&pr[2]===c.b;
+  { const L_=T_(), bl=[]; for (const ins of Object.keys(MV||{})){ const c=MV[ins]; if (!c || c.a==null || c.b==null || !inc.some(f=>f.instr===ins) || c.model==='pls') continue; const u=(INSTR[ins]&&INSTR[ins].xPdf)||'', dg=Math.abs(c.b-c.a)>=50?0:Math.abs(c.b-c.a)>=1?2:3, m=(en?{height:'height',area:'area',value:'value at a point',centroid:'centroid',fwhm:'FWHM'}:MEAS_NAME)[c.meas]||c.meas, pr=(BAND_PRESETS[ins]||[])[c.preset], prEn=pr&&window.AcchI18n?AcchI18n.tr(pr[0]):(pr&&pr[0]), prOk=pr&&pr[1]===c.a&&pr[2]===c.b;
       const pt=c.meas==='value'||c.a===c.b, saub=ins==='ftir'&&prOk&&c.preset===0, inT=inc.some(f=>f.instr===ins&&f.kind==='T');
       if (saub) cite.add('saub');
-      if (pt){ bl.push(T(`${L_.nome[ins]}: ${ins==='uv'?'assorbanza':m} a ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, senza correzione della linea di base${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; non è l\'indice di ingiallimento colorimetrico (ASTM E313)':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`, `${L_.nome[ins]}: ${ins==='uv'?'absorbance':m} at ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, no baseline correction${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; this is not the colorimetric yellowness index (ASTM E313)':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); continue; }
+      if (pt){ bl.push(T(`${L_.nome[ins]}: ${ins==='uv'?'assorbanza':m} a ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, senza correzione della linea di base${prOk?` (${pr[0]})`:''}${ins==='uv'&&prOk?'; non è l\'indice di ingiallimento colorimetrico (ASTM E313)':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`, `${L_.nome[ins]}: ${ins==='uv'?'absorbance':m} at ${fmtN(c.a,Math.abs(c.a)>=100?0:2)} ${u}, no baseline correction${prOk?` (${prEn})`:''}${ins==='uv'&&prOk?'; this is not the colorimetric yellowness index (ASTM E313)':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); continue; }
       bl.push(T(`${L_.nome[ins]}: ${m} tra ${fmtN(Math.min(c.a,c.b),dg)} e ${fmtN(Math.max(c.a,c.b),dg)} ${u}, sopra una linea di base retta tra gli estremi della zona${c.c!=null&&c.d!=null?`, divisa per la stessa misura tra ${fmtN(Math.min(c.c,c.d),dg)} e ${fmtN(Math.max(c.c,c.d),dg)} ${u} (banda di riferimento)`:''}${prOk?` (indice «${pr[0]}»${saub?', metodo definito per polietilene e polipropilene':''})`:''}${inT?'; le aree sono calcolate in assorbanza (A = 2 − log₁₀ %T) dai dati in trasmittanza':''}${c.model==='trend'?`; l'andamento con ${c.unit?`x in ${c.unit}`:'la grandezza x'} è descritto con la pendenza della retta dei minimi quadrati e il suo errore standard, solo come indicazione (non è un modello cinetico né una taratura)`:''}.`,
-        `${L_.nome[ins]}: ${m} between ${fmtN(Math.min(c.a,c.b),dg)} and ${fmtN(Math.max(c.a,c.b),dg)} ${u}, above a straight baseline between the ends of the region${c.c!=null&&c.d!=null?`, divided by the same measure between ${fmtN(Math.min(c.c,c.d),dg)} and ${fmtN(Math.max(c.c,c.d),dg)} ${u} (reference band)`:''}${prOk?` (index «${pr[0]}»${saub?', a method defined for polyethylene and polypropylene':''})`:''}${inT?'; areas are computed in absorbance (A = 2 − log₁₀ %T) from transmittance data':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); }
+        `${L_.nome[ins]}: ${m} between ${fmtN(Math.min(c.a,c.b),dg)} and ${fmtN(Math.max(c.a,c.b),dg)} ${u}, above a straight baseline between the ends of the region${c.c!=null&&c.d!=null?`, divided by the same measure between ${fmtN(Math.min(c.c,c.d),dg)} and ${fmtN(Math.max(c.c,c.d),dg)} ${u} (reference band)`:''}${prOk?` (index «${prEn}»${saub?', a method defined for polyethylene and polypropylene':''})`:''}${inT?'; areas are computed in absorbance (A = 2 − log₁₀ %T) from transmittance data':''}${c.model==='trend'?`; the trend with ${c.unit?`x in ${c.unit}`:'the x quantity'} is described by the least-squares slope and its standard error, as an indication only (not a kinetic model nor a calibration)`:''}.`)); }
     if (bl.length) parts.push(T('Misure di banda. ','Band measurements. ')+bl.join(' ')); }
   if (cite.has('ich')) parts.push(T('Le rette di taratura sono state calcolate con i minimi quadrati '+(cite.has('wls')?'pesati (pesi 1/x o 1/x², come indicato nelle misure)':'ordinari')+'; LOD = 3,3·s_y/x/b e LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); gli intervalli di confidenza al 95% delle concentrazioni stimate seguono Miller & Miller (2018)'+(cite.has('mandel')?(cite.has('mandelNL')?'; il test di Mandel (ISO 8466-1) è stato eseguito dove gli standard erano almeno 5 e in almeno una retta ha indicato una curvatura significativa (vedi le misure).':'; la linearità è stata verificata con il test di Mandel (ISO 8466-1) dove gli standard erano almeno 5.'):'.'),
     'Calibration lines were fitted by '+(cite.has('wls')?'weighted least squares (1/x or 1/x² weights, as stated in the measurements)':'ordinary least squares')+'; LOD = 3.3·s_y/x/b and LOQ = 10·s_y/x/b (ICH Q2(R2), 2023); 95% confidence intervals of predicted concentrations follow Miller & Miller (2018)'+(cite.has('mandel')?(cite.has('mandelNL')?'; Mandel\'s test (ISO 8466-1) was run where at least 5 standards were available and indicated significant curvature for at least one line (see the measurements).':'; linearity was checked with Mandel\'s test (ISO 8466-1) where at least 5 standards were available.'):'.')));

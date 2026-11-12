@@ -56,6 +56,8 @@ With the example files you should get these values (tested several times, online
 
 Slope: 8.52e-4 ± 6.9e-5 per h, R² 0.975.
 
+The slope is «per h» because you entered `h` in **Unit of x**: the same unit appears on screen, in the PDF and in the «Trend» row of the CSV. If you leave the box empty, the program writes «per unit of x».
+
 How to read them:
 - **The ⚠️ warning at 0 hours is normal.** The sample is not oxidised yet: there is no band and the area is about zero (here slightly below zero, because of the noise). The program says so instead of giving a confident number.
 - **At 100 hours the band is just above the noise.** The program gives no warning, but the value is small and uncertain: do not give it too much weight.
@@ -78,7 +80,7 @@ In the ZIP file you find:
 
 **Faster, CSV only:** the **⬇️ CSV** button next to the index table immediately downloads `band_measurements_ftir.csv` with the same numbers. Its name and column names follow the plot language (in Italian: `misure_ftir.csv`).
 
-**The warnings stay in the files too.** A ⚠️ warning of the table (for example «negative or zero area») appears in the **Status** column of both CSV files and, in square brackets, next to the value on the last page of the PDF. In the PDF it is still written in Italian («area negativa o nulla»), and so is the line «Indice di carbonile». Check the warnings before using the numbers.
+**The warnings stay in the files too.** A ⚠️ warning of the table (for example «negative or zero area») appears in the **Status** column of both CSV files and, in square brackets, next to the value on the last page of the PDF. Check the warnings before using the numbers.
 
 ## If something goes wrong
 - **You do not see the «Value of x» column:** in the online version, if below the tab there is the box «Calibrations, PCA, mixtures, XRF composition and false colours are for in-depth study work», press **Show here**. Usually this is not needed: **How degraded is it?** shows the column by itself.

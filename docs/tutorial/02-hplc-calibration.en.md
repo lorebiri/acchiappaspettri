@@ -19,7 +19,7 @@ The files (names are in Italian: BIANCO = blank, CONTROLLO = control, INCOGNITO 
 1. Open Acchiappaspettri. If the welcome window appears, press **Let's start 👻**.
 2. Press **Choose files** and select the 10 files. *Desktop app:* **Add spectra** in the top bar.
 3. **HPLC** appears next to each name: the program has recognised the chromatograms.
-4. For English numbers (0.5 instead of 0,5) and English plots: press **3 Download** at the top (*desktop app:* the **Export** tab), choose **🇬🇧 English** under **Plot language**, then press **2 Review** (*desktop app:* the **Plot** tab) to come back. Without this step the program uses Italian plots and decimal commas.
+4. With the menus in English, plots and numbers are in English too (decimal point: 0.5). Only if you want them in Italian, change **Plot language** on the download page (*desktop app:* the **Export** tab).
 
 ![The 10 chromatograms loaded: the peak to measure is at 4.19 min](img/t2-en-1-caricati.png)
 

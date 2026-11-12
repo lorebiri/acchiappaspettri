@@ -12,7 +12,7 @@
 1. Open Acchiappaspettri. If the welcome window appears, press **Let's start 👻**.
 2. Press **Choose files** and pick the `.mca` file. *Desktop app:* **Add spectra** in the top bar.
 3. **XRF** appears next to the name. The program has read the anode (Rh), the voltage (40 kV) and the angles from the file header.
-4. For English numbers and plots: press **3 Download** at the top (*desktop app:* the **Export** tab), choose **🇬🇧 English** under **Plot language**, then press **2 Review** (*desktop app:* the **Plot** tab). Without this step the program uses Italian plots and decimal commas.
+4. With the menus in English, plots and numbers are in English too (decimal point: 0.5). Only if you want them in Italian, change **Plot language** on the download page (*desktop app:* the **Export** tab).
 
 ## 2. Open the standardless composition
 **Online version**
