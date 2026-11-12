@@ -56,9 +56,9 @@ jobs:
           - { os: windows-2025, args: "--bundles nsis" }   # stesse immagini della CI
           - { os: macos-26, args: "--target aarch64-apple-darwin --bundles app,dmg", rust_target: aarch64-apple-darwin }
           - { os: macos-15-intel, args: "--target x86_64-apple-darwin --bundles app,dmg", rust_target: x86_64-apple-darwin }   # compilato su un Mac Intel vero
-          # .deb solo per le versioni stabili: per dpkg «2.2.0-rc.N» è più nuova di «2.2.0» (rc = revisione Debian),
-          # quindi chi installasse una rc dal .deb vedrebbe la stabile come una retrocessione
-          - { os: ubuntu-22.04, args: "--bundles appimage,deb", args_pre: "--bundles appimage" }
+          # .deb anche per le prove: dopo la compilazione la sua versione Debian diventa «X~rc.N» (scripts/deb-version.js),
+          # che dpkg ordina prima della stabile (con «X-rc.N» la stabile sembrerebbe una retrocessione)
+          - { os: ubuntu-22.04, args: "--bundles appimage,deb" }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -90,18 +90,34 @@ jobs:
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
-          args: ${{ contains(github.ref_name, '-') && matrix.args_pre || matrix.args }}
+          args: ${{ matrix.args }}
           # come in ci.yml: nuovi tentativi solo per hdiutil «Resource busy» e download falliti per la rete, con ::warning::
           # (retryAttempts di tauri-action ripete qualsiasi errore senza avviso: non si usa)
           tauriScript: node .github/scripts/tauri-build.js
-      - name: Versioni delle librerie Ubuntu incluse nell'AppImage (per l'offerta del codice sorgente LGPL)
+      - name: Versione Debian delle prove (X~rc.N) nel .deb (Linux)
+        if: startsWith(matrix.os, 'ubuntu') && contains(github.ref_name, '-')
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -e
+          deb=$(ls src-tauri/target/release/bundle/deb/*.deb)
+          node scripts/deb-version.js "$deb" "$GITHUB_REF_NAME"
+          dpkg-deb -I "$deb" > /dev/null && dpkg-deb -c "$deb" > /dev/null
+          # il pacchetto è cambiato: la firma va rifatta (il .deb non entra in latest.json, ma la firma pubblicata deve essere vera)
+          up=("$deb"); if [ -f "$deb.sig" ]; then rm "$deb.sig"; npx tauri signer sign "$deb"; up+=("$deb.sig"); fi
+          gh release upload "$GITHUB_REF_NAME" "${up[@]}" --clobber
+      - name: Librerie Ubuntu incluse nell'AppImage (per l'offerta del codice sorgente LGPL)
         if: startsWith(matrix.os, 'ubuntu')
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         run: |
-          # elenco completo della macchina di compilazione: comprende tutte le librerie copiate nell'AppImage (e altre); la riga # lo dice
-          { echo "# Pacchetti Ubuntu 22.04 installati sulla macchina che ha costruito l'AppImage: elenco completo, più ampio delle sole librerie incluse nell'AppImage (che ci sono tutte). Full package list of the build machine: a superset of the libraries bundled in the AppImage."
-            printf '# pacchetto\tversione\tpacchetto sorgente\tversione sorgente\n'
-            dpkg-query -W -f='${Package}\t${Version}\t${source:Package}\t${source:Version}\n' | sort; } > librerie-linux-ubuntu-22.04.tsv
+          set -e
+          # solo le librerie davvero copiate nell'AppImage, ciascuna ricondotta al suo pacchetto con dpkg -S
+          ai=$(realpath src-tauri/target/release/bundle/appimage/*.AppImage); x=$(mktemp -d)
+          chmod +x "$ai"; (cd "$x" && "$ai" --appimage-extract > /dev/null)
+          node scripts/linux-libs-tsv.js "$x/squashfs-root" > librerie-linux-ubuntu-22.04.tsv
+          head -3 librerie-linux-ubuntu-22.04.tsv; wc -l librerie-linux-ubuntu-22.04.tsv
           gh release upload "$GITHUB_REF_NAME" librerie-linux-ubuntu-22.04.tsv --clobber
       - name: Controlla i pacchetti che verranno pubblicati
         shell: bash

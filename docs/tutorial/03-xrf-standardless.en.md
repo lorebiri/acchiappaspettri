@@ -36,7 +36,7 @@ Cu 86.3 · Sn 8.3 · Pb 5.4
 
 How to notice:
 - the box at the top right of the plot says **(As?)**: arsenic is possible but not certain;
-- in the section **🩺 Spectrum check** (*desktop app:* the **Data check** tab below the plot) the program reports signals that are not in the peak list, among them one at **8.63 keV**: it is the zinc Kα line, hidden between the two copper lines.
+- in the section **🩺 Data check** (*desktop app:* the **Data check** tab below the plot) the program reports signals that are not in the peak list, among them one at **8.63 keV**: it is the zinc Kα line, hidden between the two copper lines.
 
 Add the elements: in the **Elements:** row press **Zn** and then **As**. The button turns blue and the calculation runs again.
 

@@ -113,7 +113,7 @@ Separare il ricalcolo dei numeri dalla ricostruzione dei campi in «Più campion
 ## Rilascio
 
 - I pacchetti pubblicati vengono ricostruiti dalla pipeline di pubblicazione dopo i test: non sono gli stessi file installati e provati in CI. Dopo ogni pubblicazione si scaricano e si installano almeno Windows e un Mac.
-- L'aggiornamento firmato si prova davvero solo da una versione pubblicata alla successiva: pubblicare una 2.2.1 entro due settimane dalla 2.2.0.
+- L'aggiornamento firmato si prova da una versione all'altra con il mirror locale (`scripts/mirror-aggiornamento.js`, [AGGIORNAMENTI.md](AGGIORNAMENTI.md)) prima della pubblicazione; resta da eseguire davvero dalla 2.2.0 alla 3.0.0.
 - La chiave privata di firma degli aggiornamenti va custodita anche fuori dal Mac di sviluppo: senza di essa le app installate non possono più aggiornarsi.
 
 ## Prossimo passo

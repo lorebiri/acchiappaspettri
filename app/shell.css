@@ -236,8 +236,9 @@ html.shell details.ansec>summary>b{flex:1 1 0;min-width:0;display:inline}
 
 /* Esporta: il pulsante «Scarica» resta sempre in vista in fondo alla vista (finestre basse 720–864 px), con il riepilogo compatto accanto */
 html.shell #v3 .dlcard{position:sticky;bottom:-16px;z-index:3;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 16px;margin-bottom:0;box-shadow:0 -6px 14px rgba(0,0,0,.10)}
-html.shell #v3 .dlcard .summary{flex:1 1 360px;min-width:0;max-height:5.6em;overflow:auto;font-size:12px;margin:0}
-html.shell #v3 .dlcard .summary li{margin-bottom:1px}
+/* altezza in righe intere (5 × 18 px): con 5.6em l'ultima riga («Tutto quanto sopra arriva dentro un solo file ZIP») restava tagliata a metà a 720 px */
+html.shell #v3 .dlcard .summary{flex:1 1 360px;min-width:0;line-height:18px;max-height:90px;overflow:auto;font-size:12px;margin:0}
+html.shell #v3 .dlcard .summary li{margin-bottom:0}
 html.shell #v3 .dlcard #oneFileRow{margin:0!important;font-size:12px}
 html.shell #v3 .dlcard #doDl{font-size:14px;padding:8px 18px}
 html.shell #v3 .dlcard .progress,html.shell #v3 .dlcard .status,html.shell #v3 .dlcard .ready{flex:1 0 100%;margin-top:0}

@@ -20,9 +20,12 @@ function strings(content){   // stringhe letterali (...) con parentesi bilanciat
 function pdfText(buf){
   const bin=buf.toString('latin1'), lines=[]; let m; const re=/stream\r?\n/g;
   while ((m=re.exec(bin))){ const start=m.index+m[0].length, end=bin.indexOf('endstream', start); if (end<0) break;
-    let raw=Buffer.from(bin.slice(start, end).replace(/\r?\n$/,''),'latin1'), txt;
-    const dict=bin.slice(Math.max(0,m.index-300), m.index);
-    if (/\/Subtype\s*\/Image/.test(dict.slice(dict.lastIndexOf('<<')))) continue;
+    const dict=bin.slice(Math.max(0,m.index-300), m.index), own=dict.slice(dict.lastIndexOf('<<'));
+    // lunghezza dal dizionario (/Length n): togliere «\r?\n» in coda tagliava il dato compresso quando il suo ultimo byte
+    // era 0x0D (circa 1 PDF su 1000, secondo la data nel riepilogo): inflate falliva e la pagina «spariva» (R6, fallimenti rari)
+    const len=/\/Length\s+(\d+)(?![\d\s]*R)/.exec(own);   // non «/Length 12 0 R» (riferimento indiretto)
+    let raw=Buffer.from(len ? bin.slice(start, start+(+len[1])) : bin.slice(start, end).replace(/\r?\n$/,''),'latin1'), txt;
+    if (/\/Subtype\s*\/Image/.test(own)) continue;
     try{ txt=zlib.inflateSync(raw).toString('latin1'); }catch(e){ txt=raw.toString('latin1'); }
     if (!/\bBT\b/.test(txt)) continue;
     for (const st of strings(txt)) if (st.op!=='?') lines.push(st.s);

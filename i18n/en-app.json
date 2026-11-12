@@ -903,5 +903,7 @@
 "Apri la pagina delle versioni": "Open the releases page",
 "Installa l'aggiornamento": "Install the update",
 "Nessun aggiornamento disponibile: la versione installata è la più recente.": "No update available: the installed version is the latest.",
-"Ricezione dell'aggiornamento…": "Retrieving the update…"
+"Ricezione dell'aggiornamento…": "Retrieving the update…",
+"🩺 Controllo del dato": "🩺 Data check",
+"Il progetto è integro, ma nessuno dei suoi spettri si può leggere: i file originali che contiene non sono in un formato riconosciuto o hanno troppo pochi punti. I dati già caricati non sono stati toccati.": "The project file is intact, but none of its spectra can be read: the original files it contains are not in a recognised format or have too few points. The data already loaded were not touched."
 }

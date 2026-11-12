@@ -24,7 +24,8 @@ results/…                tabelle dei risultati e bozza dei metodi (copia infor
 - `formatVersion` è la versione con cui è scritto il file, `minReaderVersion` la minima capace di leggerlo.
 - File più vecchi: si passa dalla catena `MIGRATIONS` in `app/project-format.js`, in memoria, senza toccare il file originale.
 - File più nuovi: se `minReaderVersion` lo permette si apre con un avviso, altrimenti messaggio «aggiorna l'applicazione».
-- `test/fixtures/progetto-v1.acchspettri` è un progetto vero della versione 1: **non va cancellato**, il test verifica che resti leggibile.
+- `test/fixtures/progetto-v1.acchspettri` è un progetto della versione 1 costruito per provare il **contenitore** (impronte, percorsi, chiavi pericolose, ogni byte alterato): **non va cancellato**. I suoi due «spettri» sono dati di prova (due righe di testo e un finto `.spa`), quindi l'app non ne legge nessuno e lo dice con «Il progetto è integro, ma nessuno dei suoi spettri si può leggere», non con «danneggiato».
+- `test/fixtures/progetto-v1-spettri.acchspettri` è un progetto della versione 1 salvato dalla 2.2.0 con due spettri sintetici (FTIR e HPLC), un titolo e una voce di libreria: deve aprirsi con tutto il suo contenuto (`test/validation/ui-rilascio-ui.test.js`), anche dopo il formato 2.
 - I vecchi `.acchiappa.json` si aprono ancora; il salvataggio successivo crea un `.acchspettri`, e l'originale resta intatto.
 
 ## Cosa non contiene
