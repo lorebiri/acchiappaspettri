@@ -117,7 +117,8 @@
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
   /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
   const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^Tap\b/,'Click'],[/\btap\b/g,'click'],[/\btocca\b/g,'fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^(\d+) spectra caught!/,'$1 spectra loaded.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
-  const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
+  // prima i testi del desktop (app/testi-desktop.js), poi la rete di sicurezza TONE per ciò che non è ancora in tabella
+  const cleanMsg=t=>{ let c=tr(String(win.ACCH_DESK?win.ACCH_DESK.pro(t):t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   const isWarnMsg=t=>/😕|⚠️|⛔/.test(String(t)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible|accepted))(?=\s|$|[.,:;!?])/i.test(String(t));
   let lastMsg='', lastWarn='', sticky=null, impErr=null; function pushMsg(t, forCur){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean;

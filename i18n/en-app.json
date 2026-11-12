@@ -887,5 +887,14 @@
 "⛔ Da controllare:": "⛔ To check:",
 "{0} Da controllare:": "{0} To check:",
 "una riga di testo interrompe i dati in «{0}»": "a line of text interrupts the data in «{0}»",
-"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read"
+"«{0}» contiene un secondo blocco di dati ({1} righe), per esempio un'altra scansione, che non ho letto: leggo un blocco per file": "«{0}» contains a second block of data ({1} rows), for example another scan, that was not read: one block per file is read",
+"Accesso al percorso non consentito.": "Access to this path is not allowed.",
+"Scrittura non consentita in questa cartella: scegline un'altra.": "Writing is not allowed in this folder: choose another one.",
+"Lettura o scrittura del file non riuscita.": "The file could not be read or written.",
+"Guida rapida": "Quick guide",
+"Questa installazione (pacchetto di sistema) non si aggiorna da sola: installa il nuovo pacchetto dalla pagina delle versioni.": "This installation (system package) does not update itself: install the new package from the releases page.",
+"Apri la pagina delle versioni": "Open the releases page",
+"Installa l'aggiornamento": "Install the update",
+"Nessun aggiornamento disponibile: la versione installata è la più recente.": "No update available: the installed version is the latest.",
+"Ricezione dell'aggiornamento…": "Retrieving the update…"
 }

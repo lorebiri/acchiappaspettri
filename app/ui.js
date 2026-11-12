@@ -8,16 +8,16 @@
   const isDesktop=()=>!!win.__TAURI__;
   /* finestra di scelta della pagina: uguale su ogni sistema, tradotta, non blocca il resto */
   function choice(message, buttons){ return new Promise(res=>{
-    const d=$('#dlgConfirm'), box=$('#cfBtns'); $('#cfMsg').textContent=message; box.innerHTML='';
+    const d=$('#dlgConfirm'), box=$('#cfBtns'), pro=t=>win.ACCH_DESK?win.ACCH_DESK.pro(t):t; $('#cfMsg').textContent=pro(message); box.innerHTML='';
     const finish=v=>{ d.removeEventListener('cancel',onCancel); d.close(); res(v); }, onCancel=e=>{ e.preventDefault(); finish(buttons[0][0]); };
-    buttons.forEach(([v,t,cl])=>{ const b=document.createElement('button'); b.type='button'; b.className='btn '+(cl||''); b.textContent=t; b.onclick=()=>finish(v); box.appendChild(b); });
+    buttons.forEach(([v,t,cl])=>{ const b=document.createElement('button'); b.type='button'; b.className='btn '+(cl||''); b.textContent=pro(t); b.onclick=()=>finish(v); box.appendChild(b); });
     d.addEventListener('cancel',onCancel); if (!d.open) d.showModal(); }); }
   win.uiConfirm=async msg=>{ if (win.ACCH_TEST) return true; return (await choice(msg,[['no','Annulla','ghost'],['yes','Sì','primary']]))==='yes'; };
   /* tema: i grafici restano bianchi, come nei file esportati */
   function applyTheme(){ const t=lsG('acch.ui.theme')||'auto', dark=t==='dark'||(t==='auto'&&win.matchMedia&&win.matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme=dark?'dark':'light'; }
   function setLang(l){ win.AcchI18n.setLang(l); const lab=$('#langLab'); if (lab) lab.textContent=l.toUpperCase(); if (typeof S!=='undefined' && S.lang!==l){ S.lang=l; saveS(); if (typeof syncControls==='function') syncControls(); if (files.length) refreshAll(); } }
   function openSettings(){ const d=$('#dlgSettings'); $('#stLang').value=win.AcchI18n.lang; $('#stTheme').value=lsG('acch.ui.theme')||'auto'; $('#stVer').textContent=APP_VERSION_FULL();
-    $('#stKind').textContent=isDesktop()?'Applicazione desktop':'Versione online'; $('#stDesktop').hidden=!isDesktop(); $('#stWeb').hidden=isDesktop(); if (!d.open) d.showModal(); if (win.AcchDesktop) win.AcchDesktop.syncSettings(); }
+    $('#stKind').textContent=isDesktop()?'Applicazione desktop':'Versione online'; $('#stDesktop').hidden=!isDesktop(); $('#stWeb').hidden=isDesktop()||!!win.ACCH_SHELL; if (!d.open) d.showModal(); if (win.AcchDesktop) win.AcchDesktop.syncSettings(); }
 
   /* collegamenti reali: si chiede a GitHub l'ultima versione stabile (non include le beta) soltanto quando l'utente apre la finestra */
   function detectOs(){ const u=(navigator.userAgent||'')+' '+(navigator.platform||''); if (/Win/i.test(u)) return 'windows'; if (/Mac/i.test(u)) return 'macos'; if (/Linux|X11/i.test(u)) return 'linux'; return null; }
@@ -44,7 +44,8 @@
     return list;
   }
   // i pulsanti arrivano dopo showModal: il fuoco passa al primo installer, se nel frattempo l'utente non l'ha spostato
-  function openDownload(fetchFn){ const d=$('#dlgDownload'); if (!d.open) d.showModal(); const was=document.activeElement;
+  // nel desktop la finestra di download non c'è (app/testi-desktop.js la toglie): gli aggiornamenti passano dal menu
+  function openDownload(fetchFn){ const d=$('#dlgDownload'); if (!d) return Promise.resolve([]); if (!d.open) d.showModal(); const was=document.activeElement;
     return renderDownload(typeof fetchFn==="function"?fetchFn:undefined).then(list=>{ const a=d.querySelector('.dlasset'); if (a && d.open && document.activeElement===was) a.focus(); return list; }); }
   function init(){
     applyTheme(); if (win.matchMedia) win.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
