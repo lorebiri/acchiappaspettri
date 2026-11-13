@@ -112,11 +112,13 @@
   let draining=Promise.resolve();   // i file aperti dal sistema si aprono uno alla volta
   // file grezzi aperti dal sistema (doppio clic, «Apri con»): il percorso relativo conserva la cartella .D di ChemStation, così i canali dello stesso campione stanno sulla stessa riga
   const relOf=path=>{ const P=String(path).split(/[\\/]/).filter(Boolean), n=P.pop()||path, d=P.pop(); return d && /\.d$/i.test(d) ? d+'/'+n : n; };
-  const isProj=n=>/\.(acchspettri|acchiappa\.json)$/i.test(n);
+  const isProj=n=>/\.(acchspettri|acchiappa\.json)$/i.test(n), isLib=n=>/\.(acchlib|json)$/i.test(n) && !isProj(n);
   function drainPending(){ draining=draining.then(async ()=>{ while (win.AcchProject.busy) await new Promise(r=>setTimeout(r,200));
       await new Promise(r=>setTimeout(r,150));   // «Apri con» su più file: su Windows e Linux arrivano uno per volta, si aspettano gli altri per mostrarli insieme
       const L=await inv('take_pending_open'); for (const p of L.filter(p=>isProj(p.name))) await openPath(p.path, p.name);
-      const raw=L.filter(p=>!isProj(p.name)); if (!raw.length) return;
+      // librerie dei picchi (I4): si importano, con l'unione voce per voce e i conflitti espliciti
+      for (const p of L.filter(p=>isLib(p.name))){ try{ const t=new TextDecoder().decode(await readFrom(p.path)); if (win.AcchLibUi) await win.AcchLibUi.importText(t, p.name); }catch(e){ console.error(e); win.toast(tr(errMsg(e))); } }
+      const raw=L.filter(p=>!isProj(p.name) && !isLib(p.name)); if (!raw.length) return;
       // con un lavoro già aperto si chiede dove metterli (ROADMAP I3): nel progetto aperto o in uno nuovo
       if (files.length && !win.ACCH_TEST){ const ans=await win.AcchUi.choice(tr('Aggiungere {0} file al progetto aperto «{1}»?').replace('{0}',raw.length).replace('{1}',win.AcchProject.displayName()), [['cancel','Annulla','ghost'],['new','Nuovo progetto','ghost'],['add','Aggiungi','primary']]);
         if (ans==='cancel') return; if (ans==='new' && !await win.AcchProject.newProject()) return; }
