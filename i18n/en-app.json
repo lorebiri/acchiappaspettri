@@ -1258,5 +1258,11 @@
 "un foglio con tutte le coppie X/Y": "one sheet with all X/Y pairs",
 "un progetto Origin con nome lungo, unità e commento nelle colonne e i valori esatti": "an Origin project with long name, units and comment in the columns and the exact values",
 "una cartella per spettro": "one workbook per spectrum",
-"📈 Preparo il progetto Origin…": "📈 Preparing the Origin project…"
+"📈 Preparo il progetto Origin…": "📈 Preparing the Origin project…",
+  "Tutti i canali HPLC": "All HPLC channels",
+  "Se un file ha più canali (DAD a più λ, VWD, FLD…) li leggo tutti e ti mostro «Canali trovati»: scegli tu quali caricare. Nel desktop apri i file dello strumento con un doppio clic.": "If a file has several channels (DAD at several λ, VWD, FLD…) I read them all and show you «Channels found»: you choose which to load. On the desktop you open instrument files with a double click.",
+  "Fisisorbimento e chemisorbimento": "Physisorption and chemisorption",
+  "Isoterme dell'Autosorb (Kaomi, ASiQwin, AIF, anche Excel): BET con i criteri di Rouquerol, Langmuir, t-plot, BJH, DR, calore isosterico e DFT; per il chemisorbimento TPR/TPD, impulsi e dispersione.": "Autosorb isotherms (Kaomi, ASiQwin, AIF, Excel too): BET with the Rouquerol criteria, Langmuir, t-plot, BJH, DR, isosteric heat and DFT; for chemisorption TPR/TPD, pulses and dispersion.",
+  "Progetti Origin": "Origin projects",
+  "Apri i tuoi .opju e .opj: scegli le colonne da importare, con i valori identici all'originale. Puoi anche esportare in formato Origin (non ancora provato in Origin).": "Open your .opju and .opj files: choose the columns to import, with values identical to the original. You can also export in Origin format (not yet tried in Origin)."
 }
