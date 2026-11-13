@@ -47,6 +47,12 @@ function once(name, engine){ return new Promise(res=>{ const run=fs.mkdtempSync(
   console.log('motore\tfile\tMB\tletto da\tlettura ms\tritardo max del timer ms\tblocco lungo max ms\tclic→grafico ms\tpicco MB');
   for (const engine of ['rust','js']) for (const n of names){ const L=out.filter(m=>m.asked===engine && m.file===n && !m.error); if (!L.length) continue;
     console.log([engine, n, L[0].MB, [...new Set(L.map(m=>m.engine))].join('/'), med(L.map(m=>m.readMs)), med(L.map(m=>m.worstStallMs)), L[0].longTaskMaxMs==null?'n.d.':med(L.map(m=>m.longTaskMaxMs)), GRAFICO?med(L.map(m=>m.clickToGraphMs)):'-', med(L.map(m=>m.peakMB))].join('\t')); }
+  // criteri della 3.0.0 (PROGETTO-DESKTOP §5): 1M punti dal clic al grafico ≤ 5 s, multicanale da 50 MB ≤ 5 s, nessun blocco oltre 50 ms
+  console.log('\ncriteri (mediane):');
+  for (const engine of ['rust','js']) for (const n of names){ const L=out.filter(m=>m.asked===engine && m.file===n && !m.error); if (!L.length) continue;
+    const g=med(L.map(m=>m.clickToGraphMs)), r=med(L.map(m=>m.readMs)), lt=L[0].longTaskMaxMs==null ? null : med(L.map(m=>m.longTaskMaxMs));
+    const t=/1M/.test(n) ? (GRAFICO ? ['clic→grafico ≤ 5 s', g!=null && g<=5000, g] : ['lettura (usa --grafico per clic→grafico)', r<=5000, r]) : ['lettura ≤ 5 s', r<=5000, r];
+    console.log(`${engine}\t${n}\t${t[0]}: ${t[1]?'OK':'NO'} (${t[2]} ms)\tblocco lungo ≤ 50 ms: ${lt==null?'n.d. (WebView senza API, es. macOS)':(lt<=50?'OK':'NO')+' ('+lt+' ms)'}`); }
   if (OUT) fs.writeFileSync(OUT, JSON.stringify(out,null,1));
   fs.rmSync(base,{recursive:true,force:true});
 })();

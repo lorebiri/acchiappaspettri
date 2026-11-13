@@ -16,46 +16,61 @@ fn tsv_q(l: &str) -> Vec<String> {
         .collect()
 }
 
-/// `t.split(/\t|;|\s+(?=[-+\d.])/).filter(Boolean)`
-fn split_num_row(t: &str) -> Vec<&str> {
-    let cs: Vec<(usize, char)> = t.char_indices().collect();
-    let mut out = Vec::new();
-    let mut p = 0usize; // indice in cs
+/// `t.split(/\t|;|\s+(?=[-+\d.])/).filter(Boolean)`, solo i primi due pezzi non vuoti (numRow usa solo quelli e il loro numero ≥ 2).
+/// Senza allocazioni: scorre i caratteri una volta.
+fn first_two(t: &str) -> Option<(&str, &str)> {
+    let b = t.as_bytes();
+    let mut out: [&str; 2] = ["", ""];
+    let mut got = 0;
+    let mut p = 0usize;
     let mut q = 0usize;
-    let byte = |i: usize| if i < cs.len() { cs[i].0 } else { t.len() };
-    while q < cs.len() {
-        let c = cs[q].1;
-        let e = if c == '\t' || c == ';' {
-            Some(q + 1)
-        } else if is_ws(c) {
-            // \s+ goloso, poi indietro finché il carattere seguente è [-+\d.]
-            let mut r = q;
-            while r < cs.len() && is_ws(cs[r].1) {
-                r += 1;
-            }
-            let mut found = None;
-            while r > q {
-                if r < cs.len() && matches!(cs[r].1, '-' | '+' | '.' | '0'..='9') {
-                    found = Some(r);
-                    break;
-                }
-                r -= 1;
-            }
-            found
+    while q < b.len() {
+        let c = b[q];
+        let (is_sep, e) = if c == b'\t' || c == b';' {
+            (true, q + 1)
+        } else if c < 0x80 && !matches!(c, b' ' | 0x0B | 0x0C | b'\n' | b'\r') {
+            (false, 0)
         } else {
-            None
-        };
-        match e {
-            Some(e) => {
-                out.push(&t[byte(p)..byte(q)]);
-                p = e;
-                q = e;
+            // spazio (anche Unicode): \s+ goloso, valido solo se dopo c'è [-+\d.]
+            let ch = t[q..].chars().next().unwrap();
+            if !crate::js::is_ws(ch) {
+                (false, 0)
+            } else {
+                let mut r = q;
+                while r < b.len() {
+                    let c2 = t[r..].chars().next().unwrap();
+                    if !crate::js::is_ws(c2) {
+                        break;
+                    }
+                    r += c2.len_utf8();
+                }
+                if r < b.len() && matches!(b[r], b'-' | b'+' | b'.' | b'0'..=b'9') {
+                    (true, r)
+                } else {
+                    (false, 0)
+                }
             }
-            None => q += 1,
+        };
+        if is_sep {
+            let piece = &t[p..q];
+            if !piece.is_empty() {
+                out[got] = piece;
+                got += 1;
+                if got == 2 {
+                    return Some((out[0], out[1]));
+                }
+            }
+            p = e;
+            q = e;
+        } else {
+            q += if c < 0x80 { 1 } else { t[q..].chars().next().unwrap().len_utf8() };
         }
     }
-    out.push(&t[byte(p)..]);
-    out.into_iter().filter(|s| !s.is_empty()).collect()
+    let piece = &t[p..];
+    if !piece.is_empty() && got == 1 {
+        return Some((out[0], piece));
+    }
+    None
 }
 /// `/^[-+]?[\d.,]+(e[-+]?\d+)?$/i`
 fn num_form(s: &str) -> bool {
@@ -94,13 +109,9 @@ pub fn num_row(l: &str) -> Option<(f64, f64)> {
     if t.is_empty() || t.starts_with('"') {
         return None;
     }
-    let c = split_num_row(t);
-    if c.len() < 2 {
-        return None;
-    }
-    let (a, b) = (num(c[0]), num(c[1]));
-    match (a, b) {
-        (Some(a), Some(b)) if num_form(trim(c[0])) => Some((a, b)),
+    let (c0, c1) = first_two(t)?;
+    match (num(c0), num(c1)) {
+        (Some(a), Some(b)) if num_form(trim(c0)) => Some((a, b)),
         _ => None,
     }
 }
@@ -426,9 +437,11 @@ mod tests {
     use super::*;
     #[test]
     fn rows_and_splits() {
-        assert_eq!(split_num_row("1.5  2"), vec!["1.5", "2"]);
-        assert_eq!(split_num_row("a  b 5"), vec!["a  b", "5"]);
-        assert_eq!(split_num_row("1\t;2"), vec!["1", "2"]);
+        assert_eq!(first_two("1.5  2"), Some(("1.5", "2")));
+        assert_eq!(first_two("a  b 5"), Some(("a  b", "5")));
+        assert_eq!(first_two("1\t;2"), Some(("1", "2")));
+        assert_eq!(first_two("1\u{a0}-2\tx"), Some(("1", "-2")));
+        assert_eq!(first_two("abc"), None);
         assert_eq!(num_row("0.5\t12.5mAU"), Some((0.5, 12.5)));
         assert_eq!(num_row("\"x\"\t1"), None);
         assert_eq!(num_row("1e5x 2"), None);

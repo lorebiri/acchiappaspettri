@@ -92,6 +92,9 @@ pub fn parse_float(s: &str) -> Option<f64> {
 }
 /// `num()` di channels-core.js: `parseFloat(String(s).replace(',','.'))`, solo se finito.
 pub fn num(s: &str) -> Option<f64> {
+    if !s.contains(',') {
+        return parse_float(s).filter(|v| v.is_finite());
+    }
     let r = s.replacen(',', ".", 1);
     parse_float(&r).filter(|v| v.is_finite())
 }

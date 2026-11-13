@@ -110,6 +110,21 @@ test('lettura di 1M punti nel worker: la finestra non si blocca oltre 50 ms', as
   await o.ctx.close();
 });
 
+test('1M punti dal caricamento al grafico disegnato in ≤ 5 s; il controllo del dato arriva dopo il grafico', async()=>{
+  const o=await page(br, server, true);
+  const r=await o.p.evaluate(async()=>{ const b=await I5.get('grande-1M.txt'); await AcchEngine.read(new ArrayBuffer(8),'riscalda.txt',{});
+    let drawn=0; const od=window.drawPlot; window.drawPlot=function(){ const x=od.apply(this,arguments); if (!drawn) drawn=performance.now(); return x; };
+    const t0=performance.now(), add=addEntries([{file:new File([b],'grande.txt'), path:'grande.txt'}]);
+    const done=await Promise.race([add.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))), new Promise(r=>setTimeout(()=>r(false), 60000))]);
+    const ms=performance.now()-t0, early=QBAD.has(files[0]&&files[0].id);
+    for (let i=0;i<200 && !(files[0] && QBAD.has(files[0].id));i++) await new Promise(r=>setTimeout(r,50));
+    return {done, ms, drawn:drawn-t0, early, later:!!(files[0] && QBAD.has(files[0].id)), n:files[0]&&files[0].xs.length}; });
+  assert.ok(r.done, 'oltre 60 s'); assert.equal(r.n, 1e6);
+  assert.ok(r.ms<=5000, 'dal caricamento al grafico '+Math.round(r.ms)+' ms (primo disegno a '+Math.round(r.drawn)+' ms)');
+  assert.equal(r.early, false, 'il controllo del dato non deve stare prima del grafico'); assert.ok(r.later, 'controllo del dato fatto dopo');
+  await o.ctx.close();
+});
+
 test('«Annulla la lettura»: il file in corso e quelli rimasti del lotto non si leggono', async()=>{
   const o=await page(br, server, true);
   const r=await o.p.evaluate(async()=>{ const b=await I5.get('grande-1M.txt'), c=await I5.get('grande-1M-decrescente.csv');

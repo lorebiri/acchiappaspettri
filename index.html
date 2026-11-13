@@ -2576,11 +2576,23 @@ function transformY(ys, kind, conv){
 function sgSmooth(ys, win){
   const n=ys.length; if (!win || win<5 || n<win+2) return ys;
   const m=(win-1)>>1, den=(2*m+3)*(2*m+1)*(2*m-1), c=[];
+  if (m>DERIV_EXACT_M && n>4*DERIV_BLOCK && numsOk(ys)) return sgFast(ys, n, m, den);
   for (let i=-m;i<=m;i++) c.push(3*(3*m*m+3*m-1-5*i*i)/den);
   const out=Float64Array.from(ys);
   for (let i=m;i<n-m;i++){ let s=0; for (let j=-m;j<=m;j++) s+=c[j+m]*ys[i+j]; out[i]=s; }
   return out;
 }
+/* I5: Savitzky–Golay quadratico con finestre larghe (m > DERIV_EXACT_M, file grandi): Σc_j·y = (3(3m²+3m−1)·S0 − 15·S2)/den con
+   S0=Σy e S2=Σj²y sulla finestra, aggiornate a ogni passo (S1=Σj·y serve all'aggiornamento) e ricalcolate da capo ogni DERIV_BLOCK punti,
+   sui valori meno quello del punto di ancoraggio. Entro 1e-12 della scala dei dati rispetto alla somma pesata (test/unit/derivata-veloce.test.js) */
+function sgFast(ys, n, m, den){ const out=Float64Array.from(ys), A=3*(3*m*m+3*m-1), m1=m+1;
+  for (let i0=m;i0<n-m;i0+=DERIV_BLOCK){ const i1=Math.min(n-m, i0+DERIV_BLOCK), Y0=ys[i0]; let S0=0, S1=0, S2=0;
+    for (let j=-m;j<=m;j++){ const v=ys[i0+j]-Y0; S0+=v; S1+=j*v; S2+=j*j*v; }
+    for (let i=i0;i<i1;i++){
+      if (i>i0){ const vo=ys[i-1-m]-Y0, vi=ys[i+m]-Y0, s0=S0-vo+vi, t1=S1+m*vo+m1*vi;   // da i−1 a i: esce i−1−m, entra i+m; indici spostati di uno
+        S2=S2-m*m*vo+m1*m1*vi-2*t1+s0; S1=t1-s0; S0=s0; }
+      out[i]=Y0+(A*S0-15*S2)/den; } }   // Σc_j = 1: l'ancoraggio torna intero
+  return out; }
 // linea di base: inviluppo convesso inferiore (rubber band) o retta tra gli estremi
 function baselineOf(xs, ys, method, upper){
   const n=ys.length, y = upper ? Array.from(ys, v=>-v) : ys, b=new Float64Array(n);
@@ -2620,17 +2632,31 @@ function arrMax(a, f){ let m=-Infinity; for (let i=0;i<a.length;i++){ const v=f?
 function arrMin(a, f){ let m=Infinity; for (let i=0;i<a.length;i++){ const v=f?f(a[i]):a[i]; if (v<m) m=v; } return m; }
 function noiseSigma(ys){
   const n=ys.length; if (n<4) return 0;
-  const a=new Float64Array(n-2); for (let i=1;i<n-1;i++) a[i-1]=Math.abs(ys[i+1]-2*ys[i]+ys[i-1]);
-  a.sort(); return a[a.length>>1]/0.6745/Math.sqrt(6);
+  const a=new Float64Array(n-2); let nan=false; for (let i=1;i<n-1;i++){ const v=Math.abs(ys[i+1]-2*ys[i]+ys[i-1]); a[i-1]=v; if (v!==v) nan=true; }
+  return (nan || a.length<2048 ? (a.sort(), a[a.length>>1]) : kthSmallest(a, a.length>>1))/0.6745/Math.sqrt(6);
 }
+/* I5: k-esimo valore in ordine crescente senza ordinare tutto (selezione di Hoare, O(n) in media): è lo stesso elemento che darebbe
+   l'ordinamento, quindi la mediana è identica bit per bit. Solo senza NaN (con i NaN si ordina come prima). Modifica a sul posto. */
+function kthSmallest(a, k){ let lo=0, hi=a.length-1;
+  while (hi>lo){ const mid=(lo+hi)>>1; let p=a[mid]; const x=a[lo], z=a[hi]; if ((x<=p && p<=z) || (z<=p && p<=x)){} else if ((p<=x && x<=z) || (z<=x && x<=p)) p=x; else p=z;
+    let i=lo, j=hi; while (i<=j){ while (a[i]<p) i++; while (a[j]>p) j--; if (i<=j){ const t=a[i]; a[i]=a[j]; a[j]=t; i++; j--; } }
+    if (k<=j) hi=j; else if (k>=i) lo=i; else return a[k]; }
+  return a[k]; }
 function sgNoiseGain(m){ const den=(2*m+3)*(2*m+1)*(2*m-1); let c2=0; for (let i=-m;i<=m;i++){ const c=3*(3*m*m+3*m-1-5*i*i)/den; c2+=c*c; } return Math.sqrt(c2); }
+/* massimi locali con la prominenza: per ogni massimo il minimo fra lui e il primo valore più alto a sinistra e a destra.
+   I5: in O(n) con una pila (il primo valore più alto e il minimo dei tratti scavalcati), invece di scorrere a ogni massimo fino al
+   primo valore più alto, che con 1M punti rumorosi diventava quadratico. Stessi confronti (anche con i NaN), minimi esatti: risultato identico */
+function peakCandidatesMin(sm, rev){ const n=sm.length, out=new Float64Array(n), st=new Int32Array(n), sv=new Float64Array(n); let top=0;
+  for (let t=0;t<n;t++){ const i=rev ? n-1-t : t, v=sm[i]; let run=v;   // run: minimo dei valori dopo il primo più alto, fino a i compreso
+    while (top>0 && sm[st[top-1]]<=v){ const m=sv[top-1]; if (m<run) run=m; top--; }
+    out[i]=run; st[top]=i; sv[top]=run; top++; }
+  return out; }
 function peakCandidates(sm){
-  const n=sm.length, out=[];
+  const n=sm.length, out=[]; if (n<3) return out;
+  const L=peakCandidatesMin(sm, false), R=peakCandidatesMin(sm, true);
   for (let i=1;i<n-1;i++){
     if (!(sm[i]>sm[i-1] && sm[i]>=sm[i+1])) continue;
-    let lmin=sm[i], j=i-1; while (j>=0 && sm[j]<=sm[i]){ if(sm[j]<lmin) lmin=sm[j]; j--; }
-    let rmin=sm[i]; j=i+1; while (j<n && sm[j]<=sm[i]){ if(sm[j]<rmin) rmin=sm[j]; j++; }
-    out.push({i, prom: sm[i]-Math.max(lmin,rmin)});
+    out.push({i, prom: sm[i]-Math.max(L[i],R[i])});
   }
   return out;
 }
@@ -2760,11 +2786,31 @@ function fmtTick(v, dec){
   return v.toFixed(dec).replace('.',sep);
 }
 /* derivata con retta dei minimi quadrati su una finestra di 2m+1 punti (funziona anche con passo non uniforme) */
+/* derivata: pendenza della retta dei minimi quadrati sui punti i−m…i+m (troncati ai bordi).
+   I5: con finestre larghe (m > DERIV_EXACT_M, cioè file da centinaia di migliaia di punti: la finestra cresce con n) il calcolo punto per
+   punto costa O(n·m), quadratico. Lì si usano somme scorrevoli centrate su un punto di ancoraggio rifatto ogni DERIV_BLOCK punti
+   (derivFast): stessa finestra e stessa formula, differenza dal calcolo punto per punto entro 1e-12 della scala della derivata
+   (test/unit/derivata-veloce.test.js). Con m ≤ DERIV_EXACT_M il calcolo resta quello di sempre, bit per bit. */
+const DERIV_EXACT_M=64, DERIV_BLOCK=128;
+function derivPoint(xs, ys, n, m, i){ const a=Math.max(0,i-m), b=Math.min(n-1,i+m); let sx=0, sy=0, c=0;
+  for (let k=a;k<=b;k++){ sx+=xs[k]; sy+=ys[k]; c++; } const mx=sx/c, my=sy/c; let sxx=0, sxy=0;
+  for (let k=a;k<=b;k++){ const dx=xs[k]-mx; sxx+=dx*dx; sxy+=dx*(ys[k]-my); } return sxx>0 ? sxy/sxx : 0; }
+function derivFast(xs, ys, n, m, out){
+  for (let i0=0;i0<n;i0+=DERIV_BLOCK){ const i1=Math.min(n, i0+DERIV_BLOCK), X0=xs[i0], Y0=ys[i0];
+    let a=Math.max(0,i0-m), b=Math.min(n-1,i0+m), c=0, Sx=0, Sy=0, Sxx=0, Sxy=0;
+    for (let k=a;k<=b;k++){ const dx=xs[k]-X0, dy=ys[k]-Y0; Sx+=dx; Sy+=dy; Sxx+=dx*dx; Sxy+=dx*dy; c++; }
+    for (let i=i0;i<i1;i++){
+      if (i>i0){ const na=Math.max(0,i-m), nb=Math.min(n-1,i+m);
+        while (b<nb){ b++; const dx=xs[b]-X0, dy=ys[b]-Y0; Sx+=dx; Sy+=dy; Sxx+=dx*dx; Sxy+=dx*dy; c++; }
+        while (a<na){ const dx=xs[a]-X0, dy=ys[a]-Y0; Sx-=dx; Sy-=dy; Sxx-=dx*dx; Sxy-=dx*dy; c--; a++; } }
+      const mx=Sx/c, my=Sy/c, sxx=Sxx-c*mx*mx, sxy=Sxy-c*mx*my;
+      // varianza delle x quasi nulla rispetto alle somme (x tutte uguali o cancellazione): quel punto si calcola come sempre
+      out[i]= sxx>1e-9*Sxx && Number.isFinite(sxy) ? sxy/sxx : derivPoint(xs, ys, n, m, i); } }
+  return out; }
 function derivLS(xs, ys, m){
   const n=ys.length, out=new Float64Array(n);
-  for (let i=0;i<n;i++){ const a=Math.max(0,i-m), b=Math.min(n-1,i+m); let sx=0, sy=0, c=0;
-    for (let k=a;k<=b;k++){ sx+=xs[k]; sy+=ys[k]; c++; } const mx=sx/c, my=sy/c; let sxx=0, sxy=0;
-    for (let k=a;k<=b;k++){ const dx=xs[k]-mx; sxx+=dx*dx; sxy+=dx*(ys[k]-my); } out[i]= sxx>0 ? sxy/sxx : 0; }
+  if (m>DERIV_EXACT_M && n>4*DERIV_BLOCK && numsOk(xs) && numsOk(ys)) return derivFast(xs, ys, n, m, out);
+  for (let i=0;i<n;i++) out[i]=derivPoint(xs, ys, n, m, i);
   return out;
 }
 /* ================= ANALISI QUANTITATIVA E QUALITATIVA =================
@@ -6515,7 +6561,7 @@ function included(){
 function renderSummary(){
   EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; }
   const ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0, sel=expSel(), desk=DESK_EXP();
-  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length?pdfAnalysisPageCount():0);
+  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length&&curView===3?pdfAnalysisPageCount():0);   // I5: le pagine di analisi (assess su ogni spettro) si contano solo in Esporta, dove il numero si vede: go(3) rifà il riepilogo
   const ovImg = S.cmpPng ? ovAll : 0, nm=k=>`<b data-noi18n>${esc(expName(k))}</b>`, dirNm=k=>expName(k) ? nm(k) : 'cartella principale';
   const items=[], parts=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
@@ -7656,13 +7702,26 @@ let anFitFor=null, anOpenFor=null;
 const QBAD=new Map();
 function badItems(f){ let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0); const c=QBAD.get(f.id); if (c && c.sig===sig) return c.bad;
   let bad=[]; try{ bad=assess(f,d).filter(o=>o.lv==='bad' && !(f.instr==='gen' && /segnale\/rumore|S\/N/.test(o.t))).map(o=>String(o.t)); }catch(e){} QBAD.set(f.id,{sig,bad}); return bad; }
+/* I5: con spettri grandi il controllo del dato (assess) si fa subito dopo il disegno del grafico, non prima: il grafico compare,
+   poi la riga ⛔ se serve. Con gli altri spettri come sempre */
+const QB_LATER=200000, afterPaint=fn=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(fn,0)));
+function badItemsSoon(f){ if (!f.xs || f.xs.length<QB_LATER) return badItems(f);
+  let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0), c=QBAD.get(f.id);
+  if (c && c.sig===sig) return c.bad;
+  if (!f._qbLater){ f._qbLater=true; afterPaint(()=>{ f._qbLater=false; if (!files.includes(f)) return; badItems(f); if (files[cur]===f) qualBanner(f); }); }   // dopo che il fotogramma con il grafico è stato mostrato
+  return []; }
 /* un problema grave sul dato (⛔) non resta nascosto nella scheda: riga sotto il grafico e, nel desktop, nella barra di stato */
 window.qualBannerRefresh=()=>{ const b=$('#qualBanner'); if (b) b._h=null; if (files[cur]) qualBanner(files[cur]); };
-function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true;
-  (window.requestIdleCallback||((fn)=>setTimeout(fn,200)))(()=>{ let any=false; for (const f of todo) if (files.includes(f) && badItems(f).length) any=true; qbadScan.busy=false; if (any) renderList(); }, {timeout:1500}); }
+// I5: uno spettro per volta, ognuno nel suo momento libero, e mai prima che il grafico sia disegnato: con più canali grandi
+// i controlli non si sommano in un unico blocco della finestra
+function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true; let any=false;
+  const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,200));
+  const step=()=>{ const f=todo.shift(); if (f && files.includes(f) && !QBAD.has(f.id) && badItems(f).length) any=true;
+    if (todo.length) afterPaint(()=>idle(step, {timeout:1500})); else { qbadScan.busy=false; if (any) renderList(); } };
+  afterPaint(()=>idle(step, {timeout:1500})); }
 function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');
   if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; ((window.ACCH_SHELL?null:$('.pvtools'))||$('#pvWrap')||pv).insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
-  const bad=(!f||viewMode==='cmp') ? [] : badItems(f); b.hidden=!bad.length;
+  const bad=(!f||viewMode==='cmp') ? [] : badItemsSoon(f); b.hidden=!bad.length;
   if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span class="qbt">${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span class="qbgo">Controllo del dato ›</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; const cc=cur, nm=dispTitle(f); setTimeout(()=>{ b.title=b.textContent; if (window.AcchShell&&AcchShell.pushMsg && cc===cur) AcchShell.pushMsg('⛔ «'+nm+'» · '+b.textContent, cc); }, 60); } }
   else { b._h=null; if (window.AcchShell&&AcchShell.clearErr) AcchShell.clearErr(f&&viewMode!=='cmp'?dispTitle(f):''); }
   const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
