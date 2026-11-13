@@ -42,7 +42,8 @@ describe('Esportazione per voci, desktop', {timeout:10*60*1000}, ()=>{
         pdf:pdf && (()=>{ let t=''; for (let i=0;i<pdf[1].length;i+=0x8000) t+=String.fromCharCode.apply(null,pdf[1].slice(i,i+0x8000)); return btoa(t); })(), names:{peaks:expName('peaks'), pdf:expName('pdf')}}; });
     await done(o);
     assert.strictEqual(r.disk.length, 5, 'file scritti: '+r.disk.join(', '));   // PDF, elenco dei picchi e un CSV di dati elaborati per ognuno dei 3 spettri
-    assert.ok(r.disk.includes('/out/scelta/'+r.names.peaks) && r.disk.includes('/out/scelta/'+r.names.pdf), r.disk.join(', '));
+    const noTs=k=>k.replace(/_\d{8}_\d{4}(?=\.)/,'');   // il nome del PDF porta l'ora: sotto carico il minuto può cambiare fra esportazione e controllo
+    assert.ok(r.disk.includes('/out/scelta/'+r.names.peaks) && r.disk.map(noTs).includes('/out/scelta/'+noTs(r.names.pdf)), r.disk.join(', '));
     assert.deepStrictEqual(r.disk.filter(k=>/dati_elaborati\/[abc]\.csv$/.test(k)).length, 3, r.disk.join(', '));
     assert.ok(!r.disk.some(k=>/\.zip$/.test(k)), 'nessuno ZIP');
     assert.strictEqual(r.saves, 0, 'nessun dialogo di salvataggio per file: una sola cartella');
