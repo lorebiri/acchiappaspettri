@@ -61,12 +61,22 @@
   function covariance(J, N, np, s2){ const A=new Float64Array(np*np); for (let i=0;i<N;i++) for (let a=0;a<np;a++){ const ja=J[i*np+a]; if (ja) for (let b=0;b<np;b++) A[a*np+b]+=ja*J[i*np+b]; }
     const Ai=M.inverse(A,np); if (!Ai) return null; return Float64Array.from(Ai, v=>v*s2); }
   // curva y = f(x, p) con LM: errori standard e somma dei quadrati, come nei NIST StRD
+  /* pianoro: un parametro che cresce (o cala) senza limite rende nulla la sua colonna dello Jacobiano; la somma dei quadrati non cambia più
+     e LM si ferma lì (NIST BoxBOD dalla partenza 1: b₂ → ∞, modello costante). Colonna relativa (scalata sul valore) sotto 1e-7 della più grande. */
+  function plateauCols(J, N, np, p, logScale){ const nrm=new Float64Array(np); for (let i=0;i<N;i++) for (let k=0;k<np;k++){ const v=J[i*np+k]; nrm[k]+=v*v; }
+    for (let k=0;k<np;k++) nrm[k]=Math.sqrt(nrm[k])*(logScale?1:Math.max(Math.abs(p[k]),1e-300)); const mx=Math.max(...nrm);
+    const out=[]; for (let k=0;k<np;k++) if (!(nrm[k]>1e-7*mx)) out.push(k); return mx>0?out:[]; }
+  // curva y = f(x, p) con LM: errori standard e somma dei quadrati, come nei NIST StRD.
+  // Se si finisce su un pianoro si riparte con quel parametro al valore iniziale (×1, ÷10, ×10) e gli altri al valore trovato; se resta, si dice
   function fitCurve(f, x, y, p0, opt){ opt=opt||{}; const n=x.length, np=p0.length;
     const res=p=>{ const r=new Float64Array(n); for (let i=0;i<n;i++){ const v=f(x[i],p); if (!fin(v)) return null; r[i]=y[i]-v; } return r; };
     const jac=opt.grad ? (p=>x.map(xi=>opt.grad(xi,p).map(v=>-v))) : null;
-    const R=lm(res, p0, Object.assign({}, opt, {jac}));
-    const dof=n-np, s2=R.ssr/dof, cov=covariance(R.J, n, np, s2);
-    return {p:Array.from(R.p), se:cov?Array.from({length:np},(_,i)=>Math.sqrt(cov[i*np+i])):null, ssr:R.ssr, sres:Math.sqrt(s2), dof, iter:R.iter, converged:R.converged, reason:R.reason}; }
+    const run=st=>lm(res, st, Object.assign({}, opt, {jac}));
+    let R=run(p0), flat=plateauCols(R.J, n, np, R.p), restarts=0;
+    if (flat.length && opt.restart!==false){ for (const k of flat) for (const fac of [1,0.1,10]){ const st=Float64Array.from(R.p); st[k]=p0[k]*fac; if (!(p0[k]*fac)) continue; let Q; try{ Q=run(st); }catch(e){ continue; } restarts++;
+        const fq=plateauCols(Q.J, n, np, Q.p); if (Q.ssr<R.ssr*(1-1e-12) || (fq.length<flat.length && Q.ssr<=R.ssr*(1+1e-12))){ R=Q; flat=fq; } if (!flat.length) break; } }
+    const dof=n-np, s2=R.ssr/dof, cov=flat.length?null:covariance(R.J, n, np, s2);
+    return {p:Array.from(R.p), se:cov?Array.from({length:np},(_,i)=>Math.sqrt(cov[i*np+i])):null, ssr:R.ssr, sres:Math.sqrt(s2), dof, iter:R.iter, converged:R.converged&&!flat.length, reason:flat.length?'plateau':R.reason, plateau:flat, restarts}; }
 
   /* ---------------- modelli: profili di concentrazione relativi, [A]₀ = 1 ----------------
      tt = max(0, t − t₀): prima di t₀ la reazione non è cominciata. */
@@ -159,11 +169,12 @@
     for (let i=0;i<m;i++) for (let j=0;j<n;j++){ let s=D.a[i*n+j]; for (let c=0;c<ns;c++) s-=C[i*ns+c]*S[c*n+j]; E[i*n+j]=s; sse+=s*s; }
     yield null;
     const rankC=qr(C,m,ns).keep.length, N=m*n, P=np+rankC*n, dof=Math.max(1, N-P), s2=sse/dof;
-    const NJ=R.r.length, cov=covariance(R.J, NJ, np, s2); yield null;
+    const NJ=R.r.length, flat=plateauCols(R.J, NJ, np, R.p, true), cov=flat.length?null:covariance(R.J, NJ, np, s2); yield null;
     const se_=cov?Array.from({length:np},(_,i)=>Math.sqrt(Math.max(0,cov[i*np+i]))):null;
     const corr=cov?Array.from({length:np},(_,i)=>Array.from({length:np},(_,j)=>cov[i*np+j]/Math.sqrt(cov[i*np+i]*cov[j*np+j]))):null;
     const params=info.params.map((nm,i)=>{ const k=u.k[i], sl=se_?se_[i]:NaN; return {name:nm, value:k, se:k*sl, seLog:sl, lo95:k*Math.exp(-1.96*sl), hi95:k*Math.exp(1.96*sl), tau:1/k}; });
     if (useT0) params.push({name:'t0', value:u.t0, se:se_?se_[nk]:NaN, lo95:u.t0-1.96*(se_?se_[nk]:NaN), hi95:u.t0+1.96*(se_?se_[nk]:NaN)});
+    flat.forEach(i=>{ if (params[i]) params[i].undetermined=true; });
     const derived=[];
     if (o.model==='rev' && o.K){ const kf=u.k[0]*o.K/(1+o.K), kb=u.k[0]/(1+o.K), sl=se_?se_[0]:NaN; derived.push({name:'kf', value:kf, se:kf*sl}, {name:'kb', value:kb, se:kb*sl}); }
     if ((o.model==='ord2'||o.model==='ord0') && o.A0){ const f=o.model==='ord2'?1/o.A0:o.A0; derived.push({name:'k', value:u.k[0]*f, se:params[0].se*f, unit:o.model==='ord2'?'1/(conc·tempo)':'conc/tempo'}); }
@@ -178,6 +189,7 @@
     for (const pp of params.slice(0,nk)){ if (pp.value*tmax<0.05) W('slow', `${pp.name} è troppo lenta per l'intervallo dei tempi (k·t_max = ${(pp.value*tmax).toPrecision(2)}): stima poco affidabile.`, `${pp.name} is too slow for the time range (k·t_max = ${(pp.value*tmax).toPrecision(2)}): unreliable estimate.`);
       if (pp.value*tmin>20) W('fast', `${pp.name} è più veloce del primo intervallo di tempo: stima poco affidabile.`, `${pp.name} is faster than the first time interval: unreliable estimate.`); }
     if (o.model==='ord0' && u.k[0]*(Math.max(...t)-u.t0)<1) W('ord0lin', 'Ordine 0: [A] non arriva a zero nell\'intervallo dei tempi, quindi il profilo è una retta e con spettri liberi k non si determina (qualunque k dà lo stesso fit). Serve uno spettro noto o un intervallo più lungo.', 'Zero order: [A] does not reach zero within the time range, so the profile is a straight line and with free spectra k is not determined (any k gives the same fit). A known spectrum or a longer time range is needed.');
+    if (flat.length) W('plateau', `${flat.map(i=>i<nk?info.params[i]:'t0').join(', ')}: il parametro cresce o cala senza limite (pianoro: la somma dei quadrati non cambia più). Non ha un valore determinato da questi dati: niente numero e niente incertezze. Prova un altro modello o delle k di partenza.`, `${flat.map(i=>i<nk?info.params[i]:'t0').join(', ')}: the parameter grows or shrinks without limit (plateau: the sum of squares no longer changes). It has no value determined by these data: no number and no uncertainties. Try another model or starting k values.`);
     if (!R.converged) W('lm', 'Il fit non ha raggiunto la convergenza nel numero massimo di iterazioni.', 'The fit did not converge within the maximum number of iterations.');
     // adeguatezza: confronto con la SVD troncata allo stesso numero di specie (limite inferiore della somma dei quadrati)
     if (!sv) sv=yield* M.svdGen(D);

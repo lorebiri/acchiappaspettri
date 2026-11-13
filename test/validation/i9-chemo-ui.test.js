@@ -87,3 +87,25 @@ test('I9 prestazioni: serie 200 × 1000, MCR-ALS, MCR-BANDS e cinetica senza blo
     assert.deepStrictEqual(errors, []); await ctx.close();
   } finally { await br.close(); server.close(); }
 });
+
+test('I9 finestra Esporta per voci (desktop): «Risultati delle analisi» e PDF contengono MCR-ALS e cinetica', {timeout:10*60*1000}, async ()=>{
+  const {openDesk}=require('./tauri-mock.js'), server=await B.startServer(), br=await B.launch();
+  try{ const o=await openDesk(B, br, server); await o.p.waitForFunction(()=>window.__mock && window.__mock.menu);
+    const r=await o.p.evaluate(async L=>{ const wait=async c=>{ for (let i=0;i<800 && !c();i++) await new Promise(r=>setTimeout(r,25)); return c(); };
+      await addEntries(L.map(([n,t])=>({file:new File([t],n), path:n}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+      go(2); $('#secChemo').open=true; AcchChemo.render(); $('#chSMake').click(); await wait(()=>files.some(f=>f.series));
+      const f=AcchChemo.sel(); f.an={mcr:{nc:3, closure:1}, kin:{model:'consec'}}; AcchChemo._rt.tab='mcr'; AcchChemo.render(); $('#chMRun').click(); await wait(()=>f._chemo&&f._chemo.mcr);
+      AcchChemo._rt.tab='kin'; AcchChemo.render(); $('#chKRun').click(); await wait(()=>f._chemo.kin);
+      Object.assign(S,{outPdf:true, outPng:false, outSvg:false, csvPeaks:false, csvData:false, csvRaw:false, outOrig:false, outAnalysis:true, outTrace:false, outOrigin:false, outProject:false, zipAll:false, expSub:false, expScope:'sel', expNames:{}, docTitle:'Serie'}); saveS(); syncControls(); go(3); renderSummary();
+      window.__mock.pick.pick_export_dir={path:'/out/scelta', name:'scelta'}; await runExport();
+      const D=window.__mock.disk, dec=u=>new TextDecoder().decode(u), pdf=Object.entries(D).find(([k])=>/\.pdf$/.test(k));
+      let b=''; if (pdf) for (let i=0;i<pdf[1].length;i+=0x8000) b+=String.fromCharCode.apply(null,pdf[1].slice(i,i+0x8000));
+      return {keys:Object.keys(D).sort(), mcr:Object.entries(D).filter(([k])=>/mcr_als_/.test(k)).map(([,v])=>dec(v).slice(0,2000)), kin:Object.entries(D).filter(([k])=>/cinetica_globale_/.test(k)).map(([,v])=>dec(v).slice(0,2000)), pdf:btoa(b)}; }, kineticFiles());
+    assert.strictEqual(r.mcr.length, 1, 'CSV di MCR-ALS fra i risultati delle analisi: '+r.keys.join(', ')); assert.ok(/Mancanza di adattamento/.test(r.mcr[0]) && /C3/.test(r.mcr[0]));
+    assert.strictEqual(r.kin.length, 1, 'CSV della cinetica: '+r.keys.join(', ')); assert.ok(/k1/.test(r.kin[0]) && /AIC/.test(r.kin[0]));
+    assert.ok(r.keys.every(k=>k.startsWith('/out/scelta/')) && !r.keys.some(k=>/\.zip$/.test(k)), r.keys.join(', '));
+    const txt=pdfText(Buffer.from(r.pdf,'base64')).join('\n'); assert.ok(/MCR-ALS/.test(txt) && /Cinetica globale/.test(txt), 'PDF con MCR-ALS e cinetica');
+    assert.ok(!/[\p{Extended_Pictographic}]/u.test(r.mcr[0]+r.kin[0]), 'CSV del desktop senza emoji');
+    const e=o.errors.slice(); await o.ctx.close(); assert.deepStrictEqual(e, []);
+  } finally { await br.close(); server.close(); }
+});

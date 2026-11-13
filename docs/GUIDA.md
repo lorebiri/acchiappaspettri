@@ -35,6 +35,31 @@ Le **preimpostazioni** (in fondo alla pagina) ricordano anche le voci scelte, i 
 - *Più campioni → Composizione*: con standard, empirica o a parametri fondamentali.
 - Gli elementi proposti sono ipotesi: controlla le righe e le sovrapposizioni segnalate.
 
+## Serie, MCR-ALS e cinetica globale
+*Analisi → Più campioni → Serie, MCR-ALS e cinetica globale*: spettri misurati nel tempo, con la dose o con la temperatura (cinetiche UV-Vis o IR, spettri DAD, titolazioni, degradazioni).
+
+**Quando usare che cosa**
+- **Serie** (sempre il primo passo): scegli la tecnica e gli spettri; l'asse viene proposto dai metadati (data e ora di acquisizione) o dal nome dei file (`t=30s`, `2 h`, `5 Gy`, `T25C`). **Controllalo sempre**: unità sbagliate danno costanti sbagliate. Gli spettri vanno su un asse comune (quello del primo, con interpolazione lineare se serve) e la serie diventa uno spettro del progetto, salvato con il progetto.
+- **MCR-ALS**: quando **non conosci il meccanismo** né gli spettri puri, per esempio in una miscela che cambia, in un picco cromatografico con coeluizione o in una degradazione con intermedi. Ricava profili di concentrazione e spettri puri solo dai dati. Il numero di componenti lo scegli dal grafico dei valori singolari: quelli sopra il «gomito» sono segnale. La mancanza di adattamento va confrontata con quella della PCA con le stesse componenti, che è il minimo possibile.
+- **Cinetica globale**: quando hai **un modello di reazione** (A → B, A → B → C, A ⇌ B, ordine 0 o 2, decadimenti paralleli) e vuoi le costanti con la loro incertezza. Usa tutte le lunghezze d'onda insieme e restituisce le costanti con errore standard, IC 95% e correlazioni, gli spettri associati alle specie (SAS) e i residui. *Confronta i modelli* li ordina con AIC e BIC (più basso è meglio) e fa il test F fra modelli annidati.
+- I due metodi si aiutano: MCR-ALS per capire quante specie ci sono e come sono fatte, poi la cinetica per le costanti.
+
+**Ambiguità rotazionale (MCR-ALS).** In generale la soluzione **non è unica**: altre coppie di profili e spettri, anche loro positive, riproducono i dati altrettanto bene. L'app lo scrive sempre.
+- Si restringe con vincoli che siano veri per il tuo sistema: non negatività, chiusura (somma costante, per esempio un bilancio di massa), unimodalità (un solo massimo, come i picchi cromatografici), spettri noti (uno standard misurato). Nessun vincolo si applica da solo.
+- *Intervalli MCR-BANDS* misura quanto la soluzione può cambiare. Per ogni componente dà il contributo minimo e massimo compatibile con gli stessi vincoli. Con una banda stretta (sotto 0,01) la soluzione è praticamente unica; con una banda larga i profili mostrati sono solo una delle soluzioni possibili, e non vanno letti come concentrazioni vere. È un'ottimizzazione locale: la banda vera può essere più larga.
+
+**Scambio k₁ ↔ k₂ (A → B → C).** Con spettri liberi, le soluzioni (k₁, k₂) e (k₂, k₁) descrivono i dati **esattamente allo stesso modo**: cambia solo l'intermedio B. L'app sceglie la soluzione con i SAS meno negativi e mostra anche l'altra. Quale sia quella vera lo dice la chimica, per esempio uno spettro di B atteso o un intermedio che si accumula o no. Se k₁ e k₂ sono quasi uguali le incertezze diventano grandi e l'app avvisa.
+
+**Altri avvisi da non ignorare**
+- **A ⇌ B senza costante di equilibrio**: si determina solo k_obs = k_f + k_b. Scrivi K per separarle.
+- **Secondo ordine**: il risultato è k' = k[A]₀. Scrivi [A]₀ per avere k.
+- **Ordine 0**: se [A] non arriva a zero nell'intervallo dei tempi, k non si determina.
+- **Correlazioni sopra 0,95**: i due parametri non si distinguono con questi dati.
+- **Pianoro**: un parametro che cresce o cala senza limite non ha un valore. L'app non dà né il numero né l'incertezza. Prova un altro modello o altre k di partenza.
+- **Residui con struttura**: residui molto più grandi di quelli della SVD con lo stesso numero di specie vogliono dire che il modello non basta.
+
+**Esportare.** I risultati entrano nella voce *tabelle di analisi*: `mcr_als_….csv`, e `cinetica_globale_….csv` (`global_kinetics_….csv` in inglese). Contengono le impostazioni, gli avvisi, i profili e gli spettri. Nel PDF c'è un riassunto con i grafici. Le impostazioni si salvano nel progetto. Nell'app desktop il calcolo non blocca l'interfaccia anche su serie di 200 × 1000 punti.
+
 ## Impostazioni
 ⚙️: lingua, tema (i grafici restano bianchi come nei file esportati), controllo degli aggiornamenti, versione.
 

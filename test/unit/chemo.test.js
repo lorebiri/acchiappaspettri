@@ -49,3 +49,12 @@ test('f.series nel formato 2: scritta in binario e riletta identica', async ()=>
   assert.strictEqual(s.source, null); assert.deepStrictEqual(Array.from(s.series.data), Array.from(se.data)); assert.deepStrictEqual(s.series.t.values, [0,30,60]);
   assert.deepStrictEqual(s.memory.an, {mcr:{nc:2}, kin:{model:'ord1'}}); assert.ok(M.validSeries(s.series));
 });
+test('memory.an.mcr e memory.an.kin: andata e ritorno con tutti i campi documentati, cleanOpt stabile', async ()=>{
+  const mcr={nc:4, init:'efa', initOn:'C', nonnegC:true, nonnegS:false, closure:2.5, offset:7, unimodal:[0,3], norm:'max', maxIter:500, tol:1e-4, known:{'2':'cartella/riferimento.csv'}, xmin:300, xmax:650};
+  const kin={model:'par', nExp:3, offset:true, t0fit:true, t0:1.5, K:2, A0:0.01, nonnegS:true, rank:6, k0:[0.5,0.05,0.005]};
+  assert.deepStrictEqual(M.cleanOpt(mcr), mcr); assert.deepStrictEqual(K.cleanOpt(kin), kin);
+  const se=M.buildSeries([{xs:[1,2,3,4,5],ys:[1,2,3,4,5]},{xs:[1,2,3,4,5],ys:[2,3,4,5,6]},{xs:[1,2,3,4,5],ys:[0,1,0,1,0]}],[0,1,2]);
+  const out=await F.encode({state:{}, spectra:[{name:'S', path:'serie/S.series', bytes:null, memory:{an:{mcr, kin}}, series:{t:se.t, x:se.x, y:se.y, shape:se.shape, data:se.data}}]}, JSZip);
+  const P=await F.decode(out, JSZip), an=P.spectra[0].memory.an;
+  assert.deepStrictEqual(M.cleanOpt(an.mcr), mcr); assert.deepStrictEqual(K.cleanOpt(an.kin), kin);
+});

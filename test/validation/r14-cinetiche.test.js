@@ -6,16 +6,22 @@
 const test=require('node:test'), assert=require('node:assert');
 const M=require('../../app/mcr-core.js'), K=require('../../app/kinetics-core.js'), STRD=require('./chemo/strd-nls.js'), SY=require('./chemo/sintetici.js');
 const lre=(a,c)=>a===c?15:Math.min(15,-Math.log10(Math.abs(a-c)/Math.abs(c)));
-// BoxBOD dalla partenza 1 (b = 1, 1): il LM finisce sul pianoro b₂ → ∞ (modello costante, SSR 9771,5) come molti programmi; dichiarato in VALIDAZIONE
-const NOTO={'BoxBOD#1':true};
 
 test('R14 NIST StRD non lineari: parametri, errori standard e somma dei quadrati con LRE ≥ 6', ()=>{
   const rows=[];
   for (const [nm,d] of Object.entries(STRD)) d.start.forEach((st,si)=>{ const r=K.fitCurve(d.f,d.x,d.y,st,{grad:d.g, maxIter:5000});
     const L={b:Math.min(...r.p.map((v,i)=>lre(v,d.b[i]))), sd:r.se?Math.min(...r.se.map((v,i)=>lre(v,d.sd[i]))):0, ssr:lre(r.ssr,d.ssr), sres:lre(r.sres,d.sres)}; rows.push([nm+'#'+(si+1), L]);
-    if (NOTO[nm+'#'+(si+1)]){ assert.ok(L.ssr<1, 'il caso noto non deve passare per caso'); return; }
     for (const k of ['b','sd','ssr','sres']) assert.ok(L[k]>=6, `${nm} partenza ${si+1}: LRE ${k} = ${L[k].toFixed(2)}`); assert.strictEqual(r.dof, d.dof); });
   assert.strictEqual(rows.length, 8);
+});
+
+test('R14 pianoro: BoxBOD dalla partenza 1 senza ripartenza si ferma su b₂ → ∞ e lo dice; con la ripartenza arriva ai valori certificati', ()=>{
+  const d=STRD.BoxBOD, a=K.fitCurve(d.f,d.x,d.y,d.start[0],{grad:d.g, restart:false});
+  assert.deepStrictEqual(a.plateau,[1]); assert.strictEqual(a.reason,'plateau'); assert.strictEqual(a.se,null, 'nessuna incertezza inventata'); assert.ok(a.p[1]>10);
+  const b=K.fitCurve(d.f,d.x,d.y,d.start[0],{grad:d.g}); assert.deepStrictEqual(b.plateau,[]); assert.ok(b.restarts>=1); assert.ok(lre(b.p[1],d.b[1])>=6 && lre(b.ssr,d.ssr)>=6);
+  // nel fit cinetico: una costante in più del necessario va a zero e si segnala come non determinata
+  const r=K.fit(SY.serieCinetica('ord1',[0.3],{},40,30,0.001,4),{model:'par', nExp:3});
+  assert.ok(r.warnings.some(w=>w.code==='plateau')); assert.strictEqual(r.params.filter(p=>p.undetermined).length,1); assert.strictEqual(r.corr,null);
 });
 
 test('R14 sintetici senza rumore: k entro 1e-6 relativo per ogni modello', ()=>{

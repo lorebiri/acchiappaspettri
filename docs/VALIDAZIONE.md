@@ -2,7 +2,7 @@
 
 Documento generato da `scripts/gen-validazione.js` il 2026-11-13. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **3.0.0-rc.2** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Versione dell'app: **3.0.0-rc.3** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
 - Motore: Node v26.13.0 (V8 14.6.202.34-node.40), darwin arm64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).
@@ -266,4 +266,52 @@ Dati sintetici con parametri noti e formule pubblicate; formati Kaomi per il che
 | Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 90 | 89.9846610498687 | -0.017 % (≤ 1 %) | ✓ |
 | Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 140 | 139.977136508864 | -0.016 % (≤ 1 %) | ✓ |
 | Redhead, primo ordine: E (kJ/mol) | Polanyi–Wigner simulato | 100 | 99.6720606307535 | -0.328 % (≤ 2 %) | ✓ |
+
+## R13. MCR-ALS (`app/mcr-core.js`, SPEC-AVANZATE §2)
+
+Dati **sintetici** con soluzione nota (il committente non ha esperimenti reali di riferimento): picchi cromatografici coeluiti con zone selettive in tempo e in λ (soluzione unica), ordine zero con chiusura, A → B → C con spettri sovrapposti (soluzione non unica). pyMCR non è eseguito: due iterazioni del suo algoritmo pubblicato (Camp, J. Res. NIST 124, 2019: regressione ordinaria e negativi a zero) sono calcolate a mano in frazioni esatte nel test. Test: `test/validation/r13-mcr.test.js`.
+
+| Prova | Riferimento | Atteso | Ottenuto | Soglia | Esito |
+|---|---|---|---|---|---|
+| Profili C e S senza rumore, partenza SIMPLISMA | C, S sintetici | 0 | 8.88178419700125e-16 · 5.55111512312578e-16 | ≤ 1 % | ✓ |
+| Profili C e S senza rumore, partenza EFA | C, S sintetici | 0 | 2.71161738896186e-12 · 5.74088953458896e-13 | ≤ 1 % | ✓ |
+| Chiusura (concentrazioni assolute) | C sintetico | 0 | 1.49857903863904e-12 | ≤ 1 % | ✓ |
+| Mancanza di adattamento con rumore 0,002 | rumore e PCA | 0.760916234907204 % (rumore), 0.739528792101514 % (PCA) | 0.747263765888416 % | entro ±20 % del rumore, ≥ PCA | ✓ |
+| Algoritmo di pyMCR, 2 iterazioni | calcolo a mano: C = [1271, 0, 451]/621 | 2.04669887278583, 0, 0.726247987117552 | 2.04669887278583, 0, 0.726247987117552 | ≤ 1e-14 | ✓ |
+| MCR-BANDS, soluzione unica | larghezza ≈ 0 | — | 1.75916837391599e-5 | < 1e-3 | ✓ |
+| MCR-BANDS, A → B → C ambiguo | ambiguità rotazionale | — | 0.0741293878288122 | > 0,02 | ✓ |
+
+La soluzione MCR-ALS in generale non è unica: l'app lo scrive sempre e MCR-BANDS (ottimizzazione locale) ne dà un'ampiezza minima. Confronto con MCR-ALS GUI 2.0 e con i dataset del gruppo Tauler non eseguito (MATLAB; licenza dei dati da chiedere).
+
+## R14. Fit globale delle cinetiche (`app/kinetics-core.js`, SPEC-AVANZATE §3)
+
+Levenberg–Marquardt di `kinetics-core.js` sui NIST StRD non lineari (https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml), dati **trascritti a mano** in `test/validation/chemo/strd-nls.js`: la trascrizione è verificata dal fit stesso, che ritrova i valori certificati. Jacobiano analitico. LRE minimo fra i parametri e fra gli errori standard. Con un pianoro (un parametro che cresce senza limite) si riparte una volta con quel parametro al valore iniziale; se resta, il risultato è dichiarato non determinato. Test: `test/validation/r14-cinetiche.test.js`.
+
+| Dataset | Partenza | LRE parametri | LRE errori standard | LRE somma dei quadrati | Ripartenze | Esito |
+|---|---|---|---|---|---|---|
+| Misra1a (difficoltà bassa) | 1 | 11.1 | 10.8 | 10.5 | 0 | ✓ |
+| Misra1a (difficoltà bassa) | 2 | 11.1 | 10.8 | 10.5 | 0 | ✓ |
+| BoxBOD (difficoltà alta) | 1 | 9.0 | 8.9 | 10.4 | 1 | ✓ |
+| BoxBOD (difficoltà alta) | 2 | 8.5 | 8.4 | 10.4 | 0 | ✓ |
+| MGH09 (difficoltà alta) | 1 | 7.0 | 7.1 | 11.6 | 0 | ✓ |
+| MGH09 (difficoltà alta) | 2 | 7.7 | 7.8 | 11.6 | 0 | ✓ |
+| Thurber (difficoltà alta) | 1 | 8.2 | 7.6 | 11.2 | 0 | ✓ |
+| Thurber (difficoltà alta) | 2 | 8.6 | 7.9 | 11.2 | 0 | ✓ |
+
+Senza ripartenza BoxBOD dalla partenza 1 si ferma sul pianoro b₂ = 114.809633306553 (somma dei quadrati 9771.5, modello costante), come molti programmi: `fitCurve` lo riconosce (`plateau`) e non restituisce errori standard.
+
+| Prova (sintetici, k note) | Atteso | Ottenuto | Soglia | Esito |
+|---|---|---|---|---|
+| ord1, senza rumore | 0.3 | 0.3 | errore relativo ≤ 1e-6 | ✓ |
+| consec, senza rumore | 0.5, 0.12 | 0.5, 0.12 | errore relativo ≤ 1e-6 | ✓ |
+| ord2, senza rumore | 0.4 | 0.4 | errore relativo ≤ 1e-6 | ✓ |
+| ord0, senza rumore | 0.1 | 0.1 | errore relativo ≤ 1e-6 | ✓ |
+| par {"nExp":2}, senza rumore | 0.8, 0.1 | 0.8, 0.1 | errore relativo ≤ 1e-6 | ✓ |
+| par {"nExp":3,"offset":true}, senza rumore | 0.8, 0.1, 0.02 | 0.8, 0.100000000000017, 0.0200000000000635 | errore relativo ≤ 1e-6 | ✓ |
+| rev {"K":2}, senza rumore | 0.3 | 0.3 | errore relativo ≤ 1e-6 | ✓ |
+| Copertura dell'IC 95 %, ord1, 1000 ripetizioni (σ = 0,01) | 95 % | 93.5 % | 93–97 % | ✓ |
+| Copertura dell'IC 95 %, consec, 1000 ripetizioni (σ = 0,01) | 95 % | 94.5 % | 93–97 % | ✓ |
+| Confronto dei modelli su dati A → B → C | consec | consec (AIC) | il modello vero | ✓ |
+
+Non eseguiti qui (codice esterno): `scipy.optimize.least_squares` e pyglotaran. La copertura vale con rumore gaussiano indipendente; la funzione di risposta dello strumento (ultraveloce) è fuori dalla 3.0.0.
 
