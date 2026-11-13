@@ -32,3 +32,11 @@ test('nessun file del corpus né delle altre fixture diventa un\'isoterma', ()=>
   assert.ok(seen.length>50, 'corpus trovato: '+seen.length);
   for (const f of seen){ const t=C.decodeBuffer(fs.readFileSync(f)); assert.strictEqual(S.parseSorption(t, path.basename(f)), null, f); }
 });
+
+// Testo del report pubblico di Kaomi 2.02 (pdftotext -layout): non è nel repository (documento di terzi); se lo si indica, si controlla il ripiego PDF
+test('ripiego PDF sul report pubblico di Kaomi (facoltativo: ACCH_KAOMI_REPORT_TXT=percorso)', {skip:!process.env.ACCH_KAOMI_REPORT_TXT}, ()=>{
+  const REF=require('../validation/sorption/kaomi-mesopore-pubblico.json'), r=S.parseSorption(fs.readFileSync(process.env.ACCH_KAOMI_REPORT_TXT,'utf8'));
+  assert.ok(r && r.iso, 'letto'); const m=r.iso.meta;
+  assert.deepStrictEqual([r.iso.branches.ads.x.length, r.iso.branches.des.x.length, m.mass_g, m.gasKey, m.T, m.sigma, m.rhoL, m.gamma, m.thick, m.instrBET.n], [40, 41, 0.2444, 'N2', 77.35, 0.162, 0.806, 8.85, 'carbon-black', 7]);
+  const A=S.analyze(r.iso); assert.ok(Math.abs(A.bet.instr.area-REF.bet.area)/REF.bet.area<1e-4); assert.ok(r.iso.problems.some(q=>q.k==='pdf'));
+});
