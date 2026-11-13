@@ -25,6 +25,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 
 [features]
 # Solo per i collaudi automatici: mai attiva negli installer pubblicati (vedi docs/COLLAUDO.md)

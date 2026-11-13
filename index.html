@@ -24,6 +24,10 @@
 <script src="app/i18n.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/project.js"></script>
+<script src="app/library.js"></script>
+<script src="app/hplc-stored-cal.js"></script>
+<script src="app/librerie-sistema.js"></script>
+<script src="app/library-store.js"></script>
 <style>
 :root{
   --bg:#f3f6fb; --panel:#ffffff; --ink:#1c2230; --muted:#5f6b7d; --line:#dfe4ec;
@@ -1090,7 +1094,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
   <details class="sec card" style="margin-top:14px;padding:6px 18px">
     <summary>💾 Salva queste impostazioni per la prossima volta</summary>
     <div class="in">
-      <p class="why">Le ultime impostazioni restano già ricordate su questo computer, insieme a nomi, descrizioni e picchi di ogni spettro. Qui puoi salvarle con un nome (es. «FTIR saliva») o passarle a un collega.</p>
+      <p class="why">Le ultime impostazioni restano già ricordate su questo computer, insieme a nomi, descrizioni e picchi di ogni spettro. Qui puoi salvarle con un nome (es. «FTIR polimeri») o passarle a un collega.</p>
       <div class="row">
         <select id="presetSel" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--panel);color:var(--ink)"></select>
         <button class="btn small" id="presetLoad">Usa</button>
@@ -6747,6 +6751,11 @@ function cleanAn(v){
   if (Number.isInteger(v.ycol) && v.ycol>1 && v.ycol<200) o.ycol=v.ycol;
   if (COLOURS[v.color]) o.color=v.color;
   if (typeof v.chan==='string' && v.chan && v.chan.length<=40) o.chan=v.chan;   // canale HPLC scelto a mano
+  // libreria dei picchi (app/library-ui.js): tipo di campione, libreria scelta, strumento confermato, valori nominali dei controlli del giorno
+  if (v.lib && typeof v.lib==='object'){ const L={}; for (const k of ['st','id']) if (typeof v.lib[k]==='string' && v.lib[k] && v.lib[k].length<=200) L[k]=v.lib[k]; if (v.lib.insOk===true) L.insOk=true;
+    if (v.lib.ins && typeof v.lib.ins==='object'){ const I={}; for (const k of ['brand','model','detector','serial']) if (typeof v.lib.ins[k]==='string') I[k]=v.lib.ins[k].slice(0,120); L.ins=I; } if (Object.keys(L).length) o.lib=L; }
+  if (v.libCtrl && typeof v.libCtrl==='object'){ const m={}; Object.entries(v.libCtrl).slice(0,200).forEach(([k,x])=>{ if (k!=='__proto__' && k.length<=80 && typeof x==='number' && isFinite(x) && x>0) m[k]=x; }); if (Object.keys(m).length) o.libCtrl=m; }
+  if (['open','close'].includes(v.libPos)) o.libPos=v.libPos;
   if (['direct','indirect'].includes(v.trans)) o.trans=v.trans; if (['abs','refl'].includes(v.data)) o.data=v.data;
   return Object.keys(o).length ? o : null;
 }
@@ -8047,6 +8056,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     drawDendro(c2, R.tree, names, R.lab);
     doc.addImage(c1.toDataURL('image/png'),'PNG', M, y+2, w, h, undefined, 'FAST'); doc.addImage(c2.toDataURL('image/png'),'PNG', M+w+6, y+2, w, h, undefined, 'FAST');
     footer(); }
+  if (window.AcchLibUi) AcchLibUi.pdfPages(doc, line, head, footer, inc);   // concentrazioni dalla libreria, con lo stato in evidenza
 }
 
 /* ---------------- RISULTATI DELLE ANALISI per lo ZIP: tabelle CSV e paragrafo dei metodi con la bibliografia ---------------- */
@@ -8085,7 +8095,8 @@ function analysisFiles(){
   for (const instr of Object.keys(MVpls)){ const R=MVpls[instr]; if (!R || R.err || mvCfg(instr).model!=='pls') continue; used.add('pls');
     out.push([`pls_${instr}.csv`, csv([['File','Nome','Concentrazione nota','Stimata PLS','Validazione incrociata']].concat(R.list.map((f,i)=>{ const k=R.idx.indexOf(i); return [f.name, dispTitle(f), k>=0?n(R.y[k]):'', n(R.pred[i]), k>=0?n(R.cvPred[k]):'']; }), [[],['Variabili latenti',R.A,'R2',n(R.r2),'Q2',n(R.q2),'RMSEC',n(R.rmsec),'RMSECV',n(R.rmsecv)]]))]); }
   for (const instr of Object.keys(MVres)){ const R=MVres[instr]; if (!R || R.err) continue; out.push([`pca_${instr}.csv`, csv(pcaCsvRows(instr))]); used.add('pca'); used.add('ward'); const p=mvCfg(instr).pre; if (p==='snv') used.add('snv'); if (p==='msc') used.add('msc'); }
-  out.push([en?'methods_and_references.txt':'metodi_e_bibliografia.txt', methodsText(inc, used)]);
+  if (window.AcchLibUi) AcchLibUi.exportFiles(inc, out, used);   // concentrazioni dalla taratura salvata, con la provenienza
+  out.push([en?'methods_and_references.txt':'metodi_e_bibliografia.txt', [methodsText(inc, used), window.AcchLibUi ? AcchLibUi.methodsText(inc) : ''].filter(Boolean).join('\n\n')]);
   return out;
 }
 function methodsText(inc, used){
@@ -8564,6 +8575,7 @@ function openCtx(cx, cy, hp, xv, yv){
     sep();
     if (!processed(f).deriv) it('📈', 'Deconvolvi le bande qui intorno', ()=>ctxFit(f, peakWindow(f, p.x)));
     it('📏', 'Misura questa banda su tutti gli spettri', ()=>ctxMeasure(f, peakWindow(f, p.x)));
+    if (window.AcchLibUi) AcchLibUi.ctxItems(f, p, it);   // «Aggiungi alla libreria…» (librerie per strumento e tipo di campione)
     if (f.instr==='nmr' && S.showArea && p.area!=null) it('🧪', 'Usalo come riferimento degli integrali', ()=>{ anSet(f,'nmrX',p.x); openTab('an'); renderAnalysis(); say('#tip2','Riferimento degli integrali impostato: scrivi quanti nuclei rappresenta in «Analisi». 🧪'); });
     it('🔍', 'Ingrandisci qui', ()=>zoomBy(0.35, p.x));
   } else {
@@ -8670,5 +8682,6 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/desktop.js"></script>
+<script src="app/library-ui.js"></script>
 </body>
 </html>

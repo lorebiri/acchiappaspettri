@@ -15,11 +15,18 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
+mod libs;
 mod store;
 
 /// Archivio dell'app su file (store.rs): cartella e serratura, così due lotti non si scrivono mai insieme.
 #[derive(Default)]
 struct Store {
+    dir: Mutex<Option<PathBuf>>,
+}
+
+/// Cartella delle librerie dell'utente (libs.rs): `app_data_dir()/librerie`.
+#[derive(Default)]
+struct LibDirState {
     dir: Mutex<Option<PathBuf>>,
 }
 
@@ -467,6 +474,47 @@ fn store_write(st: State<'_, Store>, items: std::collections::BTreeMap<String, O
     let Some(d) = dir.as_ref() else { return Err("no-store".into()) };
     store::write(d, &items)
 }
+/* ---- librerie dei picchi (libs.rs): solo file .acchlib.json nella cartella dell'utente e nelle cartelle condivise registrate ---- */
+fn lib_user(st: &State<'_, LibDirState>) -> Result<PathBuf, String> {
+    st.dir.lock().unwrap().clone().ok_or_else(|| "no-store".into())
+}
+#[tauri::command(async)]
+fn lib_list(st: State<'_, LibDirState>) -> Result<serde_json::Value, String> {
+    let u = lib_user(&st)?;
+    let mut dirs = vec![libs::read_dir(&u, "user")];
+    for d in libs::shared_dirs(&u) {
+        dirs.push(libs::read_dir(&d, "shared"));
+    }
+    Ok(serde_json::json!({ "user": u.to_string_lossy(), "dirs": dirs }))
+}
+#[tauri::command(async)]
+fn lib_write(st: State<'_, LibDirState>, path: String, text: String, expect: Option<String>) -> Result<libs::WriteResult, String> {
+    let u = lib_user(&st)?;
+    libs::write(&u, Path::new(&path), &text, expect.as_deref().filter(|s| !s.is_empty()))
+}
+#[tauri::command(async)]
+fn lib_remove(st: State<'_, LibDirState>, path: String) -> Result<(), String> {
+    libs::remove(&lib_user(&st)?, Path::new(&path))
+}
+/// Registra una cartella condivisa scelta dall'utente in una finestra di dialogo (la pagina non può indicarne una qualsiasi).
+#[tauri::command(async)]
+fn lib_shared_add(app: AppHandle, st: State<'_, LibDirState>, title: String) -> Result<Option<String>, String> {
+    let u = lib_user(&st)?;
+    let Some(f) = app.dialog().file().set_title(title).blocking_pick_folder() else { return Ok(None) };
+    let dir = fp(f)?;
+    let mut list = libs::shared_dirs(&u);
+    if !list.contains(&dir) {
+        list.push(dir.clone());
+    }
+    libs::set_shared(&u, &list)?;
+    Ok(Some(dir.to_string_lossy().into_owned()))
+}
+#[tauri::command(async)]
+fn lib_shared_remove(st: State<'_, LibDirState>, path: String) -> Result<(), String> {
+    let u = lib_user(&st)?;
+    let list: Vec<PathBuf> = libs::shared_dirs(&u).into_iter().filter(|p| p != Path::new(&path)).collect();
+    libs::set_shared(&u, &list)
+}
 #[tauri::command]
 fn app_ready(app: AppHandle) {
     show_main(&app);
@@ -489,6 +537,7 @@ pub fn run() {
         .manage(Grants::default())
         .manage(Dirs::default())
         .manage(Store::default())
+        .manage(LibDirState::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
             if let Ok(dir) = app.path().app_config_dir() {
@@ -500,6 +549,7 @@ pub fn run() {
             // finestra principale creata qui (tauri.conf.json: create false) per consegnarle l'archivio prima di ogni script della pagina
             let items = match app.path().app_data_dir() {
                 Ok(d) => {
+                    *app.state::<LibDirState>().dir.lock().unwrap() = Some(d.join(libs::DIR));
                     let dir = d.join(store::DIR);
                     let items = store::load(&dir);
                     *app.state::<Store>().dir.lock().unwrap() = Some(dir);
@@ -536,11 +586,13 @@ pub fn run() {
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready, store_write
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready, store_write,
+        lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready, store_write,
+        lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder
