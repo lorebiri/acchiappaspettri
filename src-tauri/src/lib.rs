@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Lato nativo di Acchiappaspettri: finestre di dialogo per i file, lettura e scrittura sicure dei file che l'utente ha scelto,
-//! apertura dei progetti dal sistema operativo. Tutta la scienza resta nella pagina web, identica a quella online.
+//! apertura dal sistema operativo dei progetti e dei file grezzi leggibili. Tutta la scienza resta nella pagina web, identica a quella online.
 //! La pagina può leggere o scrivere solo i percorsi scelti dall'utente in una finestra di dialogo (o passati dal sistema operativo),
 //! più i progetti `.acchspettri` dell'elenco «recenti»: nessun accesso libero al disco.
 use std::collections::{HashMap, HashSet};
@@ -140,6 +140,24 @@ fn is_legacy_project(p: &Path) -> bool {
         .and_then(|n| n.to_str())
         .map(|n| n.to_ascii_lowercase().ends_with(".acchiappa.json"))
         .unwrap_or(false)
+}
+/// Spettri e cromatogrammi che la pagina sa leggere (lo stesso elenco di ACCEPT in index.html, più le estensioni numeriche):
+/// si accettano anche dal sistema operativo, con il doppio clic o «Apri con».
+const RAW_EXT: [&str; 22] = [
+    "txt", "asc", "csv", "dat", "dpt", "prn", "xy", "tsv", "arw", "mca", "spt", "spe", "sp", "exp", "jdx", "dx", "jcamp", "spa", "aif", "xlsx", "ch", "uv",
+];
+fn is_raw(p: &Path) -> bool {
+    p.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| {
+            let e = e.to_ascii_lowercase();
+            RAW_EXT.contains(&e.as_str()) || (!e.is_empty() && e.len() <= 3 && e.bytes().all(|b| b.is_ascii_digit()))
+        })
+        .unwrap_or(false)
+}
+/// Ciò che il sistema operativo può far aprire all'app: progetti e file grezzi leggibili, solo se sono file veri.
+fn is_openable(p: &Path) -> bool {
+    (is_project(p) || is_legacy_project(p) || is_raw(p)) && p.is_file()
 }
 fn file_name(p: &Path) -> String {
     p.file_name()
@@ -545,7 +563,7 @@ fn accept_args(args: impl IntoIterator<Item = String>) -> Vec<PathBuf> {
     args.into_iter()
         .skip(1)
         .map(PathBuf::from)
-        .filter(|p| (is_project(p) || is_legacy_project(p)) && p.is_file())
+        .filter(|p| is_openable(p))
         .collect()
 }
 
@@ -721,7 +739,7 @@ pub fn run() {
                 let list = urls
                     .into_iter()
                     .filter_map(|u| u.to_file_path().ok())
-                    .filter(|p| is_project(p) || is_legacy_project(p))
+                    .filter(|p| is_openable(p))
                     .collect();
                 queue_open(_app, list);
             }
@@ -744,11 +762,28 @@ mod tests {
         fs::remove_dir_all(&dir).unwrap();
     }
     #[test]
-    fn only_projects_are_accepted_from_the_command_line() {
+    fn projects_are_recognised() {
         assert!(is_project(Path::new("/x/y.ACCHSPETTRI")));
         assert!(is_legacy_project(Path::new("y.acchiappa.json")));
         assert!(!is_project(Path::new("/etc/passwd")));
         assert!(!is_legacy_project(Path::new("/x/y.json")));
+    }
+    #[test]
+    fn raw_files_are_accepted_from_the_command_line() {
+        let dir = std::env::temp_dir().join(format!("acch-args-{}", std::process::id()));
+        fs::create_dir_all(dir.join("STD1.D")).unwrap();
+        let ch = dir.join("STD1.D").join("DAD1A.ch");
+        let txt = dir.join("lc.TXT");
+        let num = dir.join("s.001");
+        let exe = dir.join("x.exe");
+        for p in [&ch, &txt, &num, &exe] {
+            fs::write(p, "1").unwrap();
+        }
+        let args = ["app", ch.to_str().unwrap(), txt.to_str().unwrap(), num.to_str().unwrap(), exe.to_str().unwrap(), "/non/esiste.csv", dir.to_str().unwrap()]
+            .map(String::from);
+        assert_eq!(accept_args(args), vec![ch.clone(), txt.clone(), num.clone()]);
+        assert!(is_raw(Path::new("a.UV")) && is_raw(Path::new("b.arw")) && !is_raw(Path::new("c.1234")) && !is_raw(Path::new("d")));
+        fs::remove_dir_all(&dir).unwrap();
     }
     #[test]
     fn dialog_start_dir_per_kind() {

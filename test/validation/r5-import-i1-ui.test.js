@@ -46,10 +46,12 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
     const r=await run(p, L), disp=Object.fromEntries(r.files.map(f=>[f.path,f.disp]));
     assert.deepStrictEqual(disp, {'SEQ1/STD1.D/DAD1A.CSV':'DAD1A.CSV (SEQ1/STD1.D)','SEQ1/STD2.D/DAD1A.CSV':'DAD1A.CSV (SEQ1/STD2.D)','SEQ2/STD1.D/DAD1A.CSV':'DAD1A.CSV (SEQ2/STD1.D)','SEQ2/STD2.D/DAD1A.CSV':'DAD1A.CSV (SEQ2/STD2.D)','SEQ2/STD3.D/DAD1A.CSV':'DAD1A.CSV (STD3.D)'});
     assert.deepStrictEqual(errors, []); await ctx.close(); });
-  test(`${W}: la tabella riassuntiva non è contata fra i canali (toast e «Controllo del dato»)`, async ()=>{
-    const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['DAD.csv',F.canaliTabella]]);
-    const tt=r.toasts.join(' | '); assert.match(tt, /contiene più di un canale: ho letto il canale «DAD1A 254 nm», altre 3000 righe/, tt);
-    const a=r.files[0].assess.join('\n'); assert.match(a, /blocco 1 di 2, il più lungo\); gli altri blocchi \(3000 righe\)/, a); assert.match(a, /Altre 5 righe di numeri, più brevi dei canali/, a); assert.doesNotMatch(a, /fuori dal blocco principale/, a);
+  // I3: i due canali diventano due cromatogrammi; la tabella resta fuori dai canali e lo si dice nella nota d'importazione
+  test(`${W}: la tabella riassuntiva non è contata fra i canali (due cromatogrammi e la nota)`, async ()=>{
+    const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['DAD.csv',F.canaliTabella]], ()=>document.querySelector('#skipNote').innerText);
+    assert.deepStrictEqual(r.files.map(f=>f.chan), ['DAD1A 254 nm','DAD1B 280 nm']);
+    assert.match(r.extra, /«DAD\.csv»: altre 5 righe di numeri, più brevi dei canali, sono in genere tabelle riassuntive e non sono state usate/, r.extra);
+    const a=r.files.map(f=>f.assess.join('\n')).join('\n'); assert.doesNotMatch(a, /fuori dal blocco principale|non sono stati letti/, a);
     assert.deepStrictEqual(errors, []); await ctx.close(); });
   test(`${W}: fattore di coda > 2 segnalato anche con un picco solo`, async ()=>{
     const {ctx,p,errors}=await B.openPage(browser, server, {desk}); const r=await run(p, [['CODA.csv',F.coda]], ()=>{ const f=files[0], v=viewOf(f), up=upData(processed(f)); return chromMetrics(processed(f).xs, up.y, v.peaks.map(q=>({x:q.x}))).map(c=>c.tailing); });
@@ -84,10 +86,10 @@ test('versione inglese: gli avvisi nuovi del «Controllo del dato» sono tradott
   const {ctx,p,errors}=await B.openPage(browser, server, {lang:'en'}), out=[];
   for (const [n,d] of [['STD1.csv',F.dueSegnali],['STD1_DAD1B.csv',F.conflitto],['DAD.csv',F.canaliTabella],['FTIR.txt',F.ftirDue]]){
     out.push(await p.evaluate(async ([n,d])=>{ files.length=0; cur=-1; await addEntries([{file:new File([d],n),path:n}]); document.querySelectorAll('dialog[open]').forEach(q=>q.close());
-      cur=0; go(2); openTab('an'); renderAnalysis(); await new Promise(q=>setTimeout(q,400)); return document.querySelector('#anQual').innerText; }, [n,d])); }
+      cur=0; go(2); openTab('an'); renderAnalysis(); await new Promise(q=>setTimeout(q,400)); return document.querySelector('#anQual').innerText+'\n'+document.querySelector('#skipNote').innerText; }, [n,d])); }
   const t=out.join('\n');
   assert.match(t, /The header names 2 signals/); assert.match(t, /The file name indicates channel «DAD1B», the header «DAD1A 254 nm»/);
-  assert.match(t, /Another 5 rows of numbers, shorter than the channels/); assert.match(t, /for example another scan or another measurement/);
+  assert.match(t, /another 5 rows of numbers, shorter than the channels/); assert.match(t, /for example another scan or another measurement/);
   assert.doesNotMatch(t, /intestazione|segnali|righe di numeri|un'altra scansione/, 'resta testo italiano:\n'+t);
   assert.deepStrictEqual(errors, []); await ctx.close();
 });

@@ -110,7 +110,18 @@
   function addSpectra(){ return nativePick($('#inFiles')); }
   async function openDialog(){ const p=await inv('pick_open',{title:tr('Apri progetto'), filterName:tr('Progetto di Acchiappaspettri'), extensions:['acchspettri','json'], kind:'project'}); if (p) await openPath(p.path, p.name); }
   let draining=Promise.resolve();   // i file aperti dal sistema si aprono uno alla volta
-  function drainPending(){ draining=draining.then(async ()=>{ while (win.AcchProject.busy) await new Promise(r=>setTimeout(r,200)); const L=await inv('take_pending_open'); for (const p of L) await openPath(p.path, p.name); }).catch(e=>console.error(e)); return draining; }
+  // file grezzi aperti dal sistema (doppio clic, «Apri con»): il percorso relativo conserva la cartella .D di ChemStation, così i canali dello stesso campione stanno sulla stessa riga
+  const relOf=path=>{ const P=String(path).split(/[\\/]/).filter(Boolean), n=P.pop()||path, d=P.pop(); return d && /\.d$/i.test(d) ? d+'/'+n : n; };
+  const isProj=n=>/\.(acchspettri|acchiappa\.json)$/i.test(n);
+  function drainPending(){ draining=draining.then(async ()=>{ while (win.AcchProject.busy) await new Promise(r=>setTimeout(r,200));
+      await new Promise(r=>setTimeout(r,150));   // «Apri con» su più file: su Windows e Linux arrivano uno per volta, si aspettano gli altri per mostrarli insieme
+      const L=await inv('take_pending_open'); for (const p of L.filter(p=>isProj(p.name))) await openPath(p.path, p.name);
+      const raw=L.filter(p=>!isProj(p.name)); if (!raw.length) return;
+      // con un lavoro già aperto si chiede dove metterli (ROADMAP I3): nel progetto aperto o in uno nuovo
+      if (files.length && !win.ACCH_TEST){ const ans=await win.AcchUi.choice(tr('Aggiungere {0} file al progetto aperto «{1}»?').replace('{0}',raw.length).replace('{1}',win.AcchProject.displayName()), [['cancel','Annulla','ghost'],['new','Nuovo progetto','ghost'],['add','Aggiungi','primary']]);
+        if (ans==='cancel') return; if (ans==='new' && !await win.AcchProject.newProject()) return; }
+      { const got=await readPicked(raw.map(p=>({path:p.path, name:p.name, rel:relOf(p.path)})), false); if (got.length) await win.addEntries(got.map(g=>({file:g.file, path:g.p.rel}))); }
+    }).catch(e=>console.error(e)); return draining; }
   T.event.listen('acch-open-files', drainPending);
 
   /* Analisi → «Preimpostazioni»: la sezione è in fondo a Esporta, chiusa; si apre e si porta in vista */
