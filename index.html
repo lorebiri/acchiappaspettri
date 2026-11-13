@@ -5039,6 +5039,7 @@ async function addEntries(entries){
       LOADING.add(lkey);
       let buf;
       try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
+      if (om) buf=AcchOriginUI.shared(buf);   // più spettri dallo stesso progetto Origin: un solo buffer in memoria
       try{
         const pb = om ? AcchOriginUI.parseSel(buf, om[1]) : parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
@@ -5048,7 +5049,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; if (p.origin) f.origin=p.origin; postDetect(f, p);
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; if (p.origin){ f.origin=p.origin; f.rawName=path.replace(/#origin:[^#]*$/,'').split('/').pop(); } postDetect(f, p);
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
@@ -6782,7 +6783,7 @@ async function exportEntries(sel, zipping){
       add('raw', uniq(expDir('raw')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
     // copia identica: i byte del file come è stato caricato (anche binari e JCAMP); più spettri dallo stesso file → una copia sola
-    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.name||'file');
+    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.rawName||f.name||'file');
       add('orig', uniq(expDir('orig')+dir, m[1]||'file', m[2]), new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)); }
     progress((i+1)/total*0.9); say_(i+1); await tick();
   }

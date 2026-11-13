@@ -76,4 +76,19 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
     assert.deepStrictEqual(r.origins, [{book:'FTIRsintet',sheet:1,col:'B'},{book:'Ramansinte',sheet:1,col:'B'},{book:'Valoriestr',sheet:1,col:'B'}]);
     assert.deepStrictEqual(r.after, r.before);
     assert.deepStrictEqual(errors, []); await ctx.close(); });
+  test(`${W}: 40 spettri dallo stesso file Origin: un solo buffer in memoria e una sola copia identica esportata`, async ()=>{
+    const {ctx,p,errors}=await B.openPage(browser, server, {desk});
+    const r=await p.evaluate(async ()=>{
+      const xs=Array.from({length:300},(_,i)=>4000-i*10), specs=Array.from({length:40},(_,k)=>({xs, ys:xs.map(x=>Math.sin(x/(50+k))), name:'S'+(k+1)}));
+      const orig=AcchOrigin.writeOpju(specs,{mode:'one'});
+      addEntries([{file:new File([orig],'quaranta.opju'), path:'quaranta.opju'}]);
+      for (let i=0;i<100 && !document.querySelector('#dlgOrigin[open]');i++) await new Promise(r=>setTimeout(r,50));
+      document.querySelector('#orOk').click(); for (let i=0;i<300 && files.length<40;i++) await new Promise(r=>setTimeout(r,50));
+      Object.assign(S,{outPdf:false,outPng:false,outSvg:false,csvPeaks:false,csvData:false,csvRaw:false,outOrig:true,outAnalysis:false,outTrace:false,outOrigin:false,outOpj:false,outOpju:false,outProject:false,zipAll:false,expScope:'all'});
+      EXP_SCOPE='all'; let ents; try{ ents=await exportEntries(expSel(), true); } finally { EXP_SCOPE=null; }
+      const e=ents[0], b=e && (e.data instanceof Uint8Array ? e.data : new Uint8Array(await new Response(e.data).arrayBuffer()));
+      return {n:files.length, buffers:new Set(files.map(f=>f.raw)).size, copies:ents.length, name:e&&e.path, same:!!b && b.length===orig.length && b.every((x,i)=>x===orig[i])}; });
+    assert.strictEqual(r.n, 40); assert.strictEqual(r.buffers, 1, 'un solo buffer');
+    assert.strictEqual(r.copies, 1, 'una sola copia identica'); assert.match(r.name, /quaranta\.opju$/); assert.ok(r.same, 'copia identica ai byte del file');
+    assert.deepStrictEqual(errors, []); await ctx.close(); });
 }

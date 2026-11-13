@@ -87,6 +87,13 @@
   const cache=[];   // ultimo progetto letto: più spettri dallo stesso file non lo rileggono ogni volta
   function fnv(u){ let h=2166136261; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,16777619); } return (h>>>0)+':'+u.length; }
   function modelOf(u){ const k=fnv(u), c=cache.find(x=>x.k===k); if (c) return c.m; const m=O.read(u); cache.unshift({k,m}); cache.length=Math.min(cache.length,2); return m; }
+  /* un solo ArrayBuffer per contenuto: gli spettri dello stesso file Origin lo condividono (memoria, salvataggio, copia identica) */
+  const pool=new Map();
+  function shared(buf){
+    const u=new Uint8Array(buf), k=fnv(u), ref=pool.get(k), old=ref && ref.deref();
+    if (old && old.byteLength===buf.byteLength){ const o=new Uint8Array(old); let same=true; for (let i=0;i<u.length;i++) if (o[i]!==u[i]){ same=false; break; } if (same) return old; }
+    pool.set(k, new WeakRef(buf)); return buf;
+  }
   function parseSel(buf, sel){
     const u=buf instanceof Uint8Array?buf:new Uint8Array(buf), parts=String(sel).split('|');
     if (parts.length!==3) return {reject:tx('scelta dello spettro Origin non valida','invalid Origin spectrum selection')};
@@ -144,6 +151,6 @@
   function mountExport(){
     document.querySelectorAll('.opjWarn').forEach(el=>{ el.hidden=!!O.VERIFIED[el.dataset.fmt==='opju'?'writeOpju':'writeOpj']; });
   }
-  window.AcchOriginUI={ask, exportSpecs, buildProject, mountExport, parseSel, selPath};
+  window.AcchOriginUI={ask, exportSpecs, buildProject, mountExport, parseSel, selPath, shared};
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', mountExport); else mountExport();
 })();
