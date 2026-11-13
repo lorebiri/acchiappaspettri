@@ -71,6 +71,7 @@ results/…                   tabelle dei risultati e bozza dei metodi (copia in
 | `sampleKey` | stringa o `null` | quale campione del file, quando un file ne contiene più d'uno (sequenze, file multicanale). `null` se il file ha un solo campione |
 | `channel` | stringa o `null` | quale canale del campione (per esempio `DAD1A`, `λ=254 nm`). `null` se il file ha un solo canale |
 | `binary` | booleano | come la sorgente |
+| `origin` | oggetto, facoltativo | per uno spettro preso da un progetto Origin (sorgente `.opj`/`.opju`): `{book, sheet, col}`, cioè cartella, numero del foglio (≥ 1) e colonna Y. Gli spettri dallo stesso progetto condividono la sorgente; il `path` termina con `#origin:libro|foglio|colonna`. Un lettore che non lo conosce rilegge la sorgente come file binario e non trova numeri: nessun numero sbagliato |
 | `memory` | oggetto o `null` | il lavoro sullo spettro: titolo, descrizione, intervallo, etichette dei picchi (`labels`, con i rimandi `@id` alla libreria), picchi tolti e aggiunti, elaborazioni, deconvoluzioni, analisi (`fileMemory` in `index.html`) |
 | `processed` | percorso, facoltativo | copia leggibile dei dati come visualizzati |
 | `series`, `cube`, `iso` | oggetti, facoltativi | dati propri dello spettro, sotto |
@@ -133,7 +134,7 @@ Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono
 - **Libreria dei nomi**: all'apertura `libMerge` unisce `state.LIB` a quella dell'utente e restituisce `map` (id del progetto → id locale) quando una voce cambia id (conflitto, id oltre 40 caratteri, voce già presente con un altro id); i rimandi `@id` delle etichette si riscrivono con `map` prima di caricare gli spettri.
 
 ### API di `app/project-format.js`
-- `encode(input, JSZip)` → `Uint8Array`. `input = {appVersion, title, createdAt, state, spectra:[{name, path, bytes?, binary?, memory?, processedCsv?, sampleKey?, channel?, series?, cube?, iso?, extra?}], libraries:[{id, revision, name?, data}], results:[{name, text}]}`. Errori `bad-input` per dati non validi (matrice di dimensioni sbagliate, numeri non finiti, id di libreria doppi).
+- `encode(input, JSZip)` → `Uint8Array`. `input = {appVersion, title, createdAt, state, spectra:[{name, path, bytes?, binary?, memory?, processedCsv?, sampleKey?, channel?, origin?, series?, cube?, iso?, extra?}], libraries:[{id, revision, name?, data}], results:[{name, text}]}`. Errori `bad-input` per dati non validi (matrice di dimensioni sbagliate, numeri non finiti, id di libreria doppi).
 - `decode(bytes, JSZip)` → sempre nella forma del formato 2: `{manifest, state, sources:[{id, data, size, sha256, binary, bytes}], spectra:[{…, source, sampleKey, channel, bytes, data, series?, cube?, iso?}], libraries:[{id, revision, name, data}], results, warnings}`. Gli spettri della stessa sorgente condividono lo stesso `Uint8Array`.
 - `fromLegacyJson(text)` → la stessa forma, per i `.acchiappa.json`.
 - Errori (`ProjectError.code`): `not-a-project`, `empty`, `corrupted`, `integrity`, `missing-entry`, `invalid-json`, `invalid-schema`, `unsafe-path`, `too-large`, `newer-format`, `no-migration`, `no-zip`, `bad-input`.

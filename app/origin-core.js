@@ -131,10 +131,11 @@
   function colOrder(a,b){ return a.length-b.length || (a<b?-1:a>b?1:0); }
 
   /* ---------- modello comune ---------- */
-  function buildModel(format, version, datasets, colRecs, windows, curves, warnings){
-    const books=new Map();
+  function buildModel(format, version, datasets, colRecs, windows, curves, warnings, sheetNames){
+    const books=new Map(), skipped={matrices:0, derived:0, other:0};
     datasets.forEach((ds,i)=>{
-      const sp=splitDataset(ds.name); if (!sp){ if (ds.name) warnings.push({code:'non-sheet', name:ds.name}); return; }
+      const sp=splitDataset(ds.name);
+      if (!sp){ if (/\./.test(ds.name)) skipped.derived++; else if (!/_/.test(ds.name)) skipped.matrices++; else skipped.other++; return; }
       if (!books.has(sp.book)) books.set(sp.book,{name:sp.book, label:'', sheets:new Map()});
       const B=books.get(sp.book); if (!B.sheets.has(sp.sheet)) B.sheets.set(sp.sheet,{index:sp.sheet, name:'', columns:[]});
       B.sheets.get(sp.sheet).columns.push({name:sp.col, dataset:ds.name, dsIndex:i+1, type:null, longName:'', units:'', comments:'',
@@ -148,6 +149,7 @@
       e.c.type=TYPES[r.type]||'None'; e.c.order=ord++; Object.assign(e.c, splitComment(r.comment||''));
     }
     for (const w of windows){ const B=books.get(w.name); if (B && w.label) B.label=w.label; }
+    for (const x of sheetNames||[]){ const B=books.get(x.book), S=B&&B.sheets.get(x.index); if (S && x.name) S.name=x.name; }
     const graphs=[];
     for (const g of curves){
       const y=byIndex.get(g.y), x=byIndex.get(g.x); if (!y) continue;
@@ -160,7 +162,10 @@
       sheets.forEach(S=>{ S.name=S.name||('Sheet'+S.index); S.columns.sort((a,b)=>(a.order==null?1e9:a.order)-(b.order==null?1e9:b.order) || colOrder(a.name,b.name)); });
       out.push({name:B.name, label:B.label, sheets});
     });
-    return {format, version, books:out, graphs, warnings};
+    if (skipped.matrices) warnings.push({code:'matrices', n:skipped.matrices});
+    if (skipped.derived) warnings.push({code:'derived', n:skipped.derived});
+    if (skipped.other) warnings.push({code:'non-sheet', n:skipped.other});
+    return {format, version, books:out, graphs, warnings, skipped};
   }
 
   /* coppie X/Y proposte: regola di Origin (la X più vicina a sinistra); senza alcuna X si propone la prima colonna, dichiarandolo */
@@ -244,45 +249,50 @@
     if (!(u[p]===0 && u[p+1]===0 && u[p+2]===0 && u[p+3]===0 && u[p+4]===0 && u[p+5]===0x0a && u[p+6]===0)) throw new OriginError('opju-bad-frame','fine elenco');
     return {ds, end:p+7};
   }
-  /* dati di una colonna: 0a 05 [righe] ff ff [ultima riga] 00, segmenti (varint t, codifica), ce */
+  /* dati di una colonna: 0a 05 (o 04) [righe], poi blocchi «ff ff [n] [0|1]» seguiti dai segmenti di n valori, poi ce.
+     Un segmento: varint t (dispari: (t>>1)+1 valori diversi; pari: t>>1 ripetizioni) e la codifica:
+     0x0c FPC (tabelle 2^12), 0x50 double grezzi, 0x00 celle non numeriche (dispari: un byte per cella, 0 = vuota; pari: celle vuote). */
   function decodeColumnOpju(u, b, end, d){
-    if (u[b]!==0x0a || u[b+1]!==0x05) throw new OriginError('opju-unknown-column');
-    let A, B, p; [A,p]=varint(u,b+2);
-    if (u[p]!==0xff || u[p+1]!==0xff) throw new OriginError('opju-unknown-column'); p+=2;
-    [B,p]=varint(u,p); if (u[p]!==0) throw new OriginError('opju-unknown-column'); p++;
-    if (A>LIMITS.rows || B>A || A!==d.rows) throw new OriginError('opju-rows');
+    if (u[b]!==0x0a || (u[b+1]!==0x05 && u[b+1]!==0x04)) throw new OriginError('opju-unknown-column');
+    let A, p; [A,p]=varint(u,b+2);
+    if (A>LIMITS.rows || A!==d.rows) throw new OriginError('opju-rows');
+    if (u[p]!==0xff || u[p+1]!==0xff) throw new OriginError('opju-unknown-column');
     const out=new Float64Array(A); let o=0;
     const stop=end-1;
+    // ogni blocco dichiara quanti valori contiene, celle di testo escluse: dopo l'ultimo valore possono venire solo celle di testo
     while (p<stop){
-      if (o===B && u[p]===0xff && u[p+1]===0xff){
-        // righe vuote dopo l'ultima con dati: ff ff [k] 01, poi [2k] 00 (osservato in tre versioni di Origin)
-        let k, q, t2; [k,q]=varint(u,p+2);
-        if (u[q]!==1) throw new OriginError('opju-unknown-column');
-        [t2,q]=varint(u,q+1);
-        if (t2!==2*k || u[q]!==0 || o+k!==A) throw new OriginError('opju-unknown-column');
-        out.fill(NaN,o,A); o=A; p=q+1; continue;
+      if (u[p]!==0xff || u[p+1]!==0xff) throw new OriginError('opju-unknown-column');
+      let n; [n,p]=varint(u,p+2); const flag=u[p++];
+      if (flag>1 || n<1 || o+n>A) throw new OriginError('opju-rows');
+      let counted=0;
+      for (;;){
+        if (counted===n && (p>=stop || (u[p]===0xff && u[p+1]===0xff))) break;
+        if (p>=stop) throw new OriginError('opju-rows');
+        let t; [t,p]=varint(u,p); const codec=u[p++];
+        const k=(t&1)?(t>>>1)+1:(t>>>1), isText=codec===0x00 && (t&1);
+        if (k<1 || o+k>A || (!isText && counted+k>n)) throw new OriginError('opju-rows');
+        if (codec===0x0c && (t&1)){ p=fpcDecode(u,p,k,12,out,o); o+=k; counted+=k; }
+        else if (codec===0x50){
+          if (t&1){ for (let i=0;i<k;i++){ out[o++]=f64(u,p); p+=8; } }
+          else { const v=f64(u,p); p+=8; out.fill(v,o,o+k); o+=k; }
+          counted+=k;
+        } else if (isText){   // celle non numeriche: un byte per cella; solo 0 (cella vuota) è riconosciuto, il resto si rifiuta
+          for (let i=0;i<k;i++){ if (u[p]!==0) throw new OriginError('opju-text-content'); p++; out[o++]=NaN; d.text++; }
+        } else if (codec===0x00){ out.fill(NaN,o,o+k); o+=k; counted+=k; }   // celle vuote
+        else throw new OriginError('opju-unknown-codec', '0x'+codec.toString(16));
+        if (p>stop) throw new OriginError('opju-bad-frame');
       }
-      let t; [t,p]=varint(u,p); const codec=u[p++];
-      const n=(t&1)?(t>>>1)+1:(t>>>1);
-      if (o+n>A) throw new OriginError('opju-rows');
-      if (codec===0x0c && (t&1)){ p=fpcDecode(u,p,n,12,out,o); o+=n; }
-      else if (codec===0x50){
-        if (t&1){ for (let i=0;i<n;i++){ out[o++]=f64(u,p); p+=8; } }
-        else { const v=f64(u,p); p+=8; out.fill(v,o,o+n); o+=n; }
-      } else if (codec===0x00 && (t&1)){   // celle di testo: si contano, non diventano numeri
-        for (let i=0;i<n;i++){ let l; [l,p]=varint(u,p); p+=l; out[o++]=NaN; d.text++; }
-      } else throw new OriginError('opju-unknown-codec', '0x'+codec.toString(16));
-      if (p>stop) throw new OriginError('opju-bad-frame');
     }
-    if (p!==stop || o!==A) throw new OriginError('opju-rows');
+    if (o!==A) throw new OriginError('opju-rows');
+    if (p!==stop) throw new OriginError('opju-rows');
     for (let i=0;i<A;i++) if (out[i]===NANUM) out[i]=NaN;
     let e=A; while (e>0 && Number.isNaN(out[e-1])) e--;   // celle vuote in coda: non sono righe
     d.values=out.subarray(0,e);
   }
   /* record di intestazione (finestre, colonne, curve): 0x80, lunghezza, struttura rada, coda; validati con l'indice del dataset */
   function scanRecordsOpju(u, from, datasets){
-    const cols=[], windows=[], curves=[];
-    let curWin=null;
+    const cols=[], windows=[], curves=[], sheets=[];
+    let curWin=null, layer=0, badLayers=new Set();
     for (let p=from; p<u.length-2; p++){
       if (u[p]!==0x80 || (u[p-1]!==0 && u[p-1]!==0x0a)) continue;
       let L, q;
@@ -293,7 +303,12 @@
       if (r+n>u.length) continue;
       if (st.length===0xc3){
         const nm=cstr(st,2,25,'utf-8');
-        if (/^[A-Za-z][A-Za-z0-9_]{0,24}$/.test(nm)){ const lab=decode(u.subarray(r,r+n)).split('\0')[0].split(/\r\n/)[0]; curWin={name:nm, label:lab.trim()}; windows.push(curWin); }
+        if (/^[A-Za-z][A-Za-z0-9_]{0,24}$/.test(nm)){ const lab=decode(u.subarray(r,r+n)).split('\0')[0].split(/\r\n/)[0]; curWin={name:nm, label:lab.trim()}; windows.push(curWin); layer=0; }
+        continue;
+      }
+      if (st.length===405 && curWin){   // foglio di un libro: il nome è nella coda
+        layer++; const nm=decode(u.subarray(r,r+n)).split('\0')[0];
+        if (n>0 && n<=64 && /^[^\u0000-\u001f]+$/.test(nm)) sheets.push({book:curWin.name, index:layer, name:nm.trim()});
         continue;
       }
       if (st.length<0x4e) continue;
@@ -305,20 +320,21 @@
           let e=r+n, comment='';
           if (u[e]===0x0a){ let m, s; [m,s]=varint(u,e+1); if (m>0){ let sl, s2; [sl,s2]=varint(u,s); if (s2+sl===s+m && sl>0 && u[s2+sl-1]===0) comment=cstr(u,s2,sl,'utf-8'); } }
           cols.push({index:idx, name:nm, type:st[0x11], comment});
+          if (layer && sp.sheet!==layer) badLayers.add(curWin.name);   // i fogli non tornano con le colonne: i nomi non si usano
         }
       } else if (!nm && curWin && st[0x11]===1){
         const x=u16(st,0x23);
         if (ds && datasets[x-1]) curves.push({graph:curWin.name, graphLabel:curWin.label, y:idx, x});
       }
     }
-    return {cols, windows, curves};
+    return {cols, windows, curves, sheets:sheets.filter(x=>!badLayers.has(x.book))};
   }
   function readOpju(u){
     const m=/^CPYUA (\d+\.\d+) (\d+)/.exec(decode(u.subarray(0,32),'latin1'));
     if (!m) throw new OriginError('not-origin');
     const {ds,end}=readDatasetsOpju(u), w=[];
-    const {cols,windows,curves}=scanRecordsOpju(u,end,ds);
-    return buildModel('opju', m[1], ds, cols, windows, curves, w);
+    const {cols,windows,curves,sheets}=scanRecordsOpju(u,end,ds);
+    return buildModel('opju', m[1], ds, cols, windows, curves, w, sheets);
   }
 
   /* ======================================================= .opj ======================================================= */
@@ -431,6 +447,11 @@
   function colHeader(name, idx, type){ const c=tpl('col'); putU16(c,4,idx); c[0x11]=type; if (type===3) c[0x26]=0x51; putStr(c,0x12,name,25,latin1); return c; }
   function winHeader(name){ const w=tpl('win'); putStr(w,2,name,25,latin1); return w; }
 
+  /* blocco LZ4 valido fatto di soli letterali (nessuna ripetizione): basta per archivi XML piccoli */
+  function lz4Literal(b){ const o=[], n=b.length; if (n<15) o.push(n<<4); else { o.push(0xf0); let r=n-15; while (r>=255){ o.push(255); r-=255; } o.push(r); } for (const x of b) o.push(x); return o; }
+  /* voce d'archivio dei .opju, struttura verificata sui file pubblici: 01, nome, 04 01, varint L, 02, u32 lunghezza del testo, LZ4 */
+  function storageItem(name, xml){ const nm=latin1(name), t=[...enc8(xml),0], z=lz4Literal(t), u=[t.length&255,(t.length>>8)&255,(t.length>>16)&255,(t.length>>>24)&255];
+    return [0x01, (nm.length-1)*2+1, ...nm, 0x04, 0x01, ...encVarint(5+z.length), 0x02, ...u, ...z]; }
   /* .opj (CPYA): blocchi [u32][\n][dati][\n], fine elenco = blocco vuoto */
   function writeOpj(specs, opts){
     checkSpecs(specs); opts=opts||{};
@@ -465,7 +486,7 @@
     push(latin1('CPYUA 4.3721 196\n'));
     const G='6c111111060000001400000040801201e404000000000000aaa88d0b00000000010000000003000000010000000004000000000000000100000000';
     const g=Uint8Array.from(G.match(/../g).map(h=>parseInt(h,16))), gs=sparse(g);
-    push(encVarint(gs.length)); push(gs); push([10]); push(latin1('PrvwOPJU')); push([0,0,0,0,0,0,0,0]);
+    push(encVarint(gs.length)); push(gs); push([10]); push(latin1('PrvwOPJU')); const tocAt=out.length; push([0,0,0,0,0,0,0,0]);   // posizione dell'indice delle anteprime, scritta alla fine
     push([0x90,0,0,0,10]);   // preambolo osservato prima dei dataset (contenuto non interpretato: NON VERIFICATO)
     push([10]);
     let idx=0;
@@ -486,7 +507,9 @@
     for (const B of books){
       const ws=sparse(winHeader(B.name)), lab=enc8(B.label||'');
       push([0x80, ...encVarint(ws.length)]); push(ws); push(encVarint(lab.length+1)); push(lab); push([0]);
-      push([0x0a]); const ls=sparse(tpl('layer')); push([0x80, ...encVarint(ls.length)]); push(ls); push([0]);
+      const sto=storageItem('Script','<OriginStorage><Script></Script></OriginStorage>');   // archivio XML minimo della finestra
+      push([0x0a, ...encVarint(sto.length)]); push(sto);
+      const sn=enc8('Sheet1'); push([0x0a]); const ls=sparse(tpl('layer')); push([0x80, ...encVarint(ls.length)]); push(ls); push(encVarint(sn.length)); push(sn);
       B.cols.forEach((c,i)=>{
         idx++; const cs=sparse(colHeader(colLetter(i), idx, c.type));
         push([0x0a,0x80, ...encVarint(cs.length)]); push(cs); push([0]);
@@ -496,6 +519,10 @@
       push([0,0,0]);
     }
     push([0,0,0,0]);
+    // indice delle anteprime (puntato dall'intestazione dopo «PrvwOPJU»): numero di voci, byte della tabella, voci (posizione, dimensione).
+    // Nessuna immagine: indice vuoto. Nei campioni le voci puntano a immagini PNG delle finestre
+    const toc=out.length; for (let i=0;i<8;i++) out[tocAt+i]=i<6?Math.floor(toc/2**(8*i))%256:0;
+    push([0,0,0,0,0,0,0,0, 0,0,0,0, 0,0,0,0]);
     return Uint8Array.from(out);
   }
 
@@ -526,6 +553,7 @@
     'opju-unknown-codec':['codifica dei valori non riconosciuta','unrecognised value encoding'],
     'opju-unknown-column':['struttura della colonna non riconosciuta','unrecognised column structure'],
     'opju-rows':['numero di righe incoerente','inconsistent number of rows'],
+    'opju-text-content':['colonna con testo: la codifica del testo nei .opju non è ancora riconosciuta','column with text: the text encoding of .opju files is not recognised yet'],
     'opj-unknown-column':['struttura della colonna non riconosciuta','unrecognised column structure'],
     'opj-text-column':['colonna di testo','text column'],
     'no-x':['nessuna colonna X','no X column'],

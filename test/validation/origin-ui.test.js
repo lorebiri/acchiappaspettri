@@ -42,15 +42,38 @@ for (const desk of [false, true]){ const W=desk?'desktop':'online';
     assert.strictEqual(r.n, 0); assert.strictEqual(r.open, false);
     assert.ok(r.toasts.some(t=>/Progetto Origin non letto \(«rotto\.opju»\)/.test(t)), r.toasts.join(' | '));
     assert.deepStrictEqual(errors, []); await ctx.close(); });
-  test(`${W}: voce di esportazione: il progetto scritto si rilegge identico ed è dichiarato non verificato`, async ()=>{
+  test(`${W}: voci .opj e .opju della finestra Esporta: progetto riletto identico, avviso finché non è verificato`, async ()=>{
     const {ctx,p,errors}=await B.openPage(browser, server, {desk});
     const txt='Wavenumber (cm-1)\tA\r\n'+Array.from({length:400},(_,i)=>(4000-i*2)+'\t'+(Math.sin(i/9)/7)).join('\r\n');
     const r=await p.evaluate(async (txt)=>{ await addEntries([{file:new File([txt],'s.txt'), path:'s.txt'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
-      const card=document.getElementById('opjCard'); const sp=AcchOriginUI.exportSpecs(); const out={card:!!card, text:card?card.innerText:''};
-      for (const w of ['writeOpj','writeOpju']){ const m=AcchOrigin.read(AcchOrigin[w](sp,{mode:'each'})), v=AcchOrigin.pairValues(AcchOrigin.spectra(m)[0]);
-        out[w]=v.xs.length===sp[0].xs.length && Array.from(v.xs).every((x,k)=>x===sp[0].xs[k]) && Array.from(v.ys).every((y,k)=>y===sp[0].ys[k]); }
+      const card=k=>document.querySelector(`.outcard[data-out="${k}"]`), warn=k=>{ const w=card(k)&&card(k).querySelector('.opjWarn'); return !!w && !w.hidden; };
+      const out={cards:!!card('outOpj') && !!card('outOpju'), warn:warn('outOpj') && warn('outOpju'), oldButton:!!document.getElementById('opjGo')};
+      Object.assign(S,{outPdf:false,outPng:false,outSvg:false,csvPeaks:false,csvData:false,csvRaw:false,outOrig:false,outAnalysis:false,outTrace:false,outOrigin:false,outProject:false,zipAll:false,outOpj:true,outOpju:true,opjMode:'one'});
+      const ents=await exportEntries(expSel(), true); out.names=ents.map(e=>e.path);
+      const sp=AcchOriginUI.exportSpecs();
+      for (const e of ents){ const m=AcchOrigin.read(e.data instanceof Uint8Array?e.data:new Uint8Array(await e.data.arrayBuffer())), v=AcchOrigin.pairValues(AcchOrigin.spectra(m)[0]);
+        out[e.path]=v.xs.length===sp[0].xs.length && Array.from(v.xs).every((x,k)=>x===sp[0].xs[k]) && Array.from(v.ys).every((y,k)=>y===sp[0].ys[k]); }
       return out; }, txt);
-    assert.ok(r.card, 'voce .opj/.opju nella finestra Esporta'); assert.match(r.text, /Non ancora verificato in Origin/);
-    assert.ok(r.writeOpj && r.writeOpju);
+    assert.ok(r.cards, 'voci .opj e .opju nella finestra Esporta'); assert.ok(r.warn, 'avviso «Non ancora verificato in Origin»'); assert.ok(!r.oldButton, 'niente pulsante a parte');
+    assert.deepStrictEqual(r.names.sort(), ['per_Origin.opj','per_Origin.opju']);
+    assert.ok(r['per_Origin.opj'] && r['per_Origin.opju'], JSON.stringify(r));
+    assert.deepStrictEqual(errors, []); await ctx.close(); });
+  test(`${W}: progetto .acchspettri: il file Origin si salva una volta e gli spettri tornano con origin`, async ()=>{
+    const {ctx,p,errors}=await B.openPage(browser, server, {desk});
+    const bytes=[...fs.readFileSync(path.join(FIX,'sintetico-each.opju'))];
+    const r=await p.evaluate(async ([bytes])=>{
+      addEntries([{file:new File([new Uint8Array(bytes)],'prova.opju'), path:'dati/prova.opju'}]);
+      for (let i=0;i<100 && !document.querySelector('#dlgOrigin[open]');i++) await new Promise(r=>setTimeout(r,50));
+      document.querySelector('#orOk').click(); for (let i=0;i<100 && files.length<3;i++) await new Promise(r=>setTimeout(r,50));
+      const before=files.map(f=>({xs:Array.from(f.xs), ys:Array.from(f.ys), origin:f.origin}));
+      const b=await AcchProject.buildBytes(); const P=await AcchFormat.decode(b, JSZip);
+      return {bytes:Array.from(b), sources:P.sources.length, origins:P.spectra.map(s=>s.origin), before}; }, [bytes]);
+    const q=await B.openPage(browser, server, {desk});   // riapertura in una pagina nuova, come un altro avvio dell'app
+    const after=await q.p.evaluate(async (b)=>{ const ok=await AcchProject.openBytes(new Uint8Array(b),'prova.acchspettri',null); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+      return {ok, files:files.map(f=>({xs:Array.from(f.xs), ys:Array.from(f.ys), origin:f.origin}))}; }, r.bytes);
+    r.ok=after.ok; r.after=after.files; assert.deepStrictEqual(q.errors, []); await q.ctx.close();
+    assert.ok(r.ok); assert.strictEqual(r.sources, 1, 'byte originali una volta sola');
+    assert.deepStrictEqual(r.origins, [{book:'FTIRsintet',sheet:1,col:'B'},{book:'Ramansinte',sheet:1,col:'B'},{book:'Valoriestr',sheet:1,col:'B'}]);
+    assert.deepStrictEqual(r.after, r.before);
     assert.deepStrictEqual(errors, []); await ctx.close(); });
 }

@@ -76,10 +76,12 @@
     if (!(n>0) || !isNumArr(iso.p) || !isNumArr(iso.n,n) || !(iso.p0==null || isNumOrNullArr(iso.p0,n)) || !(iso.t==null || (typeof iso.t==='number' && Number.isFinite(iso.t))) || !isObj(iso.branches) || !rng(iso.branches.ads) || !rng(iso.branches.des) || !(iso.unit==null || isObj(iso.unit)) || !(iso.meta==null || isObj(iso.meta))) throw new ProjectError(Err, where);
     return iso; }
   function isoOut(iso){ isoCheck(iso,'bad-input','iso'); const o={p:iso.p.slice(), p0:iso.p0==null?null:iso.p0.slice(), n:iso.n.slice(), t:iso.t==null?null:iso.t, branches:{ads:iso.branches.ads||null, des:iso.branches.des||null}, unit:pickStr(iso.unit,['p','p0','n','t'])}; if (isObj(iso.meta)) o.meta=iso.meta; return o; }
-  const KEYS_S=new Set(['name','path','bytes','binary','memory','processedCsv','sampleKey','channel','series','cube','iso','extra']);
+  const KEYS_S=new Set(['name','path','bytes','binary','memory','processedCsv','sampleKey','channel','origin','series','cube','iso','extra']);
+  /* origin: quale colonna di un progetto Origin (.opj/.opju, nella sorgente) è lo spettro. Facoltativo (vedi docs/FORMATO-ACCHSPETTRI.md) */
+  const originOk=o=>isObj(o) && typeof o.book==='string' && o.book.length>0 && o.book.length<=64 && Number.isInteger(o.sheet) && o.sheet>=1 && o.sheet<=10000 && typeof o.col==='string' && o.col.length>0 && o.col.length<=64;
 
   /* input: {appVersion, title, createdAt, state,
-             spectra:[{name, path, bytes?:Uint8Array, binary?, memory?, processedCsv?, sampleKey?, channel?, series?, cube?, iso?, extra?}],
+             spectra:[{name, path, bytes?:Uint8Array, binary?, memory?, processedCsv?, sampleKey?, channel?, origin?, series?, cube?, iso?, extra?}],
              libraries:[{id, revision, name?, data}], results:[{name,text}]}
      Formato 2: i byte di ogni file originale si scrivono una volta sola (data/, project/sources.json), anche se più spettri
      ne derivano (canali di un file multicanale, distinti da sampleKey). Vedi docs/FORMATO-ACCHSPETTRI.md. */
@@ -103,6 +105,7 @@
       if (s.series) rec.series=seriesOut(s.series, id, add);
       if (s.cube) rec.cube=cubeOut(s.cube, id, add);
       if (s.iso) rec.iso=isoOut(s.iso);
+      if (s.origin!=null){ if (!originOk(s.origin) || s.bytes==null) throw new ProjectError('bad-input','origin'); rec.origin={book:s.origin.book, sheet:s.origin.sheet, col:s.origin.col}; }
       if (isObj(s.extra)) rec.extra=s.extra;   // campi di versioni più nuove, conservati così come sono
       return rec; });
     const libraries=(input.libraries||[]).map((l,i)=>{ if (!isObj(l) || typeof l.id!=='string' || !l.id || l.id.length>200 || !(Number.isInteger(l.revision) && l.revision>=1) || !isObj(l.data)) throw new ProjectError('bad-input','library');
@@ -142,6 +145,7 @@
       if (v===1){ if (!isSafeEntry(s.data) || !s.data.startsWith('data/')) throw new ProjectError('invalid-schema','spectra'); return; }
       if (!(s.source===null || typeof s.source==='string') || !(s.sampleKey==null || typeof s.sampleKey==='string') || !(s.channel==null || typeof s.channel==='string')) throw new ProjectError('invalid-schema','spectra');
       if (s.source===null && !(s.series || s.cube || s.iso)) throw new ProjectError('invalid-schema','spectra');
+      if (s.origin!=null && (!originOk(s.origin) || s.source===null)) throw new ProjectError('invalid-schema','origin');
       for (const k of ['series','cube']) if (s[k]!=null && (!isObj(s[k]) || !isSafeEntry(s[k].data) || !s[k].data.startsWith(k+'/') || !DTYPES[s[k].dtype])) throw new ProjectError('invalid-schema',k);
       if (s.iso!=null) isoCheck(s.iso,'invalid-schema','iso'); });
     return list;

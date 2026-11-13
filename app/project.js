@@ -37,7 +37,7 @@
   async function build(){
     files.forEach(persist);
     // formato 2: canale (sampleKey, channel) e dati propri dello spettro (series, cube, iso) se il modulo che lo ha letto li ha messi su f
-    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
+    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, origin:f.origin||undefined, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
     // spettri del progetto aperto che questa versione non sa ricostruire (per esempio solo series/cube/iso): si riscrivono come erano
     for (const r of kept) spectra.push(r);
     let results=[]; try{ results=analysisFiles().map(([n,t])=>({name:n, text:t})); }catch(e){ console.warn(e); }
@@ -112,7 +112,7 @@
       // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso
       const seen=new Set(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; const k=(s.source||'')+'\u0000'+s.path; if (seen.has(k)) continue; seen.add(k); ents.push({file:new File([s.bytes], s.name), path:s.path}); }
       // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
-      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(s=>({name:s.name, path:s.path, bytes:null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, series:s.series, cube:s.cube, iso:s.iso}));
+      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(s=>({name:s.name, path:s.path, bytes:null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, origin:s.origin||undefined, series:s.series, cube:s.cube, iso:s.iso}));
       api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;

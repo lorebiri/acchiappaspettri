@@ -49,7 +49,7 @@ test('opju: ripetizione (0x50 pari), valori grezzi (0x50 dispari) e FPC nello st
   assert.strictEqual(c.error, null); assert.ok(same(c.values,[2.5,2.5,2.5,2.5,-1,3e-7,7,8,9,1e-300]), Array.from(c.values).join());
 });
 test('opju: celle di testo e righe vuote in coda (ff ff k 01, 2k 00) diventano righe senza numero', ()=>{
-  const c=yOf(opjuWith(6,[...vi(5),0x50,...V8(1),...V8(2),...V8(3), ...vi(1),0x00,0, 0xff,0xff,...vi(2),0x01,...vi(4),0x00], 4));
+  const c=yOf(opjuWith(6,[...vi(5),0x50,...V8(1),...V8(2),...V8(3), ...vi(1),0x00,0, 0xff,0xff,...vi(2),0x01,...vi(4),0x00], 3));   // il blocco conta i valori, non le celle di testo
   assert.strictEqual(c.error, null); assert.ok(same(c.values,[1,2,3]), Array.from(c.values).join()); assert.strictEqual(c.text,1);   // la riga di testo è l'ultima: non è una riga di dati
 });
 test('opju: codifica sconosciuta, righe in più o in meno: colonna rifiutata, non indovinata', ()=>{
@@ -98,4 +98,25 @@ test('scrittura .opj (Latin-1): apici, pedici e greche passano nella sintassi di
   const sp=[{xs:[1,2,3], ys:[4,5,6], name:'H₂O', x:{longName:'λ', units:'cm⁻¹'}, y:{units:'μmol'}}];
   for (const w of ['writeOpj','writeOpju']){ const s=O.spectra(O.read(O[w](sp)))[0];
     assert.deepStrictEqual([s.label, s.xCol.longName, s.xCol.units, s.yCol.units], ['H₂O','λ','cm⁻¹','μmol'], w); }
+});
+test('formato v2: campo origin di uno spettro, andata e ritorno; valori non validi rifiutati', async ()=>{
+  const F=require('../../app/project-format.js'), JSZip=require('jszip');
+  const bytes=new Uint8Array(fs.readFileSync(path.join(FIX,'sintetico-each.opju')));
+  const sp=(col,o)=>({name:'s'+col+'.opju', path:'p.opju#origin:B|1|'+col, bytes, binary:true, origin:o});
+  const b=await F.encode({title:'t', state:{}, spectra:[sp('B',{book:'FTIRsintet',sheet:1,col:'B'}), sp('D',{book:'FTIRsintet',sheet:2,col:'D'}), {name:'x.txt', path:'x.txt', bytes:new TextEncoder().encode('1 2\n3 4\n')}]}, JSZip);
+  const P=await F.decode(b, JSZip);
+  assert.strictEqual(P.sources.length, 2, 'il file Origin si salva una volta');
+  assert.deepStrictEqual(P.spectra.map(s=>s.origin||null), [{book:'FTIRsintet',sheet:1,col:'B'},{book:'FTIRsintet',sheet:2,col:'D'},null]);
+  for (const bad of [{book:'',sheet:1,col:'B'},{book:'A',sheet:0,col:'B'},{book:'A',sheet:1.5,col:'B'},{book:'A',sheet:1},'x'])
+    await assert.rejects(F.encode({state:{}, spectra:[sp('B',bad)]}, JSZip), e=>e.code==='bad-input');
+});
+test('scrittura .opju: archivio XML della finestra in LZ4 valido e indice delle anteprime puntato dall\'intestazione', ()=>{
+  const u=O.writeOpju(G.specs()), txt=Buffer.from(u).toString('latin1');
+  // decodificatore LZ4 (blocco) minimo, solo per il test
+  function lz4(b){ const o=[]; let p=0; for(;;){ const t=b[p++]; let L=t>>4; if (L===15){ let x; do{ x=b[p++]; L+=x; }while(x===255); } for (let i=0;i<L;i++) o.push(b[p++]); if (p>=b.length) return o;
+    const off=b[p]|(b[p+1]<<8); p+=2; let M=t&15; if (M===15){ let x; do{ x=b[p++]; M+=x; }while(x===255); } M+=4; for (let i=0;i<M;i++) o.push(o[o.length-off]); } }
+  const i=txt.indexOf('\x01\x0bScript\x04\x01'); assert.ok(i>0);
+  let [L,q]=O._.varint(u,i+10); assert.strictEqual(u[q],2); const U=u[q+1]|(u[q+2]<<8);
+  const xml=Buffer.from(lz4(u.subarray(q+5,q+L))); assert.strictEqual(xml.length,U); assert.strictEqual(xml.toString('utf8'),'<OriginStorage><Script></Script></OriginStorage>\0');
+  const k=txt.indexOf('PrvwOPJU')+8, off=u[k]|(u[k+1]<<8)|(u[k+2]<<16); assert.strictEqual(off, u.length-16); assert.ok(u.subarray(off).every(x=>x===0));
 });

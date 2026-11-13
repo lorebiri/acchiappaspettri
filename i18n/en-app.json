@@ -1054,5 +1054,16 @@
 "Impossibile scrivere l'archivio dell'applicazione: le modifiche restano in memoria e verranno riscritte.": "The application archive could not be written: changes are kept in memory and will be written again.",
 "Progetti nel formato 2": "Projects in format 2",
 "I progetti salvati ora sono più compatti e pronti per canali, librerie, serie e mappe. I tuoi vecchi progetti si aprono senza perdere nulla.": "Saved projects are now more compact and ready for channels, libraries, series and maps. Your old projects open with nothing lost.",
-"Progetto Origin ricevuto: scegli gli spettri da importare.": "Origin project received: choose the spectra to import."
+"Progetto Origin ricevuto: scegli gli spettri da importare.": "Origin project received: choose the spectra to import.",
+"Dati come scelto per la cartella Excel per Origin (come nel grafico o originali del file). Il file viene riletto prima di consegnarlo: se i valori non tornano identici non viene scritto.": "Data as chosen for the Excel workbook for Origin (as plotted or original file data). The file is read back before it is delivered: if the values do not come back identical it is not written.",
+"Non ancora verificato in Origin.": "Not yet verified in Origin.",
+"Organizzazione": "Layout",
+"Per un lavoro da consegnare usa la cartella Excel per Origin.": "For work to be delivered use the Excel workbook for Origin.",
+"Progetto Origin .opj": "Origin project .opj",
+"Progetto Origin .opju": "Origin project .opju",
+"lo stesso contenuto nel formato di Origin 2018 e successivi": "the same content in the format of Origin 2018 and later",
+"un foglio con tutte le coppie X/Y": "one sheet with all X/Y pairs",
+"un progetto Origin con nome lungo, unità e commento nelle colonne e i valori esatti": "an Origin project with long name, units and comment in the columns and the exact values",
+"una cartella per spettro": "one workbook per spectrum",
+"📈 Preparo il progetto Origin…": "📈 Preparing the Origin project…"
 }
