@@ -23,6 +23,7 @@
 <script src="app/i18n.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/project.js"></script>
+<script src="app/sorption-core.js"></script>
 <style>
 :root{
   --bg:#f3f6fb; --panel:#ffffff; --ink:#1c2230; --muted:#5f6b7d; --line:#dfe4ec;
@@ -1279,24 +1280,25 @@ const INSTR = {
   dsc:   {xPdf:'°C',   invertX:false, colore:'#ad1457', conv:['orig','flip','norm']},
   nmr:   {xPdf:'ppm',  invertX:true,  colore:'#283593', conv:['orig','norm']},
   epr:   {xPdf:'mT',   invertX:false, colore:'#00695c', conv:['orig','norm']},
+  sorp:  {xPdf:'p/p₀', invertX:false, colore:'#8a5a00', conv:['orig']},
   gen:   {xPdf:'',     invertX:false, colore:'#333333', conv:['orig','norm']}
 };
 /* strumenti i cui spettri si possono confrontare tra loro (assorbimento ed emissione) */
 const COMPAT = {uv:['uv','fluo'], fluo:['fluo','uv']};
 const compatible = (a,b) => a===b || (COMPAT[a]||[]).includes(b);
 const L10N = {
-  it:{ x:{ftir:"Numero d'onda (cm⁻¹)", raman:'Raman shift (cm⁻¹)', uv:"Lunghezza d'onda (nm)", fluo:"Lunghezza d'onda (nm)", hplc:'Tempo di ritenzione (min)', xrf:'Energia (keV)', libs:"Lunghezza d'onda (nm)", tga:'Temperatura (°C)', dsc:'Temperatura (°C)', nmr:'Spostamento chimico δ (ppm)', epr:'Campo magnetico (mT)', gen:'X'},
-       y:{T:'Trasmittanza (%)', A:'Assorbanza', I:'Intensità (conteggi)', mAU:'Segnale (mAU)', N:'Intensità normalizzata', S:'Intensità normalizzata (sfalsata)', U:'Intensità (u.a.)', FL:'Intensità di fluorescenza (u.a.)', W:'Massa (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Flusso di calore', E:'Segnale EPR, derivata (u.a.)', D1:'Derivata prima', D2:'Derivata seconda', '':'Y'},
-       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', fluo:'Fluorescenza', hplc:'HPLC', xrf:'XRF', libs:'LIBS', tga:'TGA', dsc:'DSC', nmr:'NMR', epr:'EPR', gen:'Generico'},
+  it:{ x:{ftir:"Numero d'onda (cm⁻¹)", raman:'Raman shift (cm⁻¹)', uv:"Lunghezza d'onda (nm)", fluo:"Lunghezza d'onda (nm)", hplc:'Tempo di ritenzione (min)', xrf:'Energia (keV)', libs:"Lunghezza d'onda (nm)", tga:'Temperatura (°C)', dsc:'Temperatura (°C)', nmr:'Spostamento chimico δ (ppm)', epr:'Campo magnetico (mT)', sorp:'Pressione relativa p/p₀', gen:'X'},
+       y:{T:'Trasmittanza (%)', A:'Assorbanza', I:'Intensità (conteggi)', mAU:'Segnale (mAU)', N:'Intensità normalizzata', S:'Intensità normalizzata (sfalsata)', U:'Intensità (u.a.)', FL:'Intensità di fluorescenza (u.a.)', W:'Massa (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Flusso di calore', E:'Segnale EPR, derivata (u.a.)', Q:'Quantità adsorbita (cm³ STP/g)', D1:'Derivata prima', D2:'Derivata seconda', '':'Y'},
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', fluo:'Fluorescenza', hplc:'HPLC', xrf:'XRF', libs:'LIBS', tga:'TGA', dsc:'DSC', nmr:'NMR', epr:'EPR', sorp:'Fisisorbimento', gen:'Generico'},
        diff:'Differenza', endo:'endo', exo:'eso', step:'gradino', residue:'residuo',
        chan:'Canale', cnt:'conteggi', net:'conteggi netti', nu:'u.n.', logS:'scala log',
        dec:',', title:'Report spettri', plots:'grafici', gen:'generato il', page:'Pagina', of:'di', peaks:'picchi', compare:'Confronto', spectra:'spettri', more:'altri',
        cols:['#','Campione','Strumento','Intervallo X','Picchi'], fileLbl:'file',
        csv:['File','Nome','Strumento','Unità X','Posizione picco','Valore Y','Etichetta','Tipo','Origine del nome'], csvOrig:['proposta dalla banca dati: ipotesi','scritto a mano','dalla libreria personale'], csvArea:['Area','Unità area','Area %','Inizio integrazione','Fine integrazione'], man:'manuale', auto:'automatico',
        locale:'it-IT', csvNote:'Nota', satNote:'banda satura: posizione e intensità non affidabili', zip:'grafici_png', csvName:'elenco_picchi.csv', dataDir:'dati_elaborati', ovName:'confronto' },
-  en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', fluo:'Wavelength (nm)', hplc:'Retention time (min)', xrf:'Energy (keV)', libs:'Wavelength (nm)', tga:'Temperature (°C)', dsc:'Temperature (°C)', nmr:'Chemical shift δ (ppm)', epr:'Magnetic field (mT)', gen:'X'},
-       y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', U:'Intensity (a.u.)', FL:'Fluorescence intensity (a.u.)', W:'Mass (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Heat flow', E:'EPR signal, derivative (a.u.)', D1:'First derivative', D2:'Second derivative', '':'Y'},
-       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', fluo:'Fluorescence', hplc:'HPLC', xrf:'XRF', libs:'LIBS', tga:'TGA', dsc:'DSC', nmr:'NMR', epr:'EPR', gen:'Generic'},
+  en:{ x:{ftir:'Wavenumber (cm⁻¹)', raman:'Raman shift (cm⁻¹)', uv:'Wavelength (nm)', fluo:'Wavelength (nm)', hplc:'Retention time (min)', xrf:'Energy (keV)', libs:'Wavelength (nm)', tga:'Temperature (°C)', dsc:'Temperature (°C)', nmr:'Chemical shift δ (ppm)', epr:'Magnetic field (mT)', sorp:'Relative pressure p/p₀', gen:'X'},
+       y:{T:'Transmittance (%)', A:'Absorbance', I:'Intensity (counts)', mAU:'Signal (mAU)', N:'Normalized intensity', S:'Normalized intensity (offset)', U:'Intensity (a.u.)', FL:'Fluorescence intensity (a.u.)', W:'Mass (%)', DTG:'DTG, −dm/dT (%/°C)', HF:'Heat flow', E:'EPR signal, derivative (a.u.)', Q:'Amount adsorbed (cm³ STP/g)', D1:'First derivative', D2:'Second derivative', '':'Y'},
+       nome:{ftir:'FTIR / ATR-FTIR', raman:'Raman', uv:'UV-Vis', fluo:'Fluorescence', hplc:'HPLC', xrf:'XRF', libs:'LIBS', tga:'TGA', dsc:'DSC', nmr:'NMR', epr:'EPR', sorp:'Physisorption', gen:'Generic'},
        diff:'Difference', endo:'endo', exo:'exo', step:'step', residue:'residue',
        chan:'Channel', cnt:'counts', net:'net counts', nu:'n.u.', logS:'log scale',
        dec:'.', title:'Spectra report', plots:'plots', gen:'generated on', page:'Page', of:'of', peaks:'peaks', compare:'Comparison', spectra:'spectra', more:'more',
@@ -1720,7 +1722,7 @@ BANDS.dsc = [
   ['d_cryst',60,230,'cristallizzazione (raffreddamento)','crystallisation (cooling)',null,'mat',{exo:true}],
   ['d_curing',100,250,'reticolazione / cura (esotermica)','curing / cross-linking (exothermic)',null,'mat,chem',{exo:true}]
 ];
-const SNAP_TOL = {ftir:3, raman:3, uv:2, fluo:3, hplc:0, xrf:0.06, libs:0.15, tga:6, dsc:3, nmr:1, epr:0.0008, gen:0};
+const SNAP_TOL = {ftir:3, raman:3, uv:2, fluo:3, hplc:0, xrf:0.06, libs:0.15, tga:6, dsc:3, nmr:1, epr:0.0008, sorp:0, gen:0};
 /* tolleranza per riconoscere una riga: nell'XRF cresce con l'energia (risoluzione del rivelatore e piccoli errori di calibrazione) */
 function tolFor(instr, v, ctx){
   if (instr==='xrf') return 0.07+0.006*Math.abs(v);
@@ -2221,7 +2223,7 @@ function colNamesOf(meta, n){ for (let k=meta.length-1;k>=Math.max(0,meta.length
 function guessYCol(meta, nData){ for (let k=meta.length-1;k>=Math.max(0,meta.length-4);k--){ const h=meta[k].replace(/^#\s*/,''), n=headerCells(h); if (n.length<3 || (nData && n.length!==nData) || n.some(t=>isFinite(toNum(t)))) continue;   /* solo la riga dei nomi delle colonne, non le righe informative */ const j=n.findIndex((t,i)=>i>=1 && /^(value|signal|segnale|intensity|intensit|absorb|abs\b|mau|counts|y\b)/i.test(t)); if (j>1) return j; } return 1; }
 // unità dell'asse X dichiarate nell'intestazione e diverse da quelle della tecnica: si convertono (eV → nm, µm → cm⁻¹, Raman in nm assoluti → cm⁻¹)
 // invece di lasciare numeri giusti con l'unità sbagliata
-function xUnitFix(p){ if (!p || !p.xs || p.xs.length<5 || p.reject || p.xrf || p.nmr || p.epr || p.thermal || p.pe) return p;
+function xUnitFix(p){ if (!p || !p.xs || p.xs.length<5 || p.reject || p.xrf || p.nmr || p.epr || p.thermal || p.pe || p.iso) return p;
   const head=(p.meta||[]).join('\n'), cols=(p.meta||[]).slice(-4).reverse().find(l=>/[a-zµ]/i.test(l) && /[(\[]/.test(l))||'', xh=(cols.replace(/^#\s*/,'').split(/[\t;,]|\s{2,}/)[0]||'').toLowerCase(), xu=String(headerInfo(p.meta||[]).xu||'').toLowerCase();
   const unit = /[(\[]\s*ev\s*[)\]]/.test(xh)||/^\s*ev\s*$/.test(xu) ? 'eV' : /[(\[]\s*(µm|μm|um|micron[si]?)\s*[)\]]/.test(xh)||/^\s*(µm|μm|um|microns?|micrometers?)\s*$/.test(xu) ? 'um' : /[(\[]\s*nm\s*[)\]]/.test(xh)||/^\s*(nm|nanometers?)\s*$/.test(xu) ? 'nm' : '';
   // colonne invertite dichiarate nell'intestazione («Absorbance, Wavenumber», «mAU, Time»): si scambiano, e lo si dice
@@ -2265,6 +2267,7 @@ function parseText0(text, opt){
   const jc = parseJcamp(text); if (jc) return jc;
   if (/##\s*(NTUPLES|DATA\s*CLASS\s*=\s*NTUPLES)/i.test(text.slice(0,4000))) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], reject:'JCAMP NTUPLES non è supportato: esporta lo spettro come testo o come JCAMP semplice'};
   const ts = parseTopSpin(text); if (ts) return ts;
+  const so = sorpParse(text); if (so) return so;   // isoterme (Kaomi, ASiQwin, AIF) prima delle colonne con nome e delle euristiche numeriche
   const nc = parseNamedColumns(text);
   if (nc){ const th=parseThermal(nc); if (th) return th; const ep=parseEPRCols(nc); if (ep) return ep; }
   const xr = parseXRF(text); if (xr) return xr;
@@ -2340,6 +2343,16 @@ function parseText0(text, opt){
     if (only && c.com && !c.dot && o.pd && !o.pc && !o.com) thou+=c.com; else if (only && c.dot && !c.com && o.pc && !o.pd && !o.dot) thou+=c.dot; }
   return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
 }
+/* fisisorbimento: lettori e calcoli in app/sorption-core.js (SorpCore), qui solo l'aggancio. Sull'asse: il ramo di adsorbimento; i due rami in p.iso */
+function sorpParse(text){
+  if (typeof SorpCore==='undefined') return null;
+  let so=null; try{ so=SorpCore.parseSorption(text); }catch(e){ return null; }
+  if (!so) return null;
+  if (so.guided) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], sorpGuided:so, reject:'Isoterma non riconosciuta con certezza ('+so.why.replace(/^Sembra un'isoterma di adsorbimento \([^)]*\), ma /,'')+'): scegli le colonne nell\'importazione guidata'};
+  const A=so.iso.branches.ads, ix=A.x.map((_,i)=>i).filter(i=>Number.isFinite(A.x[i])&&Number.isFinite(A.n[i])).sort((a,b)=>A.x[a]-A.x[b]);
+  const m=so.iso.meta, meta=[(m.software||so.fmt)+(m.instrument?' · '+m.instrument:'')+(m.station?' · stazione '+m.station:''), m.gas?'Adsorbato: '+m.gas+(m.T?` a ${m.T} K`:''):'', m.sampleId?'Campione: '+m.sampleId:''].filter(Boolean);
+  return {xs:Float64Array.from(ix,i=>A.x[i]), ys:Float64Array.from(ix,i=>A.n[i]), meta, pe:false, peX:'', peY:'', iso:so.iso, isoReason:so.reason, importNotes:so.iso.problems.filter(q=>q.lv==='warn').map(q=>q.t)};
+}
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
 function headerInfo(meta){
@@ -2361,6 +2374,7 @@ function stats(xs,ys){
 }
 function detectInstrument(p, name){
   if (p.unitInstr) return {instr:p.unitInstr, reason:p.unitReason};
+  if (p.iso) return {instr:'sorp', reason:p.isoReason||'isoterma di adsorbimento'};
   const head = (p.meta.join(' ')+' '+name).toLowerCase();
   const s = stats(p.xs,p.ys);
   if (p.pe==='UV') return {instr:'uv', reason:'formato PerkinElmer (PE UV)'};
@@ -2437,6 +2451,7 @@ function yKindFor(instr, p){
   if (instr==='dsc') return 'HF';
   if (instr==='nmr') return 'U';
   if (instr==='epr') return 'E';
+  if (instr==='sorp') return 'Q';
   return '';
 }
 function transformY(ys, kind, conv){
@@ -4454,7 +4469,7 @@ LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
-const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|aif|\d{1,3})$/i;
 // nomi di file uguali (cartelle .D di ChemStation: STD1.D/DAD1A.CSV, STD2.D/DAD1A.CSV): si aggiunge la cartella, o un numero se anche questa coincide
 const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
   // la cartella più vicina che basta a distinguerlo (SEQ1/STD1.D e SEQ2/STD1.D, ciclo 26); il numero solo se i percorsi coincidono
@@ -4979,7 +4994,7 @@ async function addEntries(entries){
       try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
       try{
         const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
-        if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
+        if (p.reject){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); continue; }
         if (p.xs.length<5) { errors.push(path); continue; }
         const det = detectInstrument(p, file.name);
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
@@ -4987,6 +5002,7 @@ async function addEntries(entries){
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
         f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
+        if (p.iso) f.iso=p.iso;   // isoterma completa (rami, p, p₀, meta): formato della SPEC, ricostruito dai byte originali alla riapertura
         let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
