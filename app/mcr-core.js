@@ -60,13 +60,13 @@
         const hh=f/(h+h); for (let j=0;j<i;j++) e[j]-=hh*d[j];
         for (let j=0;j<i;j++){ f=d[j]; g=e[j]; for (let k=j;k<=i-1;k++) V[k][j]-=(f*e[k]+g*d[k]); d[j]=V[i-1][j]; V[i][j]=0; }
       }
-      d[i]=h; if ((i&7)===0) yield {phase:'eig', frac:0.4*(n-i)/n};
+      d[i]=h; if ((i&1)===0) yield {phase:'eig', frac:0.4*(n-i)/n};
     }
     for (let i=0;i<n-1;i++){
       V[n-1][i]=V[i][i]; V[i][i]=1; const h=d[i+1];
       if (h!==0){ for (let k=0;k<=i;k++) d[k]=V[k][i+1]/h;
         for (let j=0;j<=i;j++){ let g=0; for (let k=0;k<=i;k++) g+=V[k][i+1]*V[k][j]; for (let k=0;k<=i;k++) V[k][j]-=g*d[k]; } }
-      for (let k=0;k<=i;k++) V[k][i+1]=0; if ((i&7)===0) yield {phase:'eig', frac:0.4+0.2*i/n};
+      for (let k=0;k<=i;k++) V[k][i+1]=0; if ((i&1)===0) yield {phase:'eig', frac:0.4+0.2*i/n};
     }
     for (let j=0;j<n;j++){ d[j]=V[n-1][j]; V[n-1][j]=0; } V[n-1][n-1]=1; e[0]=0;
     for (let i=1;i<n;i++) e[i-1]=e[i]; e[n-1]=0;
@@ -84,7 +84,7 @@
           p=-s*s2*c3*el1*e[l]/dl1; e[l]=s*p; d[l]=c*p;
         } while (Math.abs(e[l])>eps*tst1 && iter<80);
       }
-      d[l]+=f; e[l]=0; if ((l&3)===0) yield {phase:'eig', frac:0.6+0.4*l/n};
+      d[l]+=f; e[l]=0; yield {phase:'eig', frac:0.6+0.4*l/n};
     }
     const ord=Array.from({length:n},(_,i)=>i).sort((a,b)=>d[b]-d[a]);
     const vals=Float64Array.from(ord, i=>d[i]), vecs=mat(n,n); for (let i=0;i<n;i++) for (let j=0;j<n;j++) vecs.a[i*n+j]=V[i][ord[j]];
@@ -96,8 +96,8 @@
      Precisione: i valori singolari sotto √ε·s₁ (≈1e-8 relativo) sono il rumore numerico; per scegliere le componenti basta. */
   function* svdGen(D, q){
     const {m, n, a}=D, small=Math.min(m,n), rowsSide=m<=n, G=new Float64Array(small*small);
-    if (rowsSide){ for (let i=0;i<m;i++){ const ri=a.subarray(i*n,(i+1)*n); for (let j=0;j<=i;j++){ const rj=a.subarray(j*n,(j+1)*n); let s=0; for (let k=0;k<n;k++) s+=ri[k]*rj[k]; G[i*m+j]=s; G[j*m+i]=s; } if ((i&15)===15) yield {phase:'gram', frac:i/m}; } }
-    else { for (let k=0;k<m;k++){ const rk=a.subarray(k*n,(k+1)*n); for (let i=0;i<n;i++){ const v=rk[i]; if (v) for (let j=0;j<=i;j++) G[i*n+j]+=v*rk[j]; } if ((k&15)===15) yield {phase:'gram', frac:k/m}; }
+    if (rowsSide){ for (let i=0;i<m;i++){ const ri=a.subarray(i*n,(i+1)*n); for (let j=0;j<=i;j++){ const rj=a.subarray(j*n,(j+1)*n); let s=0; for (let k=0;k<n;k++) s+=ri[k]*rj[k]; G[i*m+j]=s; G[j*m+i]=s; } if ((i&3)===3) yield {phase:'gram', frac:i/m}; } }
+    else { for (let k=0;k<m;k++){ const rk=a.subarray(k*n,(k+1)*n); for (let i=0;i<n;i++){ const v=rk[i]; if (v) for (let j=0;j<=i;j++) G[i*n+j]+=v*rk[j]; } if ((k&3)===3) yield {phase:'gram', frac:k/m}; }
       for (let i=0;i<n;i++) for (let j=0;j<i;j++) G[j*n+i]=G[i*n+j]; }
     const E=yield* eigSymGen(G, small);
     q=Math.max(1, Math.min(q||small, small));
@@ -248,18 +248,18 @@
   function* stepC(D, S, o){ const {m,n}=D, k=S.m, G=gram(S,true), C=mat(m,k), h=new Float64Array(k), x=new Float64Array(k);
     for (let i=0;i<m;i++){ const ri=i*n; for (let c=0;c<k;c++){ let s=0; const sc=c*n; for (let j=0;j<n;j++) s+=D.a[ri+j]*S.a[sc+j]; h[c]=s; }
       if (o.pymcr) solveRowClip(G,h,k,o.nonnegC,x); else solveRow(G,h,k,o.nonnegC,o.closure,x);
-      C.a.set(x, i*k); if ((i&31)===31) yield null; }
+      C.a.set(x, i*k); if ((i&7)===7) yield null; }
     return C; }
   function* stepS(D, C, o, known){ const {m,n}=D, k=C.n, G=gram(C,false), S=mat(k,n), h=new Float64Array(k);
     const free=[], fix=[]; for (let c=0;c<k;c++) (known && known[c] ? fix : free).push(c);
     const kf=free.length, Gf=new Float64Array(kf*kf); for (let i=0;i<kf;i++) for (let j=0;j<kf;j++) Gf[i*kf+j]=G[free[i]*k+free[j]];
     const hf=new Float64Array(kf), xf=new Float64Array(kf), CtD=new Float64Array(k*n);
-    for (let i=0;i<m;i++){ const ri=i*n; for (let c=0;c<k;c++){ const v=C.a[i*k+c]; if (v){ const sc=c*n; for (let j=0;j<n;j++) CtD[sc+j]+=v*D.a[ri+j]; } } if ((i&31)===31) yield null; }
+    for (let i=0;i<m;i++){ const ri=i*n; for (let c=0;c<k;c++){ const v=C.a[i*k+c]; if (v){ const sc=c*n; for (let j=0;j<n;j++) CtD[sc+j]+=v*D.a[ri+j]; } } if ((i&7)===7) yield null; }
     for (let j=0;j<n;j++){ for (let c=0;c<k;c++) h[c]=CtD[c*n+j];
       for (const c of fix) S.a[c*n+j]=known[c][j];
       // spettri noti (uguaglianza): si tolgono dal sistema, restano esatti
       for (let i=0;i<kf;i++){ let v=h[free[i]]; for (const c of fix) v-=G[free[i]*k+c]*known[c][j]; hf[i]=v; }
-      if (kf){ if (o.pymcr) solveRowClip(Gf,hf,kf,o.nonnegS,xf); else solveRow(Gf,hf,kf,o.nonnegS,null,xf); for (let i=0;i<kf;i++) S.a[free[i]*n+j]=xf[i]; } if ((j&511)===511) yield null; }
+      if (kf){ if (o.pymcr) solveRowClip(Gf,hf,kf,o.nonnegS,xf); else solveRow(Gf,hf,kf,o.nonnegS,null,xf); for (let i=0;i<kf;i++) S.a[free[i]*n+j]=xf[i]; } if ((j&127)===127) yield null; }
     return S; }
 
   function residual(D, C, S){ const {m,n}=D, k=C.n, E=mat(m,n); for (let i=0;i<m;i++) for (let j=0;j<n;j++){ let s=D.a[i*n+j]; for (let c=0;c<k;c++) s-=C.a[i*k+c]*S.a[c*n+j]; E.a[i*n+j]=s; } return E; }
@@ -375,7 +375,7 @@
       else { const xc=fr<V[n]?at(-0.5):at(0.5), fc=F(xc); ev++;
         if (fc<Math.min(fr,V[n])){ P[n]=xc; V[n]=fc; }
         else { for (let i=1;i<=n;i++){ P[i]=Float64Array.from(P[i],(v,j)=>P[0][j]+0.5*(v-P[0][j])); V[i]=F(P[i]); ev++; } } }
-      if ((ev&63)<4) yield null; }
+      if ((ev&15)<4) yield null; }
     let b=0; for (let i=1;i<=n;i++) if (V[i]<V[b]) b=i; return P[b]; }
   const bands=(r,o)=>drain(bandsGen(r,o));
 
