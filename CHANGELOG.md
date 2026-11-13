@@ -1,5 +1,9 @@
 # Novità delle versioni
 
+## 3.0.0-rc.3
+
+Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.2 aggiunge la nuova finestra Esporta per voci e il formato di progetto 2 con l'archivio su file nel desktop (sotto, nella sezione 3.0.0).
+
 ## 3.0.0-rc.2
 
 Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.1, che non è stata pubblicata perché un controllo dei pacchetti Linux nella CI non riscriveva la versione Debian delle prove (X~rc.N). È una pre-release: non viene proposta agli utenti come aggiornamento.
