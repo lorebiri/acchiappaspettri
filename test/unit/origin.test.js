@@ -94,3 +94,8 @@ test('testo delle colonne: Long Name, Units, Comments e marcatori di Origin', ()
   assert.deepStrictEqual(O._.splitComment('Abs\r\nu.a.\r\nriga 1\r\nriga 2@${x}'), {longName:'Abs', units:'u.a.', comments:'riga 1\nriga 2'});
   assert.strictEqual(O._.richText('\\g(m)m H\\-(2)O'), 'μm H₂O');
 });
+test('scrittura .opj (Latin-1): apici, pedici e greche passano nella sintassi di Origin e tornano uguali', ()=>{
+  const sp=[{xs:[1,2,3], ys:[4,5,6], name:'H₂O', x:{longName:'λ', units:'cm⁻¹'}, y:{units:'μmol'}}];
+  for (const w of ['writeOpj','writeOpju']){ const s=O.spectra(O.read(O[w](sp)))[0];
+    assert.deepStrictEqual([s.label, s.xCol.longName, s.xCol.units, s.yCol.units], ['H₂O','λ','cm⁻¹','μmol'], w); }
+});

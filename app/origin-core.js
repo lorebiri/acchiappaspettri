@@ -115,7 +115,13 @@
     const parts=s.split(/\r\n|\n/);
     return {longName:richText(parts[0]||'').trim(), units:richText(parts[1]||'').trim(), comments:richText(parts.slice(2).join('\n')).trim()};
   }
-  function joinComment(c){ const L=[c.longName||'', c.units||'', c.comments||'']; while (L.length>1 && !L[L.length-1]) L.pop(); return L.join('\r\n'); }
+  /* inverso di richText per la scrittura: apici, pedici e greche nella sintassi di Origin (serve anche ai .opj, solo Latin-1) */
+  function originText(s){
+    const inv=T=>Object.fromEntries(Object.entries(T).map(([k,v])=>[v,k])), iS=inv(SUP), iB=inv(SUB), Gr='αβχδεφγηιφκλμνοπθρστυϖωξψζ';
+    return String(s).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+/g,m=>'\\+('+[...m].map(c=>iS[c]).join('')+')').replace(/[₀₁₂₃₄₅₆₇₈₉₋₊]+/g,m=>'\\-('+[...m].map(c=>iB[c]).join('')+')')
+      .replace(/[α-ω]/g,c=>{ const i=Gr.indexOf(c); return i>=0?'\\g('+'abcdefghijklmnopqrstuvwxyz'[i]+')':c; });
+  }
+  function joinComment(c){ const L=[c.longName||'', c.units||'', c.comments||''].map(originText); while (L.length>1 && !L[L.length-1]) L.pop(); return L.join('\r\n'); }
 
   /* nome del dataset → libro, colonna, foglio: «Book1_B@3» */
   function splitDataset(name){
