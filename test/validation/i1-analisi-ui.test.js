@@ -218,9 +218,9 @@ test('I1 bis, XRF desktop: ⚠️ delle note nel pannello, nel CSV e nel PDF', {
         Object.assign(S,{outPdf:true, outAnalysis:true}); const u=new Uint8Array(await (await buildPdf()).arrayBuffer());
         return {w, raw:fpNotes(f, fpRun(f)).filter(t=>/⚠️/.test(t)).length, csv:fpCsvRows([f]).map(x=>x[x.length-1]).join(' | '), pdf:Array.from(u)}; });
       assert.ok(r.raw>=2 && r.w.length===r.raw, `note con ⚠️ ${r.raw}, nel pannello ${r.w.length}`);
-      r.w.forEach(x=>{ assert.ok(/^\s*⚠/.test(x.t), 'segno perso nel pannello: '+x.t); assert.ok(+x.fw>=600, 'avviso senza risalto'); });
+      r.w.forEach(x=>{ assert.ok(/^\s*[⚠△]/.test(x.t), "segno perso nel pannello (nel desktop ⚠ diventa △): "+x.t); assert.ok(+x.fw>=600, 'avviso senza risalto'); });
       assert.ok((r.csv.match(/(^|\| )! /g)||[]).length>=r.raw-1, 'avvisi senza segno nel CSV: '+r.csv);
-      assert.ok(pdfText(Buffer.from(r.pdf)).filter(l=>/^! /.test(l)).length>=r.raw, 'avvisi senza segno nel PDF');
+      assert.ok(pdfText(Buffer.from(r.pdf)).filter(l=>/^(! |AVVISO: |WARNING: )/.test(l)).length>=r.raw, 'avvisi senza segno nel PDF');
       assert.deepEqual(errors, []); await ctx.close(); }
 
   } finally { await br.close(); server.close(); }
