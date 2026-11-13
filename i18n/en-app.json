@@ -1050,5 +1050,8 @@
 "Senza file originale, vengono saltati {0} spettri: {1}.": "No original file, {0} spectra skipped: {1}.",
 "Senza file originale, vengono saltati {0} spettri:": "No original file, {0} spectra skipped:",
   "Esporta solo quello che vuoi": "Export only what you want",
-  "Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.": "Choose the files to export (PDF, images, peaks, data, tables, project, even an identical copy of the original file), their names and where to save them. ZIP only if you ask for it."
+  "Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.": "Choose the files to export (PDF, images, peaks, data, tables, project, even an identical copy of the original file), their names and where to save them. ZIP only if you ask for it.",
+"Impossibile scrivere l'archivio dell'applicazione: le modifiche restano in memoria e verranno riscritte.": "The application archive could not be written: changes are kept in memory and will be written again.",
+  "Progetti nel formato 2": "Projects in format 2",
+  "I progetti salvati ora sono più compatti e pronti per canali, librerie, serie e mappe. I tuoi vecchi progetti si aprono senza perdere nulla.": "Saved projects are now more compact and ready for channels, libraries, series and maps. Your old projects open with nothing lost."
 }

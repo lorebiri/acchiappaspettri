@@ -7,7 +7,7 @@
   'use strict';
   if (!win.ACCH_SHELL) return;
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], el=(t,a,...k)=>{ const e=document.createElement(t); for (const n in (a||{})){ if (n==='on') continue; if (n==='html') e.innerHTML=a[n]; else e.setAttribute(n,a[n]); } if (a&&a.on) e.addEventListener('click',a.on); k.forEach(x=>x!=null&&e.append(x)); return e; };
-  const lsG=(k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?d:v; }catch(e){ return d; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  const lsG=(k,d)=>{ try{ const v=JSON.parse(AcchHost.store.getItem(k)); return v==null?d:v; }catch(e){ return d; } }, lsS=(k,v)=>{ try{ AcchHost.store.setItem(k,JSON.stringify(v)); }catch(e){} };
   const tr=s=>win.AcchI18n&&win.AcchI18n.lang==='en'?win.AcchI18n.tr(s):s;
 
   /* icone a tratto: griglia 16, colore del testo */
@@ -100,7 +100,7 @@
   function bindSplit(s,k,axis,sign){ const p=PANES[k]; s.addEventListener('pointerdown',e=>{ e.preventDefault(); s.setPointerCapture(e.pointerId); const c0=axis==='x'?e.clientX:e.clientY, v0=sizeOf(k); let v=v0;
       const mv=ev=>{ v=fitPane(k,Math.max(p.min,Math.min(p.max,v0+sign*((axis==='x'?ev.clientX:ev.clientY)-c0)))); root.style.setProperty(p.v,v+'px'); };
       const up=()=>{ s.removeEventListener('pointermove',mv); s.removeEventListener('pointerup',up); lsS('acch.sh.'+k,Math.round(v)); resize(); }; s.addEventListener('pointermove',mv); s.addEventListener('pointerup',up); });
-    s.addEventListener('dblclick',()=>{ try{ localStorage.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
+    s.addEventListener('dblclick',()=>{ try{ AcchHost.store.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
   win.addEventListener('resize',applySizes);
   win.document.querySelectorAll('.shrt').forEach(b=>{ const box=win.document.querySelector(`.shres[data-res="${b.dataset.res}"]`); if (box){ box.id=box.id||'shres-'+b.dataset.res; box.setAttribute('role','tabpanel'); b.setAttribute('aria-controls',box.id); } });
   { const fix=[['«Dati dello spettro»','«Dati»'],['«Ritocca lo spettro»','«Ritocca»']], walk=n=>{ for (const c of n.childNodes){ if (c.nodeType===3){ let v=c.nodeValue; for (const [a,b] of fix) v=v.split(a).join(b); if (v!==c.nodeValue) c.nodeValue=v; } else if (c.nodeType===1 && !/SCRIPT|STYLE/.test(c.tagName)) walk(c); } }; walk(win.document.body); new MutationObserver(ms=>{ for (const m of ms) for (const n of m.addedNodes) if (n.nodeType===1) walk(n); else if (n.nodeType===3) walk(n.parentNode||win.document.body); }).observe(win.document.body,{childList:true,subtree:true}); }

@@ -5,7 +5,7 @@
 // Esportazione in cartella: M.disk è il disco finto ({percorso: byte}); pick_export_dir concede la cartella di M.pick.pick_export_dir.
 'use strict';
 function tauriMock(){
-  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], writeDelay:0, shown:0, disk:{}, dirs:new Set(), failRel:null, reveals:[],
+  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], store:{}, storeWrites:[], writeDelay:0, shown:0, disk:{}, dirs:new Set(), failRel:null, reveals:[],
     emit(name, payload){ (M.listeners[name]||[]).forEach(cb=>cb({event:name, payload})); },
     dragEvent(payload){ M.drag.forEach(cb=>cb({event:'tauri://drag', payload})); } };
   const enc=s=>new TextEncoder().encode(s);
@@ -28,6 +28,7 @@ function tauriMock(){
         if (M.writeDelay) await new Promise(res=>setTimeout(res,M.writeDelay)); if (M.failRel && M.failRel.test(r)) throw 'write-failed: PermissionDenied';
         M.disk[join(d,r)]=args.slice(); M.writes.push({path:join(d,r), size:args.length, t:performance.now()}); return null; }
       case 'reveal_in_dir': granted(args.dir); M.reveals.push(args.rel ? join(args.dir,args.rel) : args.dir); return null;
+      case 'store_write': { M.storeWrites.push(args.items); for (const [k,v] of Object.entries(args.items)){ if (v==null) delete M.store[k]; else M.store[k]=v; } return null; }   // archivio su file (lib.rs, store.rs)
       default: throw 'mock: comando sconosciuto '+cmd;
     }
   }
