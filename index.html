@@ -6231,7 +6231,9 @@ function pdfUserTexts(){ const inc=included(), out=[S.docTitle, S.docAuthor, S.d
 async function pdfUseUnicodeFont(doc){
   if (pdfUserTexts().every(pdfFits)) return false;
   try{ const r=await fetch(PDF_FONT_URL); if (!r.ok) return false; const u=new Uint8Array(await r.arrayBuffer()); let b=''; for (let i=0;i<u.length;i+=0x8000) b+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000));
-    doc.addFileToVFS('DejaVuSans.ttf', btoa(b)); for (const st of ['normal','bold','italic','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st);
+    doc.addFileToVFS('DejaVuSans.ttf', btoa(b)); for (const st of ['normal','italic']) doc.addFont('DejaVuSans.ttf','DejaVu',st);
+    // grassetto vero per titoli e intestazioni; se manca, il regolare
+    try{ const rb=await fetch(PDF_FONT_URL.replace('.ttf','-Bold.ttf')); if (rb.ok){ const ub=new Uint8Array(await rb.arrayBuffer()); let bb=''; for (let i=0;i<ub.length;i+=0x8000) bb+=String.fromCharCode.apply(null, ub.subarray(i,i+0x8000)); doc.addFileToVFS('DejaVuSans-Bold.ttf', btoa(bb)); for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans-Bold.ttf','DejaVu',st); } else for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st); }catch(e){ for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st); }
     const sf=doc.setFont.bind(doc); doc.setFont=(fam, st)=>sf(fam==='helvetica'?'DejaVu':fam, st); doc.setFont('helvetica','normal'); return true; }catch(e){ console.warn(e); return false; } }
 function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); if (PDF_UNI) return String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\uFE0F]/gu, c=>PDF_MAP[c]||'');
   return String(s).replace(/⁻¹/g,'-\u00B9').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→∞√]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')

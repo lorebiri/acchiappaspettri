@@ -9065,3 +9065,8 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
+
+
+## DejaVu Sans 2.37 (vendor/fonts/DejaVuSans.ttf, DejaVuSans-Bold.ttf)
+
+Font incorporato nei PDF solo quando i testi contengono caratteri fuori dalla codifica WinAnsi (per esempio č, ł, greco). Fonte: https://github.com/dejavu-fonts/dejavu-fonts, versione 2.37 (archivio dejavu-fonts-ttf-2.37.tar.bz2, SHA-256 fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7). Font © Bitstream, Inc. (licenza Bitstream Vera); glifi Arev © Tavmjong Bah; le modifiche DejaVu sono di pubblico dominio. Testo completo della licenza: vendor/fonts/LICENSE-DejaVu.txt.

@@ -47,6 +47,8 @@ La prossima versione pubblica è la **3.0.0** e contiene **tutto** ciò che è s
 - **HPLC multicanale** (sotto): tappa I3.
 - **Librerie dei picchi per strumento e tipo di campione, con le pendenze HPLC** (sotto): tappa I4. Software per tutti: nessuna libreria di un settore installata di serie.
 - **Fisisorbimento e chemisorbimento (Anton Paar Autosorb 6300, Kaomi)**: isoterme, BET (Rouquerol, ISO 9277), Langmuir, t-plot/αs, volume dei pori, BJH/DH, DR/DA, calore isosterico, DFT con kernel importato o dell'utente; TPR/TPO/TPD, impulsi, chemisorbimento statico, dispersione e area metallica, Kissinger e Redhead. Specifica dell'esperto, 12 novembre 2026; i lettori dipendono dai file reali di Kaomi.
+- **Oltre i programmi a pagamento** (sotto): mappe e dati iperspettrali, MCR-ALS, fit globale delle cinetiche, ricetta esportata come script Python, estensioni per nuovi formati, importazione dei progetti Origin (.opj). Decisione del committente del 13 novembre 2026.
+- **PDF con font Unicode** (DejaVu Sans) e caratteri cinesi e giapponesi.
 - **Collaudo completo e aggiornamento firmato provato dalla 2.2.0 alla 3.0.0**: tappa I8.
 
 Le sezioni seguenti, scritte prima di questa decisione, restano come dettaglio dei contenuti: sono tutte nella 3.0.0.
@@ -77,7 +79,7 @@ Le sezioni seguenti, scritte prima di questa decisione, restano come dettaglio d
 - 2.3: nuovo aspetto per gradi, una zona alla volta (barra degli strumenti, pannelli, finestre, benvenuto, grafico), con i 39 test dell'interfaccia e R5/R6 verdi e il ritorno all'aspetto precedente; grafico fluido con 1 milione di punti (WebGL o OffscreenCanvas con ritorno al canvas 2D); mirino, cursori, viste collegate, spettri a cascata; animazione didattica. Voce separata a priorità più bassa: figure per la pubblicazione (vettoriali, stili delle riviste, palette per chi distingue male i colori).
 - 3.0: mappe, contorni, 3D, serie nel tempo animate.
 
-### Dopo la 3.0.0: oltre i programmi a pagamento
+### Nella 3.0.0 (decisione del committente, 13 novembre 2026: «voglio tutto nella 3.0.0»): oltre i programmi a pagamento
 - Mappe e dati iperspettrali; MCR-ALS; fit globale delle cinetiche; ricetta esportata come script Python; estensioni per nuovi formati; importazione dei progetti Origin (.opj).
 
 ### Le capacità per cui sceglierlo (visione del committente)

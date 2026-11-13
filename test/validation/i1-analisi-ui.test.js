@@ -237,10 +237,12 @@ test('PDF con font Unicode: caricato solo se serve, mai all\'avvio; č, ł, grec
     assert.deepEqual(asked, [], 'font caricato per un PDF con soli caratteri WinAnsi');
     const have=fs.existsSync(path.join(B.ROOT,'vendor','fonts','DejaVuSans.ttf'));
     const r=await p.evaluate(async ()=>{ files[0].title='Vzorek č ł αβ x² y³ cm⁻¹'; Object.assign(S,{outPdf:true, outAnalysis:false, summary:true}); const u=new Uint8Array(await (await buildPdf()).arrayBuffer()); let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return s; });
-    assert.equal(asked.length, 1, 'il font va chiesto una volta, per il PDF che ne ha bisogno');
+    assert.equal(asked.filter(u=>/DejaVuSans\.ttf/.test(u)).length, 1, 'il font va chiesto una volta, per il PDF che ne ha bisogno'); assert.ok(asked.every(u=>/DejaVuSans(-Bold)?\.ttf/.test(u)), 'solo regolare e grassetto');
     if (!have){ t.skip('vendor/fonts/DejaVuSans.ttf assente: va aggiunto al repository (serve l\'approvazione per scaricarlo)'); return; }
     assert.match(r, /\/FontFile2/, 'font non incorporato');
-    for (const cp of ['010D','0142','03B1','00B2','00B3','207B']) assert.ok(new RegExp('<'+cp+'>','i').test(r), 'manca U+'+cp+' nella mappa ToUnicode');
+    // la mappa ToUnicode del font sta in un flusso compresso (FlateDecode): si cercano i caratteri nei flussi decompressi
+    const zl=require('zlib'), bin=Buffer.from(r,'latin1'); let all=r; { let i=0; for (;;){ const m=bin.indexOf('stream', i); if (m<0) break; let st=m+6; if (bin[st]===13) st++; if (bin[st]===10) st++; const e=bin.indexOf('endstream', st); if (e<0) break; try{ all+=zl.inflateSync(bin.subarray(st, e)).toString('latin1'); }catch(err){ try{ all+=zl.inflateSync(bin.subarray(st, e-1)).toString('latin1'); }catch(err2){} } i=e+9; } }
+    for (const cp of ['010D','0142','03B1','00B2','00B3','207B']) assert.ok(new RegExp('<'+cp+'>','i').test(all), 'manca U+'+cp+' nella mappa ToUnicode');
     assert.deepEqual(errors, []); await ctx.close();
   } finally { await br.close(); server.close(); }
 });
