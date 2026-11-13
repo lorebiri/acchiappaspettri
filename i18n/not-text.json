@@ -206,6 +206,22 @@
 "DejaVuSans-Bold.ttf",
 "WenQuanYiMicroHei",
 "WenQuanYiMicroHei.ttf",
+"Amount adsorbed (cm³ STP/g)",
+"Physisorption",
+"Relative pressure p/p₀",
+"BET specific surface area according to ISO 9277:2022, with the range chosen by the Rouquerol et al. (2007) criteria; total pore volume according to Gurvich; mesopore distribution by the BJH method (Barrett et al., 1951) and Dollimore–Heal (1964); isotherm classification according to Thommes et al. (2015).",
+"ISO 9277:2022 Determination of the specific surface area of solids by gas adsorption — BET method; Rouquerol J., Llewellyn P., Rouquerol F. (2007) Is the BET equation applicable to microporous adsorbents? Stud. Surf. Sci. Catal. 160, 49–56; Barrett E.P., Joyner L.G., Halenda P.P. (1951) J. Am. Chem. Soc. 73, 373–380; Dollimore D., Heal G.R. (1964) J. Appl. Chem. 14, 109–114; Thommes M. et al. (2015) Pure Appl. Chem. 87, 1051–1069.",
 "write-failed: AlreadyExists",
-"check cfall"
+"check cfall",
+"Chemisorption",
+"Measured temperature (°C)",
+"Pulse",
+"Pressure (kPa)",
+"TCD signal",
+"Pulse area",
+"ASTM D3908-20 Standard Test Method for Hydrogen Chemisorption on Supported Platinum Catalysts by Volumetric Vacuum Method; Bergeret G., Gallezot P. (2008) Particle size and dispersion measurements, in Handbook of Heterogeneous Catalysis, Wiley-VCH; Kissinger H.E. (1957) Anal. Chem. 29, 1702–1706; Redhead P.A. (1962) Vacuum 12, 203–211; Monti D.A.M., Baiker A. (1983) J. Catal. 83, 323–335.",
+"Chemisorption: pulse uptake from Σ(A_sat − Aᵢ)/A_sat·V_loop, static chemisorption by extrapolation to p = 0 of the combined and repeat isotherms (ASTM D3908), metal dispersion, area and diameter following Bergeret and Gallezot (2008); TPR/TPO/TPD on the measured temperature with a linear baseline, activation energy by Kissinger (1957) and Redhead (1962) with a stated ν; TPR conditions checked with the Monti and Baiker (1983) parameter.",
+"Kaomi",
+"PA",
+"TCD"
 ]

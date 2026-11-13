@@ -46,7 +46,6 @@ La prossima versione pubblica è la **3.0.0** e contiene **tutto** ciò che è s
 - **Desktop vero**: calcoli in un worker, Rust per la lettura dei file, i picchi, le aree e lo ZIP (solo se identico al JS), grafico veloce, più finestre. Tappe I5, I6, I7.
 - **HPLC multicanale** (sotto): tappa I3.
 - **Librerie dei picchi per strumento e tipo di campione, con le pendenze HPLC** (sotto): tappa I4. Software per tutti: nessuna libreria di un settore installata di serie.
-- **Fisisorbimento e chemisorbimento (Anton Paar Autosorb 6300, Kaomi)**: isoterme, BET (Rouquerol, ISO 9277), Langmuir, t-plot/αs, volume dei pori, BJH/DH, DR/DA, calore isosterico, DFT con kernel importato o dell'utente; TPR/TPO/TPD, impulsi, chemisorbimento statico, dispersione e area metallica, Kissinger e Redhead. Specifica dell'esperto, 12 novembre 2026; i lettori dipendono dai file reali di Kaomi.
 - **Oltre i programmi a pagamento** (sotto): mappe e dati iperspettrali, MCR-ALS, fit globale delle cinetiche, ricetta esportata come script Python, estensioni per nuovi formati, importazione dei progetti Origin (.opj). Decisione del committente del 13 novembre 2026.
 - **Collaudo completo e aggiornamento firmato provato dalla 2.2.0 alla 3.0.0**: tappa I8.
 

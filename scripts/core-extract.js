@@ -12,4 +12,8 @@ function coreRange(buf){
   return [a, b+END.length];
 }
 function extractCore(buf){ if (typeof buf==='string') buf=Buffer.from(buf,'utf8'); const [a,b]=coreRange(buf); return buf.subarray(a,b); }
-module.exports={extractCore, coreRange};
+// moduli puri del nucleo (app/<nome>-core.js): file propri, caricati dalla pagina prima del blocco CORE e dal worker prima di core.js.
+// Si copiano byte per byte; l'elenco in ordine di caricamento è quello degli <script> della pagina.
+function coreModules(html){ if (Buffer.isBuffer(html)) html=html.toString('utf8'); const a=html.indexOf('/*CORE-START*/'); if (a<0) throw new Error('nucleo: marcatori /*CORE-START*/ e /*CORE-END*/ non trovati');
+  return [...html.slice(0,a).matchAll(/<script src="(app\/[\w-]+-core\.js)"><\/script>/g)].map(m=>m[1]); }
+module.exports={extractCore, coreRange, coreModules};

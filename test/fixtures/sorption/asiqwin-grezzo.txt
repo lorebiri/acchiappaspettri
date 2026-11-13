@@ -1,0 +1,58 @@
+                        Quantachrome ASiQwin - Automated Gas Sorption Data
+                                            version 3.0
+
+Analysis                                          Report
+Sample ID:      sintetico-micro    Filename:      sintetico.qps
+Sample Weight: 0.0500 g            Instrument:    Autosorb iQ Station 1
+Analysis gas:  Argon87             Non-ideality:  3.94e-05 1/Torr     CellType:      6mm
+Analysis Time: 20:00 hr:min        Bath temp.:    87.45 K
+                                     Data Reduction Parameters
+Adsorbate      Argon87                  Temperature    87.450K
+               Molec. Wt.: 39.948       Cross Section: 14.200  Å²    Liquid Density: 1.400  g/cc
+
+                     Relative                                        Volume @ STP
+                     Pressure
+                                                                         cc/g
+
+                        2.00000e-6                                       1.9842
+                        3.35797e-6                                       3.3135
+                        5.63800e-6                                       5.5138
+                        9.46613e-6                                       9.1210
+                        1.58935e-5                                      14.9438
+                        2.66850e-5                                      24.1119
+                        4.48038e-5                                      37.9955
+                        7.52250e-5                                      57.8268
+                        1.26302e-4                                      83.9124
+                        2.12059e-4                                     114.7402
+                        3.56045e-4                                     146.8794
+                        5.97794e-4                                     176.2913
+                        1.00369e-3                                     200.1672
+                        1.68518e-3                                     217.7370
+                        2.82940e-3                                     229.7606
+                        4.75053e-3                                     237.5967
+                        7.97607e-3                                     242.5628
+                        1.33917e-2                                     245.6892
+                        2.24845e-2                                     247.7088
+                        3.77513e-2                                     249.1339
+                        6.33839e-2                                     250.3532
+                        1.06421e-1                                     251.7406
+                        1.78679e-1                                     253.8203
+                        3.00000e-1                                     257.6866
+                        3.50000e-1                                     259.5438
+                        4.21111e-1                                     262.5527
+                        4.92222e-1                                     266.1121
+                        5.63333e-1                                     270.3988
+                        6.34444e-1                                     275.6687
+                        7.05556e-1                                     282.3094
+                        7.76667e-1                                     290.9407
+                        8.47778e-1                                     302.6197
+                        9.18889e-1                                     319.3112
+                        9.90000e-1                                     345.1292
+                        9.50000e-1                                     329.4009
+                        8.28571e-1                                     299.3771
+                        7.07143e-1                                     282.7774
+                        5.85714e-1                                     272.2363
+                        4.64286e-1                                     264.9382
+                        3.42857e-1                                     259.5667
+                        2.21429e-1                                     255.4000
+                        1.00000e-1                                     251.8505
