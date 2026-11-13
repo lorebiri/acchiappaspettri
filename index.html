@@ -22,6 +22,7 @@
 <script src="app/testi-desktop.js"></script>
 <script src="app/i18n.js"></script>
 <script src="app/project-format.js"></script>
+<script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
 <style>
 :root{
@@ -4961,7 +4962,7 @@ function loader(show, title, sub, frac){
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
 const LOADING=new Set();   // file in lettura: il controllo dei doppioni vale anche per due caricamenti contemporanei dello stesso file
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[];
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
   try{
@@ -4971,6 +4972,7 @@ async function addEntries(entries){
       if (err || !file){ unreadable.push(path); continue; }
       if (/\.(acchiappa\.json|acchspettri)$/i.test(file.name)){ projects.push(file); continue; }
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
+      if (/\.opju?$/i.test(file.name) && window.AcchOriginUI){ origins.push({file, path}); continue; }
       if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
       const lkey=path+'\u0000'+file.size;
       if (files.some(f=>f.path===path && f.size===file.size) || LOADING.has(lkey)){ dup++; continue; }
@@ -5049,6 +5051,8 @@ async function addEntries(entries){
     if (lost){ const why=msgs.filter(m=>/^(🙈|⛔|🤔|🔒)/.test(m)).map(m=>m.replace(/<[^>]+>/g,'').replace(/^(🙈|⛔|🤔|🔒)\s*/,'')).join(' '); setTimeout(()=>toast('⚠️ '+why), 50); }
   } else if (dup && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
+  } else if (origins.length && !skipped.length && !errors.length && !unreadable.length){
+    say('#hello', 'Progetto Origin ricevuto: scegli gli spettri da importare.');
   } else if (images.length && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', `Ho ricevuto ${images.length===1?'una foto':images.length+' foto'}: ti chiedo cosa farne. 🖼️`);
   } else if (!entries.length){
@@ -5061,6 +5065,7 @@ async function addEntries(entries){
   if (added && curView===2) renderPreview();
   loader(false);
   if (images.length) askImages(images);
+  if (origins.length) AcchOriginUI.ask(origins);
   if (projects.length) await AcchProject.openFile(projects[0]);
 }
 async function entriesFromDrop(dt, fallback){
@@ -8655,6 +8660,7 @@ window.ACCH_USER_TEXTS=()=>{ const o=[]; try{ files.forEach(f=>{ o.push(f.name, 
 window.ACCH_AXSYNC=bindAxisFields();
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
+<script src="app/origin-ui.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
