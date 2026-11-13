@@ -15,6 +15,8 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
+mod segnala;
+
 #[derive(Default)]
 struct Grants {
     paths: Mutex<HashSet<PathBuf>>,
@@ -327,6 +329,58 @@ fn url_decode(s: &str) -> Result<String, String> {
     String::from_utf8(out).map_err(|_| "invalid-path".to_string())
 }
 
+/// «Segnala un problema»: unico destinatario possibile, l'indirizzo pubblico del progetto.
+const REPORT_TO: &str = "lorenzo.birindelli@cnr.it";
+
+/// Salva lo screenshot della segnalazione: in Download (da allegare a mano al mailto) o nella cartella temporanea (allegato MAPI).
+/// Corpo binario (PNG); nome e destinazione nelle intestazioni. Il percorso scritto diventa leggibile per l'allegato.
+#[tauri::command(async)]
+fn save_report_shot(app: AppHandle, g: State<'_, Grants>, request: Request<'_>) -> Result<String, String> {
+    let h = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).map(|s| s.to_string());
+    let name = h("x-acch-name").unwrap_or_default();
+    let dir = match h("x-acch-dest").as_deref() {
+        Some("temp") => std::env::temp_dir().join("Acchiappaspettri"),
+        _ => app.path().download_dir().unwrap_or_else(|_| std::env::temp_dir().join("Acchiappaspettri")),
+    };
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("invalid-body".into());
+    };
+    let p = segnala::write_shot(&dir, &name, bytes)?;
+    grant(&g, &p);
+    Ok(p.to_string_lossy().into_owned())
+}
+
+/// Windows: messaggio già compilato nel programma di posta via Simple MAPI, con l'allegato. Risponde «sent» o «aborted»;
+/// «mapi-unavailable» (anche su macOS e Linux) o «mapi-failed: N» dicono alla pagina di passare al mailto.
+#[tauri::command(async)]
+fn send_report_mapi(g: State<'_, Grants>, to: String, subject: String, body: String, attachment: Option<String>) -> Result<String, String> {
+    if to != REPORT_TO {
+        return Err("not-allowed".into());
+    }
+    let att = attachment.map(PathBuf::from);
+    if let Some(p) = att.as_ref() {
+        if !g.paths.lock().unwrap().contains(p) {
+            return Err("not-allowed".into());
+        }
+    }
+    #[cfg(windows)]
+    {
+        if !segnala::mapi::available() {
+            return Err("mapi-unavailable".into());
+        }
+        // thread proprio: la finestra di composizione blocca la chiamata finché resta aperta
+        let code = std::thread::spawn(move || segnala::mapi::send(&to, &subject, &body, att.as_deref()))
+            .join()
+            .map_err(|_| "mapi-failed: panic".to_string())??;
+        segnala::mapi_outcome(code).map(|s| s.to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (subject, body, att);
+        Err("mapi-unavailable".into())
+    }
+}
+
 /// I file passati dal sistema operativo (doppio clic su un progetto) in attesa che la pagina sia pronta.
 #[tauri::command]
 fn take_pending_open(g: State<'_, Grants>) -> Vec<Picked> {
@@ -504,11 +558,13 @@ pub fn run() {
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
+        save_report_shot, send_report_mapi
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
+        save_report_shot, send_report_mapi,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder
