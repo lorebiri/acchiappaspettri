@@ -159,9 +159,10 @@ fn is_raw(p: &Path) -> bool {
         })
         .unwrap_or(false)
 }
-/// Librerie dei picchi (.acchlib.json, tappa I4): con «Apri con» su un .json la pagina controlla il contenuto prima di importarlo.
+/// Librerie dei picchi (tappa I4): `.acchlib` (programma predefinito) e, con «Apri con», i `.json` (`.acchlib.json` compresi):
+/// la pagina controlla il contenuto prima di importarlo.
 fn is_library(p: &Path) -> bool {
-    p.file_name().and_then(|n| n.to_str()).map(|n| { let n = n.to_ascii_lowercase(); n.ends_with(".json") && !n.ends_with(".acchiappa.json") }).unwrap_or(false)
+    p.file_name().and_then(|n| n.to_str()).map(|n| { let n = n.to_ascii_lowercase(); n.ends_with(".acchlib") || (n.ends_with(".json") && !n.ends_with(".acchiappa.json")) }).unwrap_or(false)
 }
 /// Ciò che il sistema operativo può far aprire all'app: progetti, file grezzi leggibili e librerie, solo se sono file veri.
 fn is_openable(p: &Path) -> bool {
@@ -496,7 +497,7 @@ fn store_write(st: State<'_, Store>, items: std::collections::BTreeMap<String, O
     let Some(d) = dir.as_ref() else { return Err("no-store".into()) };
     store::write(d, &items)
 }
-/* ---- librerie dei picchi (libs.rs): solo file .acchlib.json nella cartella dell'utente e nelle cartelle condivise registrate ---- */
+/* ---- librerie dei picchi (libs.rs): solo file .acchlib (o .acchlib.json) nella cartella dell'utente e nelle cartelle condivise registrate ---- */
 fn lib_user(st: &State<'_, LibDirState>) -> Result<PathBuf, String> {
     st.dir.lock().unwrap().clone().ok_or_else(|| "no-store".into())
 }
@@ -653,7 +654,8 @@ mod tests {
         assert!(is_library(Path::new("/x/Agilent 1260 — alimenti.acchlib.json")));
         assert!(is_library(Path::new("C:\\x\\lib.ACCHLIB.JSON")));
         assert!(!is_library(Path::new("/x/vecchio.acchiappa.json")), "i vecchi progetti restano progetti");
-        assert!(!is_library(Path::new("/x/lib.acchlib")));
+        assert!(is_library(Path::new("/x/lib.acchlib")));
+        assert!(!is_library(Path::new("/x/lib.acchspettri")));
     }
     #[test]
     fn projects_are_recognised() {

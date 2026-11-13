@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /* Archivio delle librerie dei picchi, dietro l'adattatore dell'host (AcchHost.libs):
    - online: IndexedDB del browser («acch-librerie»), con confronto dell'impronta e scrittura nella stessa transazione;
-   - desktop: file .acchlib.json in app_data_dir()/librerie e nelle cartelle condivise registrate (src-tauri/src/libs.rs);
+   - desktop: file .acchlib (o .acchlib.json, ancora letti) in app_data_dir()/librerie e nelle cartelle condivise registrate (src-tauri/src/libs.rs);
    - memoria: per i test in Node e se IndexedDB manca.
    Scritture contemporanee (DECISIONE-PO §7): si scrive solo se il file è ancora quello letto; altrimenti si unisce voce per voce
    (AcchLib.merge) e i conflitti li sceglie l'utente (ask). Mai sovrascrivere in silenzio.
@@ -90,7 +90,7 @@
         let theirs; try{ theirs=Lib().parse(r.text); }catch(e){ throw Lib().libError('changed-unreadable'); }
         if (theirs.id!==mine.id){   // un'altra libreria con lo stesso nome di file: si scrive accanto, senza toccarla
           if (backend.kind!=='desktop') throw Lib().libError('changed-other');
-          it.path=null; it.key=null; it.fileName=Lib().fileNameFor(mine).replace(/\.acchlib\.json$/, '-'+mine.id.slice(-6)+'.acchlib.json'); expect=null; base=null; continue; }
+          it.path=null; it.key=null; it.fileName=Lib().fileNameFor(mine).replace(/\.acchlib$/, '-'+mine.id.slice(-6)+'.acchlib'); expect=null; base=null; continue; }
         const m=Lib().merge(base, mine, theirs); merges.push({auto:m.auto, conflicts:m.conflicts.length});
         let next=m.merged;
         if (m.conflicts.length){ const ch=ask ? await ask(m) : null; if (!ch) return {ok:false, cancelled:true, conflicts:m.conflicts, theirs}; next=Lib().resolve(m, ch); }

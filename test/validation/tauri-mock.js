@@ -22,7 +22,7 @@ function tauriMock(){
       case 'store_write': { M.storeWrites.push(args.items); for (const [k,v] of Object.entries(args.items)){ if (v==null) delete M.store[k]; else M.store[k]=v; } return null; }   // archivio su file (lib.rs, store.rs)
       // librerie dei picchi (libs.rs): un piccolo disco in memoria, con la cartella dell'utente e le cartelle condivise registrate
       case 'lib_list': { const dirs=[M.libUser].concat(M.libShared); return {user:M.libUser, dirs:dirs.map(d=>M.libDirErr[d] ? {path:d, kind:d===M.libUser?'user':'shared', ok:false, error:M.libDirErr[d], files:[]} : {path:d, kind:d===M.libUser?'user':'shared', ok:true, error:null,
-          files:Object.keys(M.libfs).filter(p=>p.startsWith(d+'/') && !p.slice(d.length+1).includes('/') && /\.acchlib\.json$/i.test(p)).sort().map(p=>({name:p.slice(d.length+1), path:p, text:M.libfs[p], sha256:window.AcchLib.sha256(M.libfs[p])}))})}; }
+          files:Object.keys(M.libfs).filter(p=>p.startsWith(d+'/') && !p.slice(d.length+1).includes('/') && /\.acchlib(\.json)?$/i.test(p)).sort().map(p=>({name:p.slice(d.length+1), path:p, text:M.libfs[p], sha256:window.AcchLib.sha256(M.libfs[p])}))})}; }
       case 'lib_write': { const dir=args.path.replace(/\/[^/]*$/,''); if (dir!==M.libUser && !M.libShared.includes(dir)) throw 'not-allowed';
         if (M.onLibWrite){ const f=M.onLibWrite; M.onLibWrite=null; f(args); }   // un altro computer scrive proprio adesso
         const cur=M.libfs[args.path], now=cur==null?null:window.AcchLib.sha256(cur);

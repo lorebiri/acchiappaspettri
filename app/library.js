@@ -269,7 +269,7 @@
   /* ---------- copie di conflitto di OneDrive (e simili) in una cartella ----------
      files = [{name, id?}]. Una copia è un file che ha il nome di un altro più «-NOMEPC», «-NOMEPC-2», « (1)» o «conflict», oppure lo stesso id di libreria di un altro file. */
   function conflictCopies(files){
-    const stem=n=>String(n).replace(/\.acchlib\.json$/i,'').replace(/\.json$/i,''), list=files.map(f=>({f, s:stem(f.name)})), out=[];
+    const stem=n=>String(n).replace(/\.acchlib(\.json)?$/i,'').replace(/\.json$/i,''), list=files.map(f=>({f, s:stem(f.name)})), out=[];
     for (const a of list){
       const orig=list.find(b=>b!==a && a.s.length>b.s.length && a.s.startsWith(b.s) && /^(?:-[^\s.\\/]{1,40}(?:-\d{1,3})?| \(\d{1,3}\)|[ _-]?(?:conflict|conflitto|copia|copy)[^\\/]*)$/i.test(a.s.slice(b.s.length)));
       if (orig) out.push({name:a.f.name, of:orig.f.name, reason:'name'}); }
@@ -280,7 +280,9 @@
       for (const a of g) if (a!==orig) out.push({name:a.f.name, of:orig.f.name, reason:'same-id'}); }
     return out;
   }
-  function fileNameFor(lib){ return slug(lib.name)+'.acchlib.json'; }
+  // estensione delle librerie: .acchlib (decisione del Capo Progetto, doppio clic su tutti i sistemi); il contenuto è il JSON acchlib 1 e i .acchlib.json si leggono ancora
+  const EXT='.acchlib', isLibName=n=>/\.acchlib(\.json)?$/i.test(String(n||''));
+  function fileNameFor(lib){ return slug(lib.name)+EXT; }
 
   /* ---------- scelta della libreria per uno spettro ----------
      libs = [{lib, origin}]. ins = strumento confermato o riconosciuto; st = tipo di campione; technique.
@@ -332,5 +334,5 @@
   }
 
   return {FORMAT, VERSION, PROFILES, SAMPLE_SUGGESTIONS, TEMPLATES, DEF_THR, MAX_THR, sha256, parse, normalize, serialize, hashOf, create, template, defaultName, upsert, removeEntry, liveEntries,
-    merge, resolve, conflictCopies, fileNameFor, choose, matchEntries, recognize, instrumentCompare, instrumentText, cleanInstrument, parseChannel, channelText, channelCompare, fromDraft, normTxt, libError, newId};
+    EXT, isLibName, merge, resolve, conflictCopies, fileNameFor, choose, matchEntries, recognize, instrumentCompare, instrumentText, cleanInstrument, parseChannel, channelText, channelCompare, fromDraft, normTxt, libError, newId};
 });

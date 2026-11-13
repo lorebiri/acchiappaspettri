@@ -50,7 +50,7 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
     const o=await open(desk), w=desk?'desktop':'online';
     if (desk) assert.strictEqual(await o.p.evaluate(()=>AcchHost.libs.kind), 'desktop');
     await importBozza(o, desk);
-    if (desk){ const fsx=await o.p.evaluate(()=>Object.keys(window.__mock.libfs)); assert.ok(fsx.some(p=>/^\/app\/librerie\/[^/]+\.acchlib\.json$/.test(p)), w+': libreria scritta in app_data_dir/librerie'); }
+    if (desk){ const fsx=await o.p.evaluate(()=>Object.keys(window.__mock.libfs)); assert.ok(fsx.some(p=>/^\/app\/librerie\/[^/]+\.acchlib$/.test(p)), w+': libreria scritta in app_data_dir/librerie'); }
     await load(o, 'SAL_03.csv', sal());
     // 2. finestra al caricamento: strumento dall'intestazione, tipo di campione, libreria proposta
     const dlg=await o.p.evaluate(()=>{ const d=document.querySelector('#dlgLibLoad'); return d && d.open ? d.innerText : null; });
@@ -229,11 +229,11 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
       assert.ok(await o.p.evaluate(()=>{ go(3); return !!document.querySelector('#libOutCharts input') && document.querySelector('#libOutCharts input').checked; }), w+': opzione in Esporta');
       const zip=await JSZip.loadAsync(await exportZip(o, desk)), names=Object.keys(zip.files);
       for (const k of ['png','svg','csv']) assert.ok(names.some(n=>new RegExp('carte_di_controllo/.*creatinine\\.'+k+'$').test(n)), w+': carta '+k+' nello ZIP: '+names.join(', '));
-      // 2. doppio clic o «Apri con» su un .acchlib.json (desktop): importazione con l'unione e i conflitti espliciti
+      // 2. doppio clic su un .acchlib (desktop): importazione con l'unione e i conflitti espliciti
       if (desk){ const r=await o.p.evaluate(async ()=>{ const M=window.__mock, it=AcchLibUi.items.find(x=>x.lib&&x.lib.sampleType==='polimeri'), L=JSON.parse(JSON.stringify(it.lib));
           AcchLib.upsert(L, Object.assign({}, L.entries[0], {x:1720})); AcchLib.upsert(L, {name:'C-H', x:2920, window:15});
           const mine=JSON.parse(JSON.stringify(it.lib)); AcchLib.upsert(mine, Object.assign({}, mine.entries[0], {x:1710})); await AcchLibUi.saveLib(it, mine);
-          M.files['/utente/Scaricati/polimeri.acchlib.json']=AcchLib.serialize(L); M.pending=[{path:'/utente/Scaricati/polimeri.acchlib.json', name:'polimeri.acchlib.json'}];
+          M.files['/utente/Scaricati/polimeri.acchlib']=AcchLib.serialize(L); M.pending=[{path:'/utente/Scaricati/polimeri.acchlib', name:'polimeri.acchlib'}];
           let asked=null; window.AcchLibAsk=async m=>{ asked=m.conflicts.map(c=>c.name); return {[m.conflicts[0].id]:'theirs'}; };
           M.emit('acch-open-files'); for (let i=0;i<40 && !AcchLibUi.items.find(x=>x.lib&&x.lib.id===L.id&&x.lib.entries.length===2);i++) await new Promise(r=>setTimeout(r,100));
           window.AcchLibAsk=null; const now=AcchLibUi.items.find(x=>x.lib&&x.lib.id===L.id).lib; return {asked, names:AcchLib.liveEntries(now).map(e=>e.name+':'+e.x).sort(), n:AcchLibUi.items.filter(x=>x.lib&&x.lib.sampleType==='polimeri').length}; });

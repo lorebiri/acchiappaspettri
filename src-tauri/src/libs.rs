@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Librerie dei picchi su file (tappa I4, app/library-store.js).
-//! - utente: `app_data_dir()/librerie/*.acchlib.json`, scritte in modo atomico; la versione precedente resta in `librerie/versioni/`;
+//! - utente: `app_data_dir()/librerie/*.acchlib` (si leggono anche i `.acchlib.json`), scritte in modo atomico; la versione precedente resta in `librerie/versioni/`;
 //! - condivise: cartelle scelte dall'utente (anche OneDrive o rete), registrate per percorso in `librerie/condivise.json`.
 //! Prima di scrivere si confronta l'impronta SHA-256 del file con quella letta dalla pagina (DECISIONE-PO §7): se è cambiato
 //! non si scrive e si restituisce il contenuto nuovo, che la pagina unisce voce per voce. Mai sovrascrivere in silenzio.
-//! La pagina può leggere e scrivere solo file `.acchlib.json` direttamente dentro queste cartelle.
+//! La pagina può leggere e scrivere solo file `.acchlib` o `.acchlib.json` direttamente dentro queste cartelle.
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -22,9 +22,16 @@ pub fn sha256_hex(b: &[u8]) -> String {
     h.finalize().iter().map(|x| format!("{:02x}", x)).collect()
 }
 
+/// Nome senza l'estensione della libreria (.acchlib, o .acchlib.json della prima versione).
+fn lib_stem(name: &str) -> String {
+    let l = name.to_ascii_lowercase();
+    let cut = if l.ends_with(".acchlib.json") { 13 } else if l.ends_with(".acchlib") { 8 } else { 0 };
+    name[..name.len() - cut].to_string()
+}
+
 pub fn is_lib_name(name: &str) -> bool {
     let n = name.to_ascii_lowercase();
-    n.ends_with(".acchlib.json") && !name.starts_with('.') && !name.contains(['/', '\\']) && !name.contains("..")
+    (n.ends_with(".acchlib") || n.ends_with(".acchlib.json")) && !name.starts_with('.') && !name.contains(['/', '\\']) && !name.contains("..")
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -63,7 +70,7 @@ pub fn set_shared(user: &Path, dirs: &[PathBuf]) -> Result<(), String> {
     super::write_atomic(&user.join(SHARED), &j, false)
 }
 
-/// Legge una cartella: solo i file `.acchlib.json` del primo livello. Una cartella che non risponde (rete staccata) non è un errore fatale.
+/// Legge una cartella: solo i file `.acchlib` e `.acchlib.json` del primo livello. Una cartella che non risponde (rete staccata) non è un errore fatale.
 pub fn read_dir(dir: &Path, kind: &str) -> LibDir {
     let mut out = LibDir { path: dir.to_string_lossy().into_owned(), kind: kind.into(), ok: true, error: None, files: Vec::new() };
     let rd = match fs::read_dir(dir) {
@@ -139,8 +146,8 @@ pub fn write(user: &Path, path: &Path, text: &str, expect: Option<&str>) -> Resu
         if let Some(old) = &now {
             let vd = user.join(VERSIONS);
             let _ = fs::create_dir_all(&vd);
-            let stem = path.file_name().unwrap().to_string_lossy().trim_end_matches(".acchlib.json").to_string();
-            let _ = super::write_atomic(&vd.join(format!("{}.{}.acchlib.json", stem, &sha256_hex(old)[..12])), old, false);
+            let stem = lib_stem(&path.file_name().unwrap().to_string_lossy());
+            let _ = super::write_atomic(&vd.join(format!("{}.{}.acchlib", stem, &sha256_hex(old)[..12])), old, false);
             prune_versions(&vd, &stem);
         }
     }
@@ -206,7 +213,7 @@ fn prune_versions(vd: &Path, stem: &str) {
         .flatten()
         .filter(|e| {
             let n = e.file_name().to_string_lossy().into_owned();
-            n.starts_with(&format!("{}.", stem)) && n.ends_with(".acchlib.json")
+            n.starts_with(&format!("{}.", stem)) && is_lib_name(&n)
         })
         .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
         .collect();
@@ -226,7 +233,7 @@ pub fn remove(user: &Path, path: &Path) -> Result<(), String> {
     fs::create_dir_all(&vd).map_err(|e| format!("write-failed: {}", e.kind()))?;
     let name = path.file_name().unwrap().to_string_lossy().into_owned();
     let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    fs::rename(path, vd.join(format!("{}.tolta-{}.acchlib.json", name.trim_end_matches(".acchlib.json"), stamp))).map_err(|e| format!("write-failed: {}", e.kind()))
+    fs::rename(path, vd.join(format!("{}.tolta-{}.acchlib", lib_stem(&name), stamp))).map_err(|e| format!("write-failed: {}", e.kind()))
 }
 
 #[cfg(test)]
@@ -244,7 +251,8 @@ mod tests {
     #[test]
     fn write_checks_hash_and_keeps_versions() {
         let u = tmp("user");
-        let p = u.join("a.acchlib.json");
+        let p = u.join("a.acchlib");
+        assert!(is_lib_name("vecchia.acchlib.json") && is_lib_name("nuova.ACCHLIB") && !is_lib_name("x.json"));
         // file nuovo: si scrive solo se non esiste ancora
         let r = write(&u, &p, "{\"v\":1}", None).unwrap();
         assert!(r.ok);

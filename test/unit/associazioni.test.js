@@ -16,7 +16,7 @@ test('pagina e lato nativo leggono gli stessi formati, .ch e .uv compresi', ()=>
 
 test('associazioni: predefinito solo per progetti e Agilent, «Apri con» per tutti gli altri su macOS, Windows e Linux', ()=>{
   const base=JSON.parse(R('src-tauri/tauri.conf.json')).bundle.fileAssociations.flatMap(a=>a.ext);
-  assert.deepEqual(base.sort(), ['acchspettri','ch','dx','jcamp','jdx','uv'], 'su Windows ogni estensione di tauri.conf.json diventa predefinita: solo formati propri, niente .csv/.txt/.arw');
+  assert.deepEqual(base.sort(), ['acchlib','acchspettri','ch','dx','jcamp','jdx','uv'], 'su Windows ogni estensione di tauri.conf.json diventa predefinita: solo formati propri, niente .csv/.txt/.arw');
   const mac=JSON.parse(R('src-tauri/tauri.macos.conf.json')).bundle.fileAssociations, macExt=mac.flatMap(a=>a.ext);
   for (const e of rawExt()) assert.ok(macExt.includes(e), 'macOS: manca .'+e);
   for (const a of mac) if (a.ext.some(e=>!base.includes(e))) assert.equal(a.rank,'Alternate', 'macOS: .'+a.ext.join('/.')+' non deve diventare predefinito');
@@ -28,11 +28,14 @@ test('associazioni: predefinito solo per progetti e Agilent, «Apri con» per tu
   assert.match(xml, /x-waters-empower-arw[\s\S]*?<magic/, '.arw di Empower distinto dalle foto Sony per il contenuto');
 });
 
-test('I4: librerie dei picchi .acchlib.json dal sistema (doppio clic su Linux, «Apri con» su Windows e macOS), importate dalla pagina', ()=>{
+test('I4: librerie dei picchi dal sistema: .acchlib predefinito su Windows, macOS e Linux; .acchlib.json in «Apri con» (Linux: doppio clic), importate dalla pagina', ()=>{
+  for (const f of ['src-tauri/tauri.conf.json','src-tauri/tauri.macos.conf.json']){ const a=JSON.parse(R(f)).bundle.fileAssociations.find(x=>x.ext.includes('acchlib')); assert.ok(a && !a.rank, f+': .acchlib predefinito'); }
+  assert.match(R('src-tauri/linux/acchiappaspettri-mime.xml'), /<glob pattern="\*\.acchlib"\/>/);
+  assert.match(R('app/library.js'), /const EXT='\.acchlib'/);
   const rs=R('src-tauri/src/lib.rs'); assert.match(rs, /fn is_openable[\s\S]{0,200}is_library/);
   const base=JSON.parse(R('src-tauri/tauri.conf.json')).bundle.fileAssociations.flatMap(a=>a.ext); assert.ok(!base.includes('json'), 'mai predefinito per tutti i .json');
   const mac=JSON.parse(R('src-tauri/tauri.macos.conf.json')).bundle.fileAssociations.find(a=>a.ext.includes('json')); assert.ok(mac && mac.rank==='Alternate');
   const nsis=R('src-tauri/windows/installer-hooks.nsh'); assert.match(nsis, /\.json\\OpenWithProgids" "\$\{ACCH_LIBPROGID\}"/); assert.match(nsis, /NSIS_HOOK_PREUNINSTALL[\s\S]*\.json\\OpenWithProgids" "\$\{ACCH_LIBPROGID\}"/);
   assert.match(R('src-tauri/linux/acchiappaspettri-mime.xml'), /<glob pattern="\*\.acchlib\.json"/);
-  assert.match(R('app/desktop.js'), /isLib\(p\.name\)[\s\S]{0,200}AcchLibUi\.importText/);
+  assert.match(R('app/desktop.js'), /isLib=n=>\/\\\.\(acchlib\|json\)\$\/i/); assert.match(R('app/desktop.js'), /isLib\(p\.name\)[\s\S]{0,200}AcchLibUi\.importText/);
 });

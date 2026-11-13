@@ -3,7 +3,7 @@
 ;  .ch e .uv (Agilent) e JCAMP-DX sono associati da tauri.conf.json (predefiniti); .csv, .txt, .arw (anche foto Sony) e gli altri solo qui, con OpenWithProgids.
 ; Stesso elenco di RAW_EXT in src/lib.rs (test/unit/associazioni.test.js).
 !define ACCH_PROGID "Acchiappaspettri.Dati"
-; I4: librerie dei picchi (.acchlib.json). Windows associa solo l'ultima estensione: su .json «Apri con», mai predefinito.
+; I4: librerie dei picchi. .acchlib è predefinito da tauri.conf.json; i vecchi .acchlib.json (Windows vede solo .json) restano in «Apri con», mai predefiniti.
 !define ACCH_LIBPROGID "Acchiappaspettri.Libreria"
 !macro ACCH_OPENWITH EXT
   WriteRegStr SHCTX "Software\Classes\.${EXT}\OpenWithProgids" "${ACCH_PROGID}" ""

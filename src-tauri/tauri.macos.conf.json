@@ -12,6 +12,15 @@
       },
       {
         "ext": [
+          "acchlib"
+        ],
+        "name": "Acchiappaspettri peak library",
+        "description": "Acchiappaspettri peak library",
+        "role": "Editor",
+        "mimeType": "application/vnd.acchiappaspettri.library+json"
+      },
+      {
+        "ext": [
           "ch"
         ],
         "name": "Agilent ChemStation chromatogram",
