@@ -387,7 +387,7 @@ body.busy, body.busy *{cursor:progress !important}
 .outcard.on .obody{display:block}
 .outcard:not(.on) .ohead b{color:var(--muted)}
 .dlcard{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
-.outcard .oname{margin:0 0 8px}.outcard .oname input,.expwhere input[type=text]{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px;background:var(--panel);color:var(--ink)}
+.outcard.off .ohead{opacity:.55}.outcard .oname{margin:0 0 8px}.outcard .oname input,.expwhere input[type=text]{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px;background:var(--panel);color:var(--ink)}
 .expwhere{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;margin-bottom:14px}.expwhere .field{margin:0;flex:1 1 240px}.expwhere .check{margin:0 0 4px}
 .nmwarn{display:block;color:var(--warn,#8a5a00);font-size:12px;margin-top:3px}.expdone ul{margin:6px 0;padding-left:18px;max-height:120px;overflow:auto}.expdone .bad{color:var(--bad,#b3261e)}
 .dlcard .summary{margin-bottom:4px}
@@ -1085,6 +1085,10 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
     <div class="outcard" data-out="csvRaw">
       <label class="ohead"><input type="checkbox" data-k="csvRaw"><span class="oico">📑</span><span><b>Dati originali</b><small>un CSV per spettro con i valori letti dal file, senza correzioni</small></span></label>
       <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="raw" spellcheck="false" autocomplete="off"></div></div>
+    </div>
+    <div class="outcard" data-out="outOrig">
+      <label class="ohead"><input type="checkbox" data-k="outOrig"><span class="oico">📎</span><span><b>Copia identica del file originale</b><small>per ogni spettro il file così come è stato caricato, byte per byte, con il suo nome e la sua estensione</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="orig" spellcheck="false" autocomplete="off"></div><small class="opt-l" id="origNote" hidden></small></div>
     </div>
     <div class="outcard" data-out="outTrace">
       <label class="ohead"><input type="checkbox" data-k="outTrace"><span class="oico">🧾</span><span><b>Tracciabilità</b><small>un CSV con l'impronta SHA-256 di ogni file e le scelte usate, per ricostruire i dati esportati</small></span></label>
@@ -4442,14 +4446,14 @@ const DEFAULTS = {
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
-  csvRaw:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
+  csvRaw:false, outOrig:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
   logY:{xrf:true}
 };
 for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
-const EXP_NAMED=['pdf','png','svg','peaks','data','raw','analysis','trace','origin','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
+const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','trace','origin','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -4468,7 +4472,7 @@ function sanitizeS(r){
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
   oneOf('originData',['proc','raw']); oneOf('expScope',['sel','all','one']);
   { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
-  ['csvRaw','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['csvRaw','outOrig','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
@@ -6146,7 +6150,7 @@ $$('[data-k]').forEach(el=>{
     S[k]=v; saveS();
     if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
     if (k==='expert') applyExpert();
-    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color','outAnalysis','csvRaw','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
@@ -6197,18 +6201,18 @@ $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
 
 /* ---------------- VOCI DELL'ESPORTAZIONE: che cosa, con quale nome, dove ---------------- */
 // requisito 3.0.0: l'utente sceglie le voci; lo ZIP è solo una voce in più, spenta di default. Il contenuto di ogni file resta quello di buildZip
-const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', project:'outProject'};
+const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', project:'outProject'};
 const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
 const DESK_EXP=()=>!!window.__TAURI__;
 let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
 let EXP_FIXED=[];   // nomi proposti corretti per Windows durante l'ultima esportazione: [prima, dopo]
-function expSel(){ const o={}; for (const k in EXP_FLAG) o[k]=!!S[EXP_FLAG[k]]; return o; }
+function expSel(){ const o={}; for (const k in EXP_FLAG) o[k]=!!S[EXP_FLAG[k]]; if (o.orig && !files.some(f=>f.raw)) o.orig=false; return o; }
 function expList(scope){ const sc=scope||S.expScope; return sc==='all' ? files.slice() : sc==='one' ? (files[cur] ? [files[cur]] : []) : null; }
 function expBase(){ return safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp(); }
 function expSubDefault(){ const n=window.AcchProject && AcchProject.path ? String(AcchProject.path).split(/[\\/]/).pop().replace(/\.acchspettri$/i,'') : (S.docTitle||T_().title); return safeName(n+'.x').replace(/\s+/g,'_')||'export'; }
 function expDefault(k){ const Lx=T_(), en=LANG==='en';
   switch (k){ case 'pdf': return expBase()+'.pdf'; case 'zip': return expBase()+'.zip'; case 'png': return ''; case 'svg': return 'svg'; case 'data': return Lx.dataDir;
-    case 'raw': return en?'original_data':'dati_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
+    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
     case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx';
     case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
 /* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
@@ -6237,6 +6241,11 @@ function renderExpNames(){
   $$('[data-nm]').forEach(el=>{ if (document.activeElement===el) return; const k=el.dataset.nm, o=S.expNames&&S.expNames[k]; el.value = o!=null ? o : expDefault(k); });
   const sub=$('#expSubRow'); if (sub) sub.hidden=!DESK_EXP();   // online i file vanno dove li mette il browser
   const subIn=$('[data-nm="sub"]'), zipIn=$('[data-nm="zip"]'); if (subIn) subIn.disabled=!S.expSub; if (zipIn) zipIn.disabled=!S.zipAll;
+  // copia identica: spenta se nessuno spettro ha più i byte originali (per esempio un progetto vecchio senza originali), e lo dice
+  { EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; } const miss=inc.filter(f=>!f.raw), box=$('[data-k="outOrig"]'), note=$('#origNote'), card=box&&box.closest('.outcard'), none=inc.length>0 && miss.length===inc.length;
+    if (box){ box.disabled=none; if (card) card.classList.toggle('off', none); if (card) card.title=none?'I file originali non sono disponibili: il progetto non li contiene.':''; }
+    if (note){ note.hidden=!miss.length; note.textContent = none ? 'Non disponibile: il progetto non contiene i file originali (per esempio un progetto salvato con una versione vecchia).' : miss.length ? (miss.length===1 ? `Senza file originale, viene saltato: ${miss[0].name}.` : `Senza file originale, vengono saltati ${miss.length} spettri: ${miss.slice(0,3).map(f=>f.name).join(', ')}${miss.length>3?'…':''}.`) : ''; }
+  }
   const sc=$('#expScope'); if (sc){ const sel=files.filter(f=>f.include).length, f=files[cur];
     const t={sel:`Spettri spuntati (${sel} di ${files.length})`, all:`Tutti gli spettri (${files.length})`, one:f?`Solo lo spettro aperto: ${dispTitle(f)}`:'Solo lo spettro aperto'};
     for (const o of sc.options) if (t[o.value] && o.textContent!==t[o.value]) o.textContent=t[o.value]; }
@@ -6267,6 +6276,8 @@ function renderSummary(){
     if (sel.peaks) parts.push(`<li>📊 <span>Elenco dei picchi</span>: ${nm('peaks')}</li>`);
     if (sel.data) parts.push(`<li>🗂️ <span>${inc.length===1?'1 CSV di dati elaborati':inc.length+' CSV di dati elaborati'}</span> · ${nm('data')}</li>`);
     if (sel.raw) parts.push(`<li>📑 <span>${inc.length===1?'1 CSV di dati originali':inc.length+' CSV di dati originali'}</span> · ${nm('raw')}</li>`);
+    const noRaw=inc.filter(f=>!f.raw).length;
+    if (sel.orig && noRaw<inc.length) parts.push(`<li>📎 <span>${inc.length-noRaw===1?'1 copia identica del file originale':(inc.length-noRaw)+' copie identiche dei file originali'}</span> · ${nm('orig')}</li>`);
     if (sel.analysis) parts.push(`<li>🔬 <span>Tabelle di analisi e bozza dei metodi</span> · ${nm('analysis')}</li>`);
     if (sel.trace) parts.push(`<li>🧾 <span>Tracciabilità</span>: ${nm('trace')}</li>`);
     if (sel.origin) parts.push(`<li>📈 <span>Cartella Excel per Origin</span>: ${nm('origin')}</li>`);
@@ -6703,7 +6714,7 @@ async function exportEntries(sel, zipping){
   const groups = ((sel.png || sel.svg) && S.cmpPng) ? outComparisons() : [];
   const total=inc.length+groups.length, say_=(i)=>status(zipping ? `🗜️ Preparo lo ZIP: spettro ${i} di ${inc.length}…` : `📁 Preparo i file: spettro ${i} di ${inc.length}…`);
   if (sel.trace){ const q=c=>{ c=String(c==null?'':c); return csvCell(c,csep); }; add('trace', expName('trace'), '\uFEFF'+traceRows(inc).map(r=>r.map(q).join(csep)).join('\r\n')); }
-  const perSpectrum = sel.png || sel.svg || sel.peaks || sel.data || sel.raw;
+  const perSpectrum = sel.png || sel.svg || sel.peaks || sel.data || sel.raw || sel.orig, origDone=new Set();
   for (let i=0; perSpectrum && i<inc.length; i++){
     const f=inc[i], view=viewOf(f);
     const dir = S.keepFolders && f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')+1) : '';
@@ -6734,6 +6745,9 @@ async function exportEntries(sel, zipping){
       for (let k=0;k<xs.length;k++) lines.push(num(xs[k])+csep+num(ys[k]));
       add('raw', uniq(expDir('raw')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
+    // copia identica: i byte del file come è stato caricato (anche binari e JCAMP); più spettri dallo stesso file → una copia sola
+    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.name||'file');
+      add('orig', uniq(expDir('orig')+dir, m[1]||'file', m[2]), new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)); }
     progress((i+1)/total*0.9); say_(i+1); await tick();
   }
   for (const {c:cmp} of groups){
@@ -6826,7 +6840,7 @@ async function runExport(){
       if (r.written.length && !r.failed.length) say('#tip3','Esportazione completata.');
       return;
     }
-    const dl=out.map(o=>({name:o.path.replace(/\//g,'_'), blob:o.data instanceof Blob ? o.data : new Blob([o.data],{type:/\.csv$/i.test(o.path)?'text/csv':'text/plain'})}));
+    const dl=out.map(o=>({name:o.path.replace(/\//g,'_'), blob:o.data instanceof Blob ? o.data : new Blob([o.data],{type:o.data instanceof Uint8Array?'application/octet-stream':/\.csv$/i.test(o.path)?'text/csv':'text/plain'})}));
     dl.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
     setReady(dl);
     if (EXP_FIXED.length) toast('Nomi corretti per Windows: '+EXP_FIXED.slice(0,4).map(([a,b])=>a+' → '+b).join(', ')+(EXP_FIXED.length>4?' …':''));

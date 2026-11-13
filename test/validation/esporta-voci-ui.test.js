@@ -8,13 +8,13 @@
 // Contenuto: i file scritti sono identici a quelli dentro buildZip() (cambia il contenitore, non i numeri). Dati SINTETICI.
 // Uso: PW_CHANNEL=chrome node --test test/validation/esporta-voci-ui.test.js
 'use strict';
-const {describe, it, before, after}=require('node:test'), assert=require('node:assert'), path=require('path');
+const {describe, it, before, after}=require('node:test'), assert=require('node:assert'), path=require('path'), fs=require('fs'), crypto=require('crypto');
 const B=require('./browser.js'), {openDesk}=require('./tauri-mock.js'), {pdfText}=require('./pdf-text.js');
 const JSZip=require(path.join(B.ROOT,'node_modules','jszip'));
 
 const ftir=k=>'Wavenumber (cm-1),Absorbance\n'+Array.from({length:400},(_,i)=>(4000-i*8)+','+(0.1+Math.exp(-Math.pow((i-150-k)/9,2))+0.5*Math.exp(-Math.pow((i-260)/6,2))).toFixed(4)).join('\n');
 const SPECTRA=[['a.csv',ftir(0)],['b.csv',ftir(20)],['c.csv',ftir(40)]];
-const NONE={outPdf:false,outPng:false,outSvg:false,csvPeaks:false,csvData:false,csvRaw:false,outAnalysis:false,outTrace:false,outOrigin:false,outProject:false,zipAll:false,expSub:false,expScope:'sel',expNames:{}};
+const NONE={outPdf:false,outPng:false,outSvg:false,csvPeaks:false,csvData:false,csvRaw:false,outOrig:false,outAnalysis:false,outTrace:false,outOrigin:false,outProject:false,zipAll:false,expSub:false,expScope:'sel',expNames:{}};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 let server, br;
@@ -223,5 +223,44 @@ describe('Esportazione per voci, online', {timeout:10*60*1000}, ()=>{
     assert.match(msg, /5 file/);
     assert.deepStrictEqual(n.sort(), ['dati_elaborati_a.csv','dati_elaborati_b.csv','dati_elaborati_c.csv','elenco_picchi.csv','tracciabilita.csv']);
     assert.strictEqual(z.length, 1); assert.match(z[0], /\.zip$/);
+  });
+});
+
+// «Copia identica del file originale»: i byte caricati, con nome ed estensione, per un binario (.spa), un JCAMP, un MCA e un CSV (dati SINTETICI e del corpus)
+function spaBytes(){ const n=200, buf=new ArrayBuffer(2000), dv=new DataView(buf); 'campione'.split('').forEach((c,i)=>dv.setUint8(30+i,c.charCodeAt(0)));
+  dv.setUint8(304,2); dv.setUint32(306,600,true); dv.setUint8(320,3); dv.setUint32(322,800,true); dv.setUint32(326,4*n,true); dv.setUint8(336,0);
+  dv.setUint32(604,n,true); dv.setUint32(608,1,true); dv.setUint32(612,17,true); dv.setFloat32(616,4000,true); dv.setFloat32(620,400,true);
+  for (let i=0;i<n;i++) dv.setFloat32(800+4*i, 0.1+Math.exp(-Math.pow((i-80)/6,2)), true); return Buffer.from(buf); }
+const JDX=['##TITLE=prova SINTETICA','##JCAMP-DX=5.01','##DATA TYPE=INFRARED SPECTRUM','##XUNITS=1/CM','##YUNITS=ABSORBANCE','##XFACTOR=1','##YFACTOR=1','##NPOINTS=120','##XYPOINTS=(XY..XY)']
+  .concat(Array.from({length:120},(_,i)=>(1000+i*10)+', '+(0.1+Math.exp(-Math.pow((i-60)/5,2))).toFixed(5))).concat(['##END=']).join('\r\n');
+const ORIG=[['campione.spa', spaBytes()], ['prova.jdx', Buffer.from(JDX,'latin1')], ['A08_bronzo_senzacal.mca', fs.readFileSync(path.join(B.ROOT,'test','corpus','xrf','A08_bronzo_senzacal.mca'))], ['dati;con spazi.csv', Buffer.from('﻿'+ftir(5).replace(/\n/g,'\r\n'),'utf8')]];
+const sha=b=>crypto.createHash('sha256').update(Buffer.from(b)).digest('hex');
+async function loadOrig(p){ return p.evaluate(async L=>{ const ents=L.map(([n,b])=>({file:new File([Uint8Array.from(atob(b),c=>c.charCodeAt(0))],n), path:n})); files.length=0; cur=-1; await addEntries(ents); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+  S.expScope='all'; S.outOrig=true; saveS(); syncControls(); renderSummary(); return files.map(f=>[f.name, f.instr, !!f.rawBin]); }, ORIG.map(([n,b])=>[n, b.toString('base64')])); }
+describe('Copia identica del file originale', {timeout:10*60*1000}, ()=>{
+  it('desktop: binario, JCAMP, MCA e CSV identici byte per byte (SHA-256), con nome ed estensione', async ()=>{
+    const o=await desk({}); const loaded=await loadOrig(o.p);
+    const r=await o.p.evaluate(async ()=>{ await runExport(); return Object.entries(window.__mock.disk).map(([k,v])=>[k, v]); });
+    await done(o);
+    assert.strictEqual(loaded.length, 4, 'spettri letti: '+JSON.stringify(loaded)); assert.ok(loaded.some(x=>x[2]), 'il .spa è letto come binario');
+    const got=Object.fromEntries(r.map(([k,v])=>[k.slice('/out/scelta/'.length), sha(Uint8Array.from(v))]));
+    assert.deepStrictEqual(got, Object.fromEntries(ORIG.map(([n,b])=>['file_originali/'+n, sha(b)])));
+  });
+  it('online: la voce sola con uno spettro scarica un solo file, identico', async ()=>{
+    const o=await B.openPage(br, server, {}); await load(o.p, {}); await loadOrig(o.p);
+    const r=await o.p.evaluate(async ()=>{ window.__dl=[]; window.download=(b,n)=>window.__dl.push([n,b]); S.expScope='one'; cur=files.findIndex(f=>/\.jdx$/.test(f.name)); await runExport(); await new Promise(r=>setTimeout(r,1500));
+      return Promise.all(window.__dl.map(async ([n,b])=>[n, Array.from(new Uint8Array(await b.arrayBuffer()))])); });
+    await done(o);
+    assert.strictEqual(r.length, 1); assert.strictEqual(r[0][0], 'file_originali_prova.jdx'); assert.strictEqual(sha(Uint8Array.from(r[0][1])), sha(ORIG[1][1]));
+  });
+  it('senza i byte originali (progetto vecchio) la voce è spenta e dice perché; con alcuni mancanti li elenca', async ()=>{
+    const o=await desk({outOrig:true, expScope:'all'});
+    const r=await o.p.evaluate(async ()=>{ delete files[0].raw; renderSummary(); const part={note:$('#origNote').textContent, dis:$('[data-k="outOrig"]').disabled};
+      files.forEach(f=>{ delete f.raw; }); renderSummary(); const all={note:$('#origNote').textContent, dis:$('[data-k="outOrig"]').disabled, btn:$('#doDl').disabled};
+      return {part, all}; });
+    await done(o);
+    assert.strictEqual(r.part.dis, false); assert.match(r.part.note, /Senza file originale, viene saltato: a\.csv/);
+    assert.strictEqual(r.all.dis, true); assert.match(r.all.note, /Non disponibile: il progetto non contiene i file originali/);
+    assert.strictEqual(r.all.btn, true, 'con la sola voce non disponibile non si esporta niente');
   });
 });

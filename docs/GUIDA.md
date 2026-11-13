@@ -10,6 +10,7 @@
 Nella pagina *Esporta* ogni voce ha la sua casella e un nome di file (o di cartella) già proposto, che puoi cambiare:
 - PDF del report; immagini PNG e SVG (una per grafico e per ogni confronto); elenco dei picchi in CSV;
 - dati elaborati e dati originali, un CSV per spettro (i dati originali con i valori e l'ordine delle righe del file, prima di conversioni e tarature); tabelle di analisi (bande, tarature, parametri per tecnica, controllo di qualità, ipotesi, bozza dei metodi con la bibliografia);
+- copia identica del file originale di ogni spettro (i byte caricati, con nome ed estensione, anche binari e JCAMP; non disponibile se il progetto non contiene gli originali);
 - tracciabilità (impronta SHA-256 di ogni file e scelte usate); cartella Excel per Origin; il progetto `.acchspettri`.
 
 In *Spettri inclusi* scegli quali spettri esportare: quelli spuntati, tutti, oppure solo quello aperto.

@@ -1039,5 +1039,14 @@
 "caratteri non ammessi da Windows (": "characters not allowed by Windows (",
 "caratteri non ammessi da Windows (< > : \" / \\ | ? *)": "characters not allowed by Windows (< > : \" / \\ | ? *)",
 "nome riservato di Windows": "name reserved by Windows",
-"punto o spazio finale": "trailing dot or space"
+"punto o spazio finale": "trailing dot or space",
+"1 copia identica del file originale": "1 identical copy of the original file",
+"copie identiche dei file originali": "identical copies of the original files",
+"Copia identica del file originale": "Identical copy of the original file",
+"I file originali non sono disponibili: il progetto non li contiene.": "The original files are not available: the project does not contain them.",
+"Non disponibile: il progetto non contiene i file originali (per esempio un progetto salvato con una versione vecchia).": "Not available: the project does not contain the original files (for example a project saved with an old version).",
+"per ogni spettro il file così come è stato caricato, byte per byte, con il suo nome e la sua estensione": "for each spectrum the file exactly as it was loaded, byte for byte, with its name and extension",
+"Senza file originale, viene saltato: {0}.": "No original file, skipped: {0}.",
+"Senza file originale, vengono saltati {0} spettri: {1}.": "No original file, {0} spectra skipped: {1}.",
+"Senza file originale, vengono saltati {0} spettri:": "No original file, {0} spectra skipped:"
 }
