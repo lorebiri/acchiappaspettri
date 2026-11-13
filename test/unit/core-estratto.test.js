@@ -50,3 +50,26 @@ test('il nucleo gira senza pagina (worker, Node) e legge la libreria dall\'adatt
   vm.runInContext("LIB.push({id:'c2',i:'raman',a:1,b:2,n:'x'}); saveLib();", ctx);
   assert.equal(JSON.parse(store.getItem('spectraplot.lib.v1')).length, 2);
 });
+
+// moduli puri del nucleo (app/*-core.js): nella prova di identità come il blocco CORE
+test('moduli del nucleo: caricati prima del blocco CORE, copiati identici, elencati con le impronte, senza pagina', ()=>{
+  const {coreModules}=require('../../scripts/core-extract.js'), crypto=require('crypto'), html=fs.readFileSync(path.join(ROOT,'index.html'));
+  const mods=coreModules(html), onDisk=fs.readdirSync(path.join(ROOT,'app')).filter(n=>/-core\.js$/.test(n)).map(n=>'app/'+n).sort();
+  assert.deepEqual(mods.slice().sort(), onDisk, 'ogni app/*-core.js è caricato dalla pagina prima del nucleo');
+  const out=fs.mkdtempSync(path.join(os.tmpdir(),'acch-dist-'));
+  try{
+    const prep=require('../../scripts/prepare-desktop.js'), log=console.log; console.log=()=>{}; try{ prep.main(out); } finally { console.log=log; }
+    const man=JSON.parse(fs.readFileSync(path.join(out,'core-modules.json'),'utf8'));
+    assert.deepEqual(man.map(m=>m.file), mods.concat(['core.js']));
+    for (const m of man){ const b=fs.readFileSync(path.join(out,m.file)); assert.equal(crypto.createHash('sha256').update(b).digest('hex'), m.sha256, m.file);
+      if (m.file!=='core.js') assert.equal(Buffer.compare(b, fs.readFileSync(path.join(ROOT,m.file))), 0, m.file+' diverso'); }
+  } finally { fs.rmSync(out,{recursive:true,force:true}); }
+  // senza pagina: moduli e nucleo insieme, nessun DOM, e il nucleo li usa (un'isoterma AIF diventa «sorp»)
+  const ctx={console, Float64Array, Math, TextDecoder, Uint8Array, DataView, ArrayBuffer}; vm.createContext(ctx);
+  for (const m of mods){ const src=fs.readFileSync(path.join(ROOT,m),'utf8'), clean=src.replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/.*$/gm,'$1');
+    for (const re of [/\blocalStorage\b/, /\bindexedDB\b/, /\bdocument\s*\./, /\bwindow\s*\./]) assert.ok(!re.test(clean), m+' usa '+re);
+    vm.runInContext(src, ctx, {filename:m}); }
+  vm.runInContext(coreSrc(), ctx);
+  const aif=fs.readFileSync(path.join(ROOT,'test','fixtures','sorption','isoterma.aif'),'utf8'); ctx.__t=aif;
+  assert.equal(vm.runInContext('detectInstrument(parseText(__t), "x.aif").instr', ctx), 'sorp');
+});

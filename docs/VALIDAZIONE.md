@@ -2,7 +2,7 @@
 
 Documento generato da `scripts/gen-validazione.js` il 2026-11-13. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **3.0.0-rc.1** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Versione dell'app: **3.0.0-rc.2** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
 - Motore: Node v26.13.0 (V8 14.6.202.34-node.40), darwin arm64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).

@@ -127,7 +127,14 @@
     if (top<N-1) for (let i=top;i<N;i++) des.push(i);
     return {ads, des, top};
   }
-  function branchOf(iso, which){ const b=iso.branches[which]; return b||{x:[],n:[]}; }
+  /* f.iso nel formato di progetto 2 (docs/FORMATO-ACCHSPETTRI.md, «iso»): p (Pa, oppure p/p₀ se unit.p è «p/p0»), p0 per punto o null,
+     n in cm³ STP/g, t = temperatura in K, branches = intervalli di indici [inizio, fine). I rami in x e n si ricavano qui, con una cache. */
+  const BR=typeof WeakMap!=='undefined' ? new WeakMap() : null;
+  function relOf(iso){ const rel=String(iso.unit&&iso.unit.p||'')==='p/p0'; return iso.p.map((v,i)=>rel?v:(iso.p0&&fin(iso.p0[i])&&iso.p0[i]>0?v/iso.p0[i]:NaN)); }
+  function branchOf(iso, which){ if (!iso || !iso.branches) return {x:[],n:[],idx:[]};
+    let c=BR&&BR.get(iso); if (!c || c.p!==iso.p || c.n!==iso.n){ c={p:iso.p, n:iso.n, x:relOf(iso)}; if (BR) BR.set(iso,c); }
+    if (c[which]) return c[which]; const r=iso.branches[which], idx=[]; if (Array.isArray(r)) for (let i=r[0];i<r[1];i++) idx.push(i);
+    return (c[which]={x:idx.map(i=>c.x[i]), n:idx.map(i=>iso.n[i]), idx}); }
   /* costruisce f.iso da colonne grezze. q: {x?, p?, p0?, n, t?, marks?, nUnit, pUnit, mass_g, meta} */
   function buildIso(q){
     const N=q.n.length, meta=Object.assign({}, q.meta||{}), problems=[];
@@ -152,8 +159,15 @@
     else n=n.map(v=>v*k);
     if (fin(q.mass_g)) meta.mass_g=q.mass_g;
     meta.nUnitFile=q.nUnit||''; meta.pUnitFile=q.pUnit||'';
-    const xs=x||new Array(N).fill(NaN), sp=splitBranches(xs, n, q.marks), mk=idx=>({x:idx.map(i=>xs[i]), n:idx.map(i=>n[i]), idx});
-    const iso={branches:{ads:mk(sp.ads), des:mk(sp.des)}, p:p||[], p0:p0||[], n, x:xs, t:q.t||[], unit:{n:'cm3STP/g', p:'Pa'}, meta, problems};
+    // solo i punti leggibili (numeri finiti); i rami diventano due blocchi contigui, adsorbimento poi desorbimento
+    const xs=x||new Array(N).fill(NaN), keep=[]; for (let i=0;i<N;i++) if (fin(xs[i]) && fin(n[i])) keep.push(i);
+    if (keep.length<N && x) problems.push({lv:'warn', k:'skip', t:`${N-keep.length} righe senza p/p₀ o quantità leggibili sono state ignorate`});
+    const kx=keep.map(i=>xs[i]), kn=keep.map(i=>n[i]), km=q.marks?keep.map(i=>q.marks[i]):null, sp=splitBranches(kx, kn, km);
+    const last=sp.ads[sp.ads.length-1], shared=sp.des.length>0 && sp.des[0]===last, dRest=shared?sp.des.slice(1):sp.des, order=sp.ads.concat(dRest).map(k=>keep[k]), A=sp.ads.length;
+    const absP=!!(p && p0), time=q.t&&q.t.length===N?order.map(i=>q.t[i]):null;
+    if (time) meta.time=time;
+    const iso={p:order.map(i=>absP?p[i]:xs[i]), p0:absP?order.map(i=>p0[i]):null, n:order.map(i=>n[i]), t:fin(meta.T)?+meta.T:null,
+      branches:{ads:A?[0,A]:null, des:dRest.length?[shared?A-1:A, A+dRest.length]:null}, unit:{p:absP?'Pa':'p/p0', p0:'Pa', n:'cm3 STP/g', t:'K'}, meta, problems};
     if (meta.gas && !meta.gasKey) meta.gasKey=gasKey(meta.gas);
     return iso;
   }
@@ -556,7 +570,7 @@
     if (typeof text!=='string' || text.length<20) return null;
     const aif=parseAIF(text); if (aif){ aif.reason='isoterma di adsorbimento, formato AIF'+(aif.iso.meta.software&&aif.iso.meta.software!=='AIF'?' ('+aif.iso.meta.software+')':''); return aif; }
     if (!looksSorption(text) && !/\.(aif)$/i.test(name||'')) return null;
-    if (/\b(TPR|TPD|TPO|TPSR)\b|pulse\s*chemisorption|chemisorbimento|titolazione\s*a\s*impulsi/i.test(text.slice(0,4000))) return null;   // chemisorbimento: altro lettore (parseTPx)
+    if (CHEM_KW.test(text.slice(0,6000))) return null;   // chemisorbimento: altro lettore (parseChem)
     const lines=text.split(/\r\n|\n|\r/), sep=guessSep(lines), meta=readHeader(text), blocks=blocksOf(lines, sep);
     const pdfText=/report\s*id|page\s+\d+\s+of\s+\d+|pagina\s+\d+\s+di\s+\d+/i.test(text);
     // blocchi dell'isoterma: tutti quelli con nomi riconosciuti come pressione + quantità e non di un risultato (BET, BJH, DFT, t-plot…)
@@ -598,7 +612,9 @@
       if (a) meta.instrResults=Object.assign(meta.instrResults||{}, {area:toNumber((a[1]||a[2]).replace(',','.'))}); if (c) meta.instrResults=Object.assign(meta.instrResults||{}, {C:+c[1]}); if (v) meta.instrResults=Object.assign(meta.instrResults||{}, {Vtot:+v[1]}); }
     if (dft) meta.dftExport=parseDFTBlock(dft.block, dft.head, sep, text);
     meta.fromPdfText=pdfText;
-    const iso=buildIso(q), fmt=/kaomi/i.test(meta.software||'')?'Kaomi for Autosorb':/asiqwin/i.test(meta.software||'')?'ASiQwin':'tabella di isoterma';
+    const iso=buildIso(q);
+    if (iso.n.length<3) return {guided:true, why:iso.problems.length?iso.problems.map(x=>x.t).join('; '):'Meno di 3 punti leggibili', table:{names:C.names||[], k:cand[0].b.k, rows, units:C.units.map(u=>u&&u.u||'')}, meta};
+    const fmt=/kaomi/i.test(meta.software||'')?'Kaomi for Autosorb':/asiqwin/i.test(meta.software||'')?'ASiQwin':'tabella di isoterma';
     if (pdfText) iso.problems.push({lv:'warn', k:'pdf', t:'Dati letti dal testo di un report PDF: è un ripiego, controlla i numeri con il report (meglio l\'esportazione tabellare)'});
     return {iso, sure:sureBrand(text) || !!(cR && aUse.u), fmt, reason:'isoterma di adsorbimento ('+fmt+(meta.gas?', '+meta.gas:'')+(meta.T?` a ${(+meta.T).toFixed(2)} K`:'')+')'};
   }
@@ -650,7 +666,7 @@
     if (A.iupac) rows.push([T('Isoterma','Isotherm'), T('Tipo IUPAC (suggerimento)','IUPAC type (suggestion)'), A.iupac.type+(A.iupac.hyst?' · '+A.iupac.hyst:''), '', A.iupac.why.join('; ')]);
     (A.warnings||[]).forEach(w=>rows.push([T('Avvisi','Warnings'), w.lv==='stop'?T('grave','serious'):T('attenzione','warning'), '', '', w.t]));
     rows.push([]); rows.push([T('Ramo','Branch'), 'p/p₀', T('Quantità','Amount'), 'cm³ STP/g', 'mmol/g']);
-    for (const br of ['ads','des']){ const b=iso.branches[br]; b.x.forEach((x,i)=>rows.push([br, g(x), g(b.n[i]), g(b.n[i]), g(toMmol(b.n[i]))])); }
+    for (const br of ['ads','des']){ const b=branchOf(iso, br); b.x.forEach((x,i)=>rows.push([br, g(x), g(b.n[i]), g(b.n[i]), g(toMmol(b.n[i]))])); }
     return rows;
   }
 
@@ -673,7 +689,7 @@
     const vm=M.M&&M.rho?M.M/(M.rho*NA)*1e21:NaN, f=o.shape||6;   // nm³ per atomo
     const areaS=M.am?Ns*M.am*1e-18:NaN, areaM=areaS/wmet, d=fin(vm)&&M.am?f*vm/(M.am*D):NaN;
     if (D>1) W.push({lv:'warn', t:'Dispersione oltre il 100%: spillover, stechiometria o carico sbagliati'});
-    W.push({lv:'warn', t:`Diametro valido solo per la forma ipotizzata (fattore ${f}${f===6?', sfera o cubo con una faccia sul supporto':''})`});
+    W.push({lv:'warn', t:f===6?'Diametro valido solo per la forma ipotizzata (fattore 6, sfera o cubo con una faccia sul supporto)':`Diametro valido solo per la forma ipotizzata (fattore ${f})`});
     return {Ns, D, Dpct:100*D, areaSample:areaS, areaMetal:areaM, d, vm, am:M.am, M:M.M, shape:f, warn:W};
   }
   /* impulsi: aree per impulso, volume del loop (cm³) a T (K) e p (kPa), frazione del gas attivo nella miscela */
@@ -739,8 +755,114 @@
     return {kind, t:it>=0?B.rows.map(r=>r[it]):null, T:B.rows.map(r=>r[iT]+(inC?273.15:0)), s:B.rows.map(r=>r[iS]), meta:readHeader(text)};
   }
 
+  /* ---------------- chemisorbimento: lettore unico (DEDOTTO: nessun esempio pubblico dei file di Kaomi React) ----------------
+     parseChem(text) → null | {chem:{kind, …}, reason} | {guided:true, why, table}. kind: TPR, TPO, TPD, TPSR, TPx, pulse, static */
+  const CHEM_KW=/\b(TPR|TPO|TPD|TPSR)\b|temperature.?programmed|programmata in temperatura|pulse\s*(chemisorption|titration|no\.?|number)|titolazione a impulsi|impulsi|chemisorption|chemisorbimento|chemisorbtion|combined isotherm|repeat isotherm|isoterma combinata|isoterma ripetuta|acchiappaspettri chem/i;
+  function chemHeader(text){
+    const t=unbreak(String(text)), m=readHeader(text), num=v=>toNumber(String(v).replace(',','.'));
+    const get=(re, conv)=>{ const r=re.exec(t); return r ? (conv?conv(r):num(r[1])) : null; };
+    const loop=get(/(?:loop\s*vol(?:ume)?|volume\s*(?:del\s*)?loop|schleifenvolumen)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)\s*(µl|ul|ml|cm3|cm³|cc)?/i, r=>num(r[1])*(/µl|ul/i.test(r[2]||'')?1e-3:1));
+    const flow=get(/(?:flow(?:\s*rate)?|portata|fluss)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)\s*(cm3|cm³|ml|sccm)/i);
+    const ramp=get(/(?:ramp(?:\s*rate)?|rampa|heating\s*rate|velocit[aà]\s*di\s*riscaldamento|heizrate)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)\s*(?:°c|k|c)\s*\/\s*min/i);
+    const frac=get(/(\d+[.,]?\d*)\s*%\s*(H2|CO|O2|NH3|N2O)\b/i, r=>num(r[1])/100);
+    const loopT=get(/(?:loop\s*temp(?:erature)?|temperatura\s*(?:del\s*)?loop)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)\s*(°c|k|c)?/i, r=>num(r[1])+(/k/i.test(r[2]||'')?0:273.15));
+    const metal=(/(?:metal|metallo|active\s*metal)\s*[:\t=,;]?\s*(Pt|Pd|Ni|Rh|Ru|Ir|Cu|Co|Ag|Au|Fe)\b/i.exec(t)||[])[1]||null;
+    const loading=get(/(?:metal\s*loading|loading|carico\s*(?:metallico|di\s*metallo)?)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)\s*(?:%|wt)/i);
+    const SF=get(/(?:stoichiometry(?:\s*factor)?|stechiometria|stoichiometric\s*factor)\s*[:\t=,;]?\s*([-+]?\d+[.,]?\d*)/i);
+    const gas=(/(?:gas|analysis\s*gas|probe\s*gas|gas\s*sonda|adsorbate)\s*[:\t=,;]?\s*(?:\d+[.,]?\d*\s*%\s*)?(H2|CO|O2|NH3|N2O|CO2)\b/i.exec(t)||[])[1]||null;
+    return Object.assign(m, {loopVol:loop, flow, ramp, frac, loopT, metal, loading, SF, probe:gas});
+  }
+  function parseChem(text, name){
+    if (typeof text!=='string' || text.length<20) return null;
+    const head=text.slice(0,6000); if (!CHEM_KW.test(head)) return null;
+    const lines=text.split(/\r\n|\n|\r/), sep=guessSep(lines), blocks=blocksOf(lines, sep).filter(b=>b.rows.length>=3), meta=chemHeader(text);
+    const canon=/acchiappaspettri chem v1;\s*kind=(\w+)/i.exec(head);
+    const isPulse=canon?canon[1]==='pulse':/pulse|impuls/i.test(head) && !/\b(TPR|TPO|TPD|TPSR)\b/.test(head), isStatic=canon?canon[1]==='static':/combined|repeat|combinata|ripetuta|static\s*chemisorption|chemisorbimento\s*statico/i.test(head);
+    const cellNames=b=>cellsOf(b.head[b.head.length-1]||'', sep).map(c=>norm(c).trim()).filter(Boolean);
+    const guided=why=>{ const b=blocks.sort((u,v)=>v.rows.length-u.rows.length)[0]; return b ? {guided:true, chemGuided:true, why, table:{names:cellNames(b), k:b.k, rows:b.rows, units:[]}, meta} : null; };
+    if (isPulse){
+      const b=blocks.sort((u,v)=>v.rows.length-u.rows.length)[0]; if (!b) return null; const c=cellNames(b), iA=c.findIndex(x=>/area|integral|signal|segnale/.test(x)); if (iA<0 || c.length!==b.k) return guided('Titolazione a impulsi: non riconosco con certezza la colonna delle aree');
+      return {chem:{kind:'pulse', areas:b.rows.map(r=>r[iA]), meta}, reason:'chemisorbimento a impulsi'+(meta.probe?' ('+meta.probe+')':'')};
+    }
+    if (isStatic){
+      const isoB=blocks.filter(b=>{ const c=cellNames(b); return c.length===b.k && c.some(x=>/press/.test(x)) && c.some(x=>/vol|amount|quantit|uptake/.test(x)); });
+      if (!isoB.length) return guided('Chemisorbimento statico: non riconosco con certezza le colonne di pressione e quantità');
+      const tag=b=>/repeat|ripetuta|second|weak|debole/i.test(b.head.join(' '))?'rep':'comb', P={};
+      for (const b of isoB){ const c=cellNames(b), ip=c.findIndex(x=>/press/.test(x)), iv=c.findIndex(x=>/vol|amount|quantit|uptake/.test(x)), pu=(unitOf(c[ip])||{}).u||'', nu=(unitOf(c[iv])||{}).u||'';
+        if (!pu || !nu) return guided('Chemisorbimento statico: unità di pressione o quantità non indicate');
+        const k=tag(b); if (P[k]) continue; const pk=P_UNITS[pu]; const nk=/mmol\/g/.test(nu)?VMOL.stp/1000:/umol\/g|µmol\/g/.test(nu)?VMOL.stp/1e6:/\/g/.test(nu)?1:null; if (!pk || nk==null) return guided('Chemisorbimento statico: unità non riconosciute');
+        P[k]={p:b.rows.map(r=>r[ip]*pk/1000), n:b.rows.map(r=>r[iv]*nk)}; }   // p in kPa, n in cm³ STP/g
+      if (!P.comb) return guided('Chemisorbimento statico: manca l\'isoterma combinata');
+      return {chem:{kind:'static', comb:P.comb, rep:P.rep||null, meta}, reason:'chemisorbimento statico'+(meta.probe?' ('+meta.probe+')':'')};
+    }
+    const t=parseTPx(text); if (!t) return null; if (t.guided) return guided('TPx: '+t.why.charAt(0).toLowerCase()+t.why.slice(1));
+    if (canon) t.kind=canon[1];
+    return {chem:{kind:t.kind, t:t.t, T:t.T, s:t.s, meta:Object.assign(meta, t.meta)}, reason:'curva '+t.kind+' (temperatura misurata, segnale TCD)'};
+  }
+  // importazione guidata del chemisorbimento: testo canonico riletto da parseChem
+  function toChemText(o){ const L=['Acchiappaspettri chem v1; kind='+o.kind];
+    if (o.mass_g>0) L.push('Sample Weight: '+o.mass_g+' g'); if (o.loopVol>0) L.push('Loop Volume: '+o.loopVol+' cm3'); if (o.ramp>0) L.push('Ramp: '+o.ramp+' °C/min');
+    if (o.kind==='pulse'){ L.push('Pulse;Area'); o.y.forEach((v,i)=>L.push((i+1)+';'+v)); }
+    else if (o.kind==='static'){ L.push('Combined isotherm','Pressure (kPa);Volume (cm3 STP/g)'); o.x.forEach((v,i)=>L.push(v+';'+o.y[i])); }
+    else { L.push('Time (min);Temperature (°C);TCD Signal'); o.x.forEach((v,i)=>L.push((o.t?o.t[i]:i)+';'+v+';'+o.y[i])); }
+    return L.join('\n')+'\n'; }
+  function chemAnalyze(c, o){ o=o||{}; const out={warn:[]}, m=c.meta||{};
+    if (c.kind==='pulse'){ out.pulse=pulseUptake({areas:c.areas, loopVol:o.loopVol!=null?o.loopVol:m.loopVol, T:o.loopT||m.loopT||298.15, p:o.p||101.325, frac:o.frac!=null?o.frac:(m.frac!=null?m.frac:1), nSat:o.nSat, tol:o.tol, mass_g:o.mass_g!=null?o.mass_g:m.mass_g}); out.uptake=out.pulse.uptakeUmolPerG; out.warn.push(...(out.pulse.warn||[])); }
+    else if (c.kind==='static'){ out.stat=staticChem(c.comb, c.rep, {pa:o.pa, pb:o.pb}); if (!out.stat.err){ out.uptake=out.stat.strong/VMOL.stp*1e6; if (!c.rep) out.warn.push({lv:'warn', t:'Senza isoterma ripetuta: l\'uptake è quello totale (forte + debole)'}); } }
+    else { const b=o.beta||m.ramp||null; out.tpx=tpx({t:c.t, T:c.T.map(v=>v), s:c.s, beta:b, factor:o.factor, mass_g:o.mass_g!=null?o.mass_g:m.mass_g, theo:o.theo}); out.warn.push(...(out.tpx.warn||[]));
+      if (out.tpx && fin(out.tpx.Tm)){ out.redhead=redhead(out.tpx.Tm, out.tpx.beta||b||10, o.nu); out.warn.push(...out.redhead.warn); }
+      if (o.S0>0 && o.flow>0 && (o.frac>0 || m.frac>0)){ out.mb=montiBaiker({S0:o.S0, flow:o.flow/60, frac:o.frac||m.frac, beta:out.tpx.beta}); out.warn.push(...out.mb.warn); }
+      if (c.kind==='TPR' && !o.coldTrap) out.warn.push({lv:'warn', t:'Acqua nel TCD: senza trappola fredda il segnale del TPR comprende l\'acqua prodotta'}); }
+    if (o.disp){ const d=Object.assign({}, o.disp); if (d.uptake==null && out.uptake!=null) d.uptake=out.uptake; if (d.metal==null) d.metal=m.metal; if (d.loading==null) d.loading=m.loading; if (d.SF==null) d.SF=m.SF; out.disp=metalDispersion(d); out.warn.push(...(out.disp.warn||[])); }
+    return out; }
+  function chemCsvRows(c, A, en){ const T=(it,e)=>en?e:it, g=v=>v==null||!fin(v)?'':+(+v).toPrecision(8), rows=[[T('Sezione','Section'),T('Grandezza','Quantity'),T('Valore','Value'),T('Unità','Unit'),T('Nota','Note')]];
+    rows.push([T('Misura','Measurement'), T('Tipo','Kind'), c.kind, '', '']);
+    if (A.tpx){ rows.push(['TPx', T('Area (base lineare)','Area (linear baseline)'), g(A.tpx.area), T('segnale·min','signal·min'), A.tpx.beta?`β ${g(A.tpx.beta)} K/min`:''], ['TPx','Tm', g(A.tpx.Tm), 'K', ''], ['TPx', T('Quantità','Amount'), g(A.tpx.umol), 'µmol', A.tpx.umol==null?T('senza fattore TCD','without TCD factor'):''], ['TPx', T('Grado di riduzione','Degree of reduction'), g(A.tpx.reduction), '', '']); (A.tpx.peaks||[]).forEach((q,i)=>rows.push(['TPx', T('Picco ','Peak ')+(i+1), g(q.T), 'K', ''])); }
+    if (A.redhead) rows.push(['Redhead','E', g(A.redhead.E), 'kJ/mol', 'ν '+A.redhead.nu.toExponential(0)+' s⁻¹ ('+T('supposto','assumed')+')']);
+    if (A.mb) rows.push(['Monti–Baiker','K', g(A.mb.K), 's', '55–140 s']);
+    if (A.pulse && !A.pulse.err) rows.push([T('Impulsi','Pulses'), 'A_sat', g(A.pulse.Asat), '', A.pulse.saturated?T('saturati','saturated'):T('non saturati','not saturated')], [T('Impulsi','Pulses'), 'uptake', g(A.pulse.uptakeUmol), 'µmol', ''], [T('Impulsi','Pulses'), 'uptake', g(A.pulse.uptakeUmolPerG), 'µmol/g', '']);
+    if (A.stat && !A.stat.err) rows.push([T('Statico','Static'), T('totale','total'), g(A.stat.total), 'cm³ STP/g', A.stat.method], [T('Statico','Static'), T('debole','weak'), g(A.stat.weak), 'cm³ STP/g', ''], [T('Statico','Static'), T('forte','strong'), g(A.stat.strong), 'cm³ STP/g', '']);
+    if (A.disp && !A.disp.err) rows.push([T('Metallo','Metal'), T('Dispersione','Dispersion'), g(A.disp.Dpct), '%', ''], [T('Metallo','Metal'), T('Area metallica','Metal area'), g(A.disp.areaSample), T('m²/g campione','m²/g sample'), ''], [T('Metallo','Metal'), T('Area metallica','Metal area'), g(A.disp.areaMetal), T('m²/g metallo','m²/g metal'), ''], [T('Metallo','Metal'), T('Diametro medio','Mean diameter'), g(A.disp.d), 'nm', T('fattore di forma ','shape factor ')+A.disp.shape]);
+    (A.warn||[]).forEach(w=>rows.push([T('Avvisi','Warnings'), w.lv==='stop'?T('grave','serious'):T('attenzione','warning'), '', '', w.t]));
+    return rows; }
+  /* impostazioni salvate nel progetto (memoria dello spettro, an.sorp e an.chem): solo valori controllati, nessun campo sconosciuto */
+  function cleanOpt(kind, v){
+    if (!v || typeof v!=='object' || Array.isArray(v)) return null; const o={}, num=x=>typeof x==='number' && Number.isFinite(x), pair=x=>Array.isArray(x) && x.length===2 && x.every(num) && x[0]<x[1];
+    const str=(x,re)=>typeof x==='string' && x.length<=40 && re.test(x);
+    if (kind==='sorp'){
+      if (v.over && typeof v.over==='object'){ const w={}; for (const k of ['sigma','T','rhoL','gamma','M','theta']) if (num(v.over[k]) && v.over[k]>=0) w[k]=v.over[k]; if (ADSORBATES[v.over.gas]) w.gas=v.over.gas; if (['stp','iupac'].includes(v.over.stp)) w.stp=v.over.stp; if (THICK[v.over.thick]) w.thick=v.over.thick; if (Object.keys(w).length) o.over=w; }
+      for (const k of ['betRange','langRange','drRange']) if (pair(v[k]) && v[k][0]>=0 && v[k][1]<=1) o[k]=v[k].slice();
+      if (v.tRange && pair(v.tRange.x)) o.tRange={x:v.tRange.x.slice()};
+      if (THICK[v.tModel]) o.tModel=v.tModel; if (THICK[v.bjhThick]) o.bjhThick=v.bjhThick; if (['ads','des'].includes(v.bjhBranch)) o.bjhBranch=v.bjhBranch; if (v.tpvMode==='interp') o.tpvMode='interp';
+      if (num(v.tpvX) && v.tpvX>0 && v.tpvX<1) o.tpvX=v.tpvX; if (num(v.lambda) && v.lambda>=0) o.lambda=v.lambda; if (num(v.alphaS) && v.alphaS>0) o.alphaS=v.alphaS;
+      if (typeof v.alphaRefKey==='string' && v.alphaRefKey.length<=300) o.alphaRefKey=v.alphaRefKey; if (v.mmol===true) o.mmol=true; if (v.logx===true) o.logx=true;
+      if (Array.isArray(v.qstKeys)) o.qstKeys=v.qstKeys.filter(x=>typeof x==='string' && x.length<=300).slice(0,20);
+      const K=v.kernel; if (K && Array.isArray(K.x) && Array.isArray(K.w) && Array.isArray(K.K) && K.x.length>=5 && K.x.length<=400 && K.w.length>=2 && K.w.length<=200 && K.K.length===K.x.length && K.x.every(num) && K.w.every(num) && K.K.every(r=>Array.isArray(r) && r.length===K.w.length && r.every(num))) o.kernel={name:String(K.name||'').slice(0,80), x:K.x.slice(), w:K.w.slice(), K:K.K.map(r=>r.slice())};
+    } else if (kind==='chem'){
+      for (const k of ['factor','mass_g','theo','beta','nu','loopVol','loopT','p','frac','nSat','tol','pa','pb','S0','flow']) if (num(v[k]) && v[k]>=0) o[k]=v[k];
+      if (v.coldTrap===true) o.coldTrap=true;
+      if (v.disp && typeof v.disp==='object'){ const d={}; for (const k of ['loading','SF','uptake','M','rho','am','shape']) if (num(v.disp[k]) && v.disp[k]>=0) d[k]=v.disp[k]; if (METALS[v.disp.metal]) d.metal=v.disp.metal; if (Object.keys(d).length) o.disp=d; }
+      if (Array.isArray(v.kissKeys)) o.kissKeys=v.kissKeys.filter(x=>typeof x==='string' && x.length<=300).slice(0,20);
+    } else return null;
+    return Object.keys(o).length ? o : null;
+  }
+  /* XLSX (Office Open XML): testo con tabulazioni dai fogli, senza DOM (regex sugli XML). DEDOTTO: le cartelle di lavoro di Kaomi non sono documentate */
+  function xmlText(s){ return s.replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&#x([0-9a-f]+);/gi,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/&amp;/g,'&'); }
+  function xlsxToText(o){   // o: {shared: xml|null, sheets:[{name, xml}]}
+    const ss=[]; if (o.shared){ const re=/<si>([\s\S]*?)<\/si>/g; let m; while ((m=re.exec(o.shared))) ss.push(xmlText((m[1].match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).join(''))); }
+    const colIx=r=>{ const L=/^([A-Z]+)/.exec(r); let n=0; if (L) for (const ch of L[1]) n=n*26+ch.charCodeAt(0)-64; return n-1; };
+    const out=[]; for (const sh of o.sheets||[]){ const rows=[]; const re=/<row[^>]*>([\s\S]*?)<\/row>/g; let m;
+      while ((m=re.exec(sh.xml))){ const cells=[]; const rc=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g; let c; let auto=0;
+        while ((c=rc.exec(m[1]))){ const attr=c[1], body=c[2]||'', ref=(/\br="([A-Z]+\d+)"/.exec(attr)||[])[1], t=(/\bt="(\w+)"/.exec(attr)||[])[1], ix=ref?colIx(ref):auto; auto=ix+1;
+          let v=''; if (t==='s'){ const k=+((/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1]); v=ss[k]!=null?ss[k]:''; } else if (t==='inlineStr') v=xmlText((body.match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).join('')); else { const vv=(/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1]; v=vv!=null?xmlText(vv):''; }
+          cells[ix]=String(v).replace(/[\t\r\n]+/g,' '); }
+        rows.push(Array.from(cells, x=>x==null?'':x).join('\t').replace(/\t+$/,'')); }
+      if (rows.some(r=>r.trim())) out.push((o.sheets.length>1?'# '+sh.name+'\n':'')+rows.join('\n')); }
+    return out.join('\n\n')+'\n';
+  }
+
   return {VERSION:'1.0.0', NA, R, VMOL, P_UNITS, ADSORBATES, THICK, METALS, gasKey, thicknessKey, tOf, kelvinR, params, linfit, interp, nnls,
-    splitBranches, buildIso, toMmol, betFit, betArea, betAuto, betAt, bet, rouquerolCheck, xAtN, langmuir, totalPoreVolume, avgPoreDiameter, tPlot, alphaS, bjh, drda, isosteric, dftFit,
+    splitBranches, buildIso, branch:branchOf, relOf, toMmol, betFit, betArea, betAuto, betAt, bet, rouquerolCheck, xAtN, langmuir, totalPoreVolume, avgPoreDiameter, tPlot, alphaS, bjh, drda, isosteric, dftFit,
     hysteresis, iupacSuggest, warnings, analyze, parseSorption, parseAIF, readHeader, parseKernel, toAIF, csvRows, colKind, unitOf, toNumber,
-    metalDispersion, pulseUptake, staticChem, tpx, tcdFactor, kissinger, redhead, montiBaiker, polanyiWigner, parseTPx};
+    metalDispersion, pulseUptake, staticChem, tpx, tcdFactor, kissinger, redhead, montiBaiker, polanyiWigner, parseTPx, parseChem, chemHeader, chemAnalyze, chemCsvRows, toChemText, cleanOpt, xlsxToText};
 });

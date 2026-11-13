@@ -63,4 +63,28 @@ for (const T of [273.15, 298.15]){ const p0=T<280?3485000:6434000, ps=grid(500,1
 { const L=['Kaomi for Autosorb','Method: TPR','Gas: 5% H2/Ar','Flow: 30 cm3/min','Ramp: 10 °C/min','Sample Weight: 0.0500 g','Time (min);Temperature (°C);TCD Signal (mV)'];
   for (let i=0;i<=700;i++){ const t=i*0.1, T=50+10*t, s=0.2+0.0004*T+8*Math.exp(-(((T-320)/25)**2))+5*Math.exp(-(((T-480)/35)**2)); L.push([f(t,2),f(T,2),f(s,5)].join(';')); }
   w('tpr-sintetico.txt', L.join('\n')+'\n'); }
-console.log('fixture scritte in', D);
+// 13) impulsi di CO (DEDOTTO): aree per impulso, loop, temperatura, miscela; 1% Pt
+{ const L=['Kaomi for Autosorb','Method: Pulse Chemisorption','Gas: 10% CO/He','Loop Volume: 0.250 cm3','Loop Temperature: 35 °C','Sample Weight: 0.1000 g','Metal: Pt','Metal Loading: 1.0 %','Stoichiometry: 1','Pulse No.;Peak Area'];
+  [0,0,180.5,812.3,1180.2,1201.4,1200.9,1201.6].forEach((a,i)=>L.push(`${i+1};${a}`)); w('impulsi-co.txt', L.join('\n')+'\n'); }
+// 14) chemisorbimento statico di H₂ (DEDOTTO): isoterma combinata e ripetuta
+{ const L=['Kaomi for Autosorb','Static Chemisorption','Gas: H2','Analysis Temp: 35 °C','Sample Weight: 0.5000 g','Metal: Pt','Metal Loading: 1.0 %','Stoichiometry: 2','','Combined isotherm','Pressure (Torr);Volume Adsorbed (cm3 STP/g)'];
+  const ps=[80,120,160,200,240,280,320,360,400]; ps.forEach(p=>L.push(`${p};${(0.62+0.00050*p).toFixed(5)}`)); L.push('','Repeat isotherm','Pressure (Torr);Volume Adsorbed (cm3 STP/g)'); ps.forEach(p=>L.push(`${p};${(0.08+0.00045*p).toFixed(5)}`));
+  w('statico-h2.txt', L.join('\n')+'\n'); }
+// 15) TPD di NH₃ a 4 rampe (Polanyi–Wigner, primo ordine, E = 120 kJ/mol, ν = 1e13 s⁻¹): per Kissinger
+for (const beta of [5,10,15,20]){ const R=8.314462618, E=120e3, nu=1e13, dt=0.05; let th=1, T=300.15, t=0; const L=['Kaomi for Autosorb','Method: TPD','Gas: NH3',`Ramp: ${beta} °C/min`,'Sample Weight: 0.1000 g','Time (min);Temperature (°C);TCD Signal (mV)'];
+  while (T<973.15){ const r=nu*th*Math.exp(-E/(R*T)); th=Math.max(0, th-r*dt); L.push([(t/60).toFixed(4),(T-273.15).toFixed(3),(0.1+5000*r).toFixed(6)].join(';')); t+=dt; T+=beta/60*dt; }
+  w(`tpd-nh3-${beta}.txt`, L.filter((_,i)=>i<6||i%4===0).join('\n')+'\n'); }
+// 16) chemisorbimento con colonne non riconoscibili: importazione guidata
+w('impulsi-colonne-ignote.txt', ['Kaomi for Autosorb','Pulse chemisorption','Col A;Col B'].concat([0,300,900,1200,1201,1200].map((a,i)=>`${i+1};${a}`)).join('\n')+'\n');
+// 17) XLSX (DEDOTTO): la stessa isoterma di kaomi-tabella-en.csv in una cartella di lavoro con un foglio «Data Reduction» e uno «Isotherm»
+(async()=>{ const JSZip=require('jszip'), z=new JSZip(), esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'), col=i=>String.fromCharCode(65+i);
+  const sheet=rows=>`<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((r,i)=>`<row r="${i+1}">${r.map((c,j)=>typeof c==='number'?`<c r="${col(j)}${i+1}"><v>${c}</v></c>`:`<c r="${col(j)}${i+1}" t="inlineStr"><is><t>${esc(c)}</t></is></c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;
+  const head=[['Anton Paar Kaomi for Autosorb','version 2.02'],['Sample ID','Sintetico meso 1'],['Sample Weight',0.2,'g'],['Analysis Gas','Nitrogen'],['Analysis Temp',77.35,'K'],['Instrument','Autosorb 6300'],['Station',3],['Cross Section Area',16.2,'Å²']];
+  const iso=[['Isotherm-Normalized Data'],['Pressure (Torr)','p₀ (Torr)','Relative Pressure, p/p₀','Amount Adsorbed (cm³ STP/g)','Time (min)']].concat(seq.map(o=>[+o.p.toFixed(4),+o.p0.toFixed(3),+o.x.toFixed(6),+o.n.toFixed(4),+o.t.toFixed(3)]));
+  z.file('[Content_Types].xml','<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>');
+  z.file('xl/workbook.xml','<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Data Reduction" sheetId="1" r:id="rId1"/><sheet name="Isotherm" sheetId="2" r:id="rId2"/></sheets></workbook>');
+  z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="worksheets/sheet2.xml"/></Relationships>');
+  z.file('xl/worksheets/sheet1.xml', sheet(head)); z.file('xl/worksheets/sheet2.xml', sheet(iso));
+  const fixed=new Date(Date.UTC(2026,10,13)); z.forEach((_,f)=>{ f.date=fixed; });
+  fs.writeFileSync(path.join(D,'kaomi-cartella.xlsx'), await z.generateAsync({type:'nodebuffer', compression:'DEFLATE'}));
+  console.log('fixture scritte in', D); })();

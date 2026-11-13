@@ -1,0 +1,32 @@
+Kaomi for Autosorb
+Static Chemisorption
+Gas: H2
+Analysis Temp: 35 °C
+Sample Weight: 0.5000 g
+Metal: Pt
+Metal Loading: 1.0 %
+Stoichiometry: 2
+
+Combined isotherm
+Pressure (Torr);Volume Adsorbed (cm3 STP/g)
+80;0.66000
+120;0.68000
+160;0.70000
+200;0.72000
+240;0.74000
+280;0.76000
+320;0.78000
+360;0.80000
+400;0.82000
+
+Repeat isotherm
+Pressure (Torr);Volume Adsorbed (cm3 STP/g)
+80;0.11600
+120;0.13400
+160;0.15200
+200;0.17000
+240;0.18800
+280;0.20600
+320;0.22400
+360;0.24200
+400;0.26000

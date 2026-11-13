@@ -112,6 +112,21 @@ Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono
 - `unit`: unità di `p`, `p0`, `n`, `t` come testo; `meta`: oggetto libero (massa, adsorbato, parametri di riduzione, da dove vengono).
 - Resta nel JSON: un'isoterma ha meno di 1000 punti.
 
+### `memory.an.sorp` e `memory.an.chem`: impostazioni del fisisorbimento e del chemisorbimento
+Campi facoltativi dentro `memory.an`: un lettore 2 che non li conosce li ignora senza perdere numeri, quindi la versione del formato non cambia. All'apertura passano da `SorpCore.cleanOpt` (`app/sorption-core.js`), che tiene solo numeri finiti, valori ammessi e dimensioni limitate.
+- `sorp`:
+  - `over`, cioè i parametri di riduzione scelti dall'utente: `gas`, `sigma` in nm², `T` in K, `rhoL`, `gamma`, `M`, `theta`, `stp` (`stp` o `iupac`), `thick`;
+  - gli intervalli `betRange`, `langRange`, `drRange` (p/p₀) e `tRange.x`;
+  - `tModel`, `bjhBranch`, `bjhThick`, `tpvX`, `tpvMode`, `lambda`;
+  - `alphaRefKey` e `qstKeys`, che indicano altri spettri del progetto per percorso;
+  - `kernel`, il kernel DFT dell'utente: `{name, x, w, K}`, al massimo 400 × 200.
+- `chem`:
+  - `factor` (µmol per unità d'area TCD), `mass_g`, `theo`, `beta`, `nu`;
+  - per gli impulsi `loopVol`, `loopT`, `p`, `frac`, `nSat`, `tol`;
+  - per lo statico `pa` e `pb`; per Monti–Baiker `S0` e `flow`; `coldTrap`;
+  - `disp` = `{metal, loading, SF, uptake, M, rho, am, shape}`;
+  - `kissKeys`.
+
 ## `project/libraries.json`: librerie incorporate
 
 ```json

@@ -1,0 +1,18 @@
+Kaomi for Autosorb
+Method: Pulse Chemisorption
+Gas: 10% CO/He
+Loop Volume: 0.250 cm3
+Loop Temperature: 35 °C
+Sample Weight: 0.1000 g
+Metal: Pt
+Metal Loading: 1.0 %
+Stoichiometry: 1
+Pulse No.;Peak Area
+1;0
+2;0
+3;180.5
+4;812.3
+5;1180.2
+6;1201.4
+7;1200.9
+8;1201.6

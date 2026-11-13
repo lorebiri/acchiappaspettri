@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copia in dist-desktop/ solo ciò che serve all'app: pagina, librerie, moduli. Niente test né sorgenti nativi.
-const fs=require('fs'), path=require('path'), {extractCore}=require('./core-extract.js'); const root=path.join(__dirname,'..'), OUT=path.join(root,'dist-desktop');
+const fs=require('fs'), path=require('path'), crypto=require('crypto'), {extractCore, coreModules}=require('./core-extract.js'); const root=path.join(__dirname,'..'), OUT=path.join(root,'dist-desktop');
 // pagina del desktop: jsPDF non si carica all'avvio ma alla prima esportazione PDF (ensurePdfLib in index.html), così la prima schermata arriva prima
 const JSPDF_TAG=/<script src="vendor\/jspdf\.umd\.min\.js"><\/script>\r?\n/;
 function desktopHtml(h){ if (!JSPDF_TAG.test(h) || !h.includes('function ensurePdfLib')) throw new Error('prepare-desktop: jsPDF o ensurePdfLib non trovati in index.html'); return h.replace(JSPDF_TAG,''); }
@@ -17,6 +17,10 @@ function main(out){
   fs.writeFileSync(path.join(out,'index.html'), desktopHtml(fs.readFileSync(path.join(root,'index.html'),'utf8')));
   // nucleo estratto, identico byte per byte al blocco di index.html (test/unit/core-estratto.test.js): servirà al worker del desktop
   fs.writeFileSync(path.join(out,'core.js'), extractCore(fs.readFileSync(path.join(root,'index.html'))));
+  // moduli puri del nucleo, nell'ordine della pagina: il worker li carica prima di core.js (copie identiche, impronte nel manifesto)
+  { const html=fs.readFileSync(path.join(root,'index.html')), mods=coreModules(html).map(m=>({file:m, sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,m))).digest('hex')}));
+    mods.push({file:'core.js', sha256:crypto.createHash('sha256').update(extractCore(html)).digest('hex')});
+    fs.writeFileSync(path.join(out,'core-modules.json'), JSON.stringify(mods, null, 1)+'\n'); }
   fs.mkdirSync(path.join(out,'i18n')); fs.copyFileSync(path.join(root,'i18n/en.js'), path.join(out,'i18n/en.js'));
   if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h); }
   console.log('dist-desktop pronto');
