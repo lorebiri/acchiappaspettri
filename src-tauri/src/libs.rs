@@ -144,9 +144,61 @@ pub fn write(user: &Path, path: &Path, text: &str, expect: Option<&str>) -> Resu
             prune_versions(&vd, &stem);
         }
     }
-    super::write_atomic(path, text.as_bytes(), false)?;
+    // scrittura in due tempi (decisione del coordinatore): prima il file temporaneo nella stessa cartella, poi si rilegge l'originale.
+    // Se nel frattempo è cambiato (un altro computer su OneDrive o in rete) si annulla: la pagina unisce e riprova.
+    // Rischio residuo: una scrittura altrui tra la rilettura e la rinomina (pochi millisecondi) si perderebbe; resta però nelle
+    // copie di conflitto di OneDrive o, sulle cartelle dell'utente, in `versioni/`. Documentato in FORMATO-ACCHSPETTRI.md.
+    let dir = path.parent().ok_or("invalid-path")?;
+    let tmp = dir.join(format!(".{}.tmp{}", path.file_name().unwrap().to_string_lossy(), std::process::id()));
+    let res = (|| -> Result<Option<WriteResult>, String> {
+        {
+            use std::io::Write;
+            let mut f = fs::File::create(&tmp).map_err(|e| format!("write-failed: {}", e.kind()))?;
+            f.write_all(text.as_bytes()).map_err(|e| format!("write-failed: {}", e.kind()))?;
+            f.sync_all().map_err(|e| format!("write-failed: {}", e.kind()))?;
+        }
+        race_hook();
+        let again = match fs::read(path) {
+            Ok(b) => Some(b),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+            Err(e) => return Err(format!("read-failed: {}", e.kind())),
+        };
+        let again_sha = again.as_ref().map(|b| sha256_hex(b));
+        if again_sha != now_sha {
+            return Ok(Some(WriteResult { ok: false, sha256: again_sha.unwrap_or_default(), text: Some(again.map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()) }));
+        }
+        fs::rename(&tmp, path).map_err(|e| format!("write-failed: {}", e.kind()))?;
+        Ok(None)
+    })();
+    if !matches!(res, Ok(None)) {
+        let _ = fs::remove_file(&tmp);
+    }
+    if let Some(changed) = res? {
+        return Ok(changed);
+    }
     Ok(WriteResult { ok: true, sha256: sha256_hex(text.as_bytes()), text: None })
 }
+
+/// Solo per i test: come `write`, ma con una scrittura altrui simulata dopo il file temporaneo.
+#[cfg(test)]
+pub fn write_with_race(user: &Path, path: &Path, text: &str, expect: Option<&str>, other: &str) -> Result<WriteResult, String> {
+    RACE.with(|r| *r.borrow_mut() = Some((path.to_path_buf(), other.to_string())));
+    let out = write(user, path, text, expect);
+    RACE.with(|r| *r.borrow_mut() = None);
+    out
+}
+#[cfg(test)]
+thread_local! { static RACE: std::cell::RefCell<Option<(PathBuf, String)>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+fn race_hook() {
+    RACE.with(|r| {
+        if let Some((p, t)) = r.borrow_mut().take() {
+            let _ = fs::write(p, t);
+        }
+    });
+}
+#[cfg(not(test))]
+fn race_hook() {}
 
 fn prune_versions(vd: &Path, stem: &str) {
     let Ok(rd) = fs::read_dir(vd) else { return };
@@ -216,6 +268,19 @@ mod tests {
         remove(&u, &p).unwrap();
         assert!(!p.exists());
         assert_eq!(read_dir(&u, "user").files.len(), 0);
+        fs::remove_dir_all(&u).unwrap();
+    }
+    #[test]
+    fn change_after_temp_file_cancels_the_write() {
+        let u = tmp("race");
+        let p = u.join("r.acchlib.json");
+        let h = write(&u, &p, "{\"v\":1}", None).unwrap().sha256;
+        // un altro computer scrive dopo il nostro file temporaneo e prima della rinomina: si annulla, il suo contenuto resta
+        let r = write_with_race(&u, &p, "{\"v\":\"nostra\"}", Some(&h), "{\"v\":\"altrui\"}").unwrap();
+        assert!(!r.ok);
+        assert_eq!(r.text.as_deref(), Some("{\"v\":\"altrui\"}"));
+        assert_eq!(fs::read_to_string(&p).unwrap(), "{\"v\":\"altrui\"}");
+        assert!(fs::read_dir(&u).unwrap().flatten().all(|e| !e.file_name().to_string_lossy().contains(".tmp")), "nessun temporaneo rimasto");
         fs::remove_dir_all(&u).unwrap();
     }
     #[test]

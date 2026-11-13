@@ -133,11 +133,12 @@ Una libreria vale per **una coppia (strumento, tipo di campione)**. È un file J
  "methods":[{"id":"METODO-A.M", "column":"C18 150 × 4,6 mm", "notes":"", "aliases":["METODO-A"]}],
  "author":"", "createdAt":"2026-11-13T10:00:00Z", "modifiedAt":"2026-11-13T10:00:00Z", "description":"",
  "profile":"ricerca", "thresholds":{"dev":10, "diff":5, "drift":5}, "thresholdReason":"", "reminderDays":180,
- "maintenance":[{"date":"2026-12-01", "kind":"lampada", "target":"", "note":""}],
+ "maintenance":[{"date":"2026-12-01", "kind":"lampada", "target":"", "note":"", "author":"Tecnico A"}],
+ "suitability":[{"date":"2026-12-02", "ok":true, "note":"", "author":"Tecnico A"}],
  "entries":[{"id":"v-…", "rev":2, "modifiedAt":"…", "name":"Caffeina", "x":3.21, "window":0.1, "rrt":null, "rrtRef":"",
-   "channel":{"detector":"DAD1A", "lambda":220, "bandwidth":4, "reference":"off", "refBandwidth":null},
+   "channel":"DAD1A 220/4 nm ref off",
    "method":"METODO-A.M", "column":"", "integration":{"a":3.05, "b":3.38}, "profile":"",
-   "cal":{"kind":"line", "slope":612.4, "intercept":0.8, "sa":0.6, "sb":2.1, "syx":1.9, "srel":0.008, "n":18, "df":16, "r2":0.9996,
+   "cal":{"kind":"line", "slope":612.4, "intercept":0.8, "sa":0.6, "sb":2.1, "syx":1.9, "srel":0.008, "srelDf":12, "n":18, "df":16, "r2":0.9996,
           "xm":7.6, "ym":4660, "sxx":620, "lod":0.03, "loq":0.09, "range":[1,20], "areaUnit":"mAU·min", "concUnit":"mg/L",
           "date":"2026-11-13", "standardLot":"L-42", "normalized":false, "source":"taratura", "uStd":null, "measure":"area", "rrf":null},
    "source":null, "notes":"", "warnings":[], "chart":[{"date":"2026-11-14", "k":1.004}]}]}
@@ -150,17 +151,20 @@ Una libreria vale per **una coppia (strumento, tipo di campione)**. È un file J
 | `instrument`, `sampleType`, `technique` | la coppia (strumento, tipo di campione) e la tecnica (`hplc`, `ftir`, `raman`, `xrf`, `uv`). Campi liberi |
 | `methods` | metodi della libreria; `aliases` sono i nomi del metodo nei file dello strumento (per esempio `ICCOM-A.M`) |
 | `profile`, `thresholds`, `thresholdReason`, `reminderDays` | profilo predefinito delle voci e soglie (docs/SPEC-TARATURA-SALVATA.md). Soglie più larghe di quelle predefinite valgono solo con `thresholdReason`, mai oltre i massimi |
-| `maintenance` | eventi di manutenzione: invalidano le tarature salvate precedenti di quello strumento o colonna |
+| `maintenance` | eventi di manutenzione (data, tipo, parte, nota, autore): invalidano le tarature salvate precedenti di quello strumento o colonna |
+| `suitability` | idoneità del sistema del giorno (data, superata o no, nota, autore): una non superata blocca le tarature salvate di quel giorno. Registri: all'unione si sommano, senza conflitti |
 | `entries[].x`, `window`, `rrt`, `rrtRef` | posizione (tR in min per l'HPLC, cm⁻¹, keV…), semiampiezza della finestra, RRT rispetto alla voce `rrtRef` |
-| `entries[].channel` | canale del rivelatore: `detector`, `lambda` (nm), `bandwidth`, `reference` (nm o `"off"`), `refBandwidth` |
+| `entries[].channel` | canale del rivelatore come testo nel formato della tappa I3 (`AcchChannels.formatChannel`, per esempio `DAD1A 254/4 nm ref 360/100 nm`). Confronto con il file: rivelatore e λ obbligatori, banda e riferimento solo se presenti in entrambi |
 | `entries[].integration` | zona di integrazione usata alla taratura; nel campione si sposta con il tR trovato |
-| `entries[].cal` | taratura salvata: `kind` `line` (y = a + b·x) o `rf` (y = b·x); `srel` ripetibilità relativa per l'incertezza; `range` intervallo (nessuna estrapolazione); `areaUnit` e `concUnit`; `date` e `standardLot`; `source` `taratura` o `letteratura`; `rrf` per il profilo Impurezze |
+| `entries[].cal` | taratura salvata: `kind` `line` (y = a + b·x) o `rf` (y = b·x); `srel` ripetibilità relativa per l'incertezza e `srelDf` i suoi gradi di libertà (U = t_df · x · …, decisione del Capo Progetto); `range` intervallo (nessuna estrapolazione); `areaUnit` e `concUnit`; `date` e `standardLot`; `source` `taratura` o `letteratura`; `rrf` per il profilo Impurezze |
 | `entries[].chart` | carta di controllo della voce: k di ogni serie |
 | `entries[].deleted` | voce tolta (lapide): resta perché un'altra copia non la faccia ricomparire all'unione |
 
 Regole: chiavi `__proto__`, `constructor`, `prototype` scartate; testi limitati; solo numeri finiti; ogni voce senza nome si scarta con un avviso. Il testo si scrive in modo stabile (`serialize`): lo stesso contenuto dà la stessa impronta SHA-256.
 
-**Scritture contemporanee** (DECISIONE-PO §7): si scrive solo se l'impronta del file è ancora quella letta (lato nativo `libs.rs`, oppure transazione IndexedDB). Altrimenti si unisce voce per voce con la versione letta come base (`id`, `rev`, `modifiedAt`): le voci cambiate da una parte sola entrano da sole, quelle cambiate da entrambe le parti le sceglie l'utente; annullare non scrive niente. Le copie di conflitto di OneDrive (`nome-PC.acchlib.json`, `nome (1).acchlib.json`, oppure lo stesso `id` in due file) si segnalano e non si usano mai al posto dell'originale. Nel desktop la versione precedente di una libreria dell'utente resta in `librerie/versioni/` (ultime 20).
+**Scritture contemporanee** (DECISIONE-PO §7): si scrive solo se l'impronta del file è ancora quella letta (lato nativo `libs.rs`, oppure transazione IndexedDB). Altrimenti si unisce voce per voce con la versione letta come base (`id`, `rev`, `modifiedAt`): le voci cambiate da una parte sola entrano da sole, quelle cambiate da entrambe le parti le sceglie l'utente; annullare non scrive niente. Le copie di conflitto di OneDrive (`nome-PC.acchlib.json`, `nome (1).acchlib.json`, oppure lo stesso `id` in due file) si segnalano e non si usano mai al posto dell'originale. Nel desktop la versione precedente di una libreria dell'utente resta in `librerie/versioni/` (ultime 20). Sequenza della scrittura (`libs.rs`): lettura e confronto dell'impronta, file temporaneo nella stessa cartella, nuova lettura dell'impronta dell'originale, rinomina atomica; se l'originale è cambiato dopo il temporaneo si annulla e la pagina unisce. **Rischio residuo**: una scrittura di un altro computer che arriva tra l'ultima lettura e la rinomina (pochi millisecondi) verrebbe sostituita; su OneDrive la sincronizzazione ne fa di solito una copia di conflitto (segnalata), sulle librerie dell'utente la versione resta in `versioni/`. Su una cartella di rete senza blocchi non si può escludere del tutto (decisione PO §7: niente file di blocco).
+
+**Apertura dal sistema**: Linux associa `*.acchlib.json` (tipo `application/vnd.acchiappaspettri.library+json`, doppio clic). Windows e macOS associano solo l'ultima estensione: lì l'app compare in «Apri con» per i `.json` (mai predefinita); la pagina controlla il contenuto e importa con l'unione voce per voce.
 
 **Importazione della bozza di letteratura**: `examples/librerie/saliva-hplc-dad220.bozza.json` (schema `draft-acchiappaspettri-library-…`) si converte all'apertura (`AcchLib.fromDraft`). Non è installata né attiva di serie.
 
@@ -175,7 +179,7 @@ Campi facoltativi aggiunti dalla tappa I4, che un lettore 2 senza libreria ignor
 | `an.lib.ins`, `an.lib.insOk` | strumento corretto o confermato dall'utente (`{brand, model, detector, serial}`) |
 | `an.libCtrl`, `an.libPos` | spettro di controllo del giorno (`an.role` = `qc`): valore nominale per `id` di voce; posizione `open` o `close` nella serie |
 
-**Canale** (proposta per la tappa I3, `f.channel`): la libreria accetta sia il testo (`"DAD1A, Sig=220,4 Ref=off"`) sia l'oggetto `{detector, lambda, bandwidth, reference, refBandwidth}` e li confronta campo per campo (`AcchLib.channelCompare`). Se `spectra.json` passa all'oggetto, il testo resta leggibile.
+**Canale**: è il testo di `f.channel` della tappa I3 (per i file a un canale `chanOf(f)`), letto con `AcchChannels.parseChannel`. La prima versione della tappa I4 salvava un oggetto `{detector, lambda, …}`: all'apertura si converte nel testo.
 
 ## `project/state.json`
 

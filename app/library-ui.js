@@ -44,10 +44,14 @@
   function setCtx(f, patch){ const c=Object.assign({}, ctx(f), patch); for (const k of Object.keys(c)) if (c[k]==null || c[k]==='') delete c[k]; anSet(f, 'lib', Object.keys(c).length ? c : null); f._libRes=null; }
   function instrumentOf(f){ const c=ctx(f); if (c.ins) return Lib.cleanInstrument(c.ins); const r=rec(f); return {brand:r.brand, model:r.model, detector:r.detector, serial:r.serial}; }
   const confirmed=f=>!!ctx(f).insOk;
-  function fileChannel(f){ // canale del file: f.channel (tappa I3, oggetto o testo), poi l'intestazione, poi il canale riconosciuto dalla pagina
-    if (f.channel){ const c=Lib.parseChannel(f.channel); if (c) return c; }
-    const r=rec(f); if (r.channel) return r.channel;
-    try{ return Lib.parseChannel(typeof chanOf==='function' ? chanOf(f) : ''); }catch(e){ return null; } }
+  /* canale del file nel formato della tappa I3: f.channel (file multicanale), altrimenti chanOf(f) per i file a un canale.
+     Se l'intestazione dice lo stesso canale con più dettagli (banda, riferimento), si usa quella: niente si perde. */
+  function fileChannel(f){
+    if (f.channel){ const c=Lib.parseChannel(f.channel); if (c) return Lib.channelText(c); }
+    let c2=null; try{ c2=Lib.parseChannel(typeof chanOf==='function' ? chanOf(f) : ''); }catch(e){}
+    const c3=Lib.parseChannel(rec(f).channel);
+    if (c2 && c3 && (c2.wl===c3.wl || c2.wl==null) && (!c2.det || !c3.det || c2.det===c3.det)) return Lib.channelText(c3);
+    return Lib.channelText(c2||c3)||null; }
   function chooseFor(f){
     const c=ctx(f), libs=allLibs();
     if (c.id){ const o=libById(c.id); if (o){ const cmp=Lib.instrumentCompare(o.lib.instrument, instrumentOf(f)); return {pick:o, manual:true, ins:cmp, match:cmp.level==='different'?'wrong':'chosen'}; } }
@@ -96,10 +100,61 @@
       const sampleYs=[f].concat(others.filter(g=>!(g.an&&g.an.role==='qc'))).map(g=>{ const mg=g===f?m:matchOf(g).get(e.id); const yy=mg&&mg.found?responseOf(g, e, mg.x):null; return yy==null?null:yy*(af?af.f:1); }).filter(v=>v!=null);
       const isCtrl=f.an && f.an.role==='qc';
       row.res=af ? Q.quantify({entry:e, lib, today:today(), y:row.y, controls, sampleYs, check, normalized:norm, sampleOrder:files.indexOf(f), areaUnitAssumed:!!af.assumed}) : {ok:false, code:'area-unit', provenance:{library:lib.name, entry:e.name, calDate:cal.date, revision:lib.revision, entryRev:e.rev, profile:lib.profile}, warnings:[], devs:[]};
+      if (row.res && row.res.code==='profile' && af) row.res.compare=dayCompare(f, e, af.f);
       row.controls=controls; row.isCtrl=isCtrl; rows.push(row); }
     const v={choice:ch, rows, lib, insCmp};
     f._libRes={key, v}; return v;
   }
+
+  /* profili che non ammettono tarature salvate (Dosaggio, Tracce, Bioanalisi): la retta salvata serve solo da confronto con quella del giorno.
+     Retta del giorno = quella di «Più campioni» sulla stessa banda (la zona contiene il tR della voce); differenza delle pendenze in %. */
+  function dayCompare(f, e, fac){
+    try{ const c=mvCfg(f.instr); if (c.model==='pls' || c.model==='trend' || c.a==null || c.b==null || (c.c!=null && c.d!=null)) return {none:true};
+      const x0=e.x!=null?e.x:null; if (x0==null || x0<Math.min(c.a,c.b) || x0>Math.max(c.a,c.b)) return {none:true};
+      const cal=mvCalib(mvTable(f.instr)); if (!cal || cal.b==null || cal.few) return {none:true};
+      const bDay=cal.b*fac; return {diff:100*(bDay/e.cal.slope-1), bDay, bSaved:e.cal.slope}; }catch(err){ return {none:true}; } }
+  function compareText(r, lg){ const c=r && r.compare, en=lg==='en'; if (!c) return ''; if (c.none) return en?'No same-day line on this band yet: measure the standards in «Multiple samples» to see the comparison.':'Manca ancora la retta del giorno su questa banda: misura gli standard in «Più campioni» per vedere il confronto.';
+    const v=(c.diff>0?'+':c.diff<0?'−':'')+Math.abs(c.diff).toFixed(1).replace('.', en?'.':','); return en?`Same-day line: slope ${v}% from the saved one.`:`Retta del giorno: pendenza ${v}% rispetto a quella salvata.`; }
+
+  /* ---------- carta di controllo: geometria comune a SVG e PNG, CSV ---------- */
+  function chartGeom(e, W, H){
+    const pts=(e.chart||[]).filter(p=>Number.isFinite(p.k)), n=pts.length, ch=Q.chartCheck(pts.map(p=>p.k).concat(n>Q.CHART_MIN?[]:[]));
+    const base=pts.slice(0,Q.CHART_MIN).map(p=>p.k), m=base.length?base.reduce((a,b)=>a+b,0)/base.length:1, sd=base.length>1?Math.sqrt(base.reduce((a,b)=>a+(b-m)**2,0)/(base.length-1)):0;
+    const lim=n>=Q.CHART_MIN && sd>0 ? [m-Q.CHART_ACTION*sd, m-2*sd, m, m+2*sd, m+Q.CHART_ACTION*sd] : [m];
+    const ys=pts.map(p=>p.k).concat(lim), lo=Math.min(...ys, 0.9), hi=Math.max(...ys, 1.1), L=50, R=12, Tp=24, B=34;
+    const X=i=>L+(n>1?i/(n-1):0.5)*(W-L-R), Y=v=>Tp+(hi-v)/((hi-lo)||1)*(H-Tp-B);
+    return {pts, n, m, sd, lim, X, Y, W, H, L, R, Tp, B, lo, hi, active:n>Q.CHART_MIN, title:`${e.name}: k`}; }
+  function chartSvg(e, lib){ const g=chartGeom(e, 640, 320), r=[];
+    r.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${g.W}" height="${g.H}" viewBox="0 0 ${g.W} ${g.H}" font-family="Helvetica, Arial, sans-serif" font-size="11"><rect width="100%" height="100%" fill="#fff"/>`);
+    r.push(`<text x="${g.L}" y="15" font-weight="bold">${E(T('Carta di controllo','Control chart'))} · ${E(e.name)} · ${E(lib?lib.name:'')}</text>`);
+    g.lim.forEach((v,i)=>{ const dash=i===2||g.lim.length===1?'':i===0||i===4?' stroke-dasharray="6 3"':' stroke-dasharray="2 3"'; r.push(`<line x1="${g.L}" x2="${g.W-g.R}" y1="${g.Y(v).toFixed(1)}" y2="${g.Y(v).toFixed(1)}" stroke="${i===0||i===4?'#b3261e':'#888'}"${dash}/><text x="4" y="${(g.Y(v)+4).toFixed(1)}" fill="#555">${v.toFixed(3)}</text>`); });
+    r.push(`<polyline fill="none" stroke="#1f5fbf" stroke-width="1.5" points="${g.pts.map((p,i)=>g.X(i).toFixed(1)+','+g.Y(p.k).toFixed(1)).join(' ')}"/>`);
+    g.pts.forEach((p,i)=>r.push(`<circle cx="${g.X(i).toFixed(1)}" cy="${g.Y(p.k).toFixed(1)}" r="3" fill="#1f5fbf"><title>${E(p.date)} k=${p.k}</title></circle>`));
+    r.push(`<text x="${g.L}" y="${g.H-10}" fill="#555">${E(T(`serie (${g.n}); limiti dalle prime ${Q.CHART_MIN}: media, ±2 s, ±${Q.CHART_ACTION} s${g.active?'':' — carta non ancora attiva'}`,`series (${g.n}); limits from the first ${Q.CHART_MIN}: mean, ±2 s, ±${Q.CHART_ACTION} s${g.active?'':' — chart not active yet'}`))}</text></svg>`);
+    return r.join(''); }
+  function chartPng(e, lib){ return new Promise(res=>{ const g=chartGeom(e, 1280, 640), cv=doc.createElement('canvas'); cv.width=g.W; cv.height=g.H; const c=cv.getContext('2d');
+    c.fillStyle='#fff'; c.fillRect(0,0,g.W,g.H); c.font='bold 22px Helvetica, Arial, sans-serif'; c.fillStyle='#000'; c.fillText(`${T('Carta di controllo','Control chart')} · ${e.name} · ${lib?lib.name:''}`, g.L, 24);
+    c.font='20px Helvetica, Arial, sans-serif'; g.lim.forEach((v,i)=>{ c.strokeStyle=i===0||i===4?'#b3261e':'#888'; c.setLineDash(i===2||g.lim.length===1?[]:i===0||i===4?[12,6]:[4,6]); c.beginPath(); c.moveTo(g.L,g.Y(v)); c.lineTo(g.W-g.R,g.Y(v)); c.stroke(); c.fillStyle='#555'; c.fillText(v.toFixed(3), 4, g.Y(v)+6); });
+    c.setLineDash([]); c.strokeStyle='#1f5fbf'; c.lineWidth=3; c.beginPath(); g.pts.forEach((p,i)=>i?c.lineTo(g.X(i),g.Y(p.k)):c.moveTo(g.X(i),g.Y(p.k))); c.stroke(); c.fillStyle='#1f5fbf'; g.pts.forEach((p,i)=>{ c.beginPath(); c.arc(g.X(i),g.Y(p.k),5,0,7); c.fill(); });
+    cv.toBlob(b=>res(b),'image/png'); }); }
+  function chartCsv(e, lib){ const sep=TD(';',','), g=chartGeom(e, 10, 10), dec=v=>String(v).replace('.', TD(',','.'));
+    const head=[TD('Libreria','Library'), TD('Voce','Entry'), TD('Serie','Series'), TD('Data','Date'), 'k', 'z', TD('Regola','Rule')].join(sep);
+    const rows=g.pts.map((p,i)=>{ const z=g.active && g.sd>0 && i>=Q.CHART_MIN ? (p.k-g.m)/g.sd : null, cc=i>=Q.CHART_MIN ? Q.chartCheck(g.pts.slice(0,i+1).map(q=>q.k)) : null; return [lib?lib.name:'', e.name, i+1, p.date||'', dec(p.k), z==null?'':dec(+z.toPrecision(4)), cc&&cc.rule||''].map(v=>/[";\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(sep); });
+    return '\uFEFF'+[head].concat(rows).join('\r\n'); }
+  const chartName=(lib,e)=>(Lib.normTxt(lib.name).replace(/\s+/g,'_')+'__'+Lib.normTxt(e.name).replace(/\s+/g,'_')).slice(0,90);
+  async function exportChart(o, e, kind){ const n=chartName(o.lib,e);
+    if (kind==='csv') return win.download(new Blob([chartCsv(e, o.lib)],{type:'text/csv'}), n+'.csv');
+    if (kind==='svg') return win.download(new Blob([chartSvg(e, o.lib)],{type:'image/svg+xml'}), n+'.svg');
+    return win.download(await chartPng(e, o.lib), n+'.png'); }
+  const OUT_CHARTS='acch.lib.outCharts', chartsOn=()=>hs(OUT_CHARTS)!==false;
+  /* nello ZIP di Esporta: le carte di controllo delle librerie usate, se l'opzione è attiva */
+  async function zipExtras(folder){ try{ if (!chartsOn()) return 0; let n=0; const dir=TD('carte_di_controllo/','control_charts/');
+      for (const lib of usedLibs()) for (const e of Lib.liveEntries(lib)) if ((e.chart||[]).length){ const nm=dir+chartName(lib,e); folder.file(nm+'.csv', chartCsv(e, lib)); folder.file(nm+'.svg', chartSvg(e, lib)); const b=await chartPng(e, lib); if (b) folder.file(nm+'.png', new Uint8Array(await b.arrayBuffer())); n++; }
+      return n; }catch(err){ console.error(err); return 0; } }
+  function exportOption(){ const card=doc.querySelector('.outcard[data-out="outAnalysis"]'); if (!card || $('#libOutCharts')) return;
+    const l=doc.createElement('label'); l.className='check'; l.id='libOutCharts'; l.style.display='block'; l.style.margin='6px 0 0 4px';
+    const c=doc.createElement('input'); c.type='checkbox'; c.checked=chartsOn(); c.onchange=()=>hset(OUT_CHARTS, c.checked);
+    const t=doc.createElement('span'); t.textContent=' '+T('Carte di controllo delle librerie (PNG, SVG e CSV, nello ZIP)','Library control charts (PNG, SVG and CSV, in the ZIP)'); l.append(c, t); card.parentNode.insertBefore(l, card.nextSibling); }
 
   /* ---------- sezione nella scheda Analisi ---------- */
   function ensureSection(){
@@ -140,11 +195,11 @@
     // risultati
     if (q.rows && q.rows.length){
       const yu=appAreaUnit(f);
-      h+=`<div class="tblwrap"><table class="libq" id="libQ"><thead><tr><th>${E(T('Voce','Entry'))}</th><th>tR ${E(T('atteso','expected'))}</th><th>tR ${E(T('trovato','found'))}</th><th>${E(T('Area','Area'))} (${E(yu)})</th><th>${E(T('Concentrazione','Concentration'))} ± U (k=2)</th><th>${E(T('Stato e provenienza','Status and provenance'))}</th></tr></thead><tbody>`;
+      h+=`<div class="tblwrap"><table class="libq" id="libQ"><thead><tr><th>${E(T('Voce','Entry'))}</th><th>tR ${E(T('atteso','expected'))}</th><th>tR ${E(T('trovato','found'))}</th><th>${E(T('Area','Area'))} (${E(yu)})</th><th>${E(T('Concentrazione','Concentration'))} ± U</th><th>${E(T('Stato e provenienza','Status and provenance'))}</th></tr></thead><tbody>`;
       const shown=q.rows.filter(w=>w.found), miss=q.rows.filter(w=>!w.found);
       for (const w of shown){ const e=w.entry, rs=w.res, cu=e.cal?e.cal.concUnit||'':'';
         const val=rs && rs.ok ? `<b data-libx="${E(e.id)}">${E(N(rs.x,4))}</b>${rs.U!=null?` ± ${E(N(rs.U,2))}`:''} ${E(cu)}${rs.belowLod?' (< LOD)':rs.belowLoq?' (< LOQ)':''}${rs.mode==='nocontrol'?`<br><span class="libmark">${E(Q.markText(en()?'en':'it'))}</span>`:''}` : (e.cal ? '—' : `<small>${E(T('solo identificazione','identification only'))}</small>`);
-        const stt=rs ? `<div class="${rs.ok?'':'libbad'}">${E(Q.statusText(rs, en()?'en':'it'))}</div>${Q.warningTexts(rs, en()?'en':'it').map(t=>`<div class="why">${E(t)}</div>`).join('')}<div class="libprov">${E(Q.provenanceText(rs, en()?'en':'it'))}</div>` : (w.found?'':`<small>${E(T('nessun picco nella finestra','no peak in the window'))}</small>`);
+        const stt=rs ? `<div class="${rs.ok?'':'libbad'}">${E(Q.statusText(rs, en()?'en':'it'))}</div>${rs.compare?`<div class="libcmp"><b>${E(compareText(rs, en()?'en':'it'))}</b></div>`:''}${Q.warningTexts(rs, en()?'en':'it').map(t=>`<div class="why">${E(t)}</div>`).join('')}${rs.ok && /ctrl/.test(rs.mode||'') && rs.k!=null && !w.isCtrl?`<button type="button" class="btn small ghost libchart" data-e="${E(e.id)}" data-k="${rs.k}">${E(T('Registra il k di oggi nella carta di controllo','Record today\'s k in the control chart'))}</button>`:''}<div class="libprov">${E(Q.provenanceText(rs, en()?'en':'it'))}</div>` : (w.found?'':`<small>${E(T('nessun picco nella finestra','no peak in the window'))}</small>`);
         h+=`<tr data-e="${E(e.id)}"><td>${E(e.name)}${w.isCtrl?` <small>(${E(T('controllo','control'))})</small>`:''}</td><td>${E(N(w.expected,4))}${e.window!=null?` ± ${E(N(e.window,2))}`:''}</td><td>${w.found?E(N(w.x,4)):'—'}</td><td>${w.yApp!=null?E(N(w.yApp,4)):'—'}</td><td>${val}</td><td>${stt}</td></tr>`; }
       h+='</tbody></table></div>';
       if (!shown.length) h+=`<p class="why">${E(T('Nessuna voce della libreria ha un picco nella sua finestra di tR.','No library entry has a peak in its tR window.'))}</p>`;
@@ -170,6 +225,8 @@
     const pk=$('#libPick'); if (pk) pk.onchange=()=>{ setCtx(f, {id:pk.value||null}); rerender(); };
     const ic=$('#libIsCtrl'); if (ic) ic.onchange=()=>{ anSet(f, 'role', ic.checked?'qc':null); f._libRes=null; files.forEach(g=>g._libRes=null); rerender(); };
     const ps=$('#libPos'); if (ps) ps.onchange=()=>{ anSet(f, 'libPos', ps.value||null); files.forEach(g=>g._libRes=null); rerender(); };
+    doc.querySelectorAll('#libBody .libchart').forEach(b=>b.onclick=async ()=>{ const o=chooseFor(f).pick; if (!o) return; const copy=JSON.parse(JSON.stringify(o.lib)), e=copy.entries.find(x=>x.id===b.dataset.e); if (!e) return;
+      e.chart=(e.chart||[]).filter(p=>p.date!==today()).concat([{date:today(), k:+b.dataset.k}]); Lib.upsert(copy, e); const it=await saveLib(o.item||{origin:'user'}, copy); if (it) toast(T('k di oggi registrato nella carta di controllo.','Today\'s k recorded in the control chart.')); });
     doc.querySelectorAll('#libBody .libnom').forEach(el=>el.onchange=()=>{ const v=+String(el.value).replace(',','.'); const m=Object.assign({}, (f.an&&f.an.libCtrl)||{}); if (v>0) m[el.dataset.e]=v; else delete m[el.dataset.e]; anSet(f, 'libCtrl', Object.keys(m).length?m:null); files.forEach(g=>g._libRes=null); rerender(); });
   }
   // lo stesso strumento confermato vale per gli altri file dello stesso caricamento con la stessa intestazione
@@ -228,6 +285,7 @@
       <div class="actions" style="justify-content:flex-start"><button type="button" class="btn small primary" id="lmNew">${E(T('Nuova libreria…','New library…'))}</button><button type="button" class="btn small" id="lmImport">${E(T('Importa un file .acchlib.json…','Import an .acchlib.json file…'))}</button>${desk?`<button type="button" class="btn small ghost" id="lmShared">${E(T('Aggiungi una cartella condivisa…','Add a shared folder…'))}</button>`:''}<input type="file" id="lmFile" accept=".json,application/json" hidden></div>
       ${conflicts.length?`<div class="signote bad" id="lmConflicts" role="alert"><b>${E(T('Copie di conflitto trovate (OneDrive o altra sincronizzazione)','Conflict copies found (OneDrive or other sync)'))}</b>${conflicts.map(it=>`<div>${E(it.name)} → ${E(it.conflictOf)} <button type="button" class="btn small" data-conf="${E(it.key)}">${E(T('Unisci nella libreria…','Merge into the library…'))}</button></div>`).join('')}<div class="why">${E(T('Una copia di conflitto non viene mai usata al posto della libreria: unisci le sue voci, poi toglila dalla cartella.','A conflict copy is never used instead of the library: merge its entries, then remove it from the folder.'))}</div></div>`:''}
       ${errs.length?`<div class="signote">${errs.map(it=>`<div>${E(it.folder||it.path||it.key)}: ${E(it.error)}</div>`).join('')}</div>`:''}
+      <div class="ibfields" id="lmFilters"><label class="ibf"><span>${E(T('Tecnica','Technique'))}</span><select id="lfTech"><option value="">${E(T('tutte','all'))}</option>${[...new Set(L.map(o=>o.lib.technique))].map(t=>`<option value="${E(t)}" ${FIL.tech===t?'selected':''}>${E((typeof NOME_IT!=='undefined'&&NOME_IT[t])||t)}</option>`).join('')}</select></label>${[['lfIns','ins',T('Strumento','Instrument')],['lfSt','st',T('Tipo di campione','Sample type')],['lfMet','met',T('Metodo','Method')],['lfCh','ch',T('Canale','Channel')]].map(([id,k,l])=>`<label class="ibf"><span>${E(l)}</span><input type="text" id="${id}" value="${E(FIL[k]||'')}" autocomplete="off" style="width:130px"></label>`).join('')}<span class="why" id="lfCount"></span></div>
       <div class="tblwrap"><table id="lmTable"><thead><tr><th>${E(T('Libreria e strumento','Library and instrument'))}</th><th>${E(T('Tipo di campione','Sample type'))}</th><th>${E(T('Tecnica','Technique'))}</th><th>${E(T('Voci','Entries'))}</th><th>${E(T('Versione','Version'))}</th><th>${E(T('Dove','Where'))}</th><th></th></tr></thead><tbody>${L.length?L.map(row).join(''):`<tr><td colspan="7" class="pkempty">${E(T('Nessuna libreria. Creane una per il tuo strumento e il tuo tipo di campione, oppure importa un file.','No library. Create one for your instrument and sample type, or import a file.'))}</td></tr>`}</tbody></table></div>
       <div id="lmDetail"></div><div class="actions"><button class="btn primary" value="ok" type="submit">${E(T('Chiudi','Close'))}</button></div>`;
     const d=dialog('dlgLib', html);
@@ -243,15 +301,44 @@
         if (a==='export') exportLib(o.lib);
         if (a==='adopt'){ const copy=JSON.parse(JSON.stringify(o.lib)); if (o.origin==='system'){ copy.id=Lib.newId('lib'); copy.revision=1; } await saveLib({origin:'user'}, copy); openManager(); }
         if (a==='remove'){ const ok=await win.AcchUi.choice(T(`Togliere la libreria «${o.lib.name}»? Nel desktop il file resta recuperabile nella cartella delle versioni.`,`Remove the library «${o.lib.name}»? On the desktop the file can still be recovered from the versions folder.`),[['no',T('Annulla','Cancel'),'ghost'],['yes',T('Togli','Remove'),'primary']]); if (ok==='yes'){ await store().remove(o.item); await refresh(); openManager(); } } }); });
+    const applyF=()=>{ FIL={tech:$('#lfTech').value, ins:$('#lfIns').value.trim(), st:$('#lfSt').value.trim(), met:$('#lfMet').value.trim(), ch:$('#lfCh').value.trim()}; let k=0;
+      d.querySelectorAll('#lmTable tr[data-id]').forEach(tr=>{ const o=L.find(x=>x.lib.id===tr.dataset.id), ok=libMatches(o.lib, FIL); tr.hidden=!ok; if (ok) k++; });
+      $('#lfCount').textContent=T(`${k} di ${L.length}`,`${k} of ${L.length}`); };
+    ['lfTech','lfIns','lfSt','lfMet','lfCh'].forEach(id=>{ const el=$('#'+id); el.oninput=el.onchange=applyF; }); applyF();
     if (sel){ const o=L.find(x=>x.lib.id===sel); if (o) renderDetail(o); }
   }
+  let FIL={};
+  /* filtri della finestra: tecnica esatta; strumento, tipo di campione, metodo (anche alias e metodi delle voci) e canale delle voci per testo */
+  function libMatches(lib, F){ const has=(t,q)=>!q || Lib.normTxt(t).includes(Lib.normTxt(q)), E2=Lib.liveEntries(lib);
+    return (!F.tech || lib.technique===F.tech) && has(Lib.instrumentText(lib.instrument), F.ins) && has(lib.sampleType, F.st)
+      && (!F.met || (lib.methods||[]).some(m=>has(m.id,F.met) || (m.aliases||[]).some(a=>has(a,F.met))) || E2.some(e=>has(e.method,F.met)))
+      && (!F.ch || E2.some(e=>has(e.channel||'',F.ch) || (e.channel && Lib.parseChannel(F.ch) && Lib.channelCompare(e.channel, F.ch).ok))); }
   function renderDetail(o){
     const L=o.lib, box=$('#lmDetail'); if (!box) return; const ro=o.origin==='system';
     const ent=Lib.liveEntries(L);
     box.innerHTML=`<h3 style="margin-top:14px">${E(L.name)}</h3><p class="why">${E(Lib.instrumentText(L.instrument))} · ${E(T('tipo di campione','sample type'))} ${E(L.sampleType||'—')} · ${E(T('profilo','profile'))} ${E(profName(L.profile))} · ${E(T('metodi','methods'))}: ${E((L.methods||[]).map(m=>m.id+(m.aliases&&m.aliases.length?' ('+m.aliases.join(', ')+')':'')).join('; ')||'—')}${L.description?'<br>'+E(L.description.slice(0,400)):''}</p>
-      <div class="tblwrap"><table id="lmEntries"><thead><tr><th>${E(T('Voce','Entry'))}</th><th>tR / x</th><th>${E(T('Finestra','Window'))}</th><th>${E(T('Canale','Channel'))}</th><th>${E(T('Metodo','Method'))}</th><th>${E(T('Pendenza','Slope'))}</th><th>${E(T('Intercetta','Intercept'))}</th><th>${E(T('Unità','Units'))}</th><th>${E(T('Intervallo','Range'))}</th><th>n · R²</th><th>LOD · LOQ</th><th>${E(T('Data e lotto','Date and lot'))}</th><th></th></tr></thead><tbody>${ent.map(e=>{ const c=e.cal; return `<tr data-e="${E(e.id)}"><td>${E(e.name)}${e.rrt?`<br><small>RRT ${E(N(e.rrt,4))}</small>`:''}</td><td>${E(N(e.x,5))}</td><td>${e.window!=null?'± '+E(N(e.window,3)):'—'}</td><td>${E(Lib.channelText(e.channel)||'—')}</td><td>${E(e.method||'—')}${e.column?'<br><small>'+E(e.column)+'</small>':''}</td><td>${c?E(N(c.slope,5)):'—'}</td><td>${c?E(N(c.intercept,4)):'—'}</td><td>${c?E((c.areaUnit||'?')+' / '+(c.concUnit||'?')):'—'}</td><td>${c&&c.range?E(N(c.range[0],3)+'–'+N(c.range[1],3)):'—'}</td><td>${c?E((c.n||'—')+' · '+N(c.r2,5)):'—'}</td><td>${c?E(N(c.lod,3)+' · '+N(c.loq,3)):'—'}</td><td>${c?E((c.date||'—')+(c.standardLot?' · '+c.standardLot:'')):'—'}</td><td>${ro?'':`<button type="button" class="btn small ghost" data-del="${E(e.id)}" title="${E(T('Togli la voce','Remove the entry'))}">×</button>`}</td></tr>`; }).join('')||`<tr><td colspan="13" class="pkempty">${E(T('Nessuna voce.','No entries.'))}</td></tr>`}</tbody></table></div>`;
+      <div class="actions" style="justify-content:flex-start">${ro?'':`<button type="button" class="btn small" id="lmLog">${E(T('Idoneità del sistema e manutenzioni…','System suitability and maintenance…'))}</button>`}</div>
+      ${(L.maintenance||[]).length||(L.suitability||[]).length?`<p class="why" id="lmLogSum">${E(T('Registro','Log'))}: ${(L.suitability||[]).slice(-3).map(r=>E(r.date+' '+(r.ok?T('idoneità superata','suitability passed'):T('idoneità non superata','suitability failed'))+(r.author?' ('+r.author+')':''))).concat((L.maintenance||[]).slice(-3).map(m=>E(m.date+' '+T('manutenzione','maintenance')+' '+m.kind+(m.target?' '+m.target:'')+(m.author?' ('+m.author+')':'')))).join(' · ')}</p>`:''}
+      <div class="tblwrap"><table id="lmEntries"><thead><tr><th>${E(T('Voce','Entry'))}</th><th>tR / x</th><th>${E(T('Finestra','Window'))}</th><th>${E(T('Canale','Channel'))}</th><th>${E(T('Metodo','Method'))}</th><th>${E(T('Pendenza','Slope'))}</th><th>${E(T('Intercetta','Intercept'))}</th><th>${E(T('Unità','Units'))}</th><th>${E(T('Intervallo','Range'))}</th><th>n · R²</th><th>LOD · LOQ</th><th>${E(T('Data e lotto','Date and lot'))}</th><th></th></tr></thead><tbody>${ent.map(e=>{ const c=e.cal; return `<tr data-e="${E(e.id)}"><td>${E(e.name)}${e.rrt?`<br><small>RRT ${E(N(e.rrt,4))}</small>`:''}</td><td>${E(N(e.x,5))}</td><td>${e.window!=null?'± '+E(N(e.window,3)):'—'}</td><td>${E(Lib.channelText(e.channel)||'—')}</td><td>${E(e.method||'—')}${e.column?'<br><small>'+E(e.column)+'</small>':''}</td><td>${c?E(N(c.slope,5)):'—'}</td><td>${c?E(N(c.intercept,4)):'—'}</td><td>${c?E((c.areaUnit||'?')+' / '+(c.concUnit||'?')):'—'}</td><td>${c&&c.range?E(N(c.range[0],3)+'–'+N(c.range[1],3)):'—'}</td><td>${c?E((c.n||'—')+' · '+N(c.r2,5)):'—'}</td><td>${c?E(N(c.lod,3)+' · '+N(c.loq,3)):'—'}</td><td>${c?E((c.date||'—')+(c.standardLot?' · '+c.standardLot:'')):'—'}</td><td>${(e.chart||[]).length?`<span class="lmch">${['png','svg','csv'].map(k=>`<button type="button" class="btn small ghost" data-chart="${E(e.id)}" data-kind="${k}" title="${E(T('Carta di controllo','Control chart'))}">${k.toUpperCase()}</button>`).join('')}</span>`:''}${ro?'':`<button type="button" class="btn small ghost" data-del="${E(e.id)}" title="${E(T('Togli la voce','Remove the entry'))}">×</button>`}</td></tr>`; }).join('')||`<tr><td colspan="13" class="pkempty">${E(T('Nessuna voce.','No entries.'))}</td></tr>`}</tbody></table></div>`;
+    box.querySelectorAll('[data-chart]').forEach(b=>b.onclick=()=>exportChart(o, L.entries.find(e=>e.id===b.dataset.chart), b.dataset.kind));
+    if ($('#lmLog')) $('#lmLog').onclick=()=>logDialog(o);
     box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async ()=>{ const copy=JSON.parse(JSON.stringify(L)); Lib.removeEntry(copy, b.dataset.del); const it=await saveLib(o.item||{origin:'user'}, copy); if (it) openManager(L.id); });
   }
+  /* idoneità del sistema e manutenzioni, salvate nella libreria con data e autore. Una manutenzione dopo la data di una taratura la invalida;
+     un'idoneità non superata blocca le tarature salvate di quel giorno */
+  function logDialog(o){ const L=o.lib;
+    const rows=[...(L.suitability||[]).map(r=>[r.date, r.ok?T('idoneità superata','suitability passed'):T('idoneità non superata','suitability failed'), '', r.note, r.author]), ...(L.maintenance||[]).map(m=>[m.date, T('manutenzione','maintenance')+': '+m.kind, m.target, m.note, m.author])].sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
+    const d=dialog('dlgLibLog', `<h2>${E(T('Idoneità del sistema e manutenzioni','System suitability and maintenance'))}</h2><p class="why">${E(L.name)}. ${E(T('Una manutenzione (lampada, colonna, cella) registrata dopo la data di una taratura salvata la invalida. Un\'idoneità non superata blocca le tarature salvate di quel giorno.','A maintenance event (lamp, column, cell) recorded after the date of a saved calibration invalidates it. A failed suitability blocks the saved calibrations of that day.'))}</p>
+      <div class="ibfields"><label class="ibf"><span>${E(T('Evento','Event'))}</span><select id="lgKind"><option value="suit-ok">${E(T('idoneità superata','suitability passed'))}</option><option value="suit-ko">${E(T('idoneità non superata','suitability failed'))}</option><option value="lampada">${E(T('manutenzione: lampada','maintenance: lamp'))}</option><option value="colonna">${E(T('manutenzione: colonna','maintenance: column'))}</option><option value="cella">${E(T('manutenzione: cella','maintenance: cell'))}</option><option value="altro">${E(T('manutenzione: altro','maintenance: other'))}</option></select></label>
+      <label class="ibf"><span>${E(T('Data','Date'))}</span><input type="date" id="lgDate" value="${today()}"></label><label class="ibf"><span>${E(T('Colonna o parte (facoltativo)','Column or part (optional)'))}</span><input type="text" id="lgTarget"></label><label class="ibf"><span>${E(T('Autore','Author'))}</span><input type="text" id="lgAuthor" value="${E(hs('acch.lib.author')||'')}"></label><label class="ibf" style="flex:1 1 100%"><span>${E(T('Nota','Note'))}</span><input type="text" id="lgNote"></label></div>
+      <div class="tblwrap"><table id="lgTable"><thead><tr><th>${E(T('Data','Date'))}</th><th>${E(T('Evento','Event'))}</th><th>${E(T('Parte','Part'))}</th><th>${E(T('Nota','Note'))}</th><th>${E(T('Autore','Author'))}</th></tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${E(c||'')}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="5" class="pkempty">${E(T('Nessun evento registrato.','No events recorded.'))}</td></tr>`}</tbody></table></div>
+      <div class="actions"><button class="btn ghost" value="no" type="submit">${E(T('Chiudi','Close'))}</button><button class="btn primary" value="ok" type="submit" id="lgOk">${E(T('Registra','Record'))}</button></div>`);
+    d.onclose=async ()=>{ if (d.returnValue!=='ok') return; const k=$('#lgKind').value, date=$('#lgDate').value||today(), au=$('#lgAuthor').value.trim(), note=$('#lgNote').value.trim(), target=$('#lgTarget').value.trim();
+      if (!au){ toast(T('Scrivi l\'autore: ogni evento del registro ha data e autore.','Enter the author: every log event has a date and an author.')); return; }
+      hset('acch.lib.author', au); const copy=JSON.parse(JSON.stringify(L));
+      if (k==='suit-ok' || k==='suit-ko') copy.suitability=(copy.suitability||[]).concat([{date, ok:k==='suit-ok', note, author:au}]);
+      else copy.maintenance=(copy.maintenance||[]).concat([{date, kind:k, target, note, author:au}]);
+      copy.revision++; copy.modifiedAt=new Date().toISOString(); const it=await saveLib(o.item||{origin:'user'}, copy); if (it) openManager(L.id); }; }
   function exportLib(lib){ const txt=Lib.serialize(lib); win.download(new Blob([txt],{type:'application/json'}), Lib.fileNameFor(lib)); }
   /* importazione: un file .acchlib.json (o la bozza di letteratura) diventa una libreria dell'utente; se c'è già, unione voce per voce */
   async function importText(text, name){
@@ -323,7 +410,7 @@
       const b=doc.createElement('button'); b.type='button'; b.className='btn small'; b.id='libSaveSlope'; b.textContent=T('Salva le pendenze nella libreria di questo strumento e tipo di campione…','Save the slopes in the library of this instrument and sample type…');
       b.onclick=()=>saveSlopeDialog(cal, c, instr); const p=doc.createElement('p'); p.className='libsave'; p.appendChild(b); out.appendChild(p); }catch(e){ console.warn(e); } }
   // ripetibilità relativa dai residui relativi degli standard (gradi di libertà n − 2): è la s_r dell'incertezza (SPEC)
-  function relRep(cal){ try{ return Q.relRepeatability(cal.pts, cal.a, cal.b); }catch(e){ return null; } }
+  function relRep(cal){ try{ return Q.relRepeatabilityDf(cal.pts, cal.a, cal.b); }catch(e){ return null; } }
   async function saveSlopeDialog(cal, c, instr){
     instr=instr||'hplc'; const hplc=instr==='hplc';
     await (ready||refresh());
@@ -344,7 +431,7 @@
       const o=libById(target); if (!o) return; const copy=JSON.parse(JSON.stringify(o.lib)), met=$('#lsMet').value.trim();
       if (met && !(copy.methods||[]).some(m=>m.id===met)) copy.methods=(copy.methods||[]).concat([{id:met}]);
       const e={name:nm, x:+xmax.toPrecision(6), window:+Math.max(hplc?0.02:1e-6, Math.abs(c.b-c.a)/2).toPrecision(3), channel:$('#lsCh')?Lib.parseChannel($('#lsCh').value):null, method:met, integration:{a:c.a, b:c.b}, profile:prof,
-        cal:{kind:'line', slope:cal.b, intercept:cal.a, sa:cal.sa, sb:cal.sb, syx:cal.syx, srel:relRep(cal), n:cal.n, df:cal.df, r2:cal.r2, xm:cal.xm, ym:cal.ym, sxx:cal.sxx, lod:cal.lod, loq:cal.loq, range:[Math.min(...xs), Math.max(...xs)], areaUnit:appAreaUnit(f0), concUnit:$('#lsU').value.trim(), date:$('#lsDate').value||today(), standardLot:$('#lsLot').value.trim(), normalized:false, source:'taratura', measure:c.meas==='height'?'height':'area'}};
+        cal:{kind:'line', slope:cal.b, intercept:cal.a, sa:cal.sa, sb:cal.sb, syx:cal.syx, srel:(relRep(cal)||{}).s, srelDf:(relRep(cal)||{}).df, n:cal.n, df:cal.df, r2:cal.r2, xm:cal.xm, ym:cal.ym, sxx:cal.sxx, lod:cal.lod, loq:cal.loq, range:[Math.min(...xs), Math.max(...xs)], areaUnit:appAreaUnit(f0), concUnit:$('#lsU').value.trim(), date:$('#lsDate').value||today(), standardLot:$('#lsLot').value.trim(), normalized:false, source:'taratura', measure:c.meas==='height'?'height':'area'}};
       const ex=Lib.liveEntries(copy).find(q=>Lib.normTxt(q.name)===Lib.normTxt(nm) && Lib.channelText(q.channel)===Lib.channelText(e.channel)); if (ex){ e.id=ex.id; e.chart=ex.chart; }
       Lib.upsert(copy, e); const it=await saveLib(o.item||{origin:'user'}, copy); if (it) toast(T(`Pendenza di «${nm}» salvata nella libreria «${copy.name}».`,`Slope of «${nm}» saved in the library «${copy.name}».`)); };
   }
@@ -356,11 +443,11 @@
     return out; }
   function csvRows(inc){
     const lg=TD('it','en'), R=exportRows(inc); if (!R.length) return null;
-    const head=TD(['File','Nome','Analita','tR atteso','tR trovato','Area','Unità area','Concentrazione','U (k=2)','Unità','Stato','Segno','Messaggio','Avvisi','Profilo','Metodo di taratura','k','Livelli dei controlli','Scostamenti %','Deriva %','Stato della carta','Età (giorni)','Data taratura','Lotto standard','Libreria','Id libreria','Revisione libreria','Voce','Id voce','Revisione voce','Strumento della libreria','Tipo di campione','Fonte','Motivazione soglie allargate'],
-      ['File','Name','Analyte','Expected tR','Found tR','Area','Area unit','Concentration','U (k=2)','Unit','Status','Mark','Message','Warnings','Profile','Calibration method','k','Control levels','Deviations %','Drift %','Chart status','Age (days)','Calibration date','Standard lot','Library','Library id','Library revision','Entry','Entry id','Entry revision','Library instrument','Sample type','Source','Reason for widened limits']);
+    const head=TD(['File','Nome','Analita','tR atteso','tR trovato','Area','Unità area','Concentrazione','U','Fattore di copertura','Unità','Stato','Segno','Messaggio','Avvisi','Profilo','Metodo di taratura','k','Livelli dei controlli','Scostamenti %','Deriva %','Stato della carta','Età (giorni)','Data taratura','Lotto standard','Libreria','Id libreria','Revisione libreria','Voce','Id voce','Revisione voce','Strumento della libreria','Tipo di campione','Fonte','Motivazione soglie allargate'],
+      ['File','Name','Analyte','Expected tR','Found tR','Area','Area unit','Concentration','U','Coverage factor','Unit','Status','Mark','Message','Warnings','Profile','Calibration method','k','Control levels','Deviations %','Drift %','Chart status','Age (days)','Calibration date','Standard lot','Library','Library id','Library revision','Entry','Entry id','Entry revision','Library instrument','Sample type','Source','Reason for widened limits']);
     const rows=[head];
     for (const {f, w, lib} of R){ const r=w.res, e=w.entry, p=r.provenance||{};
-      rows.push([f.name, dispTitle(f), e.name, ND(w.expected), ND(w.x), ND(w.y), e.cal.areaUnit||'', r.ok?ND(r.x):'', r.ok&&r.U!=null?ND(r.U,4):'', e.cal.concUnit||'', r.ok?TD('ok','ok'):TD('non verificata','not verified'), r.ok&&r.mode==='nocontrol'?Q.markText(lg):'', Q.statusText(r, lg), Q.warningTexts(r, lg).join(' '), profName(p.profile||lib.profile, true), Q.modeText(r, lg), r.k!=null?ND(r.k,6):'', (w.controls||[]).map(c=>ND(c.nominal)).join(' '), (r.devs||[]).map(v=>ND(v,3)).join(' '), r.drift!=null?ND(r.drift,3):'', r.chart?(r.chart.active?(r.chart.rule||'ok'):TD('non attiva','not active')):'', p.age!=null?p.age:'', p.calDate||'', p.standardLot||'', p.library||'', p.libraryId||'', p.revision||'', p.entry||'', p.entryId||'', p.entryRev||'', Lib.instrumentText(lib.instrument), lib.sampleType||'', e.cal.source==='letteratura'?((e.source&&(e.source.doi||e.source.citation))||TD('letteratura','literature')):TD('taratura dell\'utente','user calibration'), lib.thresholdReason||'']); }
+      rows.push([f.name, dispTitle(f), e.name, ND(w.expected), ND(w.x), ND(w.y), e.cal.areaUnit||'', r.ok?ND(r.x):'', r.ok&&r.U!=null?ND(r.U,4):'', r.ok&&r.u?ND(r.u.kU,4):'', e.cal.concUnit||'', r.ok?TD('ok','ok'):TD('non verificata','not verified'), r.ok&&r.mode==='nocontrol'?Q.markText(lg):'', [Q.statusText(r, lg), compareText(r, lg)].filter(Boolean).join(' '), Q.warningTexts(r, lg).join(' '), profName(p.profile||lib.profile, true), Q.modeText(r, lg), r.k!=null?ND(r.k,6):'', (w.controls||[]).map(c=>ND(c.nominal)).join(' '), (r.devs||[]).map(v=>ND(v,3)).join(' '), r.drift!=null?ND(r.drift,3):'', r.chart?(r.chart.active?(r.chart.rule||'ok'):TD('non attiva','not active')):'', p.age!=null?p.age:'', p.calDate||'', p.standardLot||'', p.library||'', p.libraryId||'', p.revision||'', p.entry||'', p.entryId||'', p.entryRev||'', Lib.instrumentText(lib.instrument), lib.sampleType||'', e.cal.source==='letteratura'?((e.source&&(e.source.doi||e.source.citation))||TD('letteratura','literature')):TD('taratura dell\'utente','user calibration'), lib.thresholdReason||'']); }
     return rows; }
   function exportFiles(inc, out, used){ try{ const rows=csvRows(inc); if (!rows) return; const csep=TD(';',','), cell=v=>{ const s=String(v==null?'':v); return /[";\r\n]/.test(s)||s.includes(csep) ? '"'+s.replace(/"/g,'""')+'"' : s; };
       const name=TD('concentrazioni_da_libreria.csv','concentrations_from_library.csv'); const i=out.findIndex(x=>/^(metodi|methods)/.test(x[0])); const item=[name, '﻿'+rows.map(r=>r.map(cell).join(csep)).join('\r\n')];
@@ -373,8 +460,8 @@
     const R=exportRows(inc); if (!R.length) return; const lg=TD('it','en');
     head(TD('Concentrazioni dalla libreria dello strumento','Concentrations from the instrument library'));
     for (const {f, w, lib} of R){ const r=w.res, e=w.entry, cu=e.cal.concUnit||'';
-      line(`${dispTitle(f)} · ${e.name}: ${r.ok?`${N(r.x,4)}${r.U!=null?' ± '+N(r.U,2):''} ${cu} (U, k = 2)`:TD('nessun valore','no value')}${r.ok&&r.mode==='nocontrol'?' · '+Q.markText(lg).toUpperCase():''}`, 9.5, true, r.ok?(r.mode==='nocontrol'?[150,80,0]:0):[179,38,30]);
-      line(Q.statusText(r, lg), 8.5, !r.ok, r.ok?60:[179,38,30]);
+      line(`${dispTitle(f)} · ${e.name}: ${r.ok?`${N(r.x,4)}${r.U!=null?' ± '+N(r.U,2):''} ${cu} (U, k = ${r.u?N(r.u.kU,3):2})`:TD('nessun valore','no value')}${r.ok&&r.mode==='nocontrol'?' · '+Q.markText(lg).toUpperCase():''}`, 9.5, true, r.ok?(r.mode==='nocontrol'?[150,80,0]:0):[179,38,30]);
+      line(Q.statusText(r, lg), 8.5, !r.ok, r.ok?60:[179,38,30]); if (r.compare) line(compareText(r, lg), 8.5, true, 0);
       line(`${Q.provenanceText(r, lg)} · ${TD('profilo','profile')} ${profName((r.provenance&&r.provenance.profile)||lib.profile, true)} · ${TD('metodo','method')} ${Q.modeText(r, lg)}${r.k!=null?' · k '+N(r.k,5):''}`, 8, false, 90);
       Q.warningTexts(r, lg).forEach(t=>line(t, 8, false, 90)); }
     const m=methodsText(inc); if (m) line(m, 8, false, 60);
@@ -391,7 +478,7 @@
 
   /* ---------- aggancio alla pagina ---------- */
   function init(){
-    hookProject(); refresh().then(()=>{ try{ render(); }catch(e){} });
+    hookProject(); exportOption(); refresh().then(()=>{ try{ render(); }catch(e){} });
     const wrap=(n, after)=>{ const o=win[n]; if (typeof o!=='function') return; win[n]=function(){ const r=o.apply(this, arguments); try{ after.apply(this, arguments); }catch(e){ console.error(e); } return r; }; };
     wrap('renderAnalysis', ()=>render());
     wrap('renderMulti', ()=>multiHook());
@@ -401,6 +488,6 @@
     const css=doc.createElement('style'); css.textContent='#secLib .libmark{font-weight:700;color:var(--warn,#9a5b00)} #secLib .libbad,.libdlg .libbad{color:var(--bad,#b3261e)} #secLib .libprov{color:var(--muted);font-size:12px} #secLib table.libq td{vertical-align:top} .libdlg table td,.libdlg table th{padding:4px 6px;text-align:left;vertical-align:top} #secLib .libsrc{color:var(--muted)}';
     doc.head.appendChild(css);
   }
-  win.AcchLibUi={init, render, refresh, openManager, importText, saveLib, quantRows, chooseFor, recognize:rec, ctxItems, exportFiles, csvRows, methodsText, pdfPages, setCtx, ctx, instrumentOf, askConflicts, mergeInto, get items(){ return items; }, get embedded(){ return embedded; }, ready:()=>ready||refresh()};
+  win.AcchLibUi={init, render, refresh, openManager, importText, saveLib, quantRows, chooseFor, recognize:rec, ctxItems, exportFiles, csvRows, zipExtras, chartSvg, chartCsv, chartPng, logDialog, libMatches, compareText, methodsText, pdfPages, setCtx, ctx, instrumentOf, askConflicts, mergeInto, get items(){ return items; }, get embedded(){ return embedded; }, ready:()=>ready||refresh()};
   if (doc.readyState==='loading') doc.addEventListener('DOMContentLoaded', init); else init();
 })(typeof self!=='undefined' ? self : this);

@@ -6822,6 +6822,7 @@ async function buildZip(extra){
   }
   if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); folder.file('per_Origin.xlsx', await buildOriginXlsx()); }
   if (S.outAnalysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) folder.file((LANG==='en'?'analysis/':'analisi/')+nm, txt); }
+  if (window.AcchLibUi) await AcchLibUi.zipExtras(folder);   // carte di controllo della libreria (PNG, SVG, CSV), se scelte in Esporta
   if (S.csvPeaks) folder.file(Lx.csvName, '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   status('🗜️ Impacchetto lo ZIP…');
   return await zip.generateAsync({type:'blob', compression:'STORE'}, m=>progress(0.9+m.percent/1000));

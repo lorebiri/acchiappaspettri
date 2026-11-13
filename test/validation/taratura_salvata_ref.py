@@ -5,6 +5,12 @@
 # Ingresso: JSON su stdin, una lista di casi; uscita: JSON con {k, x, U, rrf_x} per caso.
 import json, math, sys
 
+# t di Student, quantile 97,5% (tabella pubblicata); oltre 30 gradi di libertà 1,96. Senza gradi di libertà noti: k = 2
+T975 = [None, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042]
+def cover(df):
+    if df is None: return 2.0
+    return T975[int(round(df))] if 1 <= df <= 30 else 1.96
+
 def fsum(v):
     return math.fsum(v)
 
@@ -29,16 +35,16 @@ def case(c):
         mc = len(ctr)
     x = (y / k - a) / b
     # s_r relativa: data, oppure srel della taratura, oppure s_y/x alla risposta corretta
-    if c.get('sr') is not None: sr = c['sr']
-    elif cal.get('srel') is not None: sr = cal['srel']
-    else: sr = abs(cal['syx'] / (y / k))
+    if c.get('sr') is not None: sr = c['sr']; df = c.get('srDf')
+    elif cal.get('srel') is not None: sr = cal['srel']; df = cal.get('srelDf')
+    else: sr = abs(cal['syx'] / (y / k)); df = cal.get('df') or (cal['n'] - 2 if cal.get('n') else None)
     inv = lambda v: 0.0 if v is None else 1.0 / v
     rep = sr * sr * (inv(mc) + 1.0)
     std = (c.get('uStd') or 0.0) ** 2
     sa = cal.get('sa')
     it = 0.0 if (sa is None or cal.get('kind') == 'rf') else (sa / b) ** 2 * (1.0 / x - (1.0 / xc if xc else 0.0)) ** 2
     days = 0.05 ** 2 if not ctr else 0.0
-    U = 2.0 * x * math.sqrt(rep + std + it + days)
+    U = cover(df) * x * math.sqrt(rep + std + it + days)
     out.update({'k': k, 'x': x, 'U': U})
     return out
 

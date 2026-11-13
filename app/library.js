@@ -51,35 +51,32 @@
     return undefined; }
   const isoDay=v=>{ const s=str(v,40); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s : ''; };
 
-  /* ---------- canale del rivelatore: {detector, lambda, bandwidth, reference, refBandwidth} ----------
-     Proposta per la tappa I3 (f.channel): accetta l'oggetto o il testo di ChemStation/OpenLab («DAD1 A, Sig=220,4 Ref=360,100», «Ref=off»). */
+  /* ---------- canale del rivelatore: il formato della tappa I3 (app/channels-core.js) ----------
+     f.channel è un testo («DAD1A 254/4 nm ref 360/100 nm»); AcchChannels.parseChannel lo legge in {det, wl, bw, ref, ex, em, extracted}.
+     Nelle voci della libreria il canale si salva come lo stesso testo normalizzato (formatChannel). Si accetta anche il testo di ChemStation
+     («DAD1 A, Sig=220,4 Ref=off») e, per i file della prima versione di questa tappa, l'oggetto {detector, lambda, bandwidth, reference}. */
+  const Ch=()=>(typeof self!=='undefined' && self.AcchChannels) || (typeof window!=='undefined' && window.AcchChannels) || (typeof require==='function' ? require('./channels-core.js') : null);
   function parseChannel(c){
     if (!c) return null;
-    if (typeof c==='object'){ const o={detector:str(c.detector||c.d,40).toUpperCase().replace(/\s+/g,''), lambda:num(c.lambda!=null?c.lambda:c.wavelength), bandwidth:num(c.bandwidth), reference:c.reference===false||c.reference==='off'?'off':num(c.reference), refBandwidth:num(c.refBandwidth)};
-      return o.detector||o.lambda!=null ? o : null; }
-    const t=String(c); let m, o={detector:'', lambda:null, bandwidth:null, reference:null, refBandwidth:null};
-    if ((m=/(?<![A-Za-z0-9])(DAD|MWD|VWD|FLD|RID|ELSD|PDA|UV)(?:[\s_-]?(\d)(?!\d))?(?:[\s_-]?([A-H]))?(?![A-Za-z])/i.exec(t))) o.detector=(m[1]+(m[2]||'')+(m[3]||'')).toUpperCase();
-    // ChemStation/OpenLab: «Sig=220,4» è λ 220 nm con banda 4 nm (la virgola separa, non è un decimale)
-    if ((m=/Sig\s*=\s*(\d{3}(?:\.\d+)?)\s*(?:,\s*(\d+(?:\.\d+)?))?/i.exec(t))){ o.lambda=num(m[1]); o.bandwidth=num(m[2]); }
-    else if ((m=/(?:λ|lambda|wavelength)\s*[:=]?\s*(\d{3}(?:[.,]\d+)?)/i.exec(t)) || (m=/(?<![\d.,])(\d{3}(?:[.,]\d+)?)\s?nm/i.exec(t))) o.lambda=num(m[1]);
-    if ((m=/Ref\s*=\s*off/i.exec(t))) o.reference='off';
-    else if ((m=/Ref\s*=\s*(\d{3}(?:\.\d+)?)\s*(?:,\s*(\d+(?:\.\d+)?))?/i.exec(t))){ o.reference=num(m[1]); o.refBandwidth=num(m[2]); }
-    if ((m=/(?:bandwidth|BW|banda)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i.exec(t)) && o.bandwidth==null) o.bandwidth=num(m[1]);
-    if (o.lambda!=null && !(o.lambda>=150 && o.lambda<=1100)) o.lambda=null;
-    return o.detector||o.lambda!=null ? o : null;
+    if (typeof c==='object'){ if ('det' in c || 'wl' in c) return c;   // già letto
+      const L=num(c.lambda), B=num(c.bandwidth), R=c.reference==='off'?'ref off':num(c.reference)!=null?`ref ${num(c.reference)}/${num(c.refBandwidth)!=null?num(c.refBandwidth):0} nm`:'';
+      c=[str(c.detector,40), L!=null?`${L}${B!=null?'/'+B:''} nm`:'', R].filter(Boolean).join(' '); }
+    const o=Ch().parseChannel(String(c));
+    return o.det || o.wl!=null || o.ex!=null ? o : null;
   }
-  const detType=d=>{ const m=/^(DAD|MWD|VWD|FLD|RID|ELSD|PDA|UV)/i.exec(String(d||'')); return m?m[1].toUpperCase():''; };
-  // testo nello stile di ChemStation, che parseChannel rilegge identico: «DAD1A, Sig=220,4 Ref=off»
-  function channelText(c){ c=parseChannel(c); if (!c) return ''; const sig=c.lambda!=null?`Sig=${c.lambda}${c.bandwidth!=null?','+c.bandwidth:''}`:'', ref=c.reference==='off'?'Ref=off':c.reference!=null?`Ref=${c.reference}${c.refBandwidth!=null?','+c.refBandwidth:''}`:''; return [c.detector, [sig, ref].filter(Boolean).join(' ')].filter(Boolean).join(', '); }
-  /* confronto canale salvato / canale del file. λ: obbligatoria e uguale se la voce la dichiara.
-     Ampiezza di banda e riferimento: devono coincidere se il file li dichiara; se il file non li dice restano «non verificati» (avviso). */
+  function channelText(c){ const o=parseChannel(c); return o ? Ch().formatChannel(o) : ''; }
+  const detType=d=>{ const m=/^(DAD|MWD|VWD|FLD|RID|ELSD|PDA|UV|TUV)/i.exec(String(d||'')); return m?m[1].toUpperCase():''; };
+  /* confronto canale salvato / canale del file (decisione del coordinatore): rivelatore e λ obbligatori, banda e riferimento solo se presenti
+     in entrambi. Un rivelatore generico nella voce («DAD», «UV») si confronta con il tipo del file; uno preciso («DAD1A») deve coincidere. */
   function channelCompare(saved, seen){
     const a=parseChannel(saved), b=parseChannel(seen), out={ok:true, unverified:[], diff:[]};
     if (!a) return out;
-    if (a.lambda!=null){ if (!b || b.lambda==null){ out.ok=false; out.diff.push('λ'); out.missing=true; } else if (Math.abs(a.lambda-b.lambda)>0.5){ out.ok=false; out.diff.push('λ'); } }
-    const typ=detType;   // DAD1A → DAD
-    if (a.detector && b && b.detector && typ(a.detector) && typ(b.detector) && typ(a.detector)!==typ(b.detector)){ out.ok=false; out.diff.push('detector'); }
-    for (const k of ['bandwidth','reference','refBandwidth']){ const x=a[k], y=b?b[k]:null; if (x==null) continue; if (y==null){ out.unverified.push(k); continue; } if (String(x)!==String(y)){ out.ok=false; out.diff.push(k); } }
+    if (a.det){ const generic=!/\d/.test(a.det); if (!b || !b.det){ out.ok=false; out.diff.push('det'); out.missing=true; }
+      else if (generic ? detType(a.det)!==detType(b.det) : a.det.replace(/\s+/g,'').toUpperCase()!==b.det.replace(/\s+/g,'').toUpperCase()){ out.ok=false; out.diff.push('det'); } }
+    for (const k of ['wl','ex','em']){ if (a[k]==null) continue; if (!b || b[k]==null){ out.ok=false; out.diff.push(k); out.missing=true; } else if (Math.abs(a[k]-b[k])>0.5){ out.ok=false; out.diff.push(k); } }
+    if (a.bw!=null){ if (!b || b.bw==null) out.unverified.push('bw'); else if (Math.abs(a.bw-b.bw)>1e-9){ out.ok=false; out.diff.push('bw'); } }
+    if (a.ref!=null){ if (!b || b.ref==null) out.unverified.push('ref'); else if (JSON.stringify(a.ref)!==JSON.stringify(b.ref)){ out.ok=false; out.diff.push('ref'); } }
+    if (a.extracted!==!!(b&&b.extracted) && b){ out.ok=false; out.diff.push('extracted'); }   // estratto dal .uv senza riferimento: non è il segnale .ch
     return out;
   }
 
@@ -119,10 +116,10 @@
     for (const l of L){ const m=[...l.matchAll(/(?<![A-Za-z0-9])(G[1-7]\d{3}[A-F])(?![A-Za-z0-9])/g)].find(q=>AGILENT_MODULES[q[1]]); if (m){ const [d,ser]=AGILENT_MODULES[m[1]]; out.detector=`${d} ${m[1]}`; ev('detector', l); if (!out.model){ out.brand='Agilent'; out.model=ser; ev('model', l); } else if (!out.brand) out.brand='Agilent'; break; } }
     if (!out.detector && (f=field(/^\s*#*\s*Detector(?:\s*(?:name|type|model))?\s*[:=;\t]\s*(.+)$/i))){ out.detector=f[0].replace(/\s*,?\s*Sig\s*=.*$/i,'').slice(0,80); ev('detector', f[1]); }
     // canale: riga del segnale (ChemStation/OpenLab) o nome del file
-    for (const l of L){ if (/Sig\s*=\s*\d{3}/i.test(l)){ out.channel=parseChannel(l); ev('channel', l); break; } }
-    if (!out.channel && (f=field(/^\s*#*\s*(?:Signal|Channel|Wavelength)\s*[:=;\t]\s*(.+)$/i))){ out.channel=parseChannel(f[0]); if (out.channel) ev('channel', f[1]); }
-    if (!out.channel && fileName){ const c=parseChannel(String(fileName)); if (c && c.detector) { out.channel=c; ev('channel', fileName); } }
-    if (!out.detector && out.channel && out.channel.detector){ const t=detType(out.channel.detector); if (t) out.detector=t; }
+    for (const l of L){ if (/Sig\s*=\s*\d{3}/i.test(l)){ out.channel=channelText(l)||null; ev('channel', l); break; } }
+    if (!out.channel && (f=field(/^\s*#*\s*(?:Signal|Channel|Wavelength)\s*[:=;\t]\s*(.+)$/i))){ out.channel=channelText(f[0])||null; if (out.channel) ev('channel', f[1]); }
+    if (!out.channel && fileName){ const c=parseChannel(String(fileName)); if (c && c.det) { out.channel=channelText(c); ev('channel', fileName); } }
+    if (!out.detector && out.channel){ const t=detType((parseChannel(out.channel)||{}).det); if (t) out.detector=t; }
     if ((f=field(/^\s*#*\s*(?:Acq\.?\s*Method|Acquisition\s*Method|Instrument\s*Method|Method(?:\s*Name)?|Method\s*file)\s*[:=;\t]\s*(.+)$/i))){ out.method=f[0].split(/[\\/]/).filter(Boolean).pop().replace(/\s+\(.*$/,'').slice(0,120); ev('method', f[1]); }
     if ((f=field(/^\s*#*\s*(?:Serial\s*(?:number|no\.?|#)?|S\/N|Instrument\s*serial(?:\s*number)?)\s*[:=;\t]\s*(\S.+)$/i))){ out.serial=f[0].slice(0,60); ev('serial', f[1]); }
     if ((f=field(/^\s*#*\s*Column(?:\s*(?:description|name|type))?\s*[:=;\t]\s*(.+)$/i))){ out.column=f[0].slice(0,160); ev('column', f[1]); }
@@ -150,7 +147,7 @@
   function slug(s){ return normTxt(s).replace(/\s+/g,'-').slice(0,40) || 'libreria'; }
   function cleanCal(c){
     if (!c || typeof c!=='object') return null;
-    const o={kind:c.kind==='rf'?'rf':'line', slope:num(c.slope), intercept:num(c.intercept), sa:num(c.sa), sb:num(c.sb), syx:num(c.syx), srel:num(c.srel), n:int(c.n,null), r2:num(c.r2), xm:num(c.xm), ym:num(c.ym), sxx:num(c.sxx), df:int(c.df,null), lod:num(c.lod), loq:num(c.loq),
+    const o={kind:c.kind==='rf'?'rf':'line', slope:num(c.slope), intercept:num(c.intercept), sa:num(c.sa), sb:num(c.sb), syx:num(c.syx), srel:num(c.srel), srelDf:int(c.srelDf,null), n:int(c.n,null), r2:num(c.r2), xm:num(c.xm), ym:num(c.ym), sxx:num(c.sxx), df:int(c.df,null), lod:num(c.lod), loq:num(c.loq),
       range:Array.isArray(c.range)&&c.range.length===2&&num(c.range[0])!=null&&num(c.range[1])!=null ? [Math.min(num(c.range[0]),num(c.range[1])), Math.max(num(c.range[0]),num(c.range[1]))] : null,
       areaUnit:str(c.areaUnit,40), concUnit:str(c.concUnit,40), date:isoDay(c.date), standardLot:str(c.standardLot,120), normalized:c.normalized===true, source:str(c.source,40)||'taratura', uStd:num(c.uStd), measure:c.measure==='height'?'height':'area', rrf:num(c.rrf), alt:c.alt&&typeof c.alt==='object'?clean(c.alt):undefined};
     if (o.slope==null || o.slope===0) return o.rrf!=null ? o : null;
@@ -162,7 +159,7 @@
   function cleanEntry(e){
     if (!e || typeof e!=='object') return null;
     const o={id:str(e.id,80)||newId('v'), rev:int(e.rev,1), modifiedAt:str(e.modifiedAt,40), name:str(e.name,200).trim(), x:num(e.x!=null?e.x:e.tR), window:winOf(e.window, num(e.x!=null?e.x:e.tR)),
-      rrt:num(e.rrt), rrtRef:str(e.rrtRef,80), channel:parseChannel(e.channel), method:str(e.method,160), column:str(e.column,200),
+      rrt:num(e.rrt), rrtRef:str(e.rrtRef,80), channel:channelText(e.channel)||null, method:str(e.method,160), column:str(e.column,200),
       integration:e.integration&&num(e.integration.a)!=null&&num(e.integration.b)!=null ? {a:Math.min(num(e.integration.a),num(e.integration.b)), b:Math.max(num(e.integration.a),num(e.integration.b))} : null,
       cal:cleanCal(e.cal), profile:PROFILES.includes(e.profile)?e.profile:'', notes:str(e.notes,4000), source:e.source&&typeof e.source==='object'?{citation:str(e.source.citation,800), doi:str(e.source.doi,120), note:str(e.source.note,800)}:null,
       chart:Array.isArray(e.chart)?e.chart.filter(p=>p&&num(p.k)!=null).slice(-500).map(p=>({date:isoDay(p.date), k:num(p.k)})):[], warnings:Array.isArray(e.warnings)?e.warnings.filter(w=>typeof w==='string').slice(0,20).map(w=>w.slice(0,600)):[]};
@@ -190,7 +187,9 @@
     const out={format:FORMAT, formatVersion:VERSION, id:str(doc.id,80)||newId(), revision:int(doc.revision,1), name:str(doc.name,200).trim()||'Libreria', technique:str(doc.technique,20)||'hplc',
       instrument:cleanInstrument(doc.instrument), sampleType:str(doc.sampleType,120).trim(), methods:Array.isArray(doc.methods)?doc.methods.slice(0,50).filter(m=>m&&typeof m==='object').map(m=>({id:str(m.id,120), column:str(m.column,200), notes:str(m.notes,2000), aliases:Array.isArray(m.aliases)?m.aliases.filter(a=>typeof a==='string').slice(0,50).map(a=>a.slice(0,120)):[]})):[],
       author:str(doc.author,160), createdAt:str(doc.createdAt,40), modifiedAt:str(doc.modifiedAt,40), description:str(doc.description,4000), profile, thresholds:cleanThresholds(doc.thresholds, profile), thresholdReason:str(doc.thresholdReason,2000), reminderDays:Math.max(1, Math.min(3650, int(doc.reminderDays,180))),
-      maintenance:Array.isArray(doc.maintenance)?doc.maintenance.filter(m=>m&&isoDay(m.date)).slice(0,500).map(m=>({date:isoDay(m.date), kind:str(m.kind,40), target:str(m.target,200), note:str(m.note,1000)})):[],
+      maintenance:Array.isArray(doc.maintenance)?doc.maintenance.filter(m=>m&&isoDay(m.date)).slice(0,500).map(m=>({date:isoDay(m.date), kind:str(m.kind,40), target:str(m.target,200), note:str(m.note,1000), author:str(m.author,160)})):[],
+      // idoneità del sistema del giorno (SPEC «Mai sbloccabile»): una non superata blocca le tarature salvate di quel giorno
+      suitability:Array.isArray(doc.suitability)?doc.suitability.filter(m=>m&&isoDay(m.date)&&typeof m.ok==='boolean').slice(0,2000).map(m=>({date:isoDay(m.date), ok:m.ok, note:str(m.note,1000), author:str(m.author,160)})):[],
       source:doc.source&&typeof doc.source==='object'?clean(doc.source):undefined, entries};
     if (out.source===undefined) delete out.source;
     // soglie allargate solo con una motivazione scritta (SPEC, «Modificabile»)
@@ -230,7 +229,7 @@
   /* ---------- unione voce per voce (DECISIONE-PO §7) ----------
      base = libreria com'era quando l'abbiamo letta (può mancare), mine = la nostra, theirs = quella trovata sul disco.
      Restituisce {merged, conflicts:[{id, kind:'entry'|'meta', field?, mine, theirs}], auto:[…]}. Con conflitti merged non va scritto finché l'utente non sceglie (resolve). */
-  const META=['name','technique','instrument','sampleType','methods','author','description','profile','thresholds','thresholdReason','reminderDays','maintenance'];
+  const META=['name','technique','instrument','sampleType','methods','author','description','profile','thresholds','thresholdReason','reminderDays','maintenance','suitability'];
   const canon=v=>JSON.stringify(v===undefined?null:v);
   function entryCanon(e){ if (!e) return 'null'; const c=Object.assign({}, e); delete c.modifiedAt; delete c.rev; return canon(c); }
   function merge(base, mine, theirs){
@@ -238,6 +237,8 @@
     if (mine.id!==theirs.id) throw libError('different-library', mine.id+' / '+theirs.id);
     const conflicts=[], auto=[], out=JSON.parse(JSON.stringify(mine));
     for (const k of META){ const m=canon(mine[k]), t=canon(theirs[k]); if (m===t) continue; const b=base?canon(base[k]):null;
+      // registri (manutenzioni, idoneità): si aggiungono soltanto, quindi si uniscono senza conflitto
+      if (k==='maintenance' || k==='suitability'){ const seen=new Set(), all=[]; for (const x of (mine[k]||[]).concat(theirs[k]||[])){ const c=canon(x); if (!seen.has(c)){ seen.add(c); all.push(x); } } all.sort((x,y)=>String(x.date).localeCompare(String(y.date))); out[k]=all; auto.push({kind:'meta', field:k, took:'union'}); continue; }
       if (base && m===b){ out[k]=JSON.parse(JSON.stringify(theirs[k])); auto.push({kind:'meta', field:k, took:'theirs'}); }
       else if (base && t===b){ /* modificato solo da noi */ }
       else conflicts.push({kind:'meta', id:'#'+k, field:k, mine:mine[k], theirs:theirs[k]}); }
@@ -320,7 +321,7 @@
       const quant=c.slope!=null && num(e.tR)!=null && /READ IN FULL TEXT/i.test(e.status||'') && e.technique==='hplc' && /ijerph/i.test(src.doi||'');
       const cu=/umol|µmol|μmol/i.test(c.units||'') ? 'µmol/L' : /\bmM\b/.test(c.units||'') ? 'mM' : '';
       const rg=/([\d.]+)\s*[-–]\s*([\d.]+)/.exec(String(c.range||'')), range=rg?[+rg[1], +rg[2]]:null;
-      return {id:'v'+String(i+1).padStart(3,'0'), rev:1, name:e.name, x:num(e.tR), window:e.window!=null?e.window:0.1, channel:lam?{detector:'DAD', lambda:lam}:null, method:(e.method&&e.method.id)||'', column:(e.method&&e.method.column)||'',
+      return {id:'v'+String(i+1).padStart(3,'0'), rev:1, name:e.name, x:num(e.tR), window:e.window!=null?e.window:0.1, channel:lam?`${lam} nm`:null, method:(e.method&&e.method.id)||'', column:(e.method&&e.method.column)||'',
         cal:quant?{kind:'line', slope:num(c.slope), intercept:num(c.intercept), sb:num(c.slopeSD), sa:num(c.interceptSD), r2:num(c.r2), lod:lodIn(c.lod, c.lodUnits, cu), loq:lodIn(c.loq, c.loqUnits, cu), areaUnit:'mAU·s', concUnit:cu, range, n:null, date:pubDate(src.citation)||isoDay(d.generated)||'', source:'letteratura', alt:e.altCalibration||undefined}:null,
         source:{citation:str(src.citation,800), doi:str(src.doi,120), note:str(src.location,800)}, notes:[e.notes, e.integration, quant?'fonte: letteratura, stesso modello di strumento dichiarato dall\'utente; unità dell\'area assunta mAU·s':'' ].filter(Boolean).join(' · ')}; });
     const ins=first.instrument||{};

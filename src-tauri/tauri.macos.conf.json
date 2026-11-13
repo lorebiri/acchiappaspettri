@@ -79,6 +79,15 @@
         "name": "Instrument spectrum",
         "role": "Viewer",
         "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "json"
+        ],
+        "name": "Acchiappaspettri peak library",
+        "description": "Acchiappaspettri peak library (.acchlib.json)",
+        "role": "Viewer",
+        "rank": "Alternate"
       }
     ]
   }

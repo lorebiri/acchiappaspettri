@@ -159,9 +159,13 @@ fn is_raw(p: &Path) -> bool {
         })
         .unwrap_or(false)
 }
-/// Ciò che il sistema operativo può far aprire all'app: progetti e file grezzi leggibili, solo se sono file veri.
+/// Librerie dei picchi (.acchlib.json, tappa I4): con «Apri con» su un .json la pagina controlla il contenuto prima di importarlo.
+fn is_library(p: &Path) -> bool {
+    p.file_name().and_then(|n| n.to_str()).map(|n| { let n = n.to_ascii_lowercase(); n.ends_with(".json") && !n.ends_with(".acchiappa.json") }).unwrap_or(false)
+}
+/// Ciò che il sistema operativo può far aprire all'app: progetti, file grezzi leggibili e librerie, solo se sono file veri.
 fn is_openable(p: &Path) -> bool {
-    (is_project(p) || is_legacy_project(p) || is_raw(p)) && p.is_file()
+    (is_project(p) || is_legacy_project(p) || is_raw(p) || is_library(p)) && p.is_file()
 }
 fn file_name(p: &Path) -> String {
     p.file_name()
@@ -643,6 +647,13 @@ mod tests {
         assert_eq!(fs::read(dir.join("a.acchspettri.bak")).unwrap(), b"one");
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 2);
         fs::remove_dir_all(&dir).unwrap();
+    }
+    #[test]
+    fn libraries_are_accepted_from_the_system() {
+        assert!(is_library(Path::new("/x/Agilent 1260 — alimenti.acchlib.json")));
+        assert!(is_library(Path::new("C:\\x\\lib.ACCHLIB.JSON")));
+        assert!(!is_library(Path::new("/x/vecchio.acchiappa.json")), "i vecchi progetti restano progetti");
+        assert!(!is_library(Path::new("/x/lib.acchlib")));
     }
     #[test]
     fn projects_are_recognised() {

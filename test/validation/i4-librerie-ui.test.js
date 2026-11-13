@@ -15,6 +15,7 @@ const LIBNAME='Agilent 1260 Infinity · DAD — saliva';
 // concentrazioni vere (mM) e pendenze della bozza (mAU·s per mM): creatinina, acido urico, tirosina
 const TRUE={Creatinine:[3.561, 9876, 0.0227], 'Uric acid':[5.358, 12773, 0.15], Tyrosine:[7.476, 16717, 0.05]};
 const sal=(o)=>D.chrom(Object.assign({sample:'SAL_03', method:'C:\\Chem32\\1\\METHODS\\ICCOM-SAL-RP220.M', peaks:Object.values(TRUE).map(([t,b,c])=>({t, area:b*c}))}, o||{}));
+const AcchChannelsWl=t=>require(path.join(B.ROOT,'app','channels-core.js')).parseChannel(t).wl;
 const closeAll=p=>p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
 
 async function importBozza(o, desk){
@@ -68,7 +69,7 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
     const zip=await JSZip.loadAsync(await exportZip(o, desk)), names=Object.keys(zip.files);
     const csvN=names.find(n=>/concentrazioni_da_libreria\.csv$/.test(n)); assert.ok(csvN, w+': CSV delle concentrazioni nello ZIP: '+names.join(', '));
     const csv=(await zip.file(csvN).async('string')).replace(/^\uFEFF/,''), L=csv.split(/\r\n/), H=L[0].split(';');
-    for (const k of ['Concentrazione','U (k=2)','Segno','Profilo','Metodo di taratura','Libreria','Revisione libreria','Voce','Data taratura','Età (giorni)','Lotto standard','Strumento della libreria','Tipo di campione','Fonte']) assert.ok(H.includes(k), 'colonna '+k);
+    for (const k of ['Concentrazione','U','Fattore di copertura','Segno','Profilo','Metodo di taratura','Libreria','Revisione libreria','Voce','Data taratura','Età (giorni)','Lotto standard','Strumento della libreria','Tipo di campione','Fonte']) assert.ok(H.includes(k), 'colonna '+k);
     const row=n=>L.find(l=>l.split(';')[2]===n).split(';'), cr=row('Creatinine');
     assert.strictEqual(cr[H.indexOf('Segno')], 'senza controllo del giorno'); assert.strictEqual(cr[H.indexOf('Libreria')], LIBNAME); assert.strictEqual(cr[H.indexOf('Metodo di taratura')], 'salvata senza controllo'); assert.strictEqual(cr[H.indexOf('Data taratura')], '2020-01-01'); assert.strictEqual(cr[H.indexOf('Profilo')], 'Ricerca');
     { const num=t=>+String(t).replace(',','.'), c=num(cr[H.indexOf('Concentrazione')]), sc=num(sec.rows.find(x=>x.e==='Creatinine').x); assert.strictEqual(+c.toPrecision(4), sc, w+': CSV uguale allo schermo (a schermo 4 cifre)'); }
@@ -113,7 +114,7 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
       await o.p.click('#libSaveSlope'); await o.p.fill('#lsName','Analita X'); await o.p.selectOption('#lsProf','ricerca'); await o.p.fill('#lsLot','LOTTO-42'); await o.p.click('#lsOk');
       await o.p.waitForFunction(()=>AcchLibUi.items.some(it=>it.lib && it.lib.entries.some(e=>e.name==='Analita X')));
       const e=await o.p.evaluate(()=>AcchLibUi.items.find(it=>it.lib && it.lib.sampleType==='alimenti').lib.entries.find(e=>e.name==='Analita X'));
-      assert.ok(Math.abs(e.cal.slope/cal.b-1)<1e-12 && Math.abs(e.cal.intercept-cal.a)<1e-9, w+': pendenza e intercetta salvate'); assert.strictEqual(e.cal.standardLot,'LOTTO-42'); assert.strictEqual(e.profile,'ricerca'); assert.deepStrictEqual(e.cal.range,[1,20]); assert.strictEqual(e.channel.lambda,220); assert.ok(e.cal.srel>0);
+      assert.ok(Math.abs(e.cal.slope/cal.b-1)<1e-12 && Math.abs(e.cal.intercept-cal.a)<1e-9, w+': pendenza e intercetta salvate'); assert.strictEqual(e.cal.standardLot,'LOTTO-42'); assert.strictEqual(e.profile,'ricerca'); assert.deepStrictEqual(e.cal.range,[1,20]); assert.strictEqual(AcchChannelsWl(e.channel),220); assert.ok(e.cal.srel>0);
       // un incognito di un altro giorno: la concentrazione dalla pendenza salvata è quella della retta (stessi numeri)
       await load(o, 'INC.csv', D.chrom({sample:'INC', seed:99, method:'METODO-A.M', peaks:[{t:4.0, area:600*7.3}]})); await closeAll(o.p);
       const q=await o.p.evaluate(()=>{ const f=files.find(g=>g.name==='INC.csv'), r=AcchLibUi.quantRows(f).rows.find(x=>x.entry.name==='Analita X'), k=mvCalib(mvTable('hplc')); const y=mvValue(f, 3.85, 4.15, 'area'); return {x:r.res.x, day:k.predict(y).x, mode:r.res.mode}; });
@@ -179,5 +180,64 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
       await S.save(a, la); await S.save(b, lb, ()=>null); const now=(await S.list()).find(x=>x.lib && x.lib.id===L.id).lib; return {kind:S.kind, names:AcchLib.liveEntries(now).map(e=>e.name).sort()}; });
     assert.strictEqual(r.kind, 'web'); assert.deepStrictEqual(r.names, ['C-H','C=O','O-H']);
     await done(o);
+  });
+
+  it('decisioni del coordinatore: filtri, confronto con la retta del giorno, idoneità e manutenzioni, carta di controllo esportata, doppio clic su una libreria', async ()=>{
+    for (const desk of [false, true]){ const o=await open(desk), w=desk?'desktop':'online';
+      await importBozza(o, desk);
+      // altre due librerie: FTIR e un HPLC per «alimenti» con un'altra λ
+      await o.p.evaluate(async ()=>{ const a=AcchLib.create({technique:'ftir', instrument:{brand:'Bruker', model:'ALPHA II', detector:'DTGS'}, sampleType:'polimeri'}); AcchLib.upsert(a,{name:'C=O', x:1715, window:15}); await AcchLibUi.saveLib({origin:'user'}, a);
+        const b=AcchLib.create({technique:'hplc', instrument:{brand:'Agilent', model:'1260 Infinity', detector:'DAD G4212B'}, sampleType:'alimenti', methods:[{id:'METODO-A.M'}]}); AcchLib.upsert(b,{name:'Caffeina', x:4, window:0.1, channel:'DAD1A 273/4 nm', method:'METODO-A.M'}); await AcchLibUi.saveLib({origin:'user'}, b); });
+      // 3. filtri per tecnica, strumento, tipo di campione, metodo e canale
+      const flt=await o.p.evaluate(async ()=>{ await AcchLibUi.openManager(); const n=()=>[...document.querySelectorAll('#lmTable tr[data-id]')].filter(t=>!t.hidden).length, set=(id,v)=>{ const e=document.querySelector('#'+id); e.value=v; e.dispatchEvent(new Event('input')); };
+        const out={all:n()}; set('lfTech','ftir'); out.tech=n(); set('lfTech',''); set('lfIns','1260'); out.ins=n(); set('lfSt','alimenti'); out.st=n(); set('lfSt',''); set('lfMet','METODO-A'); out.met=n(); set('lfMet',''); set('lfCh','273'); out.ch=n(); set('lfCh','DAD1A 220 nm'); out.ch220=n(); set('lfIns',''); set('lfCh',''); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); return out; });
+      assert.deepStrictEqual(flt, {all:3, tech:1, ins:2, st:1, met:1, ch:1, ch220:1}, w+': filtri');
+      // 4. profilo Dosaggio: nessun numero, ma la differenza in % rispetto alla retta del giorno
+      const STD=[1,2,5,10].map((c,i)=>[`D${i+1}.csv`, D.chrom({sample:'D'+(i+1), seed:40+i, method:'METODO-A.M', signal:'DAD1 A, Sig=273,4 Ref=off', peaks:[{t:4.0, area:600*c*1.04}]}), c]);
+      const cmp=await o.p.evaluate(async L=>{ const it=AcchLibUi.items.find(x=>x.lib&&x.lib.sampleType==='alimenti'), lib=JSON.parse(JSON.stringify(it.lib)), e=lib.entries[0];
+        e.profile='dosaggio'; e.integration={a:3.85, b:4.15}; e.cal={kind:'line', slope:600/60*60, intercept:0, syx:1, range:[1,10], areaUnit:'mAU·s', concUnit:'mg/L', date:'2026-11-01'}; e.cal.slope=600*60/60; AcchLib.upsert(lib, e); await AcchLibUi.saveLib(it, lib);
+        AcchHost.store.setItem('acch.lib.sampleType', JSON.stringify('alimenti'));
+        await addEntries(L.map(([n,t])=>({file:new File([t],n), path:n}))); await new Promise(r=>setTimeout(r,250)); document.querySelector('#lpOk').click(); await new Promise(r=>setTimeout(r,100));
+        if (window.AcchWebShow) AcchWebShow(); const c=mvCfg('hplc'); c.a=3.85; c.b=4.15; c.meas='area'; c.unit='mg/L'; mvSave(); L.forEach(([n,,v])=>anSet(files.find(f=>f.name===n),'conc',v));
+        cur=files.findIndex(f=>f.name==='D2.csv'); go(2); openTab('an'); renderAnalysis(); const r=AcchLibUi.quantRows(files[cur]).rows.find(x=>x.entry.name==='Caffeina');
+        return {code:r.res.code, x:r.res.x, diff:r.res.compare&&r.res.compare.diff, txt:document.querySelector('#libQ').textContent, csv:AcchLibUi.csvRows([files[cur]]).map(x=>x.join(';')).join('\n')}; }, STD);
+      assert.strictEqual(cmp.code, 'profile'); assert.strictEqual(cmp.x, null); assert.ok(Math.abs(cmp.diff/100*60-0.04*60)<0.6/60*100 && Math.abs(cmp.diff-4)<1.5, w+': differenza '+cmp.diff);
+      assert.match(cmp.txt, /Retta del giorno: pendenza \+\d,\d% rispetto a quella salvata/); assert.match(cmp.csv, /Retta del giorno: pendenza \+/);
+      // 5. idoneità non superata oggi e manutenzione dopo la taratura, dalla finestra, con data e autore
+      const lg=await o.p.evaluate(async ()=>{ const id=AcchLibUi.items.find(x=>x.lib&&x.lib.name==='Agilent 1260 Infinity · DAD — saliva').lib.id; await AcchLibUi.openManager(id);
+        document.querySelector('#lmLog').click(); await new Promise(r=>setTimeout(r,50)); document.querySelector('#lgKind').value='suit-ko'; document.querySelector('#lgAuthor').value='Tecnico A'; document.querySelector('#lgOk').click();
+        await new Promise(r=>setTimeout(r,400)); const L=AcchLibUi.items.find(x=>x.lib&&x.lib.id===id).lib; document.querySelectorAll('dialog[open]').forEach(d=>d.close()); return {s:L.suitability, sum:!!document.querySelector('#lmLogSum')}; });
+      assert.strictEqual(lg.s.length, 1); assert.strictEqual(lg.s[0].ok, false); assert.strictEqual(lg.s[0].author, 'Tecnico A');
+      await load(o, 'SAL_10.csv', sal({sample:'SAL_10'})); await confirmLoad(o, 'saliva', 'SAL_10.csv');
+      const blk=await o.p.evaluate(()=>{ const f=files.find(g=>g.name==='SAL_10.csv'); return [...new Set(AcchLibUi.quantRows(f).rows.filter(x=>x.res).map(x=>x.res.code))]; });
+      assert.deepStrictEqual(blk, ['suitability'], w+': idoneità non superata → nessun numero');
+      const mt=await o.p.evaluate(async ()=>{ const it=AcchLibUi.items.find(x=>x.lib&&x.lib.name==='Agilent 1260 Infinity · DAD — saliva'), L=JSON.parse(JSON.stringify(it.lib)); L.suitability=[]; L.maintenance=[{date:'2021-03-01', kind:'lampada', author:'Tecnico B'}]; await AcchLibUi.saveLib(it, L);
+        const f=files.find(g=>g.name==='SAL_10.csv'); return AcchLibUi.quantRows(f).rows.filter(x=>x.res).map(x=>x.res.code+':'+x.entry.name); });
+      assert.ok(mt.includes('maintenance:Creatinine') && mt.includes('ok:Dihydrouracil')===false, w+': manutenzione dopo la taratura del 2020 la invalida: '+mt.join(','));
+      // 6. carta di controllo: k registrato da un controllo del giorno, esportata da sola (PNG, SVG, CSV) e nello ZIP di Esporta
+      const ch=await o.p.evaluate(async ()=>{ const it=AcchLibUi.items.find(x=>x.lib&&x.lib.name==='Agilent 1260 Infinity · DAD — saliva'), L=JSON.parse(JSON.stringify(it.lib)); L.maintenance=[]; const e=L.entries.find(x=>x.name==='Creatinine');
+        e.chart=Array.from({length:10},(_,i)=>({date:'2026-10-'+String(i+10), k:1+0.004*Math.sin(i)})); AcchLib.upsert(L, e); await AcchLibUi.saveLib(it, L); return AcchLibUi.chartSvg(AcchLibUi.items.find(x=>x.lib&&x.lib.id===L.id).lib.entries.find(x=>x.name==='Creatinine'), L); });
+      assert.match(ch, /^<svg[\s\S]*Carta di controllo · Creatinine[\s\S]*<circle/);
+      await load(o, 'CTRL.csv', sal({sample:'CTRL', seed:3})); await confirmLoad(o, 'saliva', 'CTRL.csv');
+      const rk=await o.p.evaluate(async ()=>{ const c=files.find(g=>g.name==='CTRL.csv'); anSet(c,'role','qc'); const id=AcchLibUi.quantRows(c).lib.entries.find(x=>x.name==='Creatinine').id; anSet(c,'libCtrl',{[id]:0.0227}); files.forEach(g=>g._libRes=null);
+        cur=files.findIndex(g=>g.name==='SAL_10.csv'); go(2); openTab('an'); renderAnalysis(); const b=[...document.querySelectorAll('#libBody .libchart')].find(x=>x.dataset.e===id); if (!b) return {btn:false}; b.click(); await new Promise(r=>setTimeout(r,400));
+        const e=AcchLibUi.items.find(x=>x.lib&&x.lib.entries.some(y=>y.id===id)).lib.entries.find(y=>y.id===id); return {btn:true, n:e.chart.length, last:e.chart[e.chart.length-1]}; });
+      assert.ok(rk.btn, w+': pulsante «Registra il k»'); assert.strictEqual(rk.n, 11); assert.ok(Math.abs(rk.last.k-1)<0.05);
+      if (!desk){ await o.p.evaluate(()=>{ const id=AcchLibUi.items.find(x=>x.lib&&x.lib.name==='Agilent 1260 Infinity · DAD — saliva').lib.id; return AcchLibUi.openManager(id); });
+        for (const k of ['png','svg','csv']){ const [dl]=await Promise.all([o.p.waitForEvent('download'), o.p.click(`#lmEntries [data-chart][data-kind="${k}"]`)]); assert.match(dl.suggestedFilename(), new RegExp('creatinine\\.'+k+'$')); const b=fs.readFileSync(await dl.path()); if (k==='png') assert.strictEqual(b.slice(1,4).toString(),'PNG'); if (k==='csv') assert.match(b.toString(), /Serie[;,]Data[;,]k/); }
+        await closeAll(o.p); }
+      assert.ok(await o.p.evaluate(()=>{ go(3); return !!document.querySelector('#libOutCharts input') && document.querySelector('#libOutCharts input').checked; }), w+': opzione in Esporta');
+      const zip=await JSZip.loadAsync(await exportZip(o, desk)), names=Object.keys(zip.files);
+      for (const k of ['png','svg','csv']) assert.ok(names.some(n=>new RegExp('carte_di_controllo/.*creatinine\\.'+k+'$').test(n)), w+': carta '+k+' nello ZIP: '+names.join(', '));
+      // 2. doppio clic o «Apri con» su un .acchlib.json (desktop): importazione con l'unione e i conflitti espliciti
+      if (desk){ const r=await o.p.evaluate(async ()=>{ const M=window.__mock, it=AcchLibUi.items.find(x=>x.lib&&x.lib.sampleType==='polimeri'), L=JSON.parse(JSON.stringify(it.lib));
+          AcchLib.upsert(L, Object.assign({}, L.entries[0], {x:1720})); AcchLib.upsert(L, {name:'C-H', x:2920, window:15});
+          const mine=JSON.parse(JSON.stringify(it.lib)); AcchLib.upsert(mine, Object.assign({}, mine.entries[0], {x:1710})); await AcchLibUi.saveLib(it, mine);
+          M.files['/utente/Scaricati/polimeri.acchlib.json']=AcchLib.serialize(L); M.pending=[{path:'/utente/Scaricati/polimeri.acchlib.json', name:'polimeri.acchlib.json'}];
+          let asked=null; window.AcchLibAsk=async m=>{ asked=m.conflicts.map(c=>c.name); return {[m.conflicts[0].id]:'theirs'}; };
+          M.emit('acch-open-files'); for (let i=0;i<40 && !AcchLibUi.items.find(x=>x.lib&&x.lib.id===L.id&&x.lib.entries.length===2);i++) await new Promise(r=>setTimeout(r,100));
+          window.AcchLibAsk=null; const now=AcchLibUi.items.find(x=>x.lib&&x.lib.id===L.id).lib; return {asked, names:AcchLib.liveEntries(now).map(e=>e.name+':'+e.x).sort(), n:AcchLibUi.items.filter(x=>x.lib&&x.lib.sampleType==='polimeri').length}; });
+        assert.deepStrictEqual(r.asked, ['C=O'], 'conflitto esplicito'); assert.deepStrictEqual(r.names, ['C-H:2920','C=O:1720']); assert.strictEqual(r.n, 1, 'nessun doppione'); }
+      await done(o); }
   });
 });

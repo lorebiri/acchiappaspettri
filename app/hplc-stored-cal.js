@@ -60,7 +60,9 @@
     const xc=o.xc; terms.int=o.sa!=null ? (o.sa/b)**2*Math.pow(1/x-(xc>0?1/xc:0),2) : 0;
     terms.days=o.noControl ? Math.pow(o.betweenDays!=null?o.betweenDays:BETWEEN_DAYS,2) : 0;
     const rel=Math.sqrt(terms.rep+terms.std+terms.int+terms.days);
-    return {U:2*x*rel, rel, sr, from, terms, uStdMissing:!(o.uStd>0), betweenDays:o.noControl ? (o.betweenDays!=null?o.betweenDays:BETWEEN_DAYS) : null};
+    // fattore di copertura: t di Student per i gradi di libertà di s_r (decisione del Capo Progetto, 13/11/2026); 2 se non sono noti
+    const df=o.df>=1 && isFinite(o.df) ? o.df : null, kU=df ? t975(df) : 2;
+    return {U:kU*x*rel, rel, kU, df, sr, from, terms, uStdMissing:!(o.uStd>0), betweenDays:o.noControl ? (o.betweenDays!=null?o.betweenDays:BETWEEN_DAYS) : null};
   }
 
   /* ripetibilità relativa per l'incertezza, dagli standard della taratura: con repliche, l'errore puro relativo (scarti dalla media di ogni livello,
@@ -70,8 +72,11 @@
     const P=(pts||[]).filter(p=>p && isFinite(p.x) && isFinite(p.y)); if (P.length<3) return null;
     const lv=new Map(); for (const p of P){ const k=+(+p.x).toPrecision(9); if (!lv.has(k)) lv.set(k,[]); lv.get(k).push(p.y); }
     let ss=0, df=0; for (const v of lv.values()){ if (v.length<2) continue; const m=v.reduce((s,y)=>s+y,0)/v.length; if (!(m>0)) continue; for (const y of v) ss+=Math.pow((y-m)/m,2); df+=v.length-1; }
-    if (df>=2) return Math.sqrt(ss/df);
-    if (a==null || b==null) return null; ss=0; for (const p of P){ const yh=a+b*p.x; if (!(yh>0)) return null; ss+=Math.pow((p.y-yh)/yh,2); } return Math.sqrt(ss/(P.length-2)); }
+    if (df>=2) return withDf(Math.sqrt(ss/df), df);
+    if (a==null || b==null) return null; ss=0; for (const p of P){ const yh=a+b*p.x; if (!(yh>0)) return null; ss+=Math.pow((p.y-yh)/yh,2); } return withDf(Math.sqrt(ss/(P.length-2)), P.length-2); }
+  // il numero resta un numero (srel), i gradi di libertà vanno accanto (srelDf)
+  function withDf(v, df){ const o=new Number(v); o.df=df; return o; }
+  function relRepeatabilityDf(pts, a, b){ const r=relRepeatability(pts, a, b); return r==null ? null : {s:+r, df:r.df}; }
   /* risposta prevista dalla retta salvata e concentrazione corretta con k: x = (y/k − a)/b */
   const predY=(cal,x)=>(cal.kind==='rf' ? 0 : (cal.intercept||0))+cal.slope*x;
   const toX=(cal,y,k)=>((y/k)-(cal.kind==='rf'?0:(cal.intercept||0)))/cal.slope;
@@ -97,7 +102,9 @@
     // manutenzione registrata dopo la data della taratura: invalida le tarature salvate di quello strumento o colonna
     const mt=(lib.maintenance||[]).find(m=>cal.date && m.date>cal.date && (!m.target || !e.column || m.target===e.column || /lamp|lampada|cella|cell|strument/i.test(m.kind||'')));
     if (mt) return block('maintenance', mt.date);
-    if (o.suitability===false) return block('suitability');
+    // idoneità del sistema: dal valore passato o dal registro della libreria per il giorno della misura (l'ultima registrata vale)
+    const suit=o.suitability!=null ? o.suitability : (()=>{ const L=(lib.suitability||[]).filter(r=>r.date===today); return L.length ? L[L.length-1].ok : null; })();
+    if (suit===false) return block('suitability');
     if (age!=null && age>rem) res.warnings.push({code:'reminder', detail:rem});
     if (profile==='esplorativa') res.warnings.push({code:'exploratory'});
     const y=o.y; if (!(isFinite(y))) return block('no-response');
@@ -159,11 +166,14 @@
     const csd=e.chart&&e.chart.length>=CHART_MIN ? chartSd(e.chart) : null, noc=mode==='nocontrol';
     // s_r relativa: carta di controllo (con i controlli), poi la ripetibilità relativa della taratura salvata (srel), poi s_y/x alla risposta del campione
     const sr=o.sr!=null ? o.sr : (!noc && csd!=null ? csd : (cal.srel!=null ? cal.srel : null));
-    const U=uncertainty({x, b:cal.slope, sb:cal.sb, y:y/k, syx:cal.syx, sr, srFrom:o.sr!=null?'given':(!noc && csd!=null)?'chart':'srel', sa:cal.kind==='rf'?null:cal.sa, xc:res.xc, mc:noc?Infinity:(res.nCtrl||1), mk:o.mk||1, uStd:o.uStd!=null?o.uStd:cal.uStd, noControl:noc, betweenDays:noc&&csd!=null?csd:null});
+    const srFrom=o.sr!=null?'given':(!noc && csd!=null)?'chart':cal.srel!=null?'srel':cal.syx!=null?'syx':'slope-sd';
+    const dfU=srFrom==='given'?o.srDf:srFrom==='chart'?CHART_MIN-1:srFrom==='srel'?cal.srelDf:srFrom==='syx'?(cal.df||(cal.n?cal.n-2:null)):null;
+    const U=uncertainty({x, b:cal.slope, sb:cal.sb, y:y/k, syx:cal.syx, sr, srFrom, df:dfU, sa:cal.kind==='rf'?null:cal.sa, xc:res.xc, mc:noc?Infinity:(res.nCtrl||1), mk:o.mk||1, uStd:o.uStd!=null?o.uStd:cal.uStd, noControl:noc, betweenDays:noc&&csd!=null?csd:null});
     res.u=U; res.U=U?U.U:null;
     if (!U) res.warnings.push({code:'no-uncertainty'});
     else if (U.from==='slope-sd') res.warnings.push({code:'u-slope-sd'});
     if (U && U.uStdMissing) res.uStdMissing=true;
+    if (U) res.warnings.push({code:'coverage', detail:{kU:U.kU, df:U.df}});
     return res;
   }
   function chartSd(chart){ const L=chart.map(p=>p.k).filter(Number.isFinite).slice(0,CHART_MIN); if (L.length<CHART_MIN) return null; const m=L.reduce((a,b)=>a+b,0)/L.length; return Math.sqrt(L.reduce((a,b)=>a+(b-m)**2,0)/(L.length-1))/m; }
@@ -204,13 +214,14 @@
   }
   const WARN={'reminder':['Promemoria: taratura di oltre {0} giorni.','Reminder: calibration older than {0} days.'], 'exploratory':['Stima esplorativa.','Exploratory estimate.'], 'chart-warn':['Carta di controllo: regola 2_2s, da tenere d\'occhio.','Control chart: 2_2s rule, keep an eye on it.'],
     'channel-unverified':['Ampiezza di banda o riferimento non dichiarati nel file: non verificati.','Bandwidth or reference not stated in the file: not verified.'], 'method-unverified':['Metodo non dichiarato nel file: non verificato.','Method not stated in the file: not verified.'], 'column-unverified':['Colonna non dichiarata nel file: non verificata.','Column not stated in the file: not verified.'],
-    'range-unknown':['Intervallo della taratura non dichiarato: un\'estrapolazione non si può escludere.','Calibration range not stated: extrapolation cannot be ruled out.'], 'area-unit-assumed':['Unità dell\'area della voce assunta: {0}.','Entry area unit assumed: {0}.'], 'u-slope-sd':['Incertezza dalla deviazione standard della pendenza della fonte (s_y/x non dichiarato) più il 5% tra i giorni.','Uncertainty from the source slope standard deviation (s_y/x not stated) plus 5% between days.'], 'no-uncertainty':['Incertezza non calcolabile: la voce non ha s_y/x né una carta di controllo.','Uncertainty not computable: the entry has neither s_y/x nor a control chart.']};
-  function warningTexts(r, lang){ const i=lang==='en'?1:0; return (r.warnings||[]).map(w=>{ const t=(WARN[w.code]||[w.code,w.code])[i]; return t.replace('{0}', w.detail!=null?String(w.detail):''); }); }
+    'range-unknown':['Intervallo della taratura non dichiarato: un\'estrapolazione non si può escludere.','Calibration range not stated: extrapolation cannot be ruled out.'], 'area-unit-assumed':['Unità dell\'area della voce assunta: {0}.','Entry area unit assumed: {0}.'], 'coverage':['U con fattore di copertura {0}.','U with coverage factor {0}.'], 'u-slope-sd':['Incertezza dalla deviazione standard della pendenza della fonte (s_y/x non dichiarato) più il 5% tra i giorni.','Uncertainty from the source slope standard deviation (s_y/x not stated) plus 5% between days.'], 'no-uncertainty':['Incertezza non calcolabile: la voce non ha s_y/x né una carta di controllo.','Uncertainty not computable: the entry has neither s_y/x nor a control chart.']};
+  function warningTexts(r, lang){ const i=lang==='en'?1:0, en=lang==='en'; return (r.warnings||[]).map(w=>{ const t=(WARN[w.code]||[w.code,w.code])[i];
+    if (w.code==='coverage' && w.detail) return t.replace('{0}', w.detail.df ? `${N(w.detail.kU,2,en)} (t, ${w.detail.df} ${en?'degrees of freedom':'gradi di libertà'})` : (en?'2 (degrees of freedom not known)':'2 (gradi di libertà non noti)')); return t.replace('{0}', w.detail!=null?String(w.detail):''); }); }
   function modeText(r, lang){ return r.ok ? (MODE[r.mode]||['',''])[lang==='en'?1:0] : (lang==='en'?'not verified':'non verificata'); }
   function markText(lang){ return MARK[lang==='en'?1:0]; }
   /* riga di provenienza: libreria, voce, data della taratura (REQUISITO punto 3) */
   function provenanceText(r, lang){ const p=r.provenance||{}, en=lang==='en';
     return `${en?'library':'libreria'} «${p.library}»${p.revision?` rev. ${p.revision}`:''} · ${en?'entry':'voce'} «${p.entry}»${p.entryRev?` rev. ${p.entryRev}`:''} · ${en?'calibration of':'taratura del'} ${fmtDate(p.calDate)||(en?'unknown date':'data non nota')}${p.source==='letteratura'?(en?' (literature)':' (letteratura)'):''}`; }
 
-  return {relRepeatability, QUANT, DEF, BETWEEN_DAYS, CHART_MIN, CHART_ACTION, quantify, uncertainty, chartCheck, interceptNegligible, areaFactor, statusText, reasonText, warningTexts, modeText, markText, provenanceText, fmtDate, days, predY, toX, REASON};
+  return {relRepeatability, relRepeatabilityDf, t975, QUANT, DEF, BETWEEN_DAYS, CHART_MIN, CHART_ACTION, quantify, uncertainty, chartCheck, interceptNegligible, areaFactor, statusText, reasonText, warningTexts, modeText, markText, provenanceText, fmtDate, days, predY, toX, REASON};
 });

@@ -11,7 +11,7 @@ function rng(seed){ let s=seed>>>0; return ()=>{ s=(Math.imul(s,1103515245)+1234
 function gaussOf(r){ return ()=>{ let u=0; while (!u) u=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r()); }; }
 function fit(pts){ const n=pts.length, xm=pts.reduce((a,p)=>a+p.x,0)/n, ym=pts.reduce((a,p)=>a+p.y,0)/n; let sxx=0,sxy=0,sx2=0; for (const p of pts){ sxx+=(p.x-xm)**2; sxy+=(p.x-xm)*(p.y-ym); sx2+=p.x*p.x; }
   const b=sxy/sxx, a=ym-b*xm; let ss=0; for (const p of pts) ss+=(p.y-a-b*p.x)**2; const syx=Math.sqrt(ss/(n-2));
-  return {kind:'line', slope:b, intercept:a, syx, srel:Q.relRepeatability(pts,a,b), sa:syx*Math.sqrt(sx2/(n*sxx)), sb:syx/Math.sqrt(sxx), n, df:n-2, range:[1,20], date:'2026-10-01', areaUnit:'mAU·min', concUnit:'mg/L'}; }
+  return {kind:'line', slope:b, intercept:a, syx, srel:+Q.relRepeatability(pts,a,b), srelDf:Q.relRepeatability(pts,a,b).df, sa:syx*Math.sqrt(sx2/(n*sxx)), sb:syx/Math.sqrt(sxx), n, df:n-2, range:[1,20], date:'2026-10-01', areaUnit:'mAU·min', concUnit:'mg/L'}; }
 const CAL={kind:'line', slope:100, intercept:0.4, sa:1.2, syx:2, srel:0.01, n:18, df:16, range:[1,20], date:'2026-10-01', areaUnit:'mAU·min', concUnit:'mg/L', standardLot:'L-7'};
 const E0={id:'v1', rev:3, name:'Caffeina', x:3.2, window:0.1, cal:CAL};
 const LIB={id:'lib-x', name:'Agilent 1260 Infinity · DAD — alimenti', revision:4, profile:'ricerca', thresholds:{dev:10, diff:5, drift:5}, reminderDays:180, maintenance:[]};
@@ -87,7 +87,7 @@ test('T3: carta di controllo: salto dell\'8% entro 1 serie, deriva dello 0,1% al
 
 test('T4: k, x, U e RRF contro un calcolo Python indipendente, LRE ≥ 10', ()=>{
   const r=rng(9), cases=[];
-  for (let i=0;i<60;i++){ const cal={kind:i%7===0?'rf':'line', slope:50+200*r(), intercept:i%7===0?null:(r()-0.5)*4, sa:0.2+r(), syx:0.5+3*r(), srel:i%3===0?null:0.005+0.02*r(), n:12, df:10, range:null};
+  for (let i=0;i<60;i++){ const cal={kind:i%7===0?'rf':'line', slope:50+200*r(), intercept:i%7===0?null:(r()-0.5)*4, sa:0.2+r(), syx:0.5+3*r(), srel:i%3===0?null:0.005+0.02*r(), srelDf:i%5===0?null:6+(i%9), n:12, df:10, range:null};
     const nc=i%3, ctr=nc===0?[]:nc===1?[{nominal:5+10*r()}]:[{nominal:2+r()},{nominal:15+5*r()}]; ctr.forEach(c=>{ c.y=((cal.kind==='rf'?0:cal.intercept)+cal.slope*c.nominal)*(0.96+0.08*r()); });
     // due controlli coerenti: lo stesso k (entro il 5%)
     if (nc===2) ctr[1].y=ctr[0].y/((cal.kind==='rf'?0:cal.intercept)+cal.slope*ctr[0].nominal)*((cal.kind==='rf'?0:cal.intercept)+cal.slope*ctr[1].nominal)*(1+0.02*(r()-0.5));

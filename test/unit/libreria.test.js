@@ -10,7 +10,7 @@ const Lib=require(path.join(root,'app','library.js')), Store=require(path.join(r
 const BOZZA=path.join(root,'examples','librerie','saliva-hplc-dad220.bozza.json');
 
 const A1260={brand:'Agilent', model:'1260 Infinity', detector:'DAD G4212B'}, A1290={brand:'Agilent', model:'1290 Infinity II', detector:'DAD G7117B'};
-const entry=(name,x,slope)=>({name, x, window:0.1, channel:{detector:'DAD1A', lambda:220, bandwidth:4, reference:'off'}, method:'M1', cal:{kind:'line', slope, intercept:0, sa:0.5, syx:1, n:6, r2:0.9995, range:[1,20], areaUnit:'mAU·min', concUnit:'mg/L', date:'2026-10-01', standardLot:'L-1'}});
+const entry=(name,x,slope)=>({name, x, window:0.1, channel:'DAD1A 220/4 nm ref off', method:'M1', cal:{kind:'line', slope, intercept:0, sa:0.5, syx:1, n:6, r2:0.9995, range:[1,20], areaUnit:'mAU·min', concUnit:'mg/L', date:'2026-10-01', standardLot:'L-1'}});
 
 test('formato acchlib 1: normalizzato, serializzato in modo stabile, impronta SHA-256 come quella di Node', ()=>{
   const lib=Lib.create({instrument:A1260, sampleType:'alimenti', technique:'hplc', author:'Prova', entries:[entry('Caffeina',3.2,100)]});
@@ -56,20 +56,26 @@ test('due librerie con lo stesso composto, strumenti o tipi di campione diversi:
 test('strumento dall\'intestazione: ChemStation, OpenLab, altri sistemi; senza intestazione niente', ()=>{
   const r=Lib.recognize(['Sample Name: X','Acq. Instrument: Agilent 1260 Infinity','Instrument Modules: G1311B Quat Pump, G1329B ALS, G1316A TCC, G4212B DAD','Acq. Method: C:\\Chem32\\1\\METHODS\\MET-A.M','Signal: DAD1 A, Sig=220,4 Ref=off']);
   assert.deepStrictEqual([r.brand,r.model,r.detector,r.method], ['Agilent','1260 Infinity','DAD G4212B','MET-A.M']);
-  assert.deepStrictEqual(r.channel, {detector:'DAD1A', lambda:220, bandwidth:4, reference:'off', refBandwidth:null});
+  assert.strictEqual(r.channel, 'DAD1A 220/4 nm ref off', 'canale nel formato della tappa I3');
   assert.ok(r.evidence.some(e=>e.field==='model') && r.found);
   assert.strictEqual(Lib.instrumentCompare(A1260, r).level, 'same');
   const o=Lib.recognize(['Instrument: 1290 Infinity II LC System','Detector: G7117B DAD FS','Method Name: Metodo B','Signal: DAD1A,Sig=254,4,Ref=360,100']);
-  assert.deepStrictEqual([o.brand,o.model,o.detector], ['Agilent','1290 Infinity II','DAD G7117B']); assert.strictEqual(o.channel.lambda,254); assert.strictEqual(o.channel.reference,360);
+  assert.deepStrictEqual([o.brand,o.model,o.detector], ['Agilent','1290 Infinity II','DAD G7117B']); assert.strictEqual(Lib.parseChannel(o.channel).wl,254); assert.deepStrictEqual(Lib.parseChannel(o.channel).ref,{wl:360, bw:100});
   assert.strictEqual(Lib.instrumentCompare(A1260, o).level, 'different');
   const w=Lib.recognize(['Instrument Name: Waters Alliance e2695','Detector: 2998 PDA']); assert.strictEqual(w.brand,'Waters');
   const f=Lib.recognize(['##TITLE=x','##SPECTROMETER/DATA SYSTEM=Bruker ALPHA II']); assert.deepStrictEqual([f.brand,f.model],['Bruker','ALPHA II']);
   assert.strictEqual(Lib.recognize(['Time (min),Signal (mAU)'],'STD1.csv').found, false);
-  // canale: «Sig=220,4» è λ 220 con banda 4; il testo si rilegge identico
-  for (const t of ['DAD1 A, Sig=254,4 Ref=360,100','VWD1A 280 nm','DAD 220 nm']){ const c=Lib.parseChannel(t); assert.deepStrictEqual(Lib.parseChannel(Lib.channelText(c)), c, t); }
-  assert.strictEqual(Lib.channelCompare({lambda:220, bandwidth:4}, {lambda:254}).ok, false);
-  assert.deepStrictEqual(Lib.channelCompare({lambda:220, bandwidth:4}, {lambda:220}).unverified, ['bandwidth']);
-  assert.strictEqual(Lib.channelCompare({lambda:220}, null).ok, false, 'λ salvata e file che non la dice: non verificabile');
+  // canale nel formato di I3 («Sig=220,4» è λ 220 con banda 4): il testo si rilegge identico; voci della prima versione (oggetto) convertite
+  for (const t of ['DAD1 A, Sig=254,4 Ref=360,100','VWD1A 280 nm','DAD 220 nm','FLD1A ex 230 nm em 330 nm']){ const c=Lib.parseChannel(t); assert.deepStrictEqual(Lib.parseChannel(Lib.channelText(c)), c, t); }
+  assert.strictEqual(Lib.channelText({detector:'DAD1A', lambda:220, bandwidth:4, reference:'off'}), 'DAD1A 220/4 nm ref off');
+  // rivelatore e λ obbligatori, banda e riferimento solo se presenti in entrambi
+  assert.strictEqual(Lib.channelCompare('DAD1A 220/4 nm', 'DAD1A 254 nm').ok, false);
+  assert.strictEqual(Lib.channelCompare('DAD1A 220/4 nm', 'DAD1B 220/4 nm').ok, false, 'altro segnale');
+  assert.deepStrictEqual(Lib.channelCompare('DAD1A 220/4 nm ref off', 'DAD1A 220 nm').unverified, ['bw','ref']);
+  assert.strictEqual(Lib.channelCompare('DAD1A 220/4 nm ref off', 'DAD1A 220/4 nm ref 360/100 nm').ok, false);
+  assert.strictEqual(Lib.channelCompare('220 nm', 'DAD1A 220/4 nm').ok, true, 'voce senza rivelatore: conta la λ');
+  assert.strictEqual(Lib.channelCompare('DAD 220 nm'.replace('DAD ','DAD1A '), 'UV 220/4 nm extracted').ok, false, 'estratto dal .uv: non è il segnale .ch');
+  assert.strictEqual(Lib.channelCompare('DAD1A 220 nm', null).ok, false, 'λ salvata e file che non la dice: non verificabile');
 });
 
 test('voci: ogni picco a una sola voce, la più vicina; RRT dal picco di riferimento', ()=>{
@@ -152,7 +158,7 @@ test('software per tutti: nessuna libreria di serie, la bozza è un esempio fuor
   const lib=Lib.parse(fs.readFileSync(BOZZA,'utf8'));
   assert.strictEqual(lib.instrument.model,'1260 Infinity'); assert.match(lib.instrument.detector,/G4212B/); assert.strictEqual(lib.profile,'ricerca');
   assert.strictEqual(lib.entries.length, 35); assert.strictEqual(lib.entries.filter(e=>e.cal).length, 24);
-  const cr=lib.entries.find(e=>e.name==='Creatinine'); assert.strictEqual(cr.cal.slope, 9876); assert.strictEqual(cr.cal.areaUnit,'mAU·s'); assert.strictEqual(cr.cal.concUnit,'mM'); assert.strictEqual(cr.cal.source,'letteratura'); assert.strictEqual(cr.channel.lambda,220);
+  const cr=lib.entries.find(e=>e.name==='Creatinine'); assert.strictEqual(cr.cal.slope, 9876); assert.strictEqual(cr.cal.areaUnit,'mAU·s'); assert.strictEqual(cr.cal.concUnit,'mM'); assert.strictEqual(cr.cal.source,'letteratura'); assert.strictEqual(Lib.parseChannel(cr.channel).wl,220);
   assert.strictEqual(lib.entries.filter(e=>/DNPH/.test(e.name)).every(e=>!e.cal), true, 'UHPLC 1290 senza tR: solo identificazione');
   // suggerimenti generici per il tipo di campione
   assert.deepStrictEqual(Lib.SAMPLE_SUGGESTIONS.map(s=>s[0]), ['alimenti','farmaceutico','ambientale','biologico','polimeri','beni culturali','altro']);
