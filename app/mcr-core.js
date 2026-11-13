@@ -293,7 +293,7 @@
         for (let q=0;q<nc;q++){ if (done.has(q) || (known[q] && q!==k)) continue; let ab=0, aa=0, bb=0; for (let j=0;j<n;j++){ const a=S.a[q*n+j], b=known[k][j]; ab+=a*b; aa+=a*a; bb+=b*b; } const r=ab/Math.sqrt(aa*bb||1e-300); if (r>best){ best=r; bq=q; } }
         if (bq!==k){ const tmp=S.a.slice(k*n,(k+1)*n); S.a.copyWithin(k*n, bq*n, (bq+1)*n); S.a.set(tmp, bq*n); } done.add(k); } }
     if (S) for (const k in known) S.a.set(known[k], (+k)*n);
-    if (o.closure!=null && o.norm!=='none'){ warn.push({code:'closure-norm', it:'Con la chiusura la scala è già fissata dalle concentrazioni: la normalizzazione degli spettri non si applica.', en:'With closure the scale is already fixed by the concentrations: spectra normalisation is not applied.'}); }
+    if (o.closure!=null && opt && opt.norm && opt.norm!=='none'){ warn.push({code:'closure-norm', it:'Con la chiusura la scala è già fissata dalle concentrazioni: la normalizzazione degli spettri non si applica.', en:'With closure the scale is already fixed by the concentrations: spectra normalisation is not applied.'}); }
     const normS=o.closure==null && o.norm!=='none';
     const hist=[]; let lofPrev=null, calm=0, it=0, converged=false, reason='maxIter';
     const lofOf=(CC,SS)=>100*Math.sqrt(ssr(D,CC,SS)/sst);
