@@ -17,6 +17,7 @@
 <link href="app/theme-dark.css" rel="stylesheet">
 <script src="app/host.js"></script>
 <script src="app/shell-boot.js"></script>
+<script src="app/segnala-core.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
 <script src="i18n/en.js"></script>
@@ -8439,6 +8440,7 @@ const NOVITA=[
     ['📐','EPR e NMR più precisi','Per il doppio integrale EPR puoi scegliere tu le zone di fondo, e ti avviso se le ali della riga entrano nella base. In NMR ti avviso quando un picco è negativo.',null],
     ['📦','Esporta solo quello che vuoi','Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.',null],
     ['📁','Progetti nel formato 2','I progetti salvati ora sono più compatti e pronti per canali, librerie, serie e mappe. I tuoi vecchi progetti si aprono senza perdere nulla.',null],
+    ['✉️','Segnala un problema','Da Aiuto → Segnala un problema prepari una mail per lo sviluppatore, con i dati tecnici e uno screenshot che puoi oscurare. Non parte nulla senza di te.',null],
     ['📄','Esportazioni più pulite','Nel PDF cm⁻¹, ∞ e √ si leggono bene; nel CSV gli intervalli di confidenza stanno in due celle e la pendenza ha la sua unità.',null],
   ]},
   {v:'2.2', data:'novembre 2026', voci:[
@@ -8559,6 +8561,7 @@ function commands(){
   add('Aiuto','⌨️','Scorciatoie da tastiera',showKeys,{kw:'tasti shortcut aiuto',key:'?'});
   add('Aiuto','👻','Giro guidato',()=>{ s2(); startTour(); },{kw:'tour aiuto guida'});
   add('Aiuto','ℹ️','A cosa serve questo strumento',()=>$('#aboutBtn').click(),{kw:'informazioni benvenuto'});
+  add('Aiuto','🐞','Segnala un problema',()=>window.AcchSegnala&&window.AcchSegnala.open(),{kw:'bug errore problema segnalazione mail screenshot'});
   Object.entries(GLOSS).forEach(([k,[t,d]])=>add('Cosa vuol dire','❓',t,()=>toast(t+': '+d),{sub:d, kw:d}));
   return C;
 }
@@ -8853,5 +8856,6 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/desktop.js"></script>
+<script src="app/segnala.js"></script>
 </body>
 </html>
