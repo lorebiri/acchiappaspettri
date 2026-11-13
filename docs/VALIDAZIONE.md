@@ -1,8 +1,8 @@
 # Validazione numerica di Acchiappaspettri
 
-Documento generato da `scripts/gen-validazione.js` il 2026-11-06. **Non modificare a mano**: rigenerarlo.
+Documento generato da `scripts/gen-validazione.js` il 2026-11-13. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **2.2.0** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Versione dell'app: **3.0.0-rc.1** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
 - Motore: Node v26.13.0 (V8 14.6.202.34-node.40), darwin arm64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).
@@ -231,4 +231,39 @@ Riferimenti: `test/fixtures/validazione/gen_fixtures.py` (Python 3.14.3, numpy 2
 | lor_2_rumore | 2 | σ area | 2.45439071543192 | 2.45439132015333 | 6.6 | 2 | ✓ |
 
 Limiti noti (test che falliscono sul codice attuale, vedi `test/validation/r3-deconvoluzione.test.js`): quando una componente va a area 0 o due componenti coincidono, la matrice JᵀJ è singolare e `fitPeaks` restituisce errore standard 0 per **tutte** le componenti (mostrato come «± 0»).
+
+## R10. Fisisorbimento (`app/sorption-core.js`)
+
+Riferimenti: soluzioni analitiche su isoterme sintetiche (parametri noti) e il report **pubblico** di Kaomi for Autosorb 2.02 «Mesopore example» (Particle Technology Labs, 2025; numeri in `test/validation/sorption/kaomi-mesopore-pubblico.json`, con la fonte). Nessun file reale del laboratorio. Test: `test/validation/r10-fisisorbimento.test.js`.
+
+| Calcolo | Riferimento | Valore di riferimento | Calcolato | LRE o scarto | Esito |
+|---|---|---|---|---|---|
+| BET, isoterma BET esatta | C (analitico) | 120 | 120 | LRE 14.9 | ✓ |
+| BET, isoterma BET esatta | pendenza (analitica) | 0.022037037037037 | 0.022037037037037 | LRE 15.0 | ✓ |
+| BET, stessi 7 punti: area (m²/g) | report Kaomi | 198.568 | 198.569211112851 | 0.0006 % (≤ 0.01 %) | ✓ |
+| BET: C | report Kaomi | 133.714 | 133.715247388166 | 0.0009 % (≤ 0.01 %) | ✓ |
+| Volume totale dei pori (cm³/g) | report Kaomi | 0.5916 | 0.591571296907441 | -0.0049 % (≤ 0.01 %) | ✓ |
+| Diametro medio 4V/S (Å) | report Kaomi | 119.17 | 119.16677184586 | -0.0027 % (≤ 0.05 %) | ✓ |
+| BJH ads: volume cumulato (cm³/g) | report Kaomi | 0.600879 | 0.600683713281717 | -0.0325 % (≤ 0.2 %) | ✓ |
+| BJH ads: area cumulata (m²/g) | report Kaomi | 226.038 | 225.87492517526 | -0.0721 % (≤ 0.2 %) | ✓ |
+| BJH ads: moda (Å) | report Kaomi | 95.972 | 95.971306417485 | -0.0007 % (≤ 0.1 %) | ✓ |
+| BJH des: volume cumulato (cm³/g) | report Kaomi | 0.642049 | 0.641849971444272 | -0.0310 % (≤ 0.2 %) | ✓ |
+| BJH des: area cumulata (m²/g) | report Kaomi | 302.698 | 302.551371729235 | -0.0484 % (≤ 0.2 %) | ✓ |
+| BJH des: moda (Å) | report Kaomi | 80.3851 | 80.3847458062765 | -0.0004 % (≤ 0.1 %) | ✓ |
+| Langmuir lineare: nₘ | analitico | 180 | 180 | LRE 15.0 | ✓ |
+| Dubinin–Astakhov: E (kJ/mol) | analitico | 14 | 14.0000000000029 | 2.1e-13 relativo | ✓ |
+| Calore isosterico (2 T): massimo scarto di Qst da 28 kJ/mol | Langmuir–Freundlich, ΔH noto | 28 | 28.0014423845114 | 0.001 kJ/mol (≤ 0,5) | ✓ |
+
+La scelta automatica dell'intervallo BET (criteri di Rouquerol a–d, la finestra più ampia, a pari merito r maggiore) coincide con un riferimento indipendente scritto nel test su 20 isoterme sintetiche, scelte in modo che ogni criterio cambi la finestra in almeno un caso. pyGAPS e BETSI non sono stati eseguiti (non installati, nessun download senza permesso): NON VERIFICATO contro di loro.
+
+## R11. Chemisorbimento (`app/sorption-core.js`, SPEC §6)
+
+Dati sintetici con parametri noti e formule pubblicate; formati Kaomi per il chemisorbimento non disponibili. Test: `test/validation/r11-chemisorbimento.test.js`.
+
+| Calcolo | Riferimento | Valore di riferimento | Calcolato | LRE o scarto | Esito |
+|---|---|---|---|---|---|
+| Pt, aₘ 0,08 nm²: d·D (nm) | 1,13 (Bergeret e Gallezot) | 1.13 | 1.13267343839351 | 0.24 % | ✓ |
+| Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 90 | 89.9846610498687 | -0.017 % (≤ 1 %) | ✓ |
+| Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 140 | 139.977136508864 | -0.016 % (≤ 1 %) | ✓ |
+| Redhead, primo ordine: E (kJ/mol) | Polanyi–Wigner simulato | 100 | 99.6720606307535 | -0.328 % (≤ 2 %) | ✓ |
 

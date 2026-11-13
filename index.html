@@ -2663,6 +2663,7 @@ function derivLS(xs, ys, m){
    Algoritmi di letteratura, tutti eseguiti nel browser (riferimenti completi in ANALYSIS_REFS).
    Convenzione: le funzioni ricevono dati con i picchi verso l'alto (assorbanza, conteggi…). */
 const ANALYSIS_REFS = {
+  sorp:'ISO 9277:2022 Determination of the specific surface area of solids by gas adsorption — BET method; Rouquerol J., Llewellyn P., Rouquerol F. (2007) Is the BET equation applicable to microporous adsorbents? Stud. Surf. Sci. Catal. 160, 49–56; Barrett E.P., Joyner L.G., Halenda P.P. (1951) J. Am. Chem. Soc. 73, 373–380; Dollimore D., Heal G.R. (1964) J. Appl. Chem. 14, 109–114; Thommes M. et al. (2015) Pure Appl. Chem. 87, 1051–1069.',
   arpls:'Baek S.-J., Park A., Ahn Y.-J., Choo J. (2015) Baseline correction using asymmetrically reweighted penalized least squares smoothing. Analyst 140, 250–257.',
   whit:'Eilers P.H.C. (2003) A perfect smoother. Anal. Chem. 75, 3631–3636.',
   snip:'Ryan C.G., Clayton E., Griffin W.L., Sie S.H., Cousens D.R. (1988) SNIP, a statistics-sensitive background treatment for the quantitative analysis of PIXE spectra. Nucl. Instrum. Methods B 34, 396–402; Morháč M., Kliman J., Matoušek V., Veselský M., Turzo I. (1997) Background elimination methods for multidimensional coincidence γ-ray spectra. Nucl. Instrum. Methods A 401, 113–132.',
@@ -6790,6 +6791,7 @@ function sticksLike(xs, ys){ const n=xs?xs.length:0; if (n<3 || n>5000) return f
 function eprZonesOf(f){ const a=f&&f.an||{}, z=[[a.eprZ1a,a.eprZ1b],[a.eprZ2a,a.eprZ2b]].filter(q=>q[0]!=null && q[1]!=null && isFinite(q[0]) && isFinite(q[1]) && q[0]!==q[1]); return z.length ? z : null; }
 const eprZonesTxt=(Z, en)=>Z ? (en?'chosen background zones ':'zone di fondo scelte ')+Z.map(z=>`${fmtN(Math.min(...z),2)}–${fmtN(Math.max(...z),2)}`).join(en?' and ':' e ')+' mT' : (en?'5% windows at the ends':'finestre del 5% agli estremi');
 function assess(f, d){
+  if (f.instr==='sorp' && f.iso && window.AcchSorp) return AcchSorp.assess(f);   // avvisi della SPEC (Rouquerol, chiusura, unità…), non quelli degli spettri
   const it=f.instr, P=processed(f), out=[], add=(lv, t, act)=>out.push({lv, t, act});
   const raw = f.kind==='T' ? transformY(f.ys,'T','A').ys : f.ys;
   const shapeOk = !['tga','dsc','epr'].includes(it);
@@ -7090,6 +7092,7 @@ function fitCsvRows(list){
 function hullBaseAt(hull, k){ for (let h=0;h<hull.length-1;h++){ const [k1,v1]=hull[h], [k2,v2]=hull[h+1]; if (k>=k1 && k<=k2) return v1+(v2-v1)*(k-k1)/((k2-k1)||1); } return hull.length?hull[hull.length-1][1]:0; }
 function techMetrics(f, d){   // restituisce {title, why, head:[], rows:[[]], extra:html, csv:true}
   const it=f.instr, P=processed(f), U=upData(P), T=v=>fmtN(v,1), o={title:'', why:'', head:[], rows:[]};
+  if (it==='sorp'){ if (f.iso && window.AcchSorp){ o.title='🧮 Fisisorbimento'; o.why='Risultati principali: dettagli, intervalli e avvisi nelle schede del fisisorbimento.'; o.head=['Grandezza','Valore','Unità','Nota']; o.rows=AcchSorp.techRows(f); } return o; }
   if (f.an&&f.an.calc && ['uv','ftir','raman'].includes(it)){ o.title='Dato calcolato'; o.why='Band gap, struttura secondaria e simili valgono per le misure: non li calcolo su uno spettro calcolato.'; return o; }
   if (P.deriv || P.kind==='N'){ if (['hplc','dsc','tga','uv','epr','nmr','xrf','raman','fluo'].includes(it)) { o.title='🧮 Parametri quantitativi'; o.why='Togli derivata e normalizzazione in «Ritocca lo spettro»: i parametri quantitativi si calcolano sui dati non normalizzati.'; } return o; }
   if (it==='hplc'){
@@ -7198,6 +7201,7 @@ function techMetrics(f, d){   // restituisce {title, why, head:[], rows:[[]], ex
   return o;
 }
 function renderAnTech(f, d){
+  if (f.instr==='sorp' && f.iso && window.AcchSorp){ $('#anTechTitle').textContent=uiEn()?'Physisorption':'Fisisorbimento'; AcchSorp.render($('#anTech'), f); return; }   // schede della SPEC §4 in app/sorption-ui.js
   const o=techMetrics(f, d), box=$('#anTech');
   $('#anTechTitle').textContent = o.title || '🧮 Parametri quantitativi';
   if (!o.title){ box.innerHTML='<p class="why">Per questo strumento i valori calcolati sono nel riquadro sul grafico e nella tabella delle aree («Picchi»). Per misure su più campioni e rette di taratura usa la scheda «📊 Più campioni».</p>'; return; }
@@ -8009,6 +8013,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (H && H.kind==='els' && H.shifted) line(T('Asse spostato: elementi non proposti finché non è allineato.','Axis shifted: elements not proposed until it is aligned.'), 9);
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
+    if (f.instr==='sorp' && f.iso && window.AcchSorp){ try{ const R=AcchSorp.pdfLines(f); R.lines.forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } AcchSorp.pdfImages(f).forEach((c,i)=>doc.addImage(c.toDataURL('image/png'),'PNG', M+i*(w+6), y+1, w, hh, undefined, 'FAST')); y+=hh+4; }catch(e){ console.error(e); } }
     // EPR: doppio integrale con la provenienza della base (finestre agli estremi o zone scelte dall'utente)
     if (f.instr==='epr'){ try{ const Pe=processed(f); if (Pe.kind==='E' && !Pe.deriv && !eprIsAbsorption(Pe.xs, Pe.ys)){ const Z=eprZonesOf(f), r=eprDoubleIntegral(Pe.xs, Pe.ys, Z), wg=eprWings(Pe.xs, Pe.ys, Z), ed=eprEdgeSignal(Pe.xs, Pe.ys, Z);
       if (r) line(`${T('Doppio integrale','Double integral')} ${fmtG(r.di,4)} · ${T('base','baseline')}: ${eprZonesTxt(Z, en)}${(ed&&ed.edge)||r.di<0?T(' · non affidabile (segnale nella base o valore negativo)',' · not reliable (signal in the baseline or negative value)'):wg&&wg.warn?T(' · ali della riga nella base: sottostimato',' · line wings in the baseline: underestimated'):''}`, 8.5); } }catch(e){} }
@@ -8055,7 +8060,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
 }
 
 /* ---------------- RISULTATI DELLE ANALISI per lo ZIP: tabelle CSV e paragrafo dei metodi con la bibliografia ---------------- */
-const TECH_REF={ftir:'amide', hplc:'chrom', dsc:'onset', tga:'onset', uv:'tauc', epr:'epr', nmr:'nmr', xrf:'currie', raman:'raman_dg', fluo:'qy'};
+const TECH_REF={ftir:'amide', hplc:'chrom', dsc:'onset', tga:'onset', uv:'tauc', epr:'epr', nmr:'nmr', xrf:'currie', raman:'raman_dg', fluo:'qy', sorp:'sorp'};
 function analysisFiles(){
   const inc=included(), en=LANG==='en', csep=en?',':';', dec=T_().dec, out=[], used=new Set();
   const csv=rows=>'﻿'+rows.map(r=>r.map(c=>csvCell(String(c==null?'':c).replace(/<[^>]+>/g,''),csep)).join(csep)).join('\r\n');
@@ -8075,6 +8080,7 @@ function analysisFiles(){
   out.push([en?'quality_check.csv':'controllo_qualita.csv', csv(q)]);
   if (h.length>1) out.push([en?'qualitative_hypotheses.csv':'ipotesi_qualitative.csv', csv(h)]);
   if (t.length>1) out.push([en?'technique_parameters.csv':'parametri_per_tecnica.csv', csv(t)]);
+  if (window.AcchSorp){ const so=AcchSorp.analysisFiles(inc); if (so.length){ so.forEach(([nm,txt])=>out.push([nm, txt])); used.add('sorp'); } }   // fisisorbimento: dati, rami, parametri, risultati e avvisi
   const fr=fitCsvRows(inc); if (fr.length>1){ out.push([en?'deconvolution.csv':'deconvoluzione.csv', csv(fr)]); used.add('lm'); inc.filter(fitValid).forEach(f=>{ used.add('prof_'+f.fit.profile); if (f.fit.profile==='pv') used.add('pv'); }); if (inc.some(f=>fitValid(f) && f.fit.auto)){ used.add('bic'); used.add('d2'); } }
   for (const instr of Object.keys(MV)){ const c=MV[instr]; if (!files.some(f=>f.instr===instr) || c.a==null || c.b==null) continue;
     out.push([`${en?'band_measurements':'misure_bande'}_${instr}.csv`, csv(mvCsvRows(instr))]); { const cal=mvCalib(mvTable(instr)); if (cal){ used.add('ich'); if (cal.mandel){ used.add('mandel'); if (cal.mandel.nonlinear) used.add('mandelNL'); } if (mvCfg(instr).weight) used.add('wls'); } } }
@@ -8155,6 +8161,7 @@ function methodsText(inc, used){
     raman_dg:T('Rapporto I(D)/I(G) (Tuinstra & Koenig, 1970) e dimensione dei cristalliti secondo Cançado et al. (2006).','I(D)/I(G) ratio (Tuinstra & Koenig, 1970) and crystallite size following Cançado et al. (2006).'),
     amide:T('La struttura secondaria delle proteine è stata stimata dalla banda ammide I separata in componenti gaussiane, individuate con la derivata seconda e assegnate secondo Byler & Susi (1986) e Barth (2007).','Protein secondary structure was estimated from the amide I band resolved into Gaussian components located by the second derivative and assigned after Byler & Susi (1986) and Barth (2007).'),
     qy:T('Resa quantica relativa con il metodo comparativo (Brouwer, 2011).','Relative quantum yield by the comparative method (Brouwer, 2011).'),
+    sorp:T('Area specifica BET secondo ISO 9277:2022, con l\'intervallo scelto dai criteri di Rouquerol et al. (2007); volume totale dei pori secondo Gurvich; distribuzione dei mesopori con il metodo BJH (Barrett et al., 1951) e Dollimore–Heal (1964); classificazione delle isoterme secondo Thommes et al. (2015).','BET specific surface area according to ISO 9277:2022, with the range chosen by the Rouquerol et al. (2007) criteria; total pore volume according to Gurvich; mesopore distribution by the BJH method (Barrett et al., 1951) and Dollimore–Heal (1964); isotherm classification according to Thommes et al. (2015).'),
     groups:T('Le ipotesi qualitative derivano da combinazioni di bande caratteristiche (Socrates, 2001; Larkin, 2011).','Qualitative hypotheses derive from combinations of characteristic bands (Socrates, 2001; Larkin, 2011).'),
     pigments:T('Le ipotesi sui materiali derivano dalle combinazioni di elementi (Eastaugh et al., 2008).','Material hypotheses derive from element combinations (Eastaugh et al., 2008).')};
   const tt=Object.keys(tech).filter(k=>cite.has(k)).map(k=>tech[k]); if (tt.length) parts.push(tt.join(' '));
@@ -8672,6 +8679,7 @@ window.ACCH_AXSYNC=bindAxisFields();
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 <script src="app/ui.js"></script>
+<script src="app/sorption-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/desktop.js"></script>

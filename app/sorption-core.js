@@ -382,7 +382,7 @@
       else { const c=u.crit||{};
         if (u.npts<3) add('stop','bet3','Meno di 3 punti nell\'intervallo BET');
         if (!(u.C>0)) add('stop','betC','C del BET ≤ 0: l\'intervallo non ha significato');
-        else if (!c.ok) add('stop','betR','L\'intervallo BET viola un criterio di Rouquerol: '+['a','b','c','d'].filter(k=>!c[k]).map(k=>({a:'n(1−p/p₀) non sempre crescente', b:'C o intercetta non positivi', c:'p/p₀ del monostrato fuori dall\'intervallo', d:'1/(√C+1) diverso di oltre il 10% dalla p/p₀ a cui n = nₘ'})[k]).join('; '));
+        else if (!c.ok) ['a','b','c','d'].filter(k=>!c[k]).forEach(k=>add('stop','betR',`L'intervallo BET viola il criterio di Rouquerol (${k}): `+({a:'n(1−p/p₀) non sempre crescente', b:'C o intercetta non positivi', c:'p/p₀ del monostrato fuori dall\'intervallo', d:'1/(√C+1) diverso di oltre il 10% dalla p/p₀ a cui n = nₘ'})[k]));
         if (u.r<0.999) add('warn','betr',`Coefficiente di correlazione BET r = ${u.r.toFixed(5)} < 0,999`);
         if (u.npts<5 && u.npts>=3) add('warn','bet5','Intervallo BET con meno di 5 punti: ISO 9277 ne raccomanda almeno 5'); }
       if (u && fin(u.area) && fin(iso.meta.mass_g)){ const tot=u.area*iso.meta.mass_g; if (tot<(Rr.minArea||1)) add('warn','cell',`Area totale nella cella ${tot.toPrecision(3)} m²: sotto la soglia di ${(Rr.minArea||1)} m² (soglia da concordare)`); }

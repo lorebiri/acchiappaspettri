@@ -205,5 +205,10 @@
 "not reliable (signal in the baseline or negative value)",
 "DejaVuSans-Bold.ttf",
 "WenQuanYiMicroHei",
-"WenQuanYiMicroHei.ttf"
+"WenQuanYiMicroHei.ttf",
+"Amount adsorbed (cm³ STP/g)",
+"Physisorption",
+"Relative pressure p/p₀",
+"BET specific surface area according to ISO 9277:2022, with the range chosen by the Rouquerol et al. (2007) criteria; total pore volume according to Gurvich; mesopore distribution by the BJH method (Barrett et al., 1951) and Dollimore–Heal (1964); isotherm classification according to Thommes et al. (2015).",
+"ISO 9277:2022 Determination of the specific surface area of solids by gas adsorption — BET method; Rouquerol J., Llewellyn P., Rouquerol F. (2007) Is the BET equation applicable to microporous adsorbents? Stud. Surf. Sci. Catal. 160, 49–56; Barrett E.P., Joyner L.G., Halenda P.P. (1951) J. Am. Chem. Soc. 73, 373–380; Dollimore D., Heal G.R. (1964) J. Appl. Chem. 14, 109–114; Thommes M. et al. (2015) Pure Appl. Chem. 87, 1051–1069."
 ]
