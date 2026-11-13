@@ -675,7 +675,6 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "info: Il file ha 4 colonne: Y è la colonna 2. La puoi cambiare in «Dati dello spettro».",
    "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [

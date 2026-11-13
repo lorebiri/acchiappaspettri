@@ -61,6 +61,35 @@
         "description": "Acchiappaspettri project",
         "role": "Editor",
         "mimeType": "application/vnd.acchiappaspettri.project+zip"
+      },
+      {
+        "ext": [
+          "ch"
+        ],
+        "name": "Agilent ChemStation chromatogram",
+        "description": "Agilent ChemStation/OpenLab chromatogram",
+        "role": "Viewer",
+        "mimeType": "application/x-agilent-chemstation-ch"
+      },
+      {
+        "ext": [
+          "uv"
+        ],
+        "name": "Agilent ChemStation DAD spectra",
+        "description": "Agilent ChemStation DAD spectra",
+        "role": "Viewer",
+        "mimeType": "application/x-agilent-chemstation-uv"
+      },
+      {
+        "ext": [
+          "jdx",
+          "dx",
+          "jcamp"
+        ],
+        "name": "JCAMP-DX spectrum",
+        "description": "JCAMP-DX spectrum",
+        "role": "Viewer",
+        "mimeType": "chemical/x-jcamp-dx"
       }
     ],
     "windows": {

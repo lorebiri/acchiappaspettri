@@ -57,7 +57,7 @@ results/…                   tabelle dei risultati e bozza dei metodi (copia in
 
 ```json
 [{"id":"000001", "name":"STD1.arw", "path":"run/STD1.arw", "source":"000001",
-  "sampleKey":"STD1", "channel":"DAD1A, Sig=254,4",
+  "sampleKey":"STD1", "channel":"PDA Ch1 254/1.2 nm",
   "binary":false, "memory":{…}, "processed":"processed/000001.csv",
   "series":{…}, "cube":{…}, "iso":{…}}]
 ```
@@ -69,14 +69,14 @@ results/…                   tabelle dei risultati e bozza dei metodi (copia in
 | `path` | stringa | percorso relativo (anche dentro la cartella caricata) |
 | `source` | stringa o `null` | `id` della sorgente in `sources.json`. `null` solo se lo spettro ha dati propri (`series`, `cube` o `iso`) e nessun file originale (per esempio importato da un progetto Origin o calcolato) |
 | `sampleKey` | stringa o `null` | quale campione del file, quando un file ne contiene più d'uno (sequenze, file multicanale). `null` se il file ha un solo campione |
-| `channel` | stringa o `null` | quale canale del campione (per esempio `DAD1A`, `λ=254 nm`). `null` se il file ha un solo canale |
+| `channel` | stringa o `null` | quale canale del campione, nella forma normalizzata di `app/channels-core.js` (`formatChannel`): `<rivelatore> <λ>/<banda> nm ref <λ>/<banda> nm`, per esempio `DAD1A 254/4 nm ref 360/100 nm`, `PDA Ch1 254/1.2 nm`, `UV 280/4 nm extracted` (dagli spettri di un `.uv`). `null` per un file di testo a un solo canale; i file dei rivelatori (`.ch`, `.arw`, Shimadzu) lo hanno sempre |
 | `binary` | booleano | come la sorgente |
 | `memory` | oggetto o `null` | il lavoro sullo spettro: titolo, descrizione, intervallo, etichette dei picchi (`labels`, con i rimandi `@id` alla libreria), picchi tolti e aggiunti, elaborazioni, deconvoluzioni, analisi (`fileMemory` in `index.html`) |
 | `processed` | percorso, facoltativo | copia leggibile dei dati come visualizzati |
 | `series`, `cube`, `iso` | oggetti, facoltativi | dati propri dello spettro, sotto |
 | `extra` | oggetto, facoltativo | campi di una versione più nuova, conservati così come sono |
 
-Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono dallo stesso file. All'apertura l'app rilegge **una volta** ogni coppia (sorgente, percorso) e ritrova la memoria di ogni canale con la chiave `path + "\u0000" + sampleKey` (o solo `path` se `sampleKey` è `null`) in `window.ACCH_PENDING_MEM`.
+Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono dallo stesso file. All'apertura l'app rilegge **una volta** ogni coppia (sorgente, percorso), carica solo i canali che il progetto contiene (senza la finestra «Canali trovati») e ritrova la memoria di ogni canale con la chiave `AcchChannels.memKey(path, sampleKey, channel)` = `path + "\u0000" + sampleKey + "\u0000" + channel` (solo `path` se tutti e due sono `null`) in `window.ACCH_PENDING_MEM`. Uno spettro salvato senza canale (versione 1, o 3.0.0-rc.1) si rilegge come allora, un solo spettro dal file.
 
 ### `series`: serie di spettri (cinetiche, DAD, MCR)
 

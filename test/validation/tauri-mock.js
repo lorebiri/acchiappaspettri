@@ -13,7 +13,7 @@ function tauriMock(){
     switch (cmd){
       case 'install_info': return {os:'windows', kind:'nsis', arch:'x86_64', e2e:true};
       case 'installer_language': return null;
-      case 'take_pending_open': return [];
+      case 'take_pending_open': { const L=M.pending||[]; M.pending=[]; return L; }   // file passati dal sistema operativo (I3: anche i grezzi)
       case 'app_ready': M.shown++; return null;
       case 'pick_many': case 'pick_folder': return M.pick[cmd] || [];
       case 'pick_open': case 'pick_save': return M.pick[cmd]===undefined ? null : M.pick[cmd];

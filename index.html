@@ -22,6 +22,7 @@
 <script src="i18n/en.js"></script>
 <script src="app/testi-desktop.js"></script>
 <script src="app/i18n.js"></script>
+<script src="app/channels-core.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/project.js"></script>
 <style>
@@ -262,6 +263,18 @@ footer a:hover{text-decoration:underline}
 .how ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px}
 .how li{margin-bottom:2px}
 dialog.wide{max-width:760px}
+/* «Canali trovati» (I3): griglia campioni × canali */
+dialog.chdlg{max-width:min(980px,96vw)}
+.chwrap{max-height:min(56vh,520px);overflow:auto;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+table.chgrid{border-collapse:separate;border-spacing:0;font-size:13px;width:100%}
+.chgrid th,.chgrid td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:center;vertical-align:middle;white-space:nowrap}
+.chgrid thead th{position:sticky;top:0;background:var(--panel,#fff);z-index:1;font-weight:600}
+.chgrid th.chrow{text-align:left;position:sticky;left:0;background:var(--panel,#fff);font-weight:600}
+.chgrid small{display:block;color:var(--muted);font-weight:400;font-size:11.5px}
+.chgrid td.chna{color:var(--muted)}
+.chgrid input{margin:0;vertical-align:middle}
+.chuv{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px;margin:6px 0}
+.chuv input[type=text]{width:12em}.chuv input[type=number]{width:5em}
 dialog.welcome{max-width:720px}
 .infobtn{margin-left:10px;align-self:center}
 .wchero{display:flex;gap:16px;align-items:center}
@@ -1120,6 +1133,14 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
   <p class="why" id="nwSub" style="margin:2px 0 8px"></p>
   <div class="newslist" id="nwList"></div>
   <div class="actions"><span class="opt-l" style="margin-right:auto">Rivedile quando vuoi: <kbd>⌘K</kbd> e scrivi «novità».</span><button class="btn primary" type="button" id="nwOk">Ho capito, iniziamo</button></div>
+</div></dialog>
+<dialog id="dlgChan" class="chdlg" aria-labelledby="chTitle"><div class="dlg">
+  <h2 id="chTitle">Canali trovati</h2>
+  <p class="why" id="chIntro" style="margin:2px 0 6px" data-noi18n></p>
+  <div class="chuv" id="chUv" hidden><span>Cromatogrammi dagli spettri DAD (.uv) a λ</span><input type="text" id="chUvWl" inputmode="decimal" aria-label="Lunghezze d'onda, in nm, separate da virgole"><span>nm, banda</span><input type="number" id="chUvBw" min="0" max="100" step="1" value="4" aria-label="Banda in nm"><span>nm</span></div>
+  <div class="chwrap"><table class="chgrid" id="chGrid"></table></div>
+  <p class="why" id="chNote" style="margin:4px 0 0" data-noi18n></p>
+  <div class="actions"><button class="btn ghost" type="button" id="chAll">Seleziona tutti</button><button class="btn ghost" type="button" id="chNone">Nessuno</button><label class="opt-l" style="margin:0 auto 0 8px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="chRemember"> Ricorda la scelta</label><button class="btn ghost" type="button" id="chCancel">Annulla</button><button class="btn primary" type="button" id="chOk" data-noi18n>Carica</button></div>
 </div></dialog>
 <dialog id="dlgConfirm" aria-labelledby="cfMsg"><div class="dlg"><p id="cfMsg" style="margin:0 0 14px;font-weight:600"></p><div class="actions" id="cfBtns"></div></div></dialog>
 <dialog id="dlgSettings" class="wide" aria-labelledby="stTitle"><div class="dlg"><h2 id="stTitle">⚙️ Impostazioni</h2>
@@ -2287,7 +2308,7 @@ function parseText0(text, opt){
   }
   const tail=[]; let extraCols=0, dropped=0, pending=0, headBad=0, thou=0, after=0, midText=false, gap0=null; const firstData=lines.slice(start).map(l=>l.trim()).find(l=>l&&parseLine(l)), ycol=(opt&&opt.ycol)||guessYCol(meta.concat(lines.slice(start,lines.indexOf(lines.slice(start).find(l=>l.trim()===firstData))).map(l=>l.trim()).filter(Boolean)), firstData?(splitLine(firstData)||[]).length:0);
   const THOU=/^[-+]?(\d{1,3}(\.\d{3})+,\d+|\d{1,3}(\.\d{3}){2,}|\d{1,3}(,\d{3})+\.\d+)$/, DOT3=/^[-+]?[1-9]\d{0,2}\.\d{3}$/, COMMA3=/^[-+]?[1-9]\d{0,2},\d{3}$/, COMMA=/^[-+]?\d+,\d+$/;
-  const newB=(h)=>({xs:[],ys:[],extra:0,textBefore:0,hdr:h||[],cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
+  const newB=(h)=>({xs:[],ys:[],li:[],extra:0,textBefore:0,hdr:h||[],cols:[{dot:0,int:0,other:0},{dot:0,int:0,other:0}]}), blocks=[]; let cur=newB(), textRun=0;
   // quante celle vuote ci sono fra i valori: se cambia da una riga all'altra una colonna è saltata, e la riga non si può leggere
   const lead=r=>/^\t|^\s*[,;]/.test(r)?1:0;   // prima colonna vuota: senza X la riga non si può leggere
   const innerEmpty=l=>{ const sep=l.includes('\t')?'\t':l.includes(';')?';':(!/\s/.test(l)&&l.includes(','))?',':null; if (!sep) return 0; const q=sep===','&&l.includes('"')?csvSplit(l):l.split(sep); let n=0; for (let k=1;k<Math.min(q.length-1,ycol+1);k++) if (!q[k].trim()) n++; return n; };
@@ -2315,7 +2336,7 @@ function parseText0(text, opt){
     if (p && cur.xs.length>=2 && !cur.rev){ const last=cur.xs[cur.xs.length-1], st=Math.abs(last-cur.xs[0])/(cur.xs.length-1), near=(u,v,s)=>Math.abs(u-v)<=Math.max(0.02*Math.max(Math.abs(u),Math.abs(v)), 2.5*s); const xt=String(tk[0]||'').replace(/"/g,'').trim(), th=t=>DOT3.test(t)||COMMA3.test(t); let r=axisStep(cur.xs, p[0]); if (r===2 && ((th(xt) && near(p[0]*1000,last,st)) || (th(cur.lastXt||'') && near(p[0],last*1000,1000*st)))) r=1; if (r===2 && cur.xs.length>=3){ blocks.push(cur); cur=newB(); } else if (r) cur.rev=true; }   // l'asse riparte (due canali o due scansioni senza testo in mezzo): nuovo blocco, come dopo una riga di testo
     if (p){ dropped+=pending; pending=0; if (cur.xs.length===2){ dropped+=headBad; headBad=0; }   // le righe illeggibili contano solo se dopo ci sono altri dati: in fondo al file sono note
       [0,ycol].forEach((c,k)=>{ const t=String(tk[c]||'').replace(/"/g,'').trim(), C=cur.cols[k]; if (DOT3.test(t)) C.dot++; else if (COMMA3.test(t)) C.com=(C.com||0)+1; else if (/^[-+]?\d{3,}$/.test(t)) C.int++; else if (/[.,]/.test(t)){ C.other++; if (t.includes('.')) C.pd=(C.pd||0)+1; if (t.includes(',')) C.pc=(C.pc||0)+1; } });
-      cur.xs.push(p[0]); cur.ys.push(p[1]); cur.lastXt=String(tk[0]||'').replace(/"/g,'').trim(); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
+      cur.xs.push(p[0]); cur.ys.push(p[1]); cur.li.push(i); cur.lastXt=String(tk[0]||'').replace(/"/g,'').trim(); if (cur.xs.length===3) cur.extra=Math.max(0,tk.filter(t=>/^"?[-+]?[\d.,]+([eE][-+]?\d+)?"?$/.test(t)).length-2); }
     else if (cur.xs.length < 3){ if (/^"?[-+]?\d/.test(l) && /[\t;,]/.test(l) && !p && (l.match(/(^|[\t;,\s"])[-+]?\d+([.,]\d+)?([eE][-+]?\d+)?(?=$|[\t;,\s"])/g)||[]).length>=2) headBad++; if (cur.xs.length) cur=newB(); if (blocks.length){ if (tail.length<120) tail.push(l); } else meta.push(l); }
     else if (tail.length < 120) tail.push(l);
   }
@@ -2323,7 +2344,7 @@ function parseText0(text, opt){
   // asse che torna indietro dallo stesso punto (A crescente, poi B decrescente, x ripetute): se la colonna X è un tempo o un asse spettrale
   // non può essere un'andata e ritorno (voltammetria, riscaldamento e raffreddamento), quindi sono due blocchi. Ciclo 25, LIMITAZIONI «Blocchi di dati».
   for (let k=0;k<blocks.length;k++){ const q=blocks[k]; if (!q.rev || q.xs.length<20) continue; const t=splitTurn(q.xs); if (t<0 || !oneWayAxis(q.hdr.length?q.hdr:meta)) continue;
-    const r=newB(q.hdr); r.xs=q.xs.splice(t); r.ys=q.ys.splice(t); r.extra=q.extra; r.cols=q.cols.map(c=>Object.assign({},c)); q.rev=false; blocks.splice(k+1,0,r); k++; }
+    const r=newB(q.hdr); r.xs=q.xs.splice(t); r.ys=q.ys.splice(t); r.li=q.li.splice(t); r.extra=q.extra; r.cols=q.cols.map(c=>Object.assign({},c)); q.rev=false; blocks.splice(k+1,0,r); k++; }
   // il blocco più lungo sono i dati; un altro vi si aggiunge solo se prosegue l'asse senza buchi (una pausa nella misura), altrimenti è una tabella e non diventa punti dello spettro
   const mainIx=blocks.reduce((b,q,k)=>q.xs.length>blocks[b].xs.length?k:b,0), M=blocks[mainIx], dir=Math.sign(M.xs[M.xs.length-1]-M.xs[0])||1;
   const xs=M.xs.slice(), ys=M.ys.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
@@ -2342,7 +2363,9 @@ function parseText0(text, opt){
   // Solo sull'asse: una Y «4,836» con la X «100.0» resta ambigua (corpus c/50), come lo stesso separatore nelle due colonne. Tappa I1, decisione del Capo Progetto.
   { const c=cols[0], o=cols[1], only=!c.int && !c.other;
     if (only && c.com && !c.dot && o.pd && !o.pc && !o.com) thou+=c.com; else if (only && c.dot && !c.com && o.pc && !o.pd && !o.dot) thou+=c.dot; }
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
+  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length,
+    // righe di ogni canale (blocchi sullo stesso asse), per leggerli tutti (I3, multicanale): solo se il blocco principale non è stato unito ad altri
+    chSpans: chK.length>1 && !midText ? chK.map(k=>({l0:blocks[k].li[0], l1:blocks[k].li[blocks[k].li.length-1], hdr:blocks[k].hdr.slice(0,60), n:blocks[k].xs.length})) : null};
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -4458,17 +4481,20 @@ LANG = S.lang; SAMPLE = S.sample;
 function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
-const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|\d{1,3})$/i;
+// formati leggibili; lo stesso elenco è in src-tauri/src/lib.rs (RAW_EXT) per l'apertura dal sistema (test/unit/associazioni.test.js)
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|ch|uv|\d{1,3})$/i;
 // nomi di file uguali (cartelle .D di ChemStation: STD1.D/DAD1A.CSV, STD2.D/DAD1A.CSV): si aggiunge la cartella, o un numero se anche questa coincide
-const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
+const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && (g.channel||'')===(f.channel||'') && (g.sampleKey||'')===(f.sampleKey||'') && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
   // la cartella più vicina che basta a distinguerlo (SEQ1/STD1.D e SEQ2/STD1.D, ciclo 26); il numero solo se i percorsi coincidono
   const dirs=g=>String(g.path||'').split(/[\\/]/).slice(0,-1).filter(Boolean), D=dirs(f);
   for (let k=1;k<=D.length;k++){ const t=D.slice(-k).join('/'); if (all.filter(g=>dirs(g).slice(-k).join('/')===t).length===1) return ' ('+t+')'; }
   return ' ('+(all.indexOf(f)+1)+')'; };
-const dispTitle = f => ((f.title && f.title.trim()) || f.name)+sameNameTag(f)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
+// canali di un file multicanale (I3): al nome del file si aggiungono campione e canale, se il titolo non è stato scritto
+const chTag = f => (f.title && f.title.trim()) || (f.sampleKey==null && !f.channel) ? '' : (f.sampleKey!=null?' · '+f.sampleKey:'')+(f.channel?' · '+(f._chan||f.channel):'');
+const dispTitle = f => ((f.title && f.title.trim()) || f.name)+chTag(f)+sameNameTag(f)+(f.an&&f.an.calc?(LANG==='en'?' (computed)':' (calcolato)'):'');
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
-function fkey(f){ return LS_FILE + f.path + '|' + (f.n0||f.xs.length); }
+function fkey(f){ return LS_FILE + f.path + '|' + (f.n0||f.xs.length) + (f.channel!=null||f.sampleKey!=null ? '|'+(f.sampleKey||'')+'|'+(f.channel||'') : ''); }   // i canali di uno stesso file hanno ciascuno la sua memoria (I3)
 function quickHash(buf){ const u=new Uint8Array(buf); let h=0x811c9dc5; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,0x01000193); } return (h>>>0).toString(16); }
 function fileMemory(f){
   return {hash:f.hash, size:f.size, title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined, ecal:f.ecal||undefined, inset:f.inset||undefined,
@@ -4964,34 +4990,129 @@ function loader(show, title, sub, frac){
 }
 const IMG_RE=/\.(jpe?g|png|tiff?|webp|bmp|heic|heif)$/i;
 const LOADING=new Set();   // file in lettura: il controllo dei doppioni vale anche per due caricamenti contemporanei dello stesso file
+// I3: chiave della memoria di uno spettro nel progetto (percorso, poi campione e canale se il file ne ha più d'uno)
+const memKey=(path, sk, ch)=>window.AcchChannels ? AcchChannels.memKey(path, sk, ch) : path;
+/* I3: canali di un file di testo ChemStation/OpenLab con più segnali, uno per colonna o un blocco per segnale.
+   Ogni canale si rilegge con il nucleo come se fosse un file a sé (stesse regole e stessi controlli); null se il file ha un solo canale */
+function textChannels(text, p, name){ const C=window.AcchChannels; if (!C || !p || p.reject) return null;
+  const lines=text.split(/\r\n|\n|\r/), chs=[], notes=[]; let declared=0;
+  if ((p.nCols||2)>2){ const k0=lines.findIndex(l=>/^\s*"?[-+]?\d/.test(l) && (l.match(/[-+]?\d+(?:[.,]\d+)?(?:e[-+]?\d+)?/gi)||[]).length>=2), names=k0>0 ? C.headerNames(lines.slice(Math.max(0,k0-8),k0), p.nCols) : null;
+    if (names){ const cand=[]; for (let j=1;j<names.length;j++){ const info=C.parseChannel(names[j]); if (info.det || info.wl!=null) cand.push({j, info, name:names[j]}); }
+      if (cand.length>=2 && new Set(cand.map(c=>C.formatChannel(c.info))).size>=2){ declared=cand.length;
+        for (const c of cand){ const q=parseText(text,{ycol:c.j}); if (q && !q.reject && q.xs.length>=5) chs.push({info:c.info, raw:c.name, xs:q.xs, ys:q.ys, meta:q.meta, p:q, col:c.j}); }
+        const other=names.slice(1).filter((n,j)=>!cand.some(c=>c.j===j+1)); if (other.length) notes.push({code:'cols-other', list:other}); } } }
+  if (!chs.length && p.chSpans && p.chSpans.length>1){ declared=p.chSpans.length;
+    const sig=new Set(lines.filter(l=>/\bSig\s*=|^\W*(Signal|Segnale)\s*\d+\s*[:=]/i.test(l)).map(l=>C.canon(l)).filter(Boolean)); declared=Math.max(declared, sig.size);
+    p.chSpans.forEach((sp,k)=>{ const body=sp.hdr.concat(lines.slice(sp.l0, sp.l1+1)).join('\n'), q=parseText(body); if (!q || q.reject || q.xs.length<5) return;
+      let info=null; for (let h=sp.hdr.length-1;h>=0;h--){ const o=C.parseChannel(sp.hdr[h]); if (o.det || o.wl!=null){ info=o; break; } }
+      chs.push({info:info||{det:'', wl:null, bw:null, ref:null, ex:null, em:null, extracted:false}, raw:'', xs:q.xs, ys:q.ys, meta:q.meta, p:q, block:k}); }); }
+  if (chs.length<2) return null;
+  { const q=p.importIssue, tab=q && p.chSpans ? q.after-(p.afterCh||0) : 0; if (tab>0) notes.push({code:'tables', rows:tab}); }   // blocchi corti dopo i canali: tabelle riassuntive, dette e non lette
+  return C.finish({format:'text', declared, notes, samples:[{sampleKey:null, name:'', channels:chs}]}); }
+/* I3: finestra «Canali trovati». rows: [{key, label, sub, cells:Map(colKey → cella)}], cols: [{key, label, sub}]. Restituisce le celle scelte o null (annullato) */
+const CH_PREF='acch.canali.scelta';
+function askChannels(rows, cols, uvRows, defaultUv){ const d=$('#dlgChan'), desk=!!window.ACCH_DESK, en=uiEn(), grid=$('#chGrid');
+  return new Promise(res=>{
+    const cellOf=(r,c)=>r.cells.get(c.key), uvCol=wl=>'UV '+wl+'/'+(+$('#chUvBw').value||0)+' nm extracted';
+    $('#chUv').hidden=!uvRows.length; if (uvRows.length) $('#chUvWl').value=defaultUv.join(', ');
+    const uvList=()=>[...new Set(String($('#chUvWl').value).split(/[;,\s]+/).map(x=>parseFloat(x)).filter(v=>v>=190 && v<=950).map(v=>Math.round(v*10)/10))].slice(0,12);
+    function render(){ const uc=uvList().map(wl=>({key:uvCol(wl), label:'UV '+wl+' nm', sub:(en?'from spectra':'dagli spettri')+' · '+(en?'band ':'banda ')+(+$('#chUvBw').value||0)+' nm', uv:wl}));
+      const all=cols.concat(uc), old=new Map([...grid.querySelectorAll('input[data-r]')].map(i=>[i.dataset.r+'|'+i.dataset.c, i.checked]));
+      let h='<thead><tr><th class="chrow">'+(en?'Sample':'Campione')+'</th>'+all.map((c,j)=>`<th><label><input type="checkbox" data-col="${j}"> ${esc(c.label)}</label>${c.sub?`<small>${esc(c.sub)}</small>`:''}</th>`).join('')+'</tr></thead><tbody>';
+      rows.forEach((r,i)=>{ h+=`<tr><th class="chrow"><label><input type="checkbox" data-row="${i}"> ${esc(r.label)}</label>${r.sub?`<small>${esc(r.sub)}</small>`:''}</th>`;
+        all.forEach((c,j)=>{ const cell=c.uv!=null ? (r.uv ? {uv:true} : null) : cellOf(r,c);
+          if (!cell){ h+='<td class="chna">—</td>'; return; }
+          const k=i+'|'+j, was=old.has(k)?old.get(k):(cell.loaded?true:c.uv!=null?r.uvOn:cell.def!==false), dis=cell.loaded?' disabled':'';
+          h+=`<td><input type="checkbox" data-r="${i}" data-c="${j}"${was?' checked':''}${dis} aria-label="${esc(r.label+' · '+c.label)}">${cell.loaded?`<small>${en?'already loaded':'già caricato'}</small>`:''}</td>`; });
+        h+='</tr>'; });
+      grid.innerHTML=h+'</tbody>'; grid._cols=all; sync(); }
+    const boxes=()=>[...grid.querySelectorAll('input[data-r]:not(:disabled)')];
+    function sync(){ const B=boxes(), n=B.filter(b=>b.checked).length;
+      grid.querySelectorAll('input[data-row]').forEach(x=>{ const L=B.filter(b=>b.dataset.r===x.dataset.row); x.checked=L.length>0 && L.every(b=>b.checked); x.indeterminate=L.some(b=>b.checked) && !x.checked; x.disabled=!L.length; });
+      grid.querySelectorAll('input[data-col]').forEach(x=>{ const L=B.filter(b=>b.dataset.c===x.dataset.col); x.checked=L.length>0 && L.every(b=>b.checked); x.indeterminate=L.some(b=>b.checked) && !x.checked; x.disabled=!L.length; });
+      $('#chOk').textContent=en ? (n===1?'Load 1 chromatogram':`Load ${n} chromatograms`) : (n===1?'Carica 1 cromatogramma':`Carica ${n} cromatogrammi`); $('#chOk').disabled=!n; }
+    grid.onchange=e=>{ const t=e.target; if (t.dataset.row!=null) boxes().filter(b=>b.dataset.r===t.dataset.row).forEach(b=>b.checked=t.checked); if (t.dataset.col!=null) boxes().filter(b=>b.dataset.c===t.dataset.col).forEach(b=>b.checked=t.checked); sync(); };
+    $('#chAll').onclick=()=>{ boxes().forEach(b=>b.checked=true); sync(); }; $('#chNone').onclick=()=>{ boxes().forEach(b=>b.checked=false); sync(); };
+    $('#chUvWl').onchange=render; $('#chUvBw').onchange=render;
+    const nCh=cols.length+(uvRows.length?uvList().length:0);
+    $('#chTitle').textContent=en?'Channels found':'Canali trovati';
+    $('#chIntro').textContent = desk ? (en?`${rows.length} ${rows.length===1?'sample':'samples'}, ${nCh} ${nCh===1?'channel':'channels'}. Select the chromatograms to load: one per channel.`:`${rows.length} ${rows.length===1?'campione':'campioni'}, ${nCh} ${nCh===1?'canale':'canali'}. Seleziona i cromatogrammi da caricare: uno per canale.`)
+      : (en?`I found more than one channel: ${rows.length} ${rows.length===1?'sample':'samples'}, ${nCh} ${nCh===1?'channel':'channels'}. Tick the chromatograms to load, one per channel. 👻`:`Gino ha trovato più canali: ${rows.length} ${rows.length===1?'campione':'campioni'}, ${nCh} ${nCh===1?'canale':'canali'}. Spunta i cromatogrammi da caricare, uno per canale. 👻`);
+    $('#chNote').textContent = uvRows.length ? (en?'The .uv files contain the full DAD spectra: a chromatogram is extracted at each wavelength listed (mean over the band, no reference).':'I file .uv contengono gli spettri DAD completi: si estrae un cromatogramma per ogni λ indicata (media sulla banda, senza riferimento).') : '';
+    const finish=v=>{ d.removeEventListener('cancel',onCancel); d.close(); res(v); }, onCancel=e=>{ e.preventDefault(); finish(null); };
+    $('#chCancel').onclick=()=>finish(null);
+    $('#chRemember').checked=!!hostGet(CH_PREF);
+    $('#chOk').onclick=()=>{ const all=grid._cols, out=[];
+      // «Ricorda la scelta»: i canali lasciati senza spunta partono senza spunta anche la prossima volta (la finestra si apre lo stesso: niente sparisce in silenzio)
+      if ($('#chRemember').checked){ const P=hostGet(CH_PREF)||{}, off=new Set(P.off||[]), on=new Set(P.on||[]); grid.querySelectorAll('input[data-r]:not(:disabled)').forEach(b=>{ const c=all[+b.dataset.c]; if (c.uv!=null) return; if (b.checked){ off.delete(c.key); on.add(c.key); } else { on.delete(c.key); off.add(c.key); } }); hostSet(CH_PREF,{off:[...off].slice(-200), on:[...on].slice(-200)}); } else hostSet(CH_PREF,null); grid.querySelectorAll('input[data-r]:checked:not(:disabled)').forEach(b=>{ const r=rows[+b.dataset.r], c=all[+b.dataset.c]; out.push(c.uv!=null ? {row:r, uv:c.uv, bw:+$('#chUvBw').value||0} : {row:r, cell:cellOf(r,c)}); }); finish(out); };
+    render(); d.addEventListener('cancel',onCancel); loader(false); if (!d.open) d.showModal(); const ok=$('#chOk'); if (ok && !ok.disabled) ok.focus(); }); }
+/* I3: dai file con più canali alla griglia campioni × canali, poi gli spettri scelti: dalla finestra «Canali trovati» o, all'apertura di un progetto, quelli salvati */
+async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
+  const C=AcchChannels, en=uiEn(), dirOf=p=>String(p).split(/[\\/]/).slice(0,-1).join('/'), isD=p=>/\.d$/i.test(dirOf(p));
+  const rows=new Map(), cols=new Map(), uvRows=[], q=s=>'«'+s+'»', pref=hostGet(CH_PREF)||{}, prefOff=new Set(pref.off||[]), prefOn=new Set(pref.on||[]);
+  const rowFor=(src, s)=>{ const byDir=src.bin && isD(src.path) && s.sampleKey==null, key=byDir ? 'D\u0000'+dirOf(src.path) : 'F\u0000'+src.path+'\u0000'+(s.sampleKey==null?'':s.sampleKey);
+    if (!rows.has(key)){ const folder=dirOf(src.path).split('/').pop()||''; rows.set(key,{key, label:s.name||(byDir?folder.replace(/\.d$/i,''):src.file.name), sub:byDir?folder:(s.sampleKey!=null||s.name?src.path:''), cells:new Map()}); }
+    return rows.get(key); };
+  for (const src of msrc){
+    if (src.kind==='uv'){ const r=rowFor(src,{sampleKey:null, name:src.uv.head.sample}); r.uv=src; uvRows.push(r); continue; }
+    const mc=src.mc;
+    if (mc.declared>mc.read) msgs.push(en?`⚠️ «${esc(src.path)}»: the file declares ${mc.declared} channels, ${mc.read} could be read.`:`⚠️ «${esc(src.path)}»: il file dichiara ${mc.declared} canali, ne ho letti ${mc.read}.`);
+    for (const n of mc.notes||[]){
+      if (n.code==='status') msgs.push(en?`«${esc(src.path)}»: instrument status traces (${esc(n.list.join(', '))}) are not detector channels and were not read.`:`«${esc(src.path)}»: le tracce di stato dello strumento (${esc(n.list.join(', '))}) non sono canali del rivelatore e non sono state lette.`);
+      if (n.code==='points') msgs.push(en?`⚠️ «${esc(src.path)}», channel ${q(esc(n.channel))}: ${n.declared} points declared, ${n.read} read.`:`⚠️ «${esc(src.path)}», canale ${q(esc(n.channel))}: dichiarati ${n.declared} punti, letti ${n.read}.`);
+      if (n.code==='tables') msgs.push(en?`«${esc(src.path)}»: another ${n.rows} rows of numbers, shorter than the channels, are usually summary tables and were not used.`:`«${esc(src.path)}»: altre ${n.rows} righe di numeri, più brevi dei canali, sono in genere tabelle riassuntive e non sono state usate.`);
+      if (n.code==='cols-other') msgs.push(en?`«${esc(src.path)}»: columns not recognised as detector channels, not read: ${esc(n.list.join(', '))}.`:`«${esc(src.path)}»: colonne non riconosciute come canali del rivelatore, non lette: ${esc(n.list.join(', '))}.`); }
+    for (const s of mc.samples){ const r=rowFor(src, s);
+      for (const c of s.channels){ let key=c.channel||c.label||'—', k=2; while (r.cells.has(key)) key=(c.channel||'')+' #'+(k++);
+        if (!cols.has(key)) cols.set(key,{key, label:key===c.channel?(c.label||c.channel):key, sub:key===c.channel && c.channel!==c.label ? c.channel : ''});
+        const loaded=files.some(f=>f.path===src.path && f.size===src.file.size && (f.sampleKey==null?null:f.sampleKey)===(s.sampleKey==null?null:String(s.sampleKey)) && (f.channel||null)===(c.channel||null));
+        // di norma si spunta tutto tranne la fluorescenza e i canali senza sigla né λ (ROADMAP I3), e ciò che l'utente ha chiesto di ricordare
+        const o=c.info||{}, def=prefOn.has(key) || (!(o.ex!=null || /^FLD/.test(o.det||'') || (!o.det && o.wl==null)) && !prefOff.has(key));
+        r.cells.set(key,{src, s, c, loaded, def}); } } }
+  const R=[...rows.values()], COLS=[...cols.values()].sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true}));
+  R.forEach(r=>{ r.uvOn=r.uv && r.cells.size===0; });
+  const defUv=(()=>{ const w=[...new Set(COLS.map(c=>C.parseChannel(c.key)).filter(o=>o.wl!=null && /^(DAD|MWD|PDA|UV)/.test(o.det||'')).map(o=>o.wl))].sort((a,b)=>a-b); return w.length ? w : (uvRows[0] ? C.uvSuggest(uvRows[0].uv.uv) : []); })();
+  const want=msrc.some(s=>Array.isArray(s.want)); let sel=[];
+  if (want){ for (const src of msrc){ if (!Array.isArray(src.want)) continue;
+      const mine=R.flatMap(r=>[...r.cells.values()].filter(c=>c.src===src).map(cell=>({row:r, cell})));
+      for (const w of src.want){
+        if (src.kind==='uv'){ const o=C.parseChannel(w.channel||''); if (o.extracted && o.wl!=null){ sel.push({row:R.find(r=>r.uv===src), uv:o.wl, bw:o.bw||0}); continue; } stat.missing++; continue; }
+        if (w.sampleKey==null && w.channel==null){ mine.forEach(x=>{ if (!sel.includes(x)) sel.push(x); }); continue; }   // legacy: un file a un canale salvato senza canale
+        const hit=mine.find(x=>(x.cell.s.sampleKey==null?null:String(x.cell.s.sampleKey))===(w.sampleKey==null?null:String(w.sampleKey)) && (x.cell.c.channel||null)===(w.channel||null));
+        if (hit && !sel.includes(hit)) sel.push(hit); else if (!hit) stat.missing++; } } }
+  else {
+    const offered=R.flatMap(r=>[...r.cells.values()].filter(c=>!c.loaded).map(cell=>({row:r, cell})));
+    const ask=R.some(r=>r.cells.size+(r.uv?1:0)>1) || uvRows.length>0;
+    if (!offered.length && !uvRows.length){ msrc.forEach(()=>onDup()); return chosen; }
+    if (!ask || window.ACCH_CANALI==='tutti') sel=offered.concat(uvRows.filter(r=>r.uvOn).flatMap(r=>defUv.map(wl=>({row:r, uv:wl, bw:4}))));
+    else { sel=await askChannels(R, COLS, uvRows, defUv);
+      if (sel==null){ const n=msrc.length; msgs.push(en?`⚠️ Channel selection cancelled: ${n} ${n===1?'file was':'files were'} not loaded.`:`⚠️ Scelta dei canali annullata: ${n} file non ${n===1?'è stato caricato':'sono stati caricati'}.`); return chosen; } }
+    const unchosen=offered.filter(x=>!sel.some(y=>y.cell===x.cell));
+    if (unchosen.length){ const L=unchosen.slice(0,4).map(x=>esc(x.row.label)+' · '+esc(x.cell.c.label||x.cell.c.channel)); msgs.push(en?`${unchosen.length} ${unchosen.length===1?'channel':'channels'} not loaded because not selected: ${L.join('; ')}${unchosen.length>4?'…':''}.`:`${unchosen.length} ${unchosen.length===1?'canale non caricato perché non selezionato':'canali non caricati perché non selezionati'}: ${L.join('; ')}${unchosen.length>4?'…':''}.`); } }
+  const why={'agilent-ch':'Agilent ChemStation/OpenLab .ch', 'agilent-uv':'Agilent ChemStation .uv (spettri DAD)', 'waters-arw':'Waters Empower .arw', 'shimadzu-ascii':'Shimadzu LabSolutions ASCII', 'text':'file con più segnali del rivelatore'};
+  for (const x of sel){ let src, c, sk=null;
+    if (x.uv!=null){ src=x.row.uv; const r=C.readUvChannels(src.uv, [x.uv], x.bw); c=r.samples[0].channels[0]; if (!c){ stat.missing++; continue; } }
+    else { src=x.cell.src; c=x.cell.c; sk=x.cell.s.sampleKey; }
+    const fmt=src.kind==='uv'?'agilent-uv':src.mc.format, p=c.p || {xs:c.xs, ys:c.ys, meta:c.meta||[], nCols:2};
+    const det=src.det || {instr:'hplc', reason:'formato HPLC: '+(why[fmt]||fmt)};
+    if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
+  return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[];
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[];
   const tot=entries.length; let done=0, lastPaint=0;
+  const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
-  try{
-    for (const {file, path, err} of entries){
-      done++;
-      if (performance.now()-lastPaint > 60 || done===1){ loader(true, null, `${done} di ${tot} · ${path}`, (done-1)/tot); await frame(); lastPaint=performance.now(); }
-      if (err || !file){ unreadable.push(path); continue; }
-      if (/\.(acchiappa\.json|acchspettri)$/i.test(file.name)){ projects.push(file); continue; }
-      if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
-      if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
-      const lkey=path+'\u0000'+file.size;
-      if (files.some(f=>f.path===path && f.size===file.size) || LOADING.has(lkey)){ dup++; continue; }
-      LOADING.add(lkey);
-      let buf;
-      try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
-      try{
-        const pb = parseBinary(buf, file.name), p = pb || parseText(decodeBuffer(buf));
-        if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
-        if (p.xs.length<5) { errors.push(path); continue; }
-        const det = detectInstrument(p, file.name);
+  // uno spettro dal file letto: p come lo dà il nucleo; ch (I3) = {sampleKey, channel, label, info} se viene da un file con più canali
+  const makeFile=(p, file, path, buf, pbin, det, ch)=>{
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
-        f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pb;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; postDetect(f, p);
-        let saved = window.ACCH_PENDING_MEM ? window.ACCH_PENDING_MEM.get(path) : lsGet(fkey(f));
+        f._p = {peY:p.peY, ys:p.ys, meta:p.meta}; f.raw = buf; f.rawBin = !!pbin;   // dati originali, per salvare il progetto
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1 && !ch){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false;
+        // un canale di un file multicanale: la colonna Y e i blocchi non si scelgono più a mano, il canale è quello letto
+        if (ch){ f.sampleKey=ch.sampleKey==null?null:String(ch.sampleKey); f.channel=ch.channel||null; f.chInfo=ch.info||null; f.chSrc=ch.src||'canali'; f.nCols=2; f.colNames=null; f.ycolNow=1; f.nBlocks=1; f.chIx=0; f.nChan=1; f.afterCh=0; f._chan=ch.label||''; if (f.importIssue && f.importIssue.channel) f.importIssue=null; }
+        postDetect(f, p);
+        let saved = PEND ? (ch ? (PEND.has(memKey(path, f.sampleKey, f.channel)) ? PEND.get(memKey(path, f.sampleKey, f.channel)) : PEND.get(path+'\u0000'+(f.sampleKey||''))) : PEND.get(path)) : lsGet(fkey(f));
         f.hash=quickHash(buf);
         if (saved && saved.size!=null && saved.size!==f.size) saved=null;
         if (saved && saved.hash && saved.hash!==f.hash) saved=null;   // stesso nome, dati diversi: non eredita il lavoro di un altro file
@@ -5006,23 +5127,57 @@ async function addEntries(entries){
           if (/^(1H|13C|29Si|31P|27Al|15N|19F|2H|11B)$/.test(saved.nucU||'')) f.nucU=saved.nucU;
           if (typeof saved.refShow==='string') f.refShow=saved.refShow;
           f.an=cleanAn(saved.an); f.fit=cleanFit(saved.fit);
+          if (ch && f.an) delete f.an.ycol;
           syncDerived(f);
           if (saved.ecal && isFinite(+saved.ecal.a) && isFinite(+saved.ecal.b) && (f.instr==='xrf' ? +saved.ecal.b>=0.9 && +saved.ecal.b<=1.1 : Math.abs(+saved.ecal.b)>=1e-4 && Math.abs(+saved.ecal.b)<=1e4)){ f.ecal={a:+saved.ecal.a, b:+saved.ecal.b}; f.xs=Float64Array.from(f.xs0, x=>f.ecal.a+f.ecal.b*x); }
         }
         f.kind=kindOf(f);
-        if (f.an && f.an.ycol>1 && !f.rawBin){ const keep=[f.removed,f.added,f.labels,f.fit]; applyYCol(f,f.an.ycol); [f.removed,f.added,f.labels,f.fit]=keep; }
-        if (p.extraCols>0 && !(f.an && f.an.ycol>1)) extra.push(`${path} (${p.extraCols})`);   // con la colonna Y già scelta (dal file o dal lavoro salvato) «uso solo le prime due» non è vero
-        files.push(f); added++;
+        if (!ch && f.an && f.an.ycol>1 && !f.rawBin){ const keep=[f.removed,f.added,f.labels,f.fit]; applyYCol(f,f.an.ycol); [f.removed,f.added,f.labels,f.fit]=keep; }
+        if (!ch && p.extraCols>0 && !(f.an && f.an.ycol>1)) extra.push(`${path} (${p.extraCols})`);   // con la colonna Y già scelta (dal file o dal lavoro salvato) «uso solo le prime due» non è vero
+        files.push(f); added++; produced.add(path); return f; };
+  try{
+    for (const ent of entries){ const {file, path, err}=ent;
+      done++;
+      if (performance.now()-lastPaint > 60 || done===1){ loader(true, null, `${done} di ${tot} · ${path}`, (done-1)/tot); await frame(); lastPaint=performance.now(); }
+      if (err || !file){ unreadable.push(path); continue; }
+      if (/\.(acchiappa\.json|acchspettri)$/i.test(file.name)){ projects.push(file); continue; }
+      if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
+      if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
+      const lkey=path+'\u0000'+file.size, same=files.filter(f=>f.path===path && f.size===file.size);
+      if ((same.length && !same.some(f=>f.chSrc)) || LOADING.has(lkey)){ dup++; continue; }
+      LOADING.add(lkey);
+      let buf;
+      try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
+      try{
+        // progetto della versione 1 (o spettro salvato senza canale): si rilegge come allora, un solo spettro
+        const legacy=Array.isArray(ent.want) && ent.want.every(w=>w.sampleKey==null && w.channel==null);
+        const C=window.AcchChannels;
+        if (C && /\.uv$/i.test(file.name)){ const uv=C.readUv(buf); if (!uv){ errors.push(path); continue; } { const o={kind:'uv', uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); } continue; }
+        let mc=C ? C.readBinary(buf, file.name) : null, text=null, pb=null, mbin=!!mc;
+        if (!mc){ pb=parseBinary(buf, file.name); if (!pb){ text=decodeBuffer(buf); if (C && !legacy) mc=C.readText(text, file.name); } }
+        if (mc){ if (!mc.read){ errors.push(path); continue; } const o={kind:'mc', mc, file, path, buf, bin:mbin, want:ent.want}; msrc.push(o); order.push({src:o}); continue; }
+        const p = pb || parseText(text);
+        if (p.reject){ rejected.push(`${path}: ${p.reject}`); continue; }
+        if (p.xs.length<5) { errors.push(path); continue; }
+        const det = detectInstrument(p, file.name);
+        if (det.instr==='hplc' && !pb && !legacy){ const tc=textChannels(text, p, file.name); if (tc){ const o={kind:'mc', mc:tc, file, path, buf, bin:false, want:ent.want, det}; msrc.push(o); order.push({src:o}); continue; } }
+        order.push({args:[p, file, path, buf, !!pb, det, null]});   // gli spettri si creano dopo la scelta dei canali, nell'ordine del lotto
       }catch(e){ console.error(e); errors.push(path); }
       finally{ LOADING.delete(lkey); }
     }
+    const chosen=msrc.length ? await loadChannels(msrc, chMsgs, ()=>{ dup++; }, chStat) : new Map();
+    for (const o of order) for (const a of (o.args ? [o.args] : chosen.get(o.src)||[])){ try{ makeFile(...a); }catch(e){ console.error(e); errors.push(a[2]); } }
   }catch(e){ console.error(e); }
+  // I3: quali file del lotto hanno dato almeno uno spettro (project.js conta così i file non riconosciuti)
+  window.ACCH_LAST_ADD={produced:[...produced], added, chMsgs:chMsgs.slice(), missing:chStat.missing};
   const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
   const note=$('#skipNote'), msgs=[];
   if (skipped.length) msgs.push(`🙈 Ho saltato ${skipped.length===1?'un file':skipped.length+' file'} di formato non riconosciuto: ${list(skipped)}.`);
   if (rejected.length) msgs.push(`⛔ Non letto: ${rejected.slice(0,3).map(esc).join('; ')}.`);
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): ${list(errors)}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
+  chMsgs.forEach(m=>msgs.push(m));   // I3: canali dichiarati e letti, canali non scelti, tracce non lette
+  { const w=chMsgs.find(m=>/^⚠️/.test(m)); if (w) setTimeout(()=>toast(w.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&amp;/g,'&')), 80); }
   { const bad=files.filter(f=>f.importIssue&&!f._importSaid); if (bad.length){ bad.forEach(f=>f._importSaid=true);
       // il messaggio dice che cosa è successo davvero e parla del problema più grave: righe perse o numeri letti male (⛔) prima di un secondo blocco non letto (⚠)
       const sevI=f=>{ const q=f.importIssue; return (q.thou||q.dropped||q.midText)?2:1; }, w=bad.slice().sort((a,b)=>sevI(b)-sevI(a))[0], sev=sevI(w);
@@ -7298,7 +7453,8 @@ function chanOf(f){ if (f._chan===undefined){ const yc=f.ycolNow||(f.an&&f.an.yc
     f._chan=[d, w&&w+' nm'].filter(Boolean).join(' '); }
   return f._chan || (f.an&&typeof f.an.chan==='string'?f.an.chan:''); }
 // avvisi sul canale di un file a una colonna (ciclo 26): l'intestazione del blocco letto nomina più segnali, oppure il nome del file dice un canale diverso dall'intestazione
-function chanWarn(f){ const out=[]; if ((f.nCols||2)>2) return out; const head=(f.blockHead||f.meta||[]).slice(0,60), lab=q=>[q.d, q.w&&q.w+' nm'].filter(Boolean).join(' ');
+// un canale letto da un file multicanale (I3, f.chSrc) è già quello giusto
+function chanWarn(f){ const out=[]; if ((f.nCols||2)>2 || f.chSrc) return out; const head=(f.blockHead||f.meta||[]).slice(0,60), lab=q=>[q.d, q.w&&q.w+' nm'].filter(Boolean).join(' ');
   const sig=[...new Set(head.map(l=>chanParse(String(l))).filter(q=>q.d).map(lab))];
   const sl=sig.slice(0,4).map(x=>'«'+x+'»').join(', ');
   if (sig.length>1 && !(f.importIssue && f.importIssue.channel)) out.push(`L'intestazione nomina ${sig.length} segnali (${sl}), ma nel file c'è un solo blocco di dati: non so a quale segnale appartengano i numeri. Ho usato il canale «${chanOf(f)}»: controlla che sia quello giusto.`);
