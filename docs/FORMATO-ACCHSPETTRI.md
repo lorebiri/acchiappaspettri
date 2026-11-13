@@ -90,6 +90,32 @@ Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono
 - `data` è una voce binaria: `m·n` numeri `f64` (8 byte) o `f32` (4 byte) **little-endian**, in fila per righe: il valore al tempo `t[i]` e alla `x[j]` è l'elemento `i·n + j`.
 - `kind`: `kinetics`, `dad`, `mcr`, `generic` o altro testo breve; `members`: facoltativo, gli `id` degli spettri del progetto da cui è stata composta; `meta`: facoltativo, oggetto libero (modello, vincoli, versione dell'algoritmo).
 - In memoria (`decode` e `encode`) `data` è un `Float64Array` o `Float32Array`.
+- **Nell'app (tappa I9)** una serie costruita in Analisi → Più campioni è uno spettro derivato: `source: null`, nome «Serie …», percorso `serie/<data>.series`, dati in `series`; lo spettro mostrato è la media delle righe. All'apertura lo ricostruisce `app/chemo-ui.js` (`AcchProject.restoreDerived`). `series.meta` contiene `version` (`mcr-1`), `instr` (tecnica dei membri), `members` (percorsi degli spettri di partenza: gli `id` del progetto si assegnano solo al salvataggio), `axisSource` (`meta`, `name` o `manual`) e `resampled` (`true` se gli spettri sono stati riportati per interpolazione lineare sull'asse del primo).
+
+### `memory.an.mcr` e `memory.an.kin`: impostazioni di MCR-ALS e della cinetica globale (tappa I9)
+Campi facoltativi dentro `memory.an` della serie: un lettore 2 che non li conosce li ignora senza perdere numeri (i risultati si ricalcolano dalla matrice), quindi la versione del formato non cambia. All'apertura passano da `McrCore.cleanOpt` (`app/mcr-core.js`) e `KinCore.cleanOpt` (`app/kinetics-core.js`): restano solo i valori ammessi, il resto si scarta.
+
+| Campo | Valori ammessi | Significato |
+|---|---|---|
+| `mcr.nc` | intero 1–10 | numero di componenti |
+| `mcr.init`, `mcr.initOn` | `simplisma`, `efa`; `S`, `C` | stima iniziale e su che cosa (spettri puri o variabili pure) |
+| `mcr.nonnegC`, `mcr.nonnegS` | booleani | non negatività di concentrazioni e spettri |
+| `mcr.closure` | numero > 0 | somma costante delle concentrazioni di ogni riga |
+| `mcr.offset` | 0–100 | rumore ammesso di SIMPLISMA, in % della media massima |
+| `mcr.unimodal` | interi 0–9, al più 10 | componenti con profilo unimodale |
+| `mcr.norm` | `norm`, `max`, `none` | normalizzazione degli spettri |
+| `mcr.maxIter`, `mcr.tol` | 1–5000; 0 < tol < 1 | arresto (variazione relativa della mancanza di adattamento) |
+| `mcr.known` | `{"<componente 0–9>": percorso}` (≤ 400 caratteri) | spettri noti: percorso di uno spettro del progetto |
+| `mcr.xmin`, `mcr.xmax` | numeri | intervallo spettrale |
+| `kin.model` | `ord0`, `ord1`, `ord2`, `consec`, `rev`, `par` | modello cinetico |
+| `kin.nExp`, `kin.offset` | 1–5; booleano | esponenziali e fondo costante (solo `par`) |
+| `kin.t0fit`, `kin.t0` | booleano; numero | t₀ stimato o fisso |
+| `kin.K`, `kin.A0` | numeri > 0 | costante di equilibrio (A ⇌ B) e [A]₀ (ordini 0 e 2) |
+| `kin.nonnegS` | booleano | spettri associati alle specie ≥ 0 (NNLS) |
+| `kin.rank` | intero 1–50 | componenti della SVD su cui comprimere (assente: compressione senza perdita) |
+| `kin.k0` | fino a 5 numeri > 0 | costanti di partenza |
+
+Esempio: `"an":{"mcr":{"nc":3,"closure":1,"unimodal":[0,1]},"kin":{"model":"consec"}}`. Prova di andata e ritorno: `test/unit/chemo.test.js` (formato) e `test/validation/i9-chemo-ui.test.js` (salvataggio e riapertura nella pagina).
 
 ### `cube`: mappe e dati iperspettrali
 

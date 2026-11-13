@@ -28,6 +28,8 @@
 <script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
 <script src="app/sorption-core.js"></script>
+<script src="app/mcr-core.js"></script>
+<script src="app/kinetics-core.js"></script>
 <script src="app/library.js"></script>
 <script src="app/hplc-stored-cal.js"></script>
 <script src="app/librerie-sistema.js"></script>
@@ -7176,7 +7178,8 @@ function cleanAn(v){
   if (v.libCtrl && typeof v.libCtrl==='object'){ const m={}; Object.entries(v.libCtrl).slice(0,200).forEach(([k,x])=>{ if (k!=='__proto__' && k.length<=80 && typeof x==='number' && isFinite(x) && x>0) m[k]=x; }); if (Object.keys(m).length) o.libCtrl=m; }
   if (['open','close'].includes(v.libPos)) o.libPos=v.libPos;
   if (['direct','indirect'].includes(v.trans)) o.trans=v.trans; if (['abs','refl'].includes(v.data)) o.data=v.data;
-  if (typeof SorpCore!=='undefined') for (const k of ['sorp','chem']){ const c=SorpCore.cleanOpt(k, v[k]); if (c) o[k]=c; }   // impostazioni del fisisorbimento e del chemisorbimento (formato 2, campo facoltativo della memoria)
+  if (typeof SorpCore!=='undefined') for (const k of ['sorp','chem']){ const c=SorpCore.cleanOpt(k, v[k]); if (c) o[k]=c; }
+  if (typeof McrCore!=='undefined'){ const c=McrCore.cleanOpt(v.mcr); if (c) o.mcr=c; } if (typeof KinCore!=='undefined'){ const c=KinCore.cleanOpt(v.kin); if (c) o.kin=c; }   // I9: impostazioni di MCR-ALS e della cinetica globale (campi facoltativi della memoria)   // impostazioni del fisisorbimento e del chemisorbimento (formato 2, campo facoltativo della memoria)
   return Object.keys(o).length ? o : null;
 }
 function anSet(f, k, v){ f.an=f.an||{}; if (v==null || v==='' || (typeof v==='number' && !isFinite(v))) delete f.an[k]; else f.an[k]=v; if (!Object.keys(f.an).length) f.an=null; persist(f); }
@@ -8441,6 +8444,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (H && H.kind==='els' && H.els.length) line(T('Elementi: ','Elements: ')+H.els.join(', ')+((H.unsure||[]).length?T(' · non distinguibili: ',' · not distinguishable: ')+H.unsure.join(', '):'')+((H.over||[]).length?T(' · righe sovrapposte: ',' · overlapping lines: ')+H.over.map(o=>o.names.join(' + ')).join('; '):''), 8.5);
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
     if (f.instr==='sorp' && f.iso && window.AcchSorp){ try{ const R=AcchSorp.pdfLines(f); R.lines.forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } AcchSorp.pdfImages(f).forEach((c,i)=>doc.addImage(c.toDataURL('image/png'),'PNG', M+i*(w+6), y+1, w, hh, undefined, 'FAST')); y+=hh+4; }catch(e){ console.error(e); } }
+    if (f.series && window.AcchChemo){ try{ const L=AcchChemo.pdfLines(f); if (L.length>1){ L.forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; AcchChemo.pdfImages(f).forEach((c,i)=>{ if (i%2===0){ if (i) y+=hh+4; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } } doc.addImage(c.toDataURL('image/png'),'PNG', M+(i%2)*(w+6), y+1, w, hh, undefined, 'FAST'); }); y+=hh+4; } }catch(e){ console.error(e); } }
     if (f.instr==='chem' && f.chem && window.AcchChem){ try{ AcchChem.pdfLines(f).forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } AcchChem.pdfImages(f).forEach((c,i)=>doc.addImage(c.toDataURL('image/png'),'PNG', M+i*(w+6), y+1, w, hh, undefined, 'FAST')); y+=hh+4; }catch(e){ console.error(e); } }
     // EPR: doppio integrale con la provenienza della base (finestre agli estremi o zone scelte dall'utente)
     if (f.instr==='epr'){ try{ const Pe=processed(f); if (Pe.kind==='E' && !Pe.deriv && !eprIsAbsorption(Pe.xs, Pe.ys)){ const Z=eprZonesOf(f), r=eprDoubleIntegral(Pe.xs, Pe.ys, Z), wg=eprWings(Pe.xs, Pe.ys, Z), ed=eprEdgeSignal(Pe.xs, Pe.ys, Z);
@@ -8510,6 +8514,7 @@ function analysisFiles(){
   if (h.length>1) out.push([en?'qualitative_hypotheses.csv':'ipotesi_qualitative.csv', csv(h)]);
   if (t.length>1) out.push([en?'technique_parameters.csv':'parametri_per_tecnica.csv', csv(t)]);
   if (window.AcchSorp){ const so=AcchSorp.analysisFiles(inc); if (so.length){ so.forEach(([nm,txt])=>out.push([nm, txt])); used.add('sorp'); } }
+  if (window.AcchChemo){ AcchChemo.analysisFiles(inc).forEach(([nm,txt])=>out.push([nm, txt])); }   // I9: serie, MCR-ALS e cinetica globale
   if (window.AcchChem){ const ch=AcchChem.analysisFiles(inc); if (ch.length){ ch.forEach(([nm,txt])=>out.push([nm, txt])); used.add('chem'); } }   // chemisorbimento   // fisisorbimento: dati, rami, parametri, risultati e avvisi
   const fr=fitCsvRows(inc); if (fr.length>1){ out.push([en?'deconvolution.csv':'deconvoluzione.csv', csv(fr)]); used.add('lm'); inc.filter(fitValid).forEach(f=>{ used.add('prof_'+f.fit.profile); if (f.fit.profile==='pv') used.add('pv'); }); if (inc.some(f=>fitValid(f) && f.fit.auto)){ used.add('bic'); used.add('d2'); } }
   for (const instr of Object.keys(MV)){ const c=MV[instr]; if (!files.some(f=>f.instr===instr) || c.a==null || c.b==null) continue;
@@ -9125,6 +9130,7 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/origin-ui.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
+<script src="app/chemo-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/desktop.js"></script>
