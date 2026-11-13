@@ -60,7 +60,7 @@
   function tr(text){ if (text==null) return text; const s=String(text); if (!/\p{L}/u.test(s)) return s; const n=norm(s); if (!n) return s; const r=lookup(n); if (r==null) return s;
     const lead=/^\s*/.exec(s)[0], tail=/\s*$/.exec(s)[0]; return lead+r+tail; }
   let lang='it'; const seen=new WeakMap(), missing=new Map(); let obs=null, collect=false;
-  try{ const v=JSON.parse(win.localStorage.getItem(KEY)); if (v==='it'||v==='en') lang=v; else lang=null; }catch(e){ lang=null; }
+  try{ const v=JSON.parse(win.AcchHost.store.getItem(KEY)); if (v==='it'||v==='en') lang=v; else lang=null; }catch(e){ lang=null; }
   const isChosen=lang!=null;
   if (!lang) lang=(win.navigator && /^it\b/i.test(win.navigator.language||'')) ? 'it' : 'en';
   const SKIP=new Set(['SCRIPT','STYLE','TEXTAREA','CODE','KBD']);
@@ -106,7 +106,7 @@
     wrap('pdfText', o=>function(t){ return o.call(this, win.LANG_EN_OUT&&win.LANG_EN_OUT() && typeof t==='string' ? outTr(t) : t); });
   }
   function setLang(l, opt){ opt=opt||{}; if (l!=='it' && l!=='en') return; const prev=lang; lang=l;
-    try{ win.localStorage.setItem(KEY, JSON.stringify(l)); }catch(e){}
+    try{ win.AcchHost.store.setItem(KEY, JSON.stringify(l)); }catch(e){}
     win.document.documentElement.lang=l;
     if (l==='en'){ apply(win.document.documentElement); watch(); } else if (prev==='en'){ unwatch(); restore(); }
     if (win.document.title) win.document.title='Acchiappaspettri';

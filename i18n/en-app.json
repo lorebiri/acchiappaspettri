@@ -954,5 +954,6 @@
 "Per il doppio integrale EPR puoi scegliere tu le zone di fondo, e ti avviso se le ali della riga entrano nella base. In NMR ti avviso quando un picco è negativo.": "For the EPR double integral you can choose the background zones yourself, and I warn you when the line wings reach the baseline. In NMR I warn you when a peak is negative.",
 "Esportazioni più pulite": "Cleaner exports",
 "Nel PDF cm⁻¹, ∞ e √ si leggono bene; nel CSV gli intervalli di confidenza stanno in due celle e la pendenza ha la sua unità.": "In the PDF cm⁻¹, ∞ and √ are readable; in the CSV confidence intervals are in two cells and the slope has its unit.",
-"Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.": "Folder too large: the first {0} files were loaded (limit 20,000 files and 16 subfolder levels). Drop the remaining subfolders one at a time."
+"Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.": "Folder too large: the first {0} files were loaded (limit 20,000 files and 16 subfolder levels). Drop the remaining subfolders one at a time.",
+"Impossibile scrivere l'archivio dell'applicazione: le modifiche restano in memoria e verranno riscritte.": "The application archive could not be written: changes are kept in memory and will be written again."
 }

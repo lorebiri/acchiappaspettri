@@ -4,7 +4,7 @@
 (function(win){ 'use strict';
   const root=win.document.documentElement; if (!root.classList.contains('web')) return;
   const $=s=>win.document.querySelector(s), KEY='acch.web.full', full=()=>root.classList.contains('web-full');
-  const lsS=v=>{ try{ win.localStorage.setItem(KEY,JSON.stringify(v)); }catch(e){} };
+  const lsS=v=>{ try{ win.AcchHost.store.setItem(KEY,JSON.stringify(v)); }catch(e){} };
   win.AcchWebShow=()=>{ if (!full()){ root.classList.add('web-full'); sync(); } };   // per questa sessione, senza cambiare la preferenza
   const TXT=[]; function sync(){ const c=$('#stWebFull'); if (c) c.checked=full(); TXT.forEach(([e,a,b])=>{ e.textContent=full()?a:b; }); }
   function show(on){ root.classList.toggle('web-full',on); lsS(on); sync(); if (typeof win.refreshAll==='function' && files.length) win.refreshAll(); }
@@ -23,6 +23,6 @@
   /* un progetto che usa queste funzioni le mostra da solo: nessun risultato deve sparire in silenzio */
   let first=true; const usesMoved=()=>(win.AcchProject.prevResults?win.AcchProject.prevResults():[]).some(r=>/pca|pls|miscel|mix|composiz|fundamental|parametri_fond|spessor|layer/i.test(r.name)) || files.some(f=>f.an&&(f.an.fp||f.an.conc!=null||f.an.std||f.an.mixW)) || Object.values(MV).some(m=>m&&m.model==='pls');
   const o=win.addEntries; if (o) win.addEntries=async function(){ const r=await o.apply(this,arguments); try{ if (invX) invX.hidden=!files.some(f=>f.instr==='xrf'); if (!full() && usesMoved()){ root.classList.add('web-full'); sync(); win.setTimeout(()=>win.toast('Questo lavoro usa funzioni avanzate: le ho mostrate.'),1600); } if (first && files.length && curView===1 && !win.ACCH_PENDING_MEM){ first=false; win.go(2); } }catch(e){ console.error(e); } return r; };
-  try{ win.localStorage.setItem('acch.tourDone','true'); }catch(e){}   // online si parte subito: il giro resta nel menu
+  try{ win.AcchHost.store.setItem('acch.tourDone','true'); }catch(e){}   // online si parte subito: il giro resta nel menu
   const st=$('#stWeb'); if (st){ const l=win.document.createElement('label'); l.className='check'; l.style.display='block'; l.style.marginTop='6px'; const c=win.document.createElement('input'); c.type='checkbox'; c.id='stWebFull'; c.checked=full(); c.onchange=()=>show(c.checked); l.append(c,' Mostra le funzioni avanzate anche online'); st.appendChild(l); }
 })(window);

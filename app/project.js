@@ -33,13 +33,16 @@
 
   function processedCsv(f){ try{ const P=processed(f), I=INSTR[f.instr]||{}, n=P.xs.length, lines=[`# ${f.name}`, `# x: ${I.xPdf||''}`, `# y: ${P.kind||''}`, '# dati come visualizzati, con le elaborazioni scelte; gli originali sono in data/', 'x,y'];
       for (let i=0;i<n;i++) lines.push(P.xs[i]+','+P.ys[i]); return lines.join('\r\n'); }catch(e){ return null; } }
-  let prevResults=[];
+  let prevResults=[], kept=[];
   async function build(){
     files.forEach(persist);
-    const missing=files.filter(f=>!f.raw), spectra=files.filter(f=>f.raw).map(f=>({name:f.name, path:f.path, bytes:new Uint8Array(f.raw), binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f)}));
+    // formato 2: canale (sampleKey, channel) e dati propri dello spettro (series, cube, iso) se il modulo che lo ha letto li ha messi su f
+    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
+    // spettri del progetto aperto che questa versione non sa ricostruire (per esempio solo series/cube/iso): si riscrivono come erano
+    for (const r of kept) spectra.push(r);
     let results=[]; try{ results=analysisFiles().map(([n,t])=>({name:n, text:t})); }catch(e){ console.warn(e); }
     { const have=new Set(results.map(r=>r.name)); for (const r of prevResults){ const nm=r.name.startsWith('precedenti/')?r.name:'precedenti/'+r.name; if (!have.has(r.name) && !have.has(nm)){ have.add(nm); results.push({name:nm,text:r.text}); } } }   // calcolati in una sessione precedente e non rifatti: non si perdono
-    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, results}, win.JSZip);
+    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip);
     return {bytes, count:spectra.length, missing:missing.length};
   }
   /* dopo aver scritto, rilegge ciò che ha prodotto: un salvataggio non verificato non conta come salvato */
@@ -49,7 +52,7 @@
     saveAs(bytes, suggested){ return hostDefault.save(bytes, suggested); },
     ask(message){ if (win.ACCH_TEST) return Promise.resolve('discard'); return win.AcchUi.choice(message, [['cancel','Annulla','ghost'],['discard','Non salvare','ghost'],['save','Salva','primary']]); }
   };
-  const api={ host:hostDefault };
+  const api={ host:hostDefault, libraries:[] };
   async function doSave(as){
     if (!files.length){ toast('Non c\'è ancora niente da salvare: carica qualche spettro. 🙂'); return false; }
     if (busy){ toast('Sto già salvando il progetto: un momento…'); return false; } busy=true;
@@ -77,13 +80,17 @@
     files.length=0; cur=-1; curCmpId=null; COMPS.length=0; saveCmps();
     for (const k of Object.keys(MV)) delete MV[k]; mvSave();
     for (const k of Object.keys(MVres||{})) delete MVres[k]; for (const k of Object.keys(MVpls||{})) delete MVpls[k];
-    name=null; path=null; createdAt=null; prevResults=[];
+    name=null; path=null; createdAt=null; prevResults=[]; kept=[]; api.libraries=[];
   }
   /* copia di sicurezza in memoria: se l'apertura si interrompe dopo aver svuotato, il lavoro torna com'era */
-  function snapshot(){ return {files:files.slice(), cur, comps:COMPS.slice(), mv:JSON.parse(JSON.stringify(MV)), S:JSON.parse(JSON.stringify(S)), name, path, createdAt}; }
-  function restore(o){ files.length=0; files.push(...o.files); cur=o.cur; COMPS.length=0; COMPS.push(...o.comps); saveCmps(); for (const k of Object.keys(MV)) delete MV[k]; Object.assign(MV,o.mv); mvSave(); S=merge(DEFAULTS,o.S); saveS(); name=o.name; path=o.path; createdAt=o.createdAt; files.forEach(persist); syncControls(); resetCaches(); refreshAll(); }
+  function snapshot(){ return {files:files.slice(), cur, comps:COMPS.slice(), mv:JSON.parse(JSON.stringify(MV)), S:JSON.parse(JSON.stringify(S)), name, path, createdAt, kept:kept.slice(), libraries:api.libraries.slice()}; }
+  function restore(o){ files.length=0; files.push(...o.files); cur=o.cur; COMPS.length=0; COMPS.push(...o.comps); saveCmps(); for (const k of Object.keys(MV)) delete MV[k]; Object.assign(MV,o.mv); mvSave(); S=merge(DEFAULTS,o.S); saveS(); name=o.name; path=o.path; createdAt=o.createdAt; kept=o.kept||[]; api.libraries=o.libraries||[]; files.forEach(persist); syncControls(); resetCaches(); refreshAll(); }
   async function newProject(){ if (!await guard()) return false; clearAll(); S.docTitle=DEFAULTS.docTitle; saveS(); busy=true; refreshAll(); go(1); busy=false; markSaved(); return true; }
   const closeProject=newProject;
+  /* i rimandi «@id» dei picchi seguono la voce della libreria anche quando l'unione le ha dato un altro id (libMerge, map) */
+  function remapLabels(list, map){ if (!map || !Object.keys(map).length) return; const own=Object.prototype.hasOwnProperty;
+    for (const s of list){ const L=s && s.memory && s.memory.labels; if (!L || typeof L!=='object') continue;
+      for (const k of Object.keys(L)){ const v=L[k]; if (typeof v==='string' && v[0]==='@' && own.call(map, v.slice(1))) L[k]='@'+map[v.slice(1)]; } } }
   /* apre byte già letti. Prima verifica tutto: se il file non è valido, il lavoro corrente resta com'è */
   async function openBytes(bytes, fileName, filePath){
     let P; const legacy=/\.json$/i.test(fileName||'') || (bytes[0]===0x7b);
@@ -96,16 +103,21 @@
       const st=P.state||{}, okId=x=>typeof x==='string' && x.length<200, hasI=i=>typeof i==='string' && Object.prototype.hasOwnProperty.call(INSTR,i);
       if (st.S){ S=merge(DEFAULTS, st.S); saveS(); }
       if (st.MV && typeof st.MV==='object'){ for (const k of Object.keys(st.MV)) if (hasI(k) && st.MV[k] && typeof st.MV[k]==='object') MV[k]=st.MV[k]; mvSave(); }
-      if (Array.isArray(st.LIB)){ const L=st.LIB.filter(e=>e && okId(e.id) && hasI(e.i)); if (typeof win.libMerge==='function'){ const r=win.libMerge(L); if (r.rinominate && typeof win.toast==='function') win.toast('⚠️ '+win.libMergeMsg(r)); } else { const have=new Set(LIB.map(e=>e.id)); L.filter(e=>!have.has(e.id) && typeof e.n==='string' && isFinite(+e.a) && isFinite(+e.b)).forEach(e=>LIB.push(e)); if (typeof saveLib==='function') saveLib(); } }
+      if (Array.isArray(st.LIB)){ const L=st.LIB.filter(e=>e && okId(e.id) && hasI(e.i)); if (typeof win.libMerge==='function'){ const r=win.libMerge(L); if (r.rinominate && typeof win.toast==='function') win.toast('⚠️ '+win.libMergeMsg(r)); remapLabels(P.spectra, r.map); } else { const have=new Set(LIB.map(e=>e.id)); L.filter(e=>!have.has(e.id) && typeof e.n==='string' && isFinite(+e.a) && isFinite(+e.b)).forEach(e=>LIB.push(e)); if (typeof saveLib==='function') saveLib(); } }
       if (Array.isArray(st.REFS)){ const have=new Set(REFS.map(r=>r.id)); const add=st.REFS.filter(r=>r && okId(r.id) && !have.has(r.id) && hasI(r.i) && typeof r.n==='string' && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length<=200000 && r.x.every(Number.isFinite) && r.y.every(Number.isFinite)); if (add.length){ REFS=REFS.concat(add); saveRefs(); } }
       if (Array.isArray(st.COMPS)) st.COMPS.filter(c=>c && okId(c.id) && Array.isArray(c.keys) && c.keys.every(k=>typeof k==='string')).forEach(c=>COMPS.push(Object.assign({mode:'stack',gap:1.1,out:true},c))); saveCmps();
       // la memoria di ogni spettro torna prima di ricaricarlo; va riconosciuta anche se la chiave interna dipende dal numero di punti
-      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>win.ACCH_PENDING_MEM.set(s.path, s.memory||null));
-      const ents=P.spectra.map(s=>({file:new File([s.bytes], s.name), path:s.path}));
+      // formato 2: la memoria si cerca per percorso, e per percorso + sampleKey per i canali di un file multicanale
+      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>{ if (!s.bytes) return; if (s.sampleKey!=null) win.ACCH_PENDING_MEM.set(s.path+'\u0000'+s.sampleKey, s.memory||null); if (s.sampleKey==null || !win.ACCH_PENDING_MEM.has(s.path)) win.ACCH_PENDING_MEM.set(s.path, s.memory||null); });
+      // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso
+      const seen=new Set(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; const k=(s.source||'')+'\u0000'+s.path; if (seen.has(k)) continue; seen.add(k); ents.push({file:new File([s.bytes], s.name), path:s.path}); }
+      // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
+      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(s=>({name:s.name, path:s.path, bytes:null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, series:s.series, cube:s.cube, iso:s.iso}));
+      api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
       // contenitore valido (impronte verificate) ma nessuno spettro leggibile: non è un file danneggiato, e il messaggio lo dice
-      if (ents.length && !files.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
+      if (ents.length && !files.length && !kept.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
       const lost=ents.length-files.length;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));

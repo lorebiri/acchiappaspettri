@@ -6,7 +6,7 @@
   'use strict';
   const T=win.__TAURI__; if (!T) return;
   const inv=T.core.invoke, tr=s=>win.AcchI18n.lang==='en' ? win.AcchI18n.tr(s) : s, $=s=>document.querySelector(s);
-  const lsG=k=>{ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  const lsG=k=>{ try{ return JSON.parse(AcchHost.store.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ AcchHost.store.setItem(k,JSON.stringify(v)); }catch(e){} };
   const CHECK_EVERY=6*3600*1000, LATER_KEY='acch.update.later', RECENT='acch.recent';
   const PAGE='https://lorebiri.github.io/acchiappaspettri/';
   let info={os:'',kind:'',e2e:false}, curUpdate=null, closing=false, installing=false;
@@ -99,8 +99,9 @@
       if (ents.length) await win.addEntries(ents); else loader(false); }
     catch(e){ console.error(e); loader(false); win.toast('😕 '+tr(errMsg(e))); } });
 
-  /* chiusura: mai perdere il lavoro senza chiedere */
-  async function requestQuit(){ if (closing) return; if (!await win.AcchProject.guard()) return; closing=true; await T.window.getCurrentWindow().destroy(); }
+  /* chiusura: mai perdere il lavoro senza chiedere. Prima di chiudere si finiscono le scritture dell'archivio (al massimo 3 s) */
+  const flushStore=()=>Promise.race([Promise.resolve(win.AcchHost && win.AcchHost.store.flush()).catch(()=>{}), new Promise(r=>setTimeout(r,3000))]);
+  async function requestQuit(){ if (closing) return; if (!await win.AcchProject.guard()) return; closing=true; await flushStore(); await T.window.getCurrentWindow().destroy(); }
   T.window.getCurrentWindow().onCloseRequested(async ev=>{ if (closing) return; ev.preventDefault(); await requestQuit(); });
 
   /* titolo della finestra e barra degli strumenti */
@@ -150,7 +151,7 @@
     installing=true; win.AcchProject.lock(true);   // da qui il lavoro è salvato o volutamente scartato: niente modifiche fino al riavvio
     go.disabled=true; lt.disabled=true; box.hidden=false; bar.style.width='0'; m.textContent=tr('Ricezione dell\'aggiornamento…'); let total=0, got=0;
     try{ await up.download(ev=>{ if (ev.event==='Started') total=ev.data.contentLength||0; else if (ev.event==='Progress'){ got+=ev.data.chunkLength; if (total) bar.style.width=Math.min(100,100*got/total)+'%'; } else if (ev.event==='Finished') bar.style.width='100%'; });
-      m.textContent=tr('Firma verificata. Installo e riavvio…'); await up.install(); closing=true; await T.process.relaunch();
+      m.textContent=tr('Firma verificata. Installo e riavvio…'); await flushStore(); await up.install(); closing=true; await T.process.relaunch();
     }catch(e){ console.error(e); m.textContent=tr('Aggiornamento non riuscito: il pacchetto non è stato installato e la versione attuale resta intatta. Riprova più tardi.'); go.disabled=false; lt.disabled=false; box.hidden=true; installing=false; win.AcchProject.lock(false); try{ curUpdate=await T.updater.check({timeout:20000}); }catch(_){} } }
   win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog, addSpectra };
 

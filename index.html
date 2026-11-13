@@ -15,6 +15,7 @@
 <link href="vendor/fonts/nunito.css" rel="stylesheet">
 <link href="app/app.css" rel="stylesheet">
 <link href="app/theme-dark.css" rel="stylesheet">
+<script src="app/host.js"></script>
 <script src="app/shell-boot.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
@@ -1574,8 +1575,11 @@ BANDS.xrf = (()=>{
   return out;
 })();
 const LS_LIB='spectraplot.lib.v1';
-let LIB = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_LIB)); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; }catch(e){ return []; } })();
-function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }catch(e){} }
+// il nucleo non tocca l'archivio direttamente: passa dall'adattatore dell'host (app/host.js); senza host (worker, test) la libreria è vuota
+function hostGet(k){ try{ return typeof AcchHost!=='undefined' && AcchHost.store ? JSON.parse(AcchHost.store.getItem(k)) : null; }catch(e){ return null; } }
+function hostSet(k,v){ try{ if (typeof AcchHost==='undefined' || !AcchHost.store) return false; AcchHost.store.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+let LIB = (()=>{ const v=hostGet(LS_LIB); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; })();
+function saveLib(){ hostSet(LS_LIB, LIB); }
 /* LIBS: righe atomiche più intense e persistenti (nm, in aria, NIST ASD; valori indicativi). I = atomo neutro, II = ione singolo. */
 const LIBS_LINES = {
   H:[['I',656.28],['I',486.13]], Li:[['I',670.78],['I',610.36]], Be:[['II',313.04],['I',234.86]], B:[['I',249.68],['I',249.77]],
@@ -4418,9 +4422,9 @@ for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
 const clone = o => JSON.parse(JSON.stringify(o));
-function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function lsGet(k){ return hostGet(k); }
+function lsSet(k,v){ hostSet(k,v); }
+function lsDel(k){ try{ AcchHost.store.removeItem(k); }catch(e){} }
 function merge(base, o){ const r=mergeRaw(base,o); return sanitizeS(r); }
 function mergeRaw(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici'||r.docTitle==='Report spettri') r.docTitle=''; return r; }
 function sanitizeS(r){
@@ -4794,8 +4798,8 @@ function infoLines(f, P, peaks, L){
 }
 /* ---- spettri di riferimento: libreria personale e somiglianza ---- */
 const LS_REFS='acch.refs.v1';
-let REFS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_REFS)); return Array.isArray(v) ? v.filter(r=>r && typeof r.id==='string' && INSTR[r.i] && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length>=8) : []; }catch(e){ return []; } })();
-function saveRefs(){ try{ localStorage.setItem(LS_REFS, JSON.stringify(REFS)); return true; }catch(e){ return false; } }
+let REFS = (()=>{ try{ const v=JSON.parse(AcchHost.store.getItem(LS_REFS)); return Array.isArray(v) ? v.filter(r=>r && typeof r.id==='string' && INSTR[r.i] && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length>=8) : []; }catch(e){ return []; } })();
+function saveRefs(){ try{ AcchHost.store.setItem(LS_REFS, JSON.stringify(REFS)); return true; }catch(e){ return false; } }
 /* riduce uno spettro a n punti equidistanti; %T diventa assorbanza (picchi in su) */
 function refVector(xs, ys, kind, n){
   n=n||1200; const y = kind==='T' ? transformY(ys,'T','A').ys : ys, a=xs[0], b=xs[xs.length-1], X=[], Y=[];
@@ -4884,7 +4888,7 @@ function sugCtx(f, peaks){
 /* ---------------- CONFRONTI (spettri sovrapposti) ---------------- */
 const LS_CMP='acch.cmp.v1';
 let viewMode='one', curCmpId=null;
-let COMPS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
+let COMPS = (()=>{ try{ const v=JSON.parse(AcchHost.store.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
   id:c.id.slice(0,40), name:(/^(Confronto |Nuovo confronto$)/.test(String(c.name||'')) ? '' : String(c.name||'')).slice(0,120), instr:INSTR[c.instr]?c.instr:null, mode:['stack','over','norm'].includes(c.mode)?c.mode:'stack',
   gap:isFinite(+c.gap)?Math.min(2,Math.max(0.3,+c.gap)):1.1, out:c.out!==false, keys:c.keys.filter(k=>typeof k==='string').slice(0,60), inset:cleanInset(c.inset) })) : []; }catch(e){ return []; } })();
 function saveCmps(){ lsSet(LS_CMP, COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined}))); }
@@ -5627,15 +5631,22 @@ $('#daOk').onclick=()=>{
   say('#tip2', chosen.length ? `Fatto! ${chosen.length} nom${chosen.length===1?'e':'i'} sul grafico${nOther?` e su altri ${nOther} file`:''}. 🏷️` : 'Ok, lascio solo i numeri. 👍');
 };
 /* libreria personale */
-// unisce voci importate: stesso id e stesso contenuto = già presente; stesso id e contenuto diverso = nuova voce con un altro id (mai scartata in silenzio)
-function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0}; if (!Array.isArray(list)) return out;
+// unisce voci importate: stesso id e stesso contenuto = già presente; stesso id e contenuto diverso = nuova voce con un altro id (mai scartata in silenzio).
+// map: id importato → id nella libreria locale, quando cambia (rinominata, accorciata a 40 caratteri, o già presente con un altro id):
+// chi importa riscrive con map i rimandi «@id» dei picchi, altrimenti punterebbero a un'altra voce o a nessuna
+function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0, map:{}}; if (!Array.isArray(list)) return out;
+  const done=new Set();
   for (const e of list){ if (!(e&&typeof e.id==='string'&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b))){ out.scartate++; continue; }
     const v={id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}, old=LIB.find(x=>x.id===v.id);
     const same=x=>x.i===v.i && +x.a===v.a && +x.b===v.b && String(x.n).slice(0,120)===v.n;   // confronto sui valori normalizzati come v (nome tagliato a 120)
-    if (!old){ LIB.push(v); out.nuove++; } else if (same(old)) out.uguali++;
-    // stessa voce già aggiunta con un altro codice (riapertura dello stesso progetto): non si duplica a ogni apertura
-    else if (LIB.some(x=>same(x) && x.id.startsWith(v.id.slice(0,30)+'_'))) out.uguali++;
-    else { v.id=(v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8)); LIB.push(v); out.rinominate++; } }
+    let id;
+    if (old && same(old)){ out.uguali++; id=old.id; }
+    else { const twin=LIB.find(same);   // stessa voce già presente con un altro codice (riapertura dello stesso progetto, rinomina precedente): non si duplica
+      if (twin){ out.uguali++; id=twin.id; }
+      else if (!old){ LIB.push(v); out.nuove++; id=v.id; }
+      else { do{ v.id=v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8); }while(LIB.some(x=>x.id===v.id)); LIB.push(v); out.rinominate++; id=v.id; } }
+    if (id!==e.id && !done.has(e.id)) out.map[e.id]=id;   // con due voci importate con lo stesso id vale la prima
+    done.add(e.id); }
   if (out.nuove||out.rinominate) saveLib(); return out; }
 window.libMerge=libMerge;
 function libMergeMsg(r){ return `Libreria dei nomi: ${r.nuove} voci nuove, ${r.uguali} già presenti${r.rinominate?`, ${r.rinominate} con lo stesso codice ma diverse, aggiunte come voci separate`:''}${r.scartate?`, ${r.scartate} non valide scartate`:''}.`; }
@@ -8193,8 +8204,8 @@ function applySober(){ document.body.classList.toggle('sober', !!(S.sober||windo
   else if (soberObs){ soberObs.disconnect(); soberObs=null; } }
 $('#soberBtn').onclick=()=>{ S.sober=!S.sober; saveS(); if (!S.sober){ applySober(); soberNodes.forEach(r=>{ const n=r.deref(), o=n&&soberOrig.get(n); if (n && o && n.nodeValue===o.v) n.nodeValue=o.t; }); soberNodes.clear(); refreshAll(); toast('Aspetto normale di nuovo attivo.'); return; } applySober(); toast('Aspetto sobrio attivo: premi di nuovo «Sobrio» per tornare a quello normale.'); };
 const TXT_ZOOM=[1,1.15,1.3];
-function applyTxtZoom(){ let z=1; try{ z=+localStorage.getItem('acch.zoom')||1; }catch(e){} document.body.style.zoom = z===1 ? '' : String(z); $('#zoomTxt').title=`Testo più grande o più piccolo (ora ${Math.round(z*100)}%)`; if (files.length) setTimeout(()=>{ renderPreview(); }, 30); }
-$('#zoomTxt').onclick=()=>{ let z=1; try{ z=+localStorage.getItem('acch.zoom')||1; }catch(e){} const i=TXT_ZOOM.indexOf(z); z=TXT_ZOOM[(i+1)%TXT_ZOOM.length]; try{ localStorage.setItem('acch.zoom', String(z)); }catch(e){} applyTxtZoom(); };
+function applyTxtZoom(){ let z=1; try{ z=+AcchHost.store.getItem('acch.zoom')||1; }catch(e){} document.body.style.zoom = z===1 ? '' : String(z); $('#zoomTxt').title=`Testo più grande o più piccolo (ora ${Math.round(z*100)}%)`; if (files.length) setTimeout(()=>{ renderPreview(); }, 30); }
+$('#zoomTxt').onclick=()=>{ let z=1; try{ z=+AcchHost.store.getItem('acch.zoom')||1; }catch(e){} const i=TXT_ZOOM.indexOf(z); z=TXT_ZOOM[(i+1)%TXT_ZOOM.length]; try{ AcchHost.store.setItem('acch.zoom', String(z)); }catch(e){} applyTxtZoom(); };
 /* ricette: i percorsi più comuni in un clic, con le impostazioni consigliate */
 function recipesFor(f){
   const it=f.instr, P=processed(f), R=[], go2=sel=>setTimeout(()=>reveal(sel), 60);

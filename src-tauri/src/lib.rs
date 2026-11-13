@@ -15,6 +15,14 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
+mod store;
+
+/// Archivio dell'app su file (store.rs): cartella e serratura, così due lotti non si scrivono mai insieme.
+#[derive(Default)]
+struct Store {
+    dir: Mutex<Option<PathBuf>>,
+}
+
 #[derive(Default)]
 struct Grants {
     paths: Mutex<HashSet<PathBuf>>,
@@ -452,6 +460,13 @@ fn show_main(app: &AppHandle) {
         let _ = w.set_focus();
     }
 }
+/// Scrive un lotto dell'archivio (app/host.js): chiave → valore, oppure null per toglierla.
+#[tauri::command(async)]
+fn store_write(st: State<'_, Store>, items: std::collections::BTreeMap<String, Option<String>>) -> Result<(), String> {
+    let dir = st.dir.lock().unwrap();
+    let Some(d) = dir.as_ref() else { return Err("no-store".into()) };
+    store::write(d, &items)
+}
 #[tauri::command]
 fn app_ready(app: AppHandle) {
     show_main(&app);
@@ -473,6 +488,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Grants::default())
         .manage(Dirs::default())
+        .manage(Store::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
             if let Ok(dir) = app.path().app_config_dir() {
@@ -481,6 +497,22 @@ pub fn run() {
                 *d.map.lock().unwrap() = fs::read_to_string(&f).map(|t| parse_dirs(&t)).unwrap_or_default();
                 *d.file.lock().unwrap() = Some(f);
             }
+            // finestra principale creata qui (tauri.conf.json: create false) per consegnarle l'archivio prima di ogni script della pagina
+            let items = match app.path().app_data_dir() {
+                Ok(d) => {
+                    let dir = d.join(store::DIR);
+                    let items = store::load(&dir);
+                    *app.state::<Store>().dir.lock().unwrap() = Some(dir);
+                    items
+                }
+                Err(_) => Default::default(),
+            };
+            let cfg = app.config().app.windows.iter().find(|w| w.label == "main").cloned().ok_or("finestra main mancante")?;
+            let mut wb = tauri::WebviewWindowBuilder::from_config(app.handle(), &cfg)?;
+            if app.state::<Store>().dir.lock().unwrap().is_some() {
+                wb = wb.initialization_script(store::boot_script(&items));
+            }
+            wb.build()?;
             let h = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(5));
@@ -504,11 +536,11 @@ pub fn run() {
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready, store_write
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready, store_write,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder

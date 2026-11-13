@@ -4,7 +4,7 @@
 // I comandi nativi rispondono con i dati preparati nel test (window.__mock) e ogni chiamata resta registrata.
 'use strict';
 function tauriMock(){
-  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], writeDelay:0, shown:0,
+  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], store:{}, storeWrites:[], writeDelay:0, shown:0,
     emit(name, payload){ (M.listeners[name]||[]).forEach(cb=>cb({event:name, payload})); },
     dragEvent(payload){ M.drag.forEach(cb=>cb({event:'tauri://drag', payload})); } };
   const enc=s=>new TextEncoder().encode(s);
@@ -19,6 +19,7 @@ function tauriMock(){
       case 'pick_open': case 'pick_save': return M.pick[cmd]===undefined ? null : M.pick[cmd];
       case 'read_file': { const t=M.files[args.path]; if (t==null) throw 'read-failed: NotFound'; return Array.from(typeof t==='string' ? enc(t) : t); }
       case 'write_file': { if (M.writeDelay) await new Promise(r=>setTimeout(r,M.writeDelay)); if (M.writeFail) throw 'write-failed: PermissionDenied'; M.writes.push({path:decodeURIComponent(opt.headers['x-acch-path']), size:args.length, t:performance.now()}); return null; }
+      case 'store_write': { M.storeWrites.push(args.items); for (const [k,v] of Object.entries(args.items)){ if (v==null) delete M.store[k]; else M.store[k]=v; } return null; }   // archivio su file (lib.rs, store.rs)
       default: throw 'mock: comando sconosciuto '+cmd;
     }
   }
