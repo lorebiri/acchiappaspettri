@@ -32,6 +32,8 @@
 <script src="app/kinetics-core.js"></script>
 <script src="app/library.js"></script>
 <script src="app/hplc-stored-cal.js"></script>
+<script src="app/ricetta-py-modello.js"></script>
+<script src="app/ricetta-py.js"></script>
 <script src="app/librerie-sistema.js"></script>
 <script src="app/library-store.js"></script>
 <style>
@@ -1129,6 +1131,10 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
     <div class="outcard" data-out="outOrig">
       <label class="ohead"><input type="checkbox" data-k="outOrig"><span class="oico">📎</span><span><b>Copia identica del file originale</b><small>per ogni spettro il file così come è stato caricato, byte per byte, con il suo nome e la sua estensione</small></span></label>
       <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="orig" spellcheck="false" autocomplete="off"></div><small class="opt-l" id="origNote" hidden></small></div>
+    </div>
+    <div class="outcard" data-out="outPy">
+      <label class="ohead"><input type="checkbox" data-k="outPy"><span class="oico">🐍</span><span><b>Script Python della ricetta</b><small>un file .py che rifà lettura, elaborazioni, picchi, aree e tarature con gli stessi numeri dell'app, con i file che legge; licenza GPL-3.0-or-later</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="py" spellcheck="false" autocomplete="off"></div><small class="opt-l">Si esegue con <code data-noi18n>python3 ricetta.py</code> (Python 3.10 o successivo, nessuna libreria da installare) e dice se i risultati sono identici a quelli dell'app.</small></div>
     </div>
     <div class="outcard" data-out="outTrace">
       <label class="ohead"><input type="checkbox" data-k="outTrace"><span class="oico">🧾</span><span><b>Tracciabilità</b><small>un CSV con l'impronta SHA-256 di ogni file e le scelte usate, per ricostruire i dati esportati</small></span></label>
@@ -2416,10 +2422,10 @@ function parseText0(text, opt){
     const r=newB(q.hdr); r.xs=q.xs.splice(t); r.ys=q.ys.splice(t); r.li=q.li.splice(t); r.extra=q.extra; r.cols=q.cols.map(c=>Object.assign({},c)); q.rev=false; blocks.splice(k+1,0,r); k++; }
   // il blocco più lungo sono i dati; un altro vi si aggiunge solo se prosegue l'asse senza buchi (una pausa nella misura), altrimenti è una tabella e non diventa punti dello spettro
   const mainIx=blocks.reduce((b,q,k)=>q.xs.length>blocks[b].xs.length?k:b,0), M=blocks[mainIx], dir=Math.sign(M.xs[M.xs.length-1]-M.xs[0])||1;
-  const xs=M.xs.slice(), ys=M.ys.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
+  const xs=M.xs.slice(), ys=M.ys.slice(), lis=M.li.slice(); extraCols=M.extra; let lo=Math.min(M.xs[0],M.xs[M.xs.length-1]), hi=Math.max(M.xs[0],M.xs[M.xs.length-1]); const stepM=(hi-lo)/Math.max(1,M.xs.length-1);
   const left=blocks.map((q,k)=>k).filter(k=>k!==mainIx); let grew=true;
   while (grew){ grew=false; for (let t=0;t<left.length;t++){ const q=blocks[left[t]]; if (q.xs.length<3) continue; const qlo=arrMin(q.xs), qhi=arrMax(q.xs), stepQ=(qhi-qlo)/Math.max(1,q.xs.length-1), gap=qlo>hi?qlo-hi:qhi<lo?lo-qhi:-1;
-      if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.com=(C.com||0)+(q.cols[u].com||0); C.int+=q.cols[u].int; C.other+=q.cols[u].other; C.pd=(C.pd||0)+(q.cols[u].pd||0); C.pc=(C.pc||0)+(q.cols[u].pc||0); }); left.splice(t,1); t--; grew=true; } } }
+      if (gap>=0 && gap<=4*stepM && (q.xs[q.xs.length-1]-q.xs[0])*dir>0 && stepQ<3*stepM && stepM<3*stepQ){ q.xs.forEach((v,u)=>{ xs.push(v); ys.push(q.ys[u]); lis.push(q.li[u]); }); lo=Math.min(lo,qlo); hi=Math.max(hi,qhi); midText=true; M.cols.forEach((C,u)=>{ C.dot+=q.cols[u].dot; C.com=(C.com||0)+(q.cols[u].com||0); C.int+=q.cols[u].int; C.other+=q.cols[u].other; C.pd=(C.pd||0)+(q.cols[u].pd||0); C.pc=(C.pc||0)+(q.cols[u].pc||0); }); left.splice(t,1); t--; grew=true; } } }
   // un blocco lungo almeno metà e sullo stesso asse è un altro canale; uno corto è una tabella riassuntiva e non si conta fra i canali (ciclo 26)
   let channel=false, afterCh=0; const chK=[mainIx]; left.forEach(k=>{ const q=blocks[k]; after+=q.xs.length; if (q.xs.length>=0.5*xs.length && arrMin(q.xs)<=hi && arrMax(q.xs)>=lo){ channel=true; afterCh+=q.xs.length; chK.push(k); } });
   chK.sort((a,b)=>a-b);
@@ -2436,6 +2442,7 @@ function parseText0(text, opt){
     // righe di ogni canale (blocchi sullo stesso asse), per leggerli tutti (I3, multicanale): solo se il blocco principale non è stato unito ad altri
     chSpans: chK.length>1 && !midText ? chK.map(k=>({l0:blocks[k].li[0], l1:blocks[k].li[blocks[k].li.length-1], hdr:blocks[k].hdr.slice(0,60), n:blocks[k].xs.length})) : null};
   if (opt && opt.keepOrder) R.order=idx;   // solo per l'esportazione dei «dati originali»: posizione di ogni punto nel file
+  if (opt && opt.keepLines) R.lines=lis;   // solo per la ricetta Python: riga del file di ogni punto, nell'ordine prima del riordino per x
   return R;
 }
 /* fisisorbimento: lettori e calcoli in app/sorption-core.js (SorpCore), qui solo l'aggancio. Sull'asse: il ramo di adsorbimento; i due rami in p.iso */
@@ -4535,14 +4542,14 @@ const DEFAULTS = {
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, outOpj:false, outOpju:false, opjMode:'each', originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
-  csvRaw:false, outOrig:false, outLibCharts:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
+  csvRaw:false, outOrig:false, outPy:false, outLibCharts:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
   logY:{xrf:true}
 };
 for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
-const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','libcharts','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
+const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','py','analysis','libcharts','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ return hostGet(k); }
 function lsSet(k,v){ hostSet(k,v); }
@@ -4561,7 +4568,7 @@ function sanitizeS(r){
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
   oneOf('originData',['proc','raw']); oneOf('opjMode',['each','one']); oneOf('expScope',['sel','all','one']);
   { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
-  ['csvRaw','outOrig','outLibCharts','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['csvRaw','outOrig','outPy','outLibCharts','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
@@ -6403,7 +6410,7 @@ $$('[data-k]').forEach(el=>{
     S[k]=v; saveS();
     if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
     if (k==='expert') applyExpert();
-    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','outOpj','outOpju','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','outOpj','outOpju','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outPy','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
@@ -6454,7 +6461,7 @@ $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
 
 /* ---------------- VOCI DELL'ESPORTAZIONE: che cosa, con quale nome, dove ---------------- */
 // requisito 3.0.0: l'utente sceglie le voci; lo ZIP è solo una voce in più, spenta di default. Il contenuto di ogni file resta quello di buildZip
-const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', libcharts:'outLibCharts', trace:'outTrace', origin:'outOrigin', opj:'outOpj', opju:'outOpju', project:'outProject'};
+const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', py:'outPy', analysis:'outAnalysis', libcharts:'outLibCharts', trace:'outTrace', origin:'outOrigin', opj:'outOpj', opju:'outOpju', project:'outProject'};
 const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', opj:'opj', opju:'opju', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
 const DESK_EXP=()=>!!window.__TAURI__;
 let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
@@ -6465,7 +6472,7 @@ function expBase(){ return safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+
 function expSubDefault(){ const n=window.AcchProject && AcchProject.path ? String(AcchProject.path).split(/[\\/]/).pop().replace(/\.acchspettri$/i,'') : (S.docTitle||T_().title); return safeName(n+'.x').replace(/\s+/g,'_')||'export'; }
 function expDefault(k){ const Lx=T_(), en=LANG==='en';
   switch (k){ case 'pdf': return expBase()+'.pdf'; case 'zip': return expBase()+'.zip'; case 'png': return ''; case 'svg': return 'svg'; case 'data': return Lx.dataDir;
-    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'libcharts': return en?'control_charts':'carte_di_controllo'; case 'peaks': return Lx.csvName;
+    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'py': return en?'python_recipe':'ricetta_python'; case 'analysis': return en?'analysis':'analisi'; case 'libcharts': return en?'control_charts':'carte_di_controllo'; case 'peaks': return Lx.csvName;
     case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx'; case 'opj': return 'per_Origin.opj'; case 'opju': return 'per_Origin.opju';
     case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
 /* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
@@ -6531,6 +6538,7 @@ function renderSummary(){
     if (sel.raw) parts.push(`<li>📑 <span>${inc.length===1?'1 CSV di dati originali':inc.length+' CSV di dati originali'}</span> · ${nm('raw')}</li>`);
     const noRaw=inc.filter(f=>!f.raw).length;
     if (sel.orig && noRaw<inc.length) parts.push(`<li>📎 <span>${inc.length-noRaw===1?'1 copia identica del file originale':(inc.length-noRaw)+' copie identiche dei file originali'}</span> · ${nm('orig')}</li>`);
+    if (sel.py) parts.push(`<li>🐍 <span>Script Python della ricetta</span> · ${nm('py')}</li>`);
     if (sel.analysis) parts.push(`<li>🔬 <span>Tabelle di analisi e bozza dei metodi</span> · ${nm('analysis')}</li>`);
     if (sel.libcharts){ const n=window.AcchLibUi ? AcchLibUi.chartCount() : 0; if (n) parts.push(`<li>📉 <span>${n===1?'1 carta di controllo':n+' carte di controllo'} (PNG, SVG, CSV)</span> · ${nm('libcharts')}</li>`); }
     if (sel.trace) parts.push(`<li>🧾 <span>Tracciabilità</span>: ${nm('trace')}</li>`);
@@ -7017,6 +7025,7 @@ async function exportEntries(sel, zipping){
   if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
   if (sel.libcharts && window.AcchLibUi) await AcchLibUi.chartFiles((p,d)=>add('libcharts', expDir('libcharts')+p, d));   // carte di controllo delle librerie (PNG, SVG, CSV), voce propria
   if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
+  if (sel.py && inc.length){ status(zipping ? '🗜️ Preparo lo script Python…' : '🐍 Preparo lo script Python della ricetta…'); await tick(); const R=await pyRecipe(inc), d=expDir('py'); add('py', d+'ricetta.py', R.script); R.files.forEach(x=>add('py', d+x.path, x.data)); }   // I12: ricetta come script Python, con i file che legge
   return out;
 }
 /* dati originali di uno spettro: nei file di testo a colonne si rilegge il file e si rimette ogni punto nella sua riga
@@ -7030,6 +7039,81 @@ function rawFileXY(f){
       const names=P.colNames && P.colNames[0] && P.colNames[yc] ? [P.colNames[0], P.colNames[yc]] : null;
       return {xs:X, ys:Y, names, file:true}; } }catch(e){ console.warn(e); } }
   return {xs:f.xs0||f.xs, ys:f.ys, names:null, file:false};
+}
+/* ---------------- RICETTA PYTHON (I12, SPEC-AVANZATE §4): lo script che rifà lettura, elaborazioni, picchi, aree e tarature con gli stessi numeri ----------------
+   La lettura si decide qui e si verifica: un file di testo si rilegge riga per riga (le righe che parseText0 ha letto, keepLines) solo se così si
+   ritrovano esattamente i numeri in uso nell'app (f.xs0, f.ys), con le stesse conversioni dell'asse; altrimenti lo script legge un CSV dei dati letti. */
+function pyFp(xs, ys){ const n=xs.length, u=new Uint8Array(8*(n+ys.length)), dv=new DataView(u.buffer); for (let i=0;i<n;i++) dv.setFloat64(8*i, xs[i], true); for (let i=0;i<ys.length;i++) dv.setFloat64(8*(n+i), ys[i], true); return AcchFormat.sha256(u); }
+function pySort(X, Y){ const idx=X.map((_,i)=>i).sort((a,b)=>X[a]-X[b]); return [idx.map(i=>X[i]), idx.map(i=>Y[i])]; }
+// le stesse operazioni di xUnitFix e postDetect, nell'ordine in cui le fa lo script (acch_ricetta.apply_xform)
+function pyXform(X, Y, ops){ for (const o of ops){ if (o.op==='swap') [X,Y]=pySort(Y.slice(), X.slice()); else if (o.op==='div60') X=X.map(v=>v/60); else if (o.op==='inv') [X,Y]=pySort(X.map(v=>o.c/v), Y); else if (o.op==='raman') [X,Y]=pySort(X.map(v=>1e7/o.l0-1e7/v), Y); else if (o.op==='scale') X=X.map(v=>v*o.k); } return [X,Y]; }
+function pyRuns(L){ const out=[]; for (const i of L){ const r=out[out.length-1]; if (r && r[0]+r[1]===i) r[1]++; else out.push([i,1]); } return out; }
+function pyReading(f, P){
+  const same=(a,b)=>a.length===b.length && a.every((v,i)=>Object.is(v,b[i]));
+  const X0=Array.from(P.xs), Y0=Array.from(P.ys), head=(P.meta||[]).join('\n'), m=/(?:laser|excitation|eccitazione|λ0|lambda0)[^0-9\n]{0,25}(\d{3,4}(?:[.,]\d+)?)\s*nm/i.exec(head), l0=m?parseFloat(m[1].replace(',','.')):null;
+  const maps=[[], [{op:'div60'}], [{op:'inv',c:1e7}], [{op:'inv',c:1239.84}], [{op:'inv',c:1e4}]].concat(l0?[[{op:'raman',l0}]]:[]), sc=f.eprConv&&f.eprConv.k!==1?[{op:'scale',k:f.eprConv.k}]:[];
+  for (const sw of [[],[{op:'swap'}]]) for (const mp of maps){ const ops=sw.concat(mp, sc), [X,Y]=pyXform(X0, Y0, ops); if (same(X, f.xs0) && same(Y, f.ys)) return ops; }
+  return null;
+}
+function pyRecipe(inc){
+  const Lx=T_(), en=LANG==='en', csep=en?',':';', dec=Lx.dec, list=inc.slice(), extra=[], out={files:[]};
+  // spettri che servono senza essere inclusi: riferimenti da sottrarre e spettri delle tarature con «tutti i file»
+  const mvTabs=Object.keys(MV).filter(instr=>{ const c=MV[instr]; return c && c.a!=null && c.b!=null && files.some(f=>f.instr===instr); });
+  const need=f=>{ if (f && !list.includes(f) && !extra.includes(f)) extra.push(f); };
+  list.forEach(f=>need(subRef(f))); mvTabs.forEach(instr=>(mvTable(instr)||[]).forEach(o=>need(o.f))); extra.forEach(f=>need(subRef(f)));
+  const all=list.concat(extra), usedD=new Set(), dname=(nm)=>{ const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(winSeg(nm||'file')); let s=m[1]+m[2], k=2; while (usedD.has(s.toLowerCase())) s=m[1]+'_'+(k++)+m[2]; usedD.add(s.toLowerCase()); return 'dati/'+s; }, rawDone=new Map();
+  // i CSV che l'app scrive con le stesse voci: sono i risultati attesi, e i loro percorsi sono quelli dello script
+  // in inglese csvCell traduce le celle di testo (i18n.js): si registrano le coppie usate nelle tabelle dell'app, perché lo script scriva gli stessi testi
+  const trad={}, oc=window.csvCell; if (en && typeof oc==='function') window.csvCell=function(c, sep){ const o=oc.call(this, c, sep); if (typeof c==='string' && /\p{L}/u.test(c)){ let t=oc.call(this, c, '\u0001');
+      if (/^"[\s\S]*"$/.test(t) && t.length>=2) t=t.slice(1,-1).replace(/""/g,'"'); if (t[0]==="'" && /^[=+\-@\t\r]/.test(t.slice(1)) && !CSV_NUM.test(t.slice(1))) t=t.slice(1); if (t!==c) trad[c]=t; } return o; };
+  const unwrap=()=>{ if (window.csvCell!==oc) window.csvCell=oc; };
+  const fixed0=EXP_FIXED.length, ents=[]; return exportEntries({peaks:true, data:true}, false).then(E=>{ EXP_FIXED.length=fixed0; ents.push(...E);
+    const dataOf=new Map(); let k=0; E.filter(e=>e.key==='data').forEach(e=>dataOf.set(list[k++], e.path));
+    const spettri=all.map(f=>{ const P=processed(f), d=viewOf(f), i=f.instr;
+      let conv=S.conv[i]; if (!INSTR[i].conv.includes(conv)) conv='orig';
+      const nomi={}; for (const [key,raw] of Object.entries(f.labels||{})){ let name=''; if (raw && raw[0]==='@'){ const e=entryById(raw.slice(1)); name=e?(en?e.en:e.it):''; } else if (raw) name=raw; nomi[key]=[name, nameOrigin(raw, Lx)]; }
+      let piatto=false; try{ piatto=badItems(f).some(t=>/massimo è piatto/.test(t)); }catch(e){}
+      let dscK=null; if (i==='dsc'){ const rate=dscRate(f), u=(f.therm && f.therm.yUnit || '').replace(/\s+/g,'').toLowerCase(), mass=f.massU || (f.therm && f.therm.massMg); if (rate){ let kk=60/rate; if (u==='w/g'||u==='mw/mg'||u==='w'||u==='µw'||u==='uw') dscK=kk; else if (u==='mw'){ if (mass>0) kk/=mass; dscK=kk; } } }
+      // lettura: testo riletto (con verifica) o CSV dei dati letti
+      let lettura=null;
+      if (f.raw && !f.rawBin && f.channel==null && f.sampleKey==null && !f.origin){ try{ const yc=f.ycolNow||(f.an&&f.an.ycol)||1, Q=parseText0(decodeBuffer(f.raw), {ycol:yc, keepLines:true});
+        if (Q && !Q.reject && Q.lines && Q.lines.length===Q.xs.length){ const ops=pyReading(f, Q); if (ops){ let nm=rawDone.get(f.raw); if (!nm){ nm=dname(f.rawName||f.name); rawDone.set(f.raw, nm); out.files.push({path:nm, data:new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)}); }
+          lettura={modo:'testo', file:nm.slice(5), origine:f.path||f.name, sha256:AcchFormat.sha256(new Uint8Array(f.raw)), ycol:yc, righe:pyRuns(Q.lines), trasf:ops}; } } }catch(e){ console.warn(e); } }
+      if (!lettura){ const nm=dname(safeName(f.name)+'.letto.csv'), xs0=f.xs0||f.xs, L=['x,y']; for (let q=0;q<xs0.length;q++) L.push(String(xs0[q])+','+String(f.ys[q]));
+        out.files.push({path:nm, data:L.join('\n')+'\n'}); lettura={modo:'csv', file:nm.slice(5), origine:f.path||f.name}; }
+      lettura.impronta=pyFp(f.xs0||f.xs, f.ys);
+      const r=subRef(f);
+      return {nome:f.name, titolo:dispTitle(f), tecnica:i, kind:f.kind, uncal:!!f.uncal, incluso:list.includes(f), nomeTecnica:Lx.nome[i], unitaX:f.uncal?(en?'channel':'canale'):xUnit(f), unitaArea:d.areaUnit||'',
+        intestDati:[xName(f, Lx).replace('⁻¹','-1'), (Lx.y[P.kind]||'Y')+(P.kind==='HF'&&f.therm&&f.therm.yUnit?` (${f.therm.yUnit})`:'')], fileDati:dataOf.get(f)||null,
+        lettura, ecal:f.ecal?{a:f.ecal.a, b:f.ecal.b}:null,
+        elab:{conv, spike:!!S.spike[i], smooth:pSmooth(f), base:pBase(f), deriv:+S.deriv[i]||0, xr:f.xr?f.xr.slice():null, sub_rif:r?all.indexOf(r):null, sub_k:r?+f.sub.k||0:0},
+        picchi:{tolti:f.removed.slice(), aggiunti:f.added.slice(), nomi, piatto}, dsc:{k:dscK}};
+    });
+    const L=(it,e)=>en?e:it, tarature=mvTabs.map(instr=>{ const c=mvCfg(instr), T=mvTable(instr)||[], head=mvCsvRows(instr)[0].slice(0,9);
+      return {file:expDir('analysis')+`${en?'band_measurements':'misure_bande'}_${instr}.csv`, cfg:{a:c.a, b:c.b, c:c.c!=null?c.c:null, d:c.d!=null?c.d:null, meas:c.meas, unit:c.unit||'', weight:c.weight||null, model:c.model},
+        righe:T.map(o=>({i:all.indexOf(o.f), nome:o.f.name, titolo:dispTitle(o.f), conc:o.conc, ruolo:o.role, flag:o.flag||'', yNullo:!!suspectT(o.f)})), testa:head, nomeTecnica:NOME_IT[instr], nomeMisura:MEAS_NAME[c.meas],
+        normalizzato:S.conv[instr]==='norm', ruoli:{blank:L(MV_ROLE.blank,'blank'), qc:L(MV_ROLE.qc,'control')}, avvisoPerfetto:L(MV_PERFECT[0],MV_PERFECT[1]), canale:mvChans(instr,c).length?c.chan:null}; });
+    // fisisorbimento: isoterma come letta dall'app (dati/….isoterma.json) e parametri di riduzione; lo script rifà BET e BJH/DH
+    const fisisorbimento=[], sorpSub={}; if (window.AcchSorp && typeof SorpCore!=='undefined') list.filter(f=>f.iso).forEach(f=>{ try{ const A=AcchSorp.run(f), P=A.P, o=(f.an&&f.an.sorp)||{}, iso=f.iso, nm=dname(safeName(f.name)+'.isoterma.json');
+      const txt=JSON.stringify({p:iso.p, p0:iso.p0, n:iso.n, branches:iso.branches, unit:iso.unit}); out.files.push({path:nm, data:txt});
+      const name=AcchSorp.csvName(f), outp=expDir('analysis')+name.replace(/\.csv$/,'')+'.bet_bjh.csv';
+      fisisorbimento.push({file:nm.slice(5), sha256:AcchFormat.sha256(new TextEncoder().encode(txt)), uscita:outp, instrBET:iso.meta&&iso.meta.instrBET||null,
+        P:{sigma:P.sigma, vmol:P.vmol, gamma:P.gamma, T:P.T, theta:P.theta, Vm:P.Vm, liqPerStp:P.liqPerStp, thick:P.thick, gas:P.gas}, opt:{betRange:o.betRange||null, bjhBranch:o.bjhBranch||null, bjhThick:o.bjhThick||null}});
+      // risultato atteso: le stesse righe del CSV dell'app (intestazione, BET, BJH, DH e dati dei rami)
+      const Ls=AcchSorp.csvText(f).split('\r\n'), b=Ls.indexOf(''); sorpSub[outp]=[Ls[0]].concat(Ls.slice(1,b).filter(l=>/^(BET|BJH|DH)[;,]/.test(l)), Ls.slice(b)).join('\r\n'); sorpSub['@'+name]=1; }catch(e){ console.warn(e); } });
+    // tabelle dell'app che lo script non rifà: dichiarate (lo script le segnala con un errore, senza approssimarle)
+    const nonTr=[]; try{ const textual=/^(controllo_qualita|quality_check|ipotesi_qualitative|qualitative_hypotheses|metodi_e_bibliografia|methods_and_references)\./; analysisFiles().forEach(([nm])=>{ if (/^(misure_bande|band_measurements)_/.test(nm) || textual.test(nm)) return; nonTr.push(sorpSub['@'+nm] ? nm+(en?' (only the BET, BJH and DH rows and the branch data are transcribed, in a separate .bet_bjh.csv file; Langmuir, t-plot, pore volume, DR/DA, DFT, IUPAC type and warnings are not)':' (trascritte solo le righe BET, BJH e DH e i dati dei rami, in un file .bet_bjh.csv a parte; Langmuir, t-plot, volume dei pori, DR/DA, DFT, tipo IUPAC e avvisi no)') : nm); }); }catch(e){ console.warn(e); }
+    if (inc.some(f=>fitValid(f))) { if (!nonTr.some(n=>/deconvol/.test(n))) nonTr.push(en?'deconvolution.csv':'deconvoluzione.csv'); }
+    const attesi={}, sample=t=>{ const ls=t.replace(/^﻿/,'').split('\r\n'), o={}, st=Math.max(1, Math.floor(ls.length/12)); for (let q=0;q<ls.length;q+=st) o[q]=ls[q]; o[ls.length-1]=ls[ls.length-1]; return o; };
+    const expect=(p,t)=>{ attesi[p]={sha256:AcchFormat.sha256(new TextEncoder().encode(t)), righe:sample(t)}; };
+    ents.forEach(e=>{ if (typeof e.data==='string') expect(e.path, e.data); });
+    for (const [p,t] of Object.entries(sorpSub)) if (p[0]!=='@') expect(p, t);
+    try{ analysisFiles().forEach(([nm,txt])=>{ const p=expDir('analysis')+nm; if (tarature.some(t=>t.file===p)) expect(p, txt); }); }catch(e){ console.warn(e); }
+    const pe=E.find(e=>e.key==='peaks');
+    const now=new Date(), z2=v=>String(v).padStart(2,'0'), ric={versione:APP_VERSION_FULL(), data:`${now.getFullYear()}-${z2(now.getMonth()+1)}-${z2(now.getDate())}`, anno:'2026', titolare:'Lorenzo Birindelli', lingua:en?'en':'it', dec, csep,
+      showPeaks:!!S.showPeaks, showArea:!!S.showArea, sens:S.sens, maxPeaks:S.maxPeaks, filePicchi:pe?pe.path:expName('peaks'), testaPicchi:(S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()).concat([Lx.csvNote]),
+      testi:{auto:Lx.auto, man:Lx.man, sat:Lx.satNote, dtg:Lx.y.DTG}, spettri, tarature, fisisorbimento, nonTrascritte:nonTr, attesi};
+    unwrap(); ric.traduzioni=trad; out.ricetta=ric; out.script=AcchRicettaPy.script(ric); out.nonTr=nonTr; return out; }).finally(unwrap);
 }
 /* ZIP con le voci di sempre (senza PDF né progetto): «extra» va in testa, come prima */
 async function buildZip(extra, sel){

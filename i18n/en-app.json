@@ -1274,5 +1274,11 @@
   "La libreria del tuo strumento e del tuo tipo di campione": "The library of your instrument and sample type",
   "Crea una libreria per ogni strumento e tipo di campione. Per l'HPLC salvi le pendenze dopo la taratura e poi calcolo le concentrazioni senza rifare la retta, dicendoti da dove viene ogni numero.": "Create a library for each instrument and sample type. For HPLC you save the slopes after calibration, and I then compute concentrations without refitting the line, telling you where every number comes from.",
   "Serie, MCR-ALS e cinetiche": "Series, MCR-ALS and kinetics",
-  "Metti in fila spettri presi nel tempo, con la dose o con la temperatura: MCR-ALS separa i componenti e il fit globale delle cinetiche ti dà le costanti con il loro errore.": "Line up spectra taken over time, dose or temperature: MCR-ALS separates the components and the global kinetic fit gives you the rate constants with their error."
+  "Metti in fila spettri presi nel tempo, con la dose o con la temperatura: MCR-ALS separa i componenti e il fit globale delle cinetiche ti dà le costanti con il loro errore.": "Line up spectra taken over time, dose or temperature: MCR-ALS separates the components and the global kinetic fit gives you the rate constants with their error.",
+  "Script Python della ricetta": "Python script of the recipe",
+  "un file .py che rifà lettura, elaborazioni, picchi, aree e tarature con gli stessi numeri dell'app, con i file che legge; licenza GPL-3.0-or-later": "a .py file that redoes reading, processing, peaks, areas and calibrations with the same numbers as the app, together with the files it reads; GPL-3.0-or-later licence",
+  "Si esegue con": "Run it with",
+  "(Python 3.10 o successivo, nessuna libreria da installare) e dice se i risultati sono identici a quelli dell'app.": "(Python 3.10 or later, nothing to install) and it tells whether the results are identical to those of the app.",
+  "🐍 Preparo lo script Python della ricetta…": "🐍 Preparing the Python script of the recipe…",
+  "🗜️ Preparo lo script Python…": "🗜️ Preparing the Python script…"
 }
