@@ -203,5 +203,6 @@
 "chosen background zones",
 "line wings in the baseline: underestimated",
 "not reliable (signal in the baseline or negative value)",
-"DejaVuSans-Bold.ttf"
+"DejaVuSans-Bold.ttf",
+"write-failed: AlreadyExists"
 ]

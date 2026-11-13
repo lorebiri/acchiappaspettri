@@ -63,11 +63,13 @@ Come leggerli:
 1. Premi **Tutto ok, vai a scaricare** (in basso a destra).
    *App desktop:* premi **Esporta** nella barra in alto.
 2. In «Lingua dei grafici» lascia **🇮🇹 Italiano**.
-3. Le scelte già spuntate vanno bene. Premi **⬇️ Scarica tutto in un file ZIP**.
+3. Le voci già spuntate vanno bene (PDF, immagini PNG, elenco dei picchi, risultati delle analisi, tracciabilità). Ogni voce ha un nome di file proposto, che puoi cambiare.
+4. Online: premi **⬇️ Scarica i file scelti**. Sono più di 3 file, quindi l'app propone di raccoglierli in uno ZIP: rispondi **Sì, un file ZIP** (oppure **No, uno per uno**). Se vuoi sempre lo ZIP, spunta **Raccogli tutto in un file ZIP**.
+   *App desktop:* premi **Esporta nella cartella…**, scegli la cartella e i file vengono scritti lì; alla fine **Mostra nella cartella** la apre.
 
 ![La pagina «Cosa vuoi scaricare?»](img/t1-it-4-scarica.png)
 
-Nel file ZIP trovi:
+Nella cartella (o nello ZIP) trovi:
 - `Report_spettri_….pdf`: i grafici e, nell'ultima pagina, «Andamento · FTIR / ATR-FTIR» con il grafico e i valori;
 - `analisi/misure_bande_ftir.csv`: la tabella dell'indice con le ore, da aprire in Excel (separatore punto e virgola, decimali con la virgola). L'ultima colonna, **Stato**, riporta gli avvisi;
 - `analisi/metodi_e_bibliografia.txt`: una bozza del paragrafo «Metodi» con la citazione del metodo SAUB;

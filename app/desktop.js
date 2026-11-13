@@ -15,7 +15,7 @@
 
   async function writeTo(path, bytes){ await inv('write_file', bytes, {headers:{'x-acch-path':encodeURIComponent(path)}}); }
   async function readFrom(path){ const b=await inv('read_file',{path}); return new Uint8Array(b); }
-  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Accesso al percorso non consentito.'; if (/PermissionDenied/.test(s)) return 'Scrittura non consentita in questa cartella: scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Lettura o scrittura del file non riuscita.'; };
+  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Accesso al percorso non consentito.'; if (/PermissionDenied/.test(s)) return 'Scrittura non consentita in questa cartella: scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/unsafe-path/.test(s)) return 'Nome di file non valido.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Lettura o scrittura del file non riuscita.'; };
 
   /* salvataggi: finestra del sistema al posto del download del browser (che nelle webview non funziona) */
   // risponde true solo se il file è stato scritto; false se annullato o non riuscito
@@ -23,6 +23,28 @@
     try{ const ext=(/\.([\w]{1,10})$/.exec(name)||[])[1], p=await inv('pick_save',{title:tr('Salva file'), suggested:name, filterName:ext?ext.toUpperCase():null, extensions:ext?[ext]:null, kind:'export'}); if (!p) return false;
       await writeTo(p.path, new Uint8Array(await blob.arrayBuffer())); win.toast('💾 Salvato: '+p.name); return true; }
     catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); return false; } };
+  /* esportazione in una cartella: la sceglie il dialogo nativo (l'ultima usata per le esportazioni), poi un file alla volta
+     dentro la cartella concessa, con scrittura atomica nel lato nativo. Un file già presente non si sovrascrive senza chiedere */
+  const fmt=(t,...v)=>String(t).replace(/\{(\d+)\}/g,(_,i)=>v[+i]);
+  async function pickExportDir(){ const p=await inv('pick_export_dir',{title:tr('Scegli la cartella di destinazione'), kind:'export'}); return p||null; }
+  async function freeName(dir, rel, taken){ const m=/^(.*?)((?:\.[^./]{1,12})?)$/.exec(rel);
+    for (let n=2;n<10000;n++){ const c=m[1]+'_'+n+m[2]; if (taken.has(c)) continue; const ex=await inv('export_existing',{dir, rels:[c]}); if (!ex.length) return c; } throw 'write-failed: AlreadyExists'; }
+  async function writeExport(target, list){
+    const rels=list.map(x=>x.rel), ex=new Set(await inv('export_existing',{dir:target.path, rels})), res={cancelled:false, dir:target.path, name:target.name, written:[], failed:[], skipped:[]};
+    let mode='replace';
+    if (ex.size){ const names=rels.filter(r=>ex.has(r)), shown=names.slice(0,6).join(', ')+(names.length>6?' '+fmt(tr('e altri {0}'), names.length-6):'');
+      mode=await win.AcchUi.choice(fmt(tr(names.length===1?'Nella cartella «{0}» esiste già un file con lo stesso nome: {1}.':'Nella cartella «{0}» esistono già {1} file con lo stesso nome: {2}.'), target.name, ...(names.length===1?[shown]:[names.length, shown])),
+        [['cancel','Annulla','ghost'],['skip','Salta','ghost'],['rename','Rinomina','ghost'],['replace','Sostituisci','primary']]);
+      if (mode==='cancel'){ res.cancelled=true; return res; } }
+    const taken=new Set(rels);
+    for (const it of list){ let rel=it.rel;
+      try{
+        if (ex.has(rel)){ if (mode==='skip'){ res.skipped.push(rel); continue; } if (mode==='rename'){ rel=await freeName(target.path, rel, taken); taken.add(rel); } }
+        await inv('write_in_dir', it.bytes, {headers:{'x-acch-dir':encodeURIComponent(target.path), 'x-acch-rel':encodeURIComponent(rel)}}); res.written.push(rel); }
+      catch(e){ console.error(e); res.failed.push({rel, msg:tr(errMsg(e))}); } }
+    return res; }
+  // «Mostra nella cartella»: Esplora risorse, Finder o il gestore dei file, con il primo file selezionato
+  async function revealExport(dir, rel){ try{ await inv('reveal_in_dir',{dir, rel:rel||null}); return true; }catch(e){ console.error(e); win.toast(tr('Impossibile aprire la cartella.')); return false; } }
   // i collegamenti ai file appena prodotti (blob) e quelli esterni non si possono seguire nella webview
   document.addEventListener('click', async e=>{ const a=e.target.closest && e.target.closest('a[href]'); if (!a) return; const h=a.getAttribute('href');
     if (a.hasAttribute('download') && h.startsWith('blob:')){ e.preventDefault(); const name=a.getAttribute('download'); try{ const r=await new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('GET',h); x.responseType='blob'; x.onload=()=>res(x.response); x.onerror=rej; x.send(); }); win.download(r, name); }catch(err){ win.toast('😕 '+tr(errMsg(err))); } return; }
@@ -112,7 +134,7 @@
     try{ const M=T.menu, item=(text,action,accelerator)=>M.MenuItem.new({text:tr(text),action,accelerator}), sep=()=>M.PredefinedMenuItem.new({item:'Separator'}), pre=(k,text)=>M.PredefinedMenuItem.new(text?{item:k,text:tr(text)}:{item:k});
       const recent=lsG(RECENT)||[], recItems=recent.length ? await Promise.all(recent.map(r=>M.MenuItem.new({text:r.name,action:()=>openPath(r.path,r.name)}))) : [await M.MenuItem.new({text:tr('Nessun progetto recente'),enabled:false})];
       const sub=async (text,items)=>M.Submenu.new({text:tr(text),items:await Promise.all(items)});
-      const file=await sub('File',[item('Nuovo progetto',()=>win.AcchProject.newProject(),'CmdOrCtrl+N'),item('Apri progetto…',openDialog,'CmdOrCtrl+O'),sub('Progetti recenti',recItems),sep(),item('Salva progetto',()=>win.AcchProject.save(),'CmdOrCtrl+S'),item('Salva progetto con nome…',()=>win.AcchProject.saveAs(),'CmdOrCtrl+Shift+S'),item('Chiudi progetto',()=>win.AcchProject.closeProject(),'CmdOrCtrl+W'),sep(),item('Aggiungi spettri…',addSpectra),item('Esporta (PDF, immagini, dati)…',()=>{ if (files.length) win.go(3); },'CmdOrCtrl+E'),...(info.os==='macos'?[]:[sep(),item('Esci',requestQuit,'CmdOrCtrl+Q')])]);
+      const file=await sub('File',[item('Nuovo progetto',()=>win.AcchProject.newProject(),'CmdOrCtrl+N'),item('Apri progetto…',openDialog,'CmdOrCtrl+O'),sub('Progetti recenti',recItems),sep(),item('Salva progetto',()=>win.AcchProject.save(),'CmdOrCtrl+S'),item('Salva progetto con nome…',()=>win.AcchProject.saveAs(),'CmdOrCtrl+Shift+S'),item('Chiudi progetto',()=>win.AcchProject.closeProject(),'CmdOrCtrl+W'),sep(),item('Aggiungi spettri…',addSpectra),item('Esporta (PDF, immagini, dati)…',()=>{ if (files.length) win.go(3); },'CmdOrCtrl+E'),sub('Esporta una voce',[item('Questo grafico come PNG…',()=>win.quickExport('png')),item('Questo grafico come SVG…',()=>win.quickExport('svg')),item('Picchi di questo spettro come CSV…',()=>win.quickExport('peaks')),item('Report PDF…',()=>win.quickExport('pdf'))]),...(info.os==='macos'?[]:[sep(),item('Esci',requestQuit,'CmdOrCtrl+Q')])]);
       const edit=await sub('Modifica',[pre('Undo','Annulla'),pre('Redo','Ripeti'),sep(),pre('Cut','Taglia'),pre('Copy','Copia'),pre('Paste','Incolla'),pre('SelectAll','Seleziona tutto')]);
       const Sh=win.AcchShell;
       const view=await sub('Vista',[item('Grafico',()=>{ if (files.length){ Sh.showDoc('graph'); } },'CmdOrCtrl+1'),item('Foglio dati',()=>{ if (files.length) Sh.showDoc('sheet'); },'CmdOrCtrl+2'),item('Più campioni',()=>{ if (files.length) win.openTab('multi'); },'CmdOrCtrl+3'),sep(),item('Pannello del progetto',()=>Sh.togglePane('left')),item('Ispettore',()=>Sh.togglePane('right')),item('Risultati',()=>Sh.togglePane('bottom')),item('Solo il grafico',()=>Sh.toggleFocus(),'F11'),sep(),item('Mostra tutto',()=>{ const z=$('#zReset'); if (z) z.click(); }),item('Testo più grande o più piccolo',()=>$('#zoomTxt').click()),item('Barra dei comandi',()=>win.openCmd(),'CmdOrCtrl+K'),item('Impostazioni…',()=>win.AcchUi.openSettings(),'CmdOrCtrl+,')]);
@@ -152,7 +174,7 @@
     try{ await up.download(ev=>{ if (ev.event==='Started') total=ev.data.contentLength||0; else if (ev.event==='Progress'){ got+=ev.data.chunkLength; if (total) bar.style.width=Math.min(100,100*got/total)+'%'; } else if (ev.event==='Finished') bar.style.width='100%'; });
       m.textContent=tr('Firma verificata. Installo e riavvio…'); await up.install(); closing=true; await T.process.relaunch();
     }catch(e){ console.error(e); m.textContent=tr('Aggiornamento non riuscito: il pacchetto non è stato installato e la versione attuale resta intatta. Riprova più tardi.'); go.disabled=false; lt.disabled=false; box.hidden=true; installing=false; win.AcchProject.lock(false); try{ curUpdate=await T.updater.check({timeout:20000}); }catch(_){} } }
-  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog, addSpectra };
+  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog, addSpectra, pickExportDir, writeExport, revealExport };
 
   /* lingua al primo avvio: dall'installer di Windows se c'è, altrimenti si chiede */
   async function firstRunLanguage(){ if (win.AcchI18n.isChosen) return; const fromInstaller=await inv('installer_language').catch(()=>null);

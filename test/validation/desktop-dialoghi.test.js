@@ -55,13 +55,13 @@ describe('Desktop: dialoghi e file', {timeout:10*60*1000}, ()=>{
   it('2 · esportazione: «Fatto» solo dopo la scrittura; annullando nessun successo; niente «File pronti»', async ()=>{
     const o=await desk();
     const r=await o.p.evaluate(async t=>{ await addEntries([{file:new File([t],'a.csv'),path:'a.csv'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
-      Object.assign(S,{outPdf:true,outPng:false,outSvg:false,csvPeaks:false,csvData:false,outAnalysis:false,outOrigin:false}); go(3);
+      Object.assign(S,{outPdf:true,outPng:false,outSvg:false,csvPeaks:false,csvData:false,outAnalysis:false,outOrigin:false,outTrace:false,zipAll:false}); go(3);
       const M=window.__mock, seen=[]; new MutationObserver(()=>seen.push({t:performance.now(), s:$('#status').textContent})).observe($('#status'),{childList:true,characterData:true,subtree:true});
-      M.pick.pick_save={path:'/out/r.pdf', name:'r.pdf'}; M.writeDelay=1200;
+      M.pick.pick_export_dir={path:'/out', name:'out'}; M.writeDelay=1200;   // 3.0.0: si sceglie la cartella, poi si scrive (requisito «esporta»)
       await runExport(); const after1={writes:M.writes.length, wt:M.writes[0]&&M.writes[0].t, before:seen.filter(x=>M.writes[0] && x.t<M.writes[0].t).map(x=>x.s), status:$('#status').textContent, ready:!$('#readyBox').hidden};
-      M.writes.length=0; M.pick.pick_save=null; seen.length=0;
+      M.writes.length=0; M.pick.pick_export_dir=null; seen.length=0;
       await runExport(); await new Promise(r=>setTimeout(r,2500));
-      return {after1, cancel:{status:$('#status').textContent, writes:M.writes.length, ready:!$('#readyBox').hidden}, kind:M.calls.filter(c=>c.cmd==='pick_save').map(c=>c.args.kind)}; }, ftir());
+      return {after1, cancel:{status:$('#status').textContent, writes:M.writes.length, ready:!$('#readyBox').hidden}, kind:M.calls.filter(c=>c.cmd==='pick_export_dir').map(c=>c.args.kind)}; }, ftir());
     const errs=await close(o);
     assert.deepStrictEqual(errs, []);
     assert.strictEqual(r.after1.writes, 1, 'runExport finito prima della scrittura del file');
@@ -70,7 +70,7 @@ describe('Desktop: dialoghi e file', {timeout:10*60*1000}, ()=>{
     assert.strictEqual(r.cancel.writes, 0);
     assert.strictEqual(r.cancel.status, '', 'annullato ma con messaggio: '+r.cancel.status);
     assert.strictEqual(r.cancel.ready, false);
-    assert.ok(r.kind.every(k=>k==='export'), 'cartella delle esportazioni: '+r.kind);
+    assert.ok(r.kind.length===2 && r.kind.every(k=>k==='export'), 'cartella delle esportazioni: '+r.kind);
   });
 
   it('3 · progetto: l\'attesa del salvataggio parte dopo la scelta del percorso', async ()=>{
