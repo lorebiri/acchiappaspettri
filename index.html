@@ -2393,7 +2393,7 @@ function sorpParse(text){
   if (!so) return chemParse(text);
   if (so.guided) return {xs:new Float64Array(0), ys:new Float64Array(0), meta:[], sorpGuided:so, reject:'Isoterma non riconosciuta con certezza ('+so.why.replace(/^Sembra un'isoterma di adsorbimento \([^)]*\), ma /,'')+'): scegli le colonne nell\'importazione guidata'};
   const A=SorpCore.branch(so.iso,'ads'), ix=A.x.map((_,i)=>i).filter(i=>Number.isFinite(A.x[i])&&Number.isFinite(A.n[i])).sort((a,b)=>A.x[a]-A.x[b]);
-  const m=so.iso.meta, meta=[(m.software||so.fmt)+(m.instrument?' · '+m.instrument:'')+(m.station?' · stazione '+m.station:''), m.gas?'Adsorbato: '+m.gas+(m.T?` a ${m.T} K`:''):'', m.sampleId?'Campione: '+m.sampleId:''].filter(Boolean);
+  const m=so.iso.meta, meta=[(m.software||so.fmt)+(m.instrument?' · '+m.instrument:''), m.station?'Stazione: '+m.station:'', m.gas?'Adsorbato: '+m.gas+(m.T?` · ${m.T} K`:''):'', m.sampleId?'Campione: '+m.sampleId:''].filter(Boolean);
   return {xs:Float64Array.from(ix,i=>A.x[i]), ys:Float64Array.from(ix,i=>A.n[i]), meta, pe:false, peX:'', peY:'', iso:so.iso, isoReason:so.reason, importNotes:so.iso.problems.filter(q=>q.lv==='warn').map(q=>q.t)};
 }
 /* chemisorbimento (TPx, impulsi, statico): stesso modulo. Asse: T misurata in °C, numero dell'impulso o pressione in kPa */

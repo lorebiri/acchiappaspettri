@@ -1155,5 +1155,9 @@
 "Cartella di Excel senza fogli leggibili": "Excel workbook without readable sheets",
 "In questa cartella di Excel non riconosco un'isoterma né una misura di chemisorbimento: per gli altri dati esporta un CSV": "This Excel workbook contains no recognisable isotherm or chemisorption measurement: for other data export a CSV",
 "{0} righe senza p/p₀ o quantità leggibili sono state ignorate": "{0} rows without readable p/p₀ or amount were ignored",
-"Meno di 3 punti leggibili": "Fewer than 3 readable points"
+"Meno di 3 punti leggibili": "Fewer than 3 readable points",
+"Stazione: {0}": "Station: {0}",
+"Stazione:": "Station:",
+"CO₂ a 273 K: si usa per i micropori (DR, DFT), non per il BET (IUPAC 2015). Nessuna sezione molecolare predefinita: scrivila nei parametri se ti serve un'area": "CO₂ at 273 K: used for micropores (DR, DFT), not for BET (IUPAC 2015). No default cross-sectional area: enter it in the parameters if you need an area",
+"Area totale nella cella {0} m²: sotto 1 m², il limite pratico con N₂ o Ar anche per gli strumenti manometrici accurati (IUPAC 2015, §5.2.1: circa 0,5–1 m²). Per aree così basse è raccomandato il kripton a 77 K": "Total area in the cell {0} m²: below 1 m², the practical limit with N₂ or Ar even for accurate manometric instruments (IUPAC 2015, §5.2.1: about 0.5–1 m²). For such low areas krypton at 77 K is recommended"
 }

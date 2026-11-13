@@ -15,6 +15,8 @@ test('fisisorbimento: lettura, schede, avvisi, importazione guidata ed esportazi
       const names=['kaomi-tabella-it.txt','kaomi-tabella-en.csv','isoterma.aif','asiqwin-grezzo.txt','kaomi-report-testo.txt','co2-273K.csv','co2-298K.csv'];
       const got=await p.evaluate(async L=>{ files.length=0; await addEntries(L.map(([n,t])=>({file:new File([t],n), path:n}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
         return files.map(f=>({n:f.name, instr:f.instr, ads:f.iso&&SorpCore.branch(f.iso,'ads').x.length, des:f.iso&&SorpCore.branch(f.iso,'des').x.length})); }, names.map(n=>[n, rd(n)]));
+      if (lang==='en'){ const rs=await p.evaluate(async ()=>{ const out=[]; go(2); for (let i=0;i<files.length;i++){ cur=i; refreshAll(); await new Promise(q=>setTimeout(q,80)); out.push($('#fReason').textContent); } return out; });
+        rs.forEach(t=>assert.ok(/^Recognised by: /.test(t) && !/isoterma|Azoto|Azote|\b(a|di|del) \d|stazione|Adsorbato/.test(t), tag+': riconoscimento in inglese: '+t)); }
       for (const n of names){ const f=got.find(g=>g.n===n); assert.ok(f, `${tag}: ${n} caricato`); assert.strictEqual(f.instr, 'sorp', `${tag}: ${n} riconosciuto come fisisorbimento`); }
       assert.deepStrictEqual([got.find(g=>g.n==='kaomi-tabella-it.txt').ads, got.find(g=>g.n==='kaomi-tabella-it.txt').des], [28, 23], tag+': rami separati');
 

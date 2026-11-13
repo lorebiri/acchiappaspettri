@@ -17,12 +17,18 @@
 
   /* ---------------- adsorbati: valori predefiniti, sempre sostituiti da quelli del file o dell'utente ----------------
      σ in nm², densità del liquido in g/cm³, tensione superficiale in mN/m (= erg/cm²), temperatura in K. */
+  /* Fonti (verificate il 13/11/2026 sulle pagine pubbliche):
+     [IUPAC15] Thommes M. et al., Pure Appl. Chem. 87 (2015) 1051, §5.2.1: σ(N₂) = 0,162 nm²; σ(Ar, 87 K) = 0,142 nm²; σ(Kr, 77 K) fra 0,17 e 0,23 nm², da dichiarare;
+               CO₂ a 273 K per i micropori stretti (§6), non per il BET.
+     [NIST] NIST Chemistry WebBook, SRD 69, saturazione: N₂ (Span, Lemmon et al. 2000), Ar (Tegeler, Span, Wagner 1999), CO₂ (Span e Wagner 1996);
+            tensione superficiale da Mulero, Cachadiña, Parra, J. Phys. Chem. Ref. Data 41 (2012) 043105.
+     [LS05] Linares-Solano A., Stoeckli F., Carbon 43 (2005) 658: β(CO₂) = 0,35 (rispetto al benzene), discusso da Bickford et al., Carbon 42 (2004) 1867.
+     M: pesi atomici standard IUPAC. Il valore di σ del Kr (0,202 nm²) è quello d'uso comune: IUPAC15 chiede di dichiararlo. */
   const ADSORBATES={
-    N2:{name:'N₂', M:28.0134, sigma:0.162, rhoL:0.806, gamma:8.85, T:77.35, src:'ISO 9277:2022 (σ); ρ e γ come nel report pubblico di Kaomi 2.02'},
-    Ar:{name:'Ar', M:39.948, sigma:0.142, rhoL:1.40, gamma:12.6, T:87.27, src:'ISO 9277:2022 (σ); ρ come ASiQwin 3.0; γ DEDOTTO dalla letteratura, da verificare'},
-    Kr:{name:'Kr', M:83.798, sigma:0.202, rhoL:null, gamma:null, T:77.35, src:'ISO 9277:2022 (σ); solo BET'},
-    CO2:{name:'CO₂', M:44.0095, sigma:0.210, rhoL:0.928, gamma:4.6, T:273.15, beta:0.35, src:'σ, γ e β DEDOTTI dalla letteratura (Dubinin): da verificare'},
-    O2:{name:'O₂', M:31.998, sigma:0.141, rhoL:1.14, gamma:null, T:90.19, src:'DEDOTTO, da verificare'}
+    N2:{name:'N₂', M:28.0134, sigma:0.162, rhoL:0.8061, gamma:8.880, T:77.355, srcs:{sigma:['IUPAC 2015 §5.2.1 (0,162 nm²)','IUPAC 2015 §5.2.1 (0.162 nm²)'], rhoL:['NIST WebBook, N₂ saturo a 101,325 kPa (0,80608 g/cm³)','NIST WebBook, saturated N₂ at 101.325 kPa (0.80608 g/cm³)'], gamma:['NIST WebBook / Mulero et al. 2012 (8,880 mN/m a 77,355 K)','NIST WebBook / Mulero et al. 2012 (8.880 mN/m at 77.355 K)'], T:['NIST WebBook, ebollizione normale (77,355 K)','NIST WebBook, normal boiling point (77.355 K)']}},
+    Ar:{name:'Ar', M:39.948, sigma:0.142, rhoL:1.395, gamma:12.53, T:87.30, srcs:{sigma:['IUPAC 2015 §5.2.1 (0,142 nm² a 87 K)','IUPAC 2015 §5.2.1 (0.142 nm² at 87 K)'], rhoL:['NIST WebBook, Ar saturo, Tegeler et al. 1999 (1,395 g/cm³ a 87,3 K)','NIST WebBook, saturated Ar, Tegeler et al. 1999 (1.395 g/cm³ at 87.3 K)'], gamma:['NIST WebBook / Mulero et al. 2012 (12,53 mN/m a 87,3 K, interpolato fra 87,178 e 87,641 K)','NIST WebBook / Mulero et al. 2012 (12.53 mN/m at 87.3 K, interpolated between 87.178 and 87.641 K)'], T:['NIST WebBook, ebollizione normale (87,30 K)','NIST WebBook, normal boiling point (87.30 K)']}},
+    Kr:{name:'Kr', M:83.798, sigma:0.202, rhoL:null, gamma:null, T:77.355, srcs:{sigma:['valore d\'uso comune; IUPAC 2015 §5.2.1: tra 0,17 e 0,23 nm², va dichiarato','commonly used value; IUPAC 2015 §5.2.1: between 0.17 and 0.23 nm², to be stated'], T:['N₂ liquido','liquid N₂']}},
+    CO2:{name:'CO₂', M:44.0095, sigma:null, rhoL:0.9274, gamma:4.484, T:273.15, beta:0.35, srcs:{sigma:['nessun valore predefinito: IUPAC 2015 §6 usa il CO₂ a 273 K per i micropori, non per il BET','no default value: IUPAC 2015 §6 uses CO₂ at 273 K for micropores, not for BET'], rhoL:['NIST WebBook, CO₂ saturo a 273,15 K, Span e Wagner 1996 (0,92743 g/cm³)','NIST WebBook, saturated CO₂ at 273.15 K, Span and Wagner 1996 (0.92743 g/cm³)'], gamma:['NIST WebBook / Mulero et al. 2012 (4,484 mN/m a 273,15 K)','NIST WebBook / Mulero et al. 2012 (4.484 mN/m at 273.15 K)'], beta:['Linares-Solano e Stoeckli, Carbon 43 (2005) 658 (β = 0,35)','Linares-Solano and Stoeckli, Carbon 43 (2005) 658 (β = 0.35)'], T:['0 °C','0 °C']}}
   };
   function gasKey(s){
     const t=String(s||'').toLowerCase().replace(/^\s*\d+\s*:\s*/,'').replace(/[\s_-]/g,'');
@@ -98,7 +104,9 @@
       gamma:pick('gamma', m.gamma, d&&d.gamma), T:pick('T', m.T, d&&d.T), theta:pick('theta', m.theta, 0),
       vmol:o.stp==='iupac'?VMOL.iupac:VMOL.stp, stp:o.stp==='iupac'?'iupac':'stp', thick:o.thick||m.thick||'harkins-jura', beta:pick('beta', null, d&&d.beta||null)};
     if (!o.thick && m.thick) src.thick='file'; else if (o.thick) src.thick='utente'; else src.thick='predefinito';
-    P.src=src; P.liqPerStp=P.M&&P.rhoL?P.M/(P.vmol*P.rhoL):null;   // cm³ di liquido per cm³ STP
+    // da dove viene ogni valore predefinito: la fonte accanto alla costante (ADSORBATES.srcs)
+    const ref={}, refEn={}; if (d && d.srcs) for (const k in src) if ((src[k]==='predefinito' || src[k]==='mancante') && d.srcs[k]){ ref[k]=d.srcs[k][0]; refEn[k]=d.srcs[k][1]; } if (src.M==='predefinito'){ ref.M='pesi atomici standard IUPAC'; refEn.M='IUPAC standard atomic weights'; }
+    P.ref=ref; P.refEn=refEn; P.src=src; P.liqPerStp=P.M&&P.rhoL?P.M/(P.vmol*P.rhoL):null;   // cm³ di liquido per cm³ STP
     P.Vm=P.M&&P.rhoL?P.M/P.rhoL:null;   // volume molare del liquido, cm³/mol
     return P;
   }
@@ -387,7 +395,7 @@
     const W=[], add=(lv,k,t)=>W.push({lv,k,t}), Rr=R0||{};
     (iso.problems||[]).forEach(p=>add(p.lv, p.k, p.t));
     const A=branchOf(iso,'ads'), D=branchOf(iso,'des');
-    if (!P.sigma) add('stop','sigma','Adsorbato o sezione molecolare sconosciuti: l\'area non si può calcolare');
+    if (!P.sigma){ if (P.gas==='CO2') add('warn','sigma','CO₂ a 273 K: si usa per i micropori (DR, DFT), non per il BET (IUPAC 2015). Nessuna sezione molecolare predefinita: scrivila nei parametri se ti serve un\'area'); else add('stop','sigma','Adsorbato o sezione molecolare sconosciuti: l\'area non si può calcolare'); }
     if (A.x.length<3) add('stop','pts','Meno di 3 punti nel ramo di adsorbimento');
     for (let i=1;i<A.x.length;i++) if (A.x[i]<A.x[i-1] || A.n[i]<A.n[i-1]-1e-9*Math.abs(A.n[i-1])){ add('warn','mono','Adsorbimento non monotono: la pressione o la quantità tornano indietro nel ramo di adsorbimento'); break; }
     const B=Rr.bet;
@@ -399,7 +407,7 @@
         else if (!c.ok) ['a','b','c','d'].filter(k=>!c[k]).forEach(k=>add('stop','betR',`L'intervallo BET viola il criterio di Rouquerol (${k}): `+({a:'n(1−p/p₀) non sempre crescente', b:'C o intercetta non positivi', c:'p/p₀ del monostrato fuori dall\'intervallo', d:'1/(√C+1) diverso di oltre il 10% dalla p/p₀ a cui n = nₘ'})[k]));
         if (u.r<0.999) add('warn','betr',`Coefficiente di correlazione BET r = ${u.r.toFixed(5)} < 0,999`);
         if (u.npts<5 && u.npts>=3) add('warn','bet5','Intervallo BET con meno di 5 punti: ISO 9277 ne raccomanda almeno 5'); }
-      if (u && fin(u.area) && fin(iso.meta.mass_g)){ const tot=u.area*iso.meta.mass_g; if (tot<(Rr.minArea||1)) add('warn','cell',`Area totale nella cella ${tot.toPrecision(3)} m²: sotto la soglia di ${(Rr.minArea||1)} m² (soglia da concordare)`); }
+      if (u && fin(u.area) && fin(iso.meta.mass_g)){ const tot=u.area*iso.meta.mass_g; if (tot<(Rr.minArea||1)) add('warn','cell',`Area totale nella cella ${tot.toPrecision(3)} m²: sotto 1 m², il limite pratico con N₂ o Ar anche per gli strumenti manometrici accurati (IUPAC 2015, §5.2.1: circa 0,5–1 m²). Per aree così basse è raccomandato il kripton a 77 K`); }   // soglia decisa dal coordinatore: 1 m², avviso
     }
     const H=hysteresis(iso); if (H.open) add('warn','close','L\'isoterma non chiude: il desorbimento resta sopra l\'adsorbimento oltre il 2% a p/p₀ < 0,35');
     if (Rr.bjh && Rr.bjh.branch==='des' && P.gas==='N2' && fin(H.close) && H.close>=0.40 && H.close<=0.50) add('warn','tse','Chiusura forzata dell\'isteresi (p/p₀ ≈ 0,42–0,45 con N₂ a 77 K): il picco BJH del desorbimento verso 3,8–4 nm è un artefatto. Usa il ramo di adsorbimento');
@@ -616,7 +624,7 @@
     if (iso.n.length<3) return {guided:true, why:iso.problems.length?iso.problems.map(x=>x.t).join('; '):'Meno di 3 punti leggibili', table:{names:C.names||[], k:cand[0].b.k, rows, units:C.units.map(u=>u&&u.u||'')}, meta};
     const fmt=/kaomi/i.test(meta.software||'')?'Kaomi for Autosorb':/asiqwin/i.test(meta.software||'')?'ASiQwin':'tabella di isoterma';
     if (pdfText) iso.problems.push({lv:'warn', k:'pdf', t:'Dati letti dal testo di un report PDF: è un ripiego, controlla i numeri con il report (meglio l\'esportazione tabellare)'});
-    return {iso, sure:sureBrand(text) || !!(cR && aUse.u), fmt, reason:'isoterma di adsorbimento ('+fmt+(meta.gas?', '+meta.gas:'')+(meta.T?` a ${(+meta.T).toFixed(2)} K`:'')+')'};
+    return {iso, sure:sureBrand(text) || !!(cR && aUse.u), fmt, reason:'isoterma di adsorbimento ('+[fmt, (ADSORBATES[meta.gasKey]||{}).name||meta.gas||'', meta.T?`${(+meta.T).toFixed(2)} K`:''].filter(Boolean).join(' · ')+')'};   // tra parentesi solo nomi e numeri: si traduce con il modello
   }
   // PSD DFT esportata da Kaomi (DEDOTTO): larghezza (nm o Å) e volume cumulato / dV(w)
   function parseDFTBlock(b, head, sep, text){
@@ -650,7 +658,7 @@
   function csvRows(iso, A, en){
     const T=(it,e)=>en?e:it, rows=[], P=A.P, g=v=>v==null||!fin(v)?'':+(+v).toPrecision(8);
     rows.push([T('Sezione','Section'), T('Grandezza','Quantity'), T('Valore','Value'), T('Unità','Unit'), T('Fonte o nota','Source or note')]);
-    const par=(k,lab,u,v)=>rows.push([T('Parametri','Parameters'), lab, g(v), u, P.src[k]||'']);
+    const par=(k,lab,u,v)=>rows.push([T('Parametri','Parameters'), lab, g(v), u, (P.src[k]||'')+(P.ref&&P.ref[k]?': '+(en?P.refEn[k]:P.ref[k]):'')]);
     rows.push([T('Parametri','Parameters'), T('Adsorbato','Adsorbate'), P.gasName||'', '', P.src.sigma||'']);
     par('sigma', T('Sezione molecolare','Cross-sectional area'), 'nm²', P.sigma); par('T', T('Temperatura','Temperature'), 'K', P.T); par('rhoL', T('Densità del liquido','Liquid density'), 'g/cm³', P.rhoL); par('gamma', T('Tensione superficiale','Surface tension'), 'mN/m', P.gamma); par('M', T('Massa molare','Molar mass'), 'g/mol', P.M);
     rows.push([T('Parametri','Parameters'), 'STP', P.vmol, 'cm³/mol', P.stp==='iupac'?'0 °C, 100 kPa':'0 °C, 101,325 kPa (Kaomi)']);

@@ -157,3 +157,20 @@ test('avvisi della SPEC: ⛔ e ⚠ nei casi previsti', ()=>{
   // STP diversa dal file
   const iso4=kaomiIso(); iso4.meta.software='Kaomi'; assert.ok(k(S.analyze(iso4,{stp:'iupac'}).warnings).includes('stp'));
 });
+
+test('costanti predefinite con la fonte (IUPAC 2015, NIST WebBook, Linares-Solano e Stoeckli) e avviso sull\'area nella cella', ()=>{
+  const A=S.ADSORBATES;
+  assert.deepStrictEqual([A.N2.sigma, A.Ar.sigma], [0.162, 0.142]);                       // IUPAC 2015 §5.2.1
+  assert.ok(Math.abs(A.Ar.gamma-12.53)<0.01 && Math.abs(A.Ar.rhoL-1.395)<0.001);          // NIST WebBook (Mulero 2012; Tegeler 1999) a 87,3 K
+  assert.ok(Math.abs(A.N2.rhoL-0.8061)<1e-4 && Math.abs(A.N2.gamma-8.880)<1e-3);           // NIST WebBook a 77,355 K
+  assert.ok(Math.abs(A.CO2.rhoL-0.9274)<1e-4 && Math.abs(A.CO2.gamma-4.484)<1e-3 && A.CO2.beta===0.35 && A.CO2.sigma===null);
+  for (const g of Object.keys(A)) for (const k of ['sigma','rhoL','gamma','beta']) if (A[g][k]!=null || k==='sigma') assert.ok(A[g].srcs && Array.isArray(A[g].srcs[k]) && A[g].srcs[k].length===2, `${g}.${k}: fonte IT ed EN`);
+  const P=S.params({meta:{gas:'Argon'}}); assert.ok(/NIST/.test(P.ref.gamma) && /IUPAC 2015/.test(P.ref.sigma) && /NIST/.test(P.refEn.rhoL));
+  // CO₂: nessuna σ predefinita, avviso △ e non ⛔
+  const co2=isoOf([0.001,0.005,0.01,0.02,0.03],[10,20,25,30,33],{gas:'CO2', sigma:undefined}); delete co2.meta.sigma;
+  const W=S.warnings(co2, S.params(co2), {}); assert.ok(W.some(w=>w.k==='sigma' && w.lv==='warn'));
+  // area nella cella: 1 m², avviso con la fonte
+  const x=SY.grid(0.05,0.3,11), iso=isoOf(x, x.map(v=>SY.betN(v,1,100)), {mass_g:0.1}), An=S.analyze(iso), c=An.warnings.find(w=>w.k==='cell');
+  assert.ok(c && c.lv==='warn' && /IUPAC 2015/.test(c.t) && /1 m²/.test(c.t), 'avviso cella');
+  const iso2=isoOf(x, x.map(v=>SY.betN(v,100,100)), {mass_g:0.1}); assert.ok(!S.analyze(iso2).warnings.some(w=>w.k==='cell'));
+});
