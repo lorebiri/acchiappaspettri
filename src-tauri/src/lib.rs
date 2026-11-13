@@ -19,6 +19,8 @@ use tauri_plugin_dialog::{DialogExt, FilePath};
 struct Grants {
     paths: Mutex<HashSet<PathBuf>>,
     pending: Mutex<Vec<PathBuf>>,
+    /// Cartelle scelte nel dialogo «Esporta»: dentro si possono scrivere file (anche in sottocartelle), mai fuori.
+    dirs: Mutex<HashSet<PathBuf>>,
 }
 
 #[derive(serde::Serialize)]
@@ -277,6 +279,118 @@ fn pick_save(
     }
 }
 
+/// Cartella di destinazione delle esportazioni: dialogo nativo, aperto nell'ultima cartella usata per le esportazioni.
+#[tauri::command(async)]
+fn pick_export_dir(app: AppHandle, g: State<'_, Grants>, title: String, kind: Option<String>) -> Result<Option<Picked>, String> {
+    let kind = kind_of(kind.as_deref().or(Some("export")));
+    let mut d = app.dialog().file().set_title(title);
+    if let Some(dir) = dialog_dir(&app, kind) {
+        d = d.set_directory(dir);
+    }
+    let Some(f) = d.blocking_pick_folder() else { return Ok(None) };
+    let dir = fp(f)?;
+    remember_dir(&app, kind, Some(&dir));
+    g.dirs.lock().unwrap().insert(dir.clone());
+    Ok(Some(Picked { name: file_name(&dir), path: dir.to_string_lossy().into_owned() }))
+}
+
+fn granted_dir(g: &State<Grants>, dir: &str) -> Result<PathBuf, String> {
+    let d = PathBuf::from(dir);
+    if g.dirs.lock().unwrap().contains(&d) {
+        Ok(d)
+    } else {
+        Err("not-allowed".into())
+    }
+}
+
+/// Percorso relativo scritto dalla pagina («analisi/qc.csv») → percorso dentro la cartella concessa.
+/// Rifiuta percorsi assoluti, «..», «.», parti vuote, separatori di Windows, unità («C:») e caratteri di controllo.
+fn join_rel(dir: &Path, rel: &str) -> Result<PathBuf, String> {
+    if rel.is_empty() || rel.len() > 1024 {
+        return Err("unsafe-path".into());
+    }
+    let mut p = dir.to_path_buf();
+    for part in rel.split('/') {
+        let bad = part.is_empty()
+            || part == "."
+            || part == ".."
+            || part.chars().any(|c| c == '\\' || c == ':' || c.is_control())
+            || part.len() > 255
+            || part.ends_with('.')
+            || part.ends_with(' ')
+            || reserved(part)
+            || part.chars().any(|c| "<>\"|?*".contains(c));
+        if bad {
+            return Err("unsafe-path".into());
+        }
+        p.push(part);
+    }
+    Ok(p)
+}
+
+/// Nomi che Windows riserva ai dispositivi, anche con un'estensione («NUL.txt»).
+fn reserved(part: &str) -> bool {
+    let stem = part.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ((stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+}
+
+/// Quali dei file da esportare esistono già nella cartella: la pagina chiede se sostituirli, rinominarli o saltarli.
+fn existing(dir: &Path, rels: &[String]) -> Result<Vec<String>, String> {
+    let mut out = Vec::new();
+    for r in rels {
+        if fs::symlink_metadata(join_rel(dir, r)?).is_ok() {
+            out.push(r.clone());
+        }
+    }
+    Ok(out)
+}
+#[tauri::command(async)]
+fn export_existing(g: State<'_, Grants>, dir: String, rels: Vec<String>) -> Result<Vec<String>, String> {
+    existing(&granted_dir(&g, &dir)?, &rels)
+}
+
+/// Scrive un file dentro una cartella concessa, creando le sottocartelle; la destinazione non può uscire dalla cartella
+/// (nemmeno attraverso un collegamento simbolico). Scrittura atomica: un file precedente resta intatto se qualcosa va storto.
+fn write_into(dir: &Path, rel: &str, bytes: &[u8]) -> Result<(), String> {
+    let path = join_rel(dir, rel)?;
+    let parent = path.parent().ok_or("invalid-path")?;
+    fs::create_dir_all(parent).map_err(|e| format!("write-failed: {}", e.kind()))?;
+    let (root, real) = (
+        fs::canonicalize(dir).map_err(|e| format!("write-failed: {}", e.kind()))?,
+        fs::canonicalize(parent).map_err(|e| format!("write-failed: {}", e.kind()))?,
+    );
+    if !real.starts_with(&root) {
+        return Err("not-allowed".into());
+    }
+    if fs::symlink_metadata(&path).map(|m| m.is_dir()).unwrap_or(false) {
+        return Err("write-failed: IsADirectory".into());
+    }
+    write_atomic(&path, bytes, false)
+}
+/// Esportazione: un file per chiamata (corpo binario), cartella e percorso relativo nelle intestazioni (codificati URL).
+#[tauri::command(async)]
+fn write_in_dir(g: State<'_, Grants>, request: Request<'_>) -> Result<(), String> {
+    let head = |k: &str| -> Result<String, String> { url_decode(request.headers().get(k).and_then(|h| h.to_str().ok()).ok_or("invalid-path")?) };
+    let dir = granted_dir(&g, &head("x-acch-dir")?)?;
+    let rel = head("x-acch-rel")?;
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("invalid-body".into());
+    };
+    write_into(&dir, &rel, bytes)
+}
+
+/// «Mostra nella cartella»: apre il gestore dei file sul file esportato (o sulla cartella), solo dentro una cartella concessa.
+#[tauri::command(async)]
+fn reveal_in_dir(g: State<'_, Grants>, dir: String, rel: Option<String>) -> Result<(), String> {
+    let d = granted_dir(&g, &dir)?;
+    let target = match rel.as_deref() {
+        Some(r) if !r.is_empty() => join_rel(&d, r).ok().filter(|p| p.exists()).unwrap_or(d),
+        _ => d,
+    };
+    tauri_plugin_opener::reveal_item_in_dir(&target).map_err(|e| format!("reveal-failed: {e}"))
+}
+
 /// Legge un file scelto dall'utente oppure un progetto (per l'elenco dei recenti).
 #[tauri::command(async)]
 fn read_file(g: State<'_, Grants>, path: String) -> Result<Response, String> {
@@ -504,11 +618,13 @@ pub fn run() {
         });
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready
+        pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
+        pick_export_dir, export_existing, write_in_dir, reveal_in_dir
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
+        pick_export_dir, export_existing, write_in_dir, reveal_in_dir,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder
@@ -581,6 +697,44 @@ mod tests {
         let rel: Vec<&str> = l.iter().map(|(_, r)| r.as_str()).collect();
         assert_eq!(rel, vec!["campioni/b.csv", "campioni/sub/a.csv", "solo.txt"]);
         assert_eq!(l[1].0, root.join("sub").join("a.csv"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+    #[test]
+    fn export_paths_stay_inside_the_chosen_folder() {
+        let d = Path::new("/out");
+        assert_eq!(join_rel(d, "analisi/qc.csv").unwrap(), d.join("analisi").join("qc.csv"));
+        for ok in ["COM10.csv", "console.txt", "nul_2.csv", "_CON.csv", "a.b.c"] {
+            assert!(join_rel(d, ok).is_ok(), "rifiutato: {ok:?}");
+        }
+        for bad in ["", "../x.csv", "a/../../x", "/etc/passwd", "a//b", "./a", "C:x", "a\\b.csv", "a\u{0}b", "a/", "x.", "x ", "NUL", "con.txt", "a/COM1.csv", "lpt9", "a<b", "a?b", "a*b", "a|b", "a\"b"] {
+            assert!(join_rel(d, bad).is_err(), "accettato: {bad:?}");
+        }
+    }
+    #[test]
+    fn export_writes_files_and_reports_conflicts() {
+        let dir = std::env::temp_dir().join(format!("acch-export-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        write_into(&dir, "report.pdf", b"pdf").unwrap();
+        write_into(&dir, "Progetto/analisi/qc.csv", b"a;b").unwrap();
+        assert_eq!(fs::read(dir.join("Progetto").join("analisi").join("qc.csv")).unwrap(), b"a;b");
+        let rels = vec!["report.pdf".to_string(), "nuovo.csv".to_string(), "Progetto/analisi/qc.csv".to_string()];
+        assert_eq!(existing(&dir, &rels).unwrap(), vec!["report.pdf".to_string(), "Progetto/analisi/qc.csv".to_string()]);
+        // sostituzione atomica: il contenuto nuovo, nessun file temporaneo rimasto
+        write_into(&dir, "report.pdf", b"pdf2").unwrap();
+        assert_eq!(fs::read(dir.join("report.pdf")).unwrap(), b"pdf2");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 2);
+        assert!(write_into(&dir, "../fuori.csv", b"x").is_err());
+        assert!(write_into(&dir, "Progetto", b"x").is_err(), "una cartella non diventa un file");
+        #[cfg(unix)]
+        {
+            let out = std::env::temp_dir().join(format!("acch-export-out-{}", std::process::id()));
+            fs::create_dir_all(&out).unwrap();
+            std::os::unix::fs::symlink(&out, dir.join("link")).unwrap();
+            assert_eq!(write_into(&dir, "link/x.csv", b"x"), Err("not-allowed".to_string()));
+            assert!(!out.join("x.csv").exists());
+            fs::remove_dir_all(&out).unwrap();
+        }
         fs::remove_dir_all(&dir).unwrap();
     }
     #[test]

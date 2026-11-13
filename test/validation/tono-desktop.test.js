@@ -23,6 +23,9 @@ function fakeTauri(o){
       if (cmd==='installer_language') return null;
       if (cmd==='take_pending_open') return [];
       if (cmd==='pick_save') return {path:'/tmp/tono/'+a.suggested, name:a.suggested};
+      if (cmd==='pick_export_dir') return {path:'/tmp/tono/esportati', name:'esportati'};   // 3.0.0: esportazione in una cartella
+      if (cmd==='export_existing') return [];
+      if (cmd==='write_in_dir'){ if (T.failWrite) throw 'PermissionDenied'; T.files[decodeURIComponent(opt.headers['x-acch-dir'])+'/'+decodeURIComponent(opt.headers['x-acch-rel'])]=a.slice(); return null; }
       if (cmd==='pick_open') return T.open||null;
       if (cmd==='pick_many') return [];
       if (cmd==='write_file'){ if (T.failWrite) throw 'PermissionDenied'; const p=decodeURIComponent(opt.headers['x-acch-path']); T.files[p]=a.slice(); return null; }
@@ -116,7 +119,7 @@ async function journey(p, lang, desk){
       if (window.AcchShell) AcchShell.showDoc('sheet'); await wait(200); snapT('foglio'); if (window.AcchShell) AcchShell.showDoc('study'); await wait(300); snapT('più campioni'); });
     // esportazione: PDF, immagini e CSV (nel desktop passano dal dialogo di salvataggio)
     let exported=[];
-    await step('esportazione', async ()=>{ Object.assign(S,{outPdf:true, csvPeaks:true, csvData:true, outAnalysis:true, summary:true, oneFile:true}); saveS(); go(3); await wait(300); snapT('esporta');
+    await step('esportazione', async ()=>{ Object.assign(S,{outPdf:true, csvPeaks:true, csvData:true, outAnalysis:true, summary:true, oneFile:true, zipAll:!desk}); saveS();   // online tutto in uno ZIP, come prima; nel desktop i file nella cartella go(3); await wait(300); snapT('esporta');
       if (!desk){ const o=window.download; window.download=(b,n)=>exported.push([n,b]); await runExport(); await wait(1600); window.download=o; } else { await runExport(); await wait(2500); }
       snapT('esportato'); });
     // progetto: salvataggio, riapertura, errori di scrittura e di lettura

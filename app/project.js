@@ -131,6 +131,8 @@
     win.addEventListener('beforeunload', e=>{ if (api.host===hostDefault && isDirty()){ e.preventDefault(); e.returnValue=''; } });
   }
   Object.assign(api,{prevResults:()=>prevResults, autosave, offerRecovery, init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, _build:build, _sig:sig, MSG});
+  // esportazione con la voce «Progetto»: stessi byte verificati del salvataggio, senza cambiare nome, percorso o stato di «salvato»
+  api.buildBytes=async ()=>(await buildVerified()).bytes; api.stampName=stampName;
   api.lock=v=>{ busy=!!v; };
   Object.defineProperty(api,'path',{get:()=>path}); Object.defineProperty(api,'busy',{get:()=>busy});
   win.AcchProject=api;
