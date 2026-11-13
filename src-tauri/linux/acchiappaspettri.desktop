@@ -8,4 +8,4 @@ Icon={{icon}}
 Name={{name}}
 Terminal=false
 Type=Application
-MimeType=application/vnd.acchiappaspettri.project+zip;
+MimeType=application/vnd.acchiappaspettri.project+zip;application/x-agilent-chemstation-ch;application/x-agilent-chemstation-uv;application/x-waters-empower-arw;text/csv;text/tab-separated-values;text/plain;chemical/x-jcamp-dx;

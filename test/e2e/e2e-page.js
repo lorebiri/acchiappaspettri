@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 /* Collaudo dentro l'app vera (solo con la feature «e2e», mai negli installer pubblicati): usa i veri comandi nativi per scrivere e leggere i file */
+/* I3: la finestra «Canali trovati» può aprirsi già all'avvio, se il sistema ha passato file grezzi (scenario «apri-grezzi»): si registra e si conferma */
+window.ACCH_E2E_CANALI=[];
+setInterval(()=>{ const d=document.getElementById('dlgChan'); if (d && d.open){ window.ACCH_E2E_CANALI.push({rows:[...d.querySelectorAll('tbody th.chrow label')].map(l=>l.textContent.trim()), cols:[...d.querySelectorAll('thead th label')].map(l=>l.textContent.trim()), text:d.innerText}); document.getElementById('chOk').click(); } }, 100);
 window.AcchE2E=async function(info){
   const T=window.__TAURI__, inv=T.core.invoke, res={os:info.os, kind:info.kind, version:APP_VERSION_FULL(), checks:{}}; let ok=true;
   const pageErrors=[]; window.addEventListener('error',e=>pageErrors.push(String(e.message))); window.addEventListener('unhandledrejection',e=>pageErrors.push(String(e.reason)));
@@ -8,6 +11,17 @@ window.AcchE2E=async function(info){
   try{
     const cfg=await inv('e2e_config'), sep=info.os==='windows'?'\\':'/', dir=cfg.dir, sleep=ms=>new Promise(r=>setTimeout(r,ms)), until=async(f,ms=5000)=>{ for (let t=0;t<ms;t+=50){ try{ if (f()) return true; }catch(e){} await sleep(50); } return !!f(); };
     window.ACCH_TEST=true;
+    // I3: doppio clic e «Apri con» sui file grezzi: run-e2e.js passa i file sulla riga di comando, come fanno Windows e Linux (macOS, doppio clic dal Finder: RunEvent::Opened, prova a mano nel collaudo I3)
+    if (cfg.scenario==='apri-grezzi'){ await until(()=>files.length>=6, 20000);
+      const L=files.map(f=>(f.path+' '+(f.channel||'')).trim()); res.files=L; res.dialogs=window.ACCH_E2E_CANALI.map(d=>({rows:d.rows, cols:d.cols}));
+      check('file grezzi aperti dal sistema: tutti i canali', files.length===6, L.join(' | '));
+      check('cartella .D: i due segnali dello stesso campione sulla stessa riga', res.dialogs.length===1 && JSON.stringify(res.dialogs[0].rows)===JSON.stringify(['STD1','MIX1','MIX1']), JSON.stringify(res.dialogs));
+      check('canali Agilent riconosciuti', L.includes('STD1.D/DAD1A.ch DAD1A 254/4 nm ref 360/100 nm') && L.includes('STD1.D/DAD1B.ch DAD1B 280/4 nm ref 360/100 nm'));
+      check('finestra dei canali sobria', res.dialogs.length===1 && !/Gino|!|[\u{1F300}-\u{1FAFF}]/u.test(window.ACCH_E2E_CANALI[0].text));
+      const path=dir+sep+'grezzi.acchspettri'; await inv('e2e_grant',{path}); const host=AcchProject.host, oldPick=host.pickSave; host.pickSave=async ()=>({path, name:'grezzi.acchspettri'});
+      check('salva i canali nel progetto', await AcchProject.saveAs()); host.pickSave=oldPick; await AcchProject.closeProject();
+      check('riapre: stessi canali, senza finestra', await AcchDesktop.openPath(path,'grezzi.acchspettri') && files.length===6 && window.ACCH_E2E_CANALI.length===1, files.length+' spettri, '+window.ACCH_E2E_CANALI.length+' finestre');
+    }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
       try{ const r=await inv('e2e_check_update',{url:cfg.updateUrl, install:cfg.scenario==='update-good'}); res.update=r;

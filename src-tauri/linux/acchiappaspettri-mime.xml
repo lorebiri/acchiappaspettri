@@ -6,4 +6,23 @@
     <sub-class-of type="application/zip"/>
     <glob pattern="*.acchspettri"/>
   </mime-type>
+  <!-- I3: file dei rivelatori HPLC (DEDOTTO: la firma è la stringa di versione dei file Agilent) -->
+  <mime-type type="application/x-agilent-chemstation-ch">
+    <comment>Agilent ChemStation chromatogram</comment>
+    <comment xml:lang="it">Cromatogramma Agilent ChemStation</comment>
+    <glob pattern="*.ch"/>
+  </mime-type>
+  <mime-type type="application/x-agilent-chemstation-uv">
+    <comment>Agilent ChemStation DAD spectra</comment>
+    <comment xml:lang="it">Spettri DAD Agilent ChemStation</comment>
+    <glob pattern="*.uv"/>
+  </mime-type>
+  <!-- .arw è anche il formato delle foto Sony (image/x-sony-arw): stessa estensione e stesso peso, quindi decide il contenuto, testo di Empower con «"Sample» all'inizio -->
+  <mime-type type="application/x-waters-empower-arw">
+    <comment>Waters Empower chromatogram</comment>
+    <comment xml:lang="it">Cromatogramma Waters Empower</comment>
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.arw"/>
+    <magic priority="60"><match type="string" value="&quot;Sample" offset="0"/></magic>
+  </mime-type>
 </mime-info>

@@ -1,0 +1,85 @@
+{
+  "bundle": {
+    "fileAssociations": [
+      {
+        "ext": [
+          "acchspettri"
+        ],
+        "name": "Acchiappaspettri project",
+        "description": "Acchiappaspettri project",
+        "role": "Editor",
+        "mimeType": "application/vnd.acchiappaspettri.project+zip"
+      },
+      {
+        "ext": [
+          "ch"
+        ],
+        "name": "Agilent ChemStation chromatogram",
+        "description": "Agilent ChemStation/OpenLab chromatogram",
+        "role": "Viewer",
+        "mimeType": "application/x-agilent-chemstation-ch"
+      },
+      {
+        "ext": [
+          "uv"
+        ],
+        "name": "Agilent ChemStation DAD spectra",
+        "description": "Agilent ChemStation DAD spectra",
+        "role": "Viewer",
+        "mimeType": "application/x-agilent-chemstation-uv"
+      },
+      {
+        "ext": [
+          "arw"
+        ],
+        "name": "Waters Empower chromatogram",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "csv",
+          "tsv",
+          "txt",
+          "asc",
+          "dat",
+          "prn",
+          "xy",
+          "dpt"
+        ],
+        "name": "Spectrum or chromatogram (text)",
+        "role": "Viewer",
+        "rank": "Alternate",
+        "contentTypes": [
+          "public.comma-separated-values-text",
+          "public.tab-separated-values-text",
+          "public.plain-text"
+        ]
+      },
+      {
+        "ext": [
+          "jdx",
+          "dx",
+          "jcamp"
+        ],
+        "name": "JCAMP-DX spectrum",
+        "role": "Viewer",
+        "mimeType": "chemical/x-jcamp-dx",
+        "description": "JCAMP-DX spectrum"
+      },
+      {
+        "ext": [
+          "spa",
+          "spt",
+          "spe",
+          "sp",
+          "exp",
+          "mca"
+        ],
+        "name": "Instrument spectrum",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ]
+  }
+}

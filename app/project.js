@@ -108,9 +108,11 @@
       if (Array.isArray(st.COMPS)) st.COMPS.filter(c=>c && okId(c.id) && Array.isArray(c.keys) && c.keys.every(k=>typeof k==='string')).forEach(c=>COMPS.push(Object.assign({mode:'stack',gap:1.1,out:true},c))); saveCmps();
       // la memoria di ogni spettro torna prima di ricaricarlo; va riconosciuta anche se la chiave interna dipende dal numero di punti
       // formato 2: la memoria si cerca per percorso, e per percorso + sampleKey per i canali di un file multicanale
-      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>{ if (!s.bytes) return; if (s.sampleKey!=null) win.ACCH_PENDING_MEM.set(s.path+'\u0000'+s.sampleKey, s.memory||null); if (s.sampleKey==null || !win.ACCH_PENDING_MEM.has(s.path)) win.ACCH_PENDING_MEM.set(s.path, s.memory||null); });
-      // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso
-      const seen=new Set(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; const k=(s.source||'')+'\u0000'+s.path; if (seen.has(k)) continue; seen.add(k); ents.push({file:new File([s.bytes], s.name), path:s.path}); }
+      // I3: chiave percorso + campione + canale (AcchChannels.memKey); restano anche le chiavi della I2 (percorso + sampleKey) e il solo percorso
+      const mk=(p,k,c)=>win.AcchChannels ? win.AcchChannels.memKey(p,k,c) : p;
+      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>{ if (!s.bytes) return; const M=win.ACCH_PENDING_MEM; M.set(mk(s.path, s.sampleKey, s.channel), s.memory||null); if (s.sampleKey!=null && !M.has(s.path+'\u0000'+s.sampleKey)) M.set(s.path+'\u0000'+s.sampleKey, s.memory||null); if (!M.has(s.path)) M.set(s.path, s.memory||null); });
+      // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso; «want» dice quali canali c'erano
+      const seen=new Map(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; const k=(s.source||'')+'\u0000'+s.path; let e=seen.get(k); if (!e){ e={file:new File([s.bytes], s.name), path:s.path, want:[]}; seen.set(k,e); ents.push(e); } e.want.push({sampleKey:s.sampleKey==null?null:s.sampleKey, channel:s.channel==null?null:s.channel}); }
       // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
       kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(s=>({name:s.name, path:s.path, bytes:null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, series:s.series, cube:s.cube, iso:s.iso}));
       api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
@@ -118,7 +120,8 @@
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
       // contenitore valido (impronte verificate) ma nessuno spettro leggibile: non è un file danneggiato, e il messaggio lo dice
       if (ents.length && !files.length && !kept.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
-      const lost=ents.length-files.length;
+      // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
+      const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced), lost=ents.filter(e=>!got.has(e.path)).length, lostCh=last.missing||0;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));
       syncControls(); resetCaches(); refreshAll(); if (files.length) go(2);
@@ -127,6 +130,7 @@
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
       if (lost>0) toast(`⚠️ ${lost} file del progetto non sono stati riconosciuti.`);
+      if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
       if (P.warnings.includes('newer-format-compatible')) toast('⚠️ Progetto salvato con una versione più recente: alcune informazioni potrebbero non essere mostrate. Aggiorna l\'applicazione.');
       if (legacy) toast('Progetto nel vecchio formato: con «Salva» diventerà un file .acchspettri; l\'originale resta intatto.');
       if (api.host.remember && path) api.host.remember(path, name);

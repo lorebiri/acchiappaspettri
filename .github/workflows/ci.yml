@@ -98,9 +98,12 @@ jobs:
       - name: Collaudo dentro l'app vera (Linux)
         if: matrix.name == 'linux'
         run: xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
+          xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
       - name: Collaudo dentro l'app vera (Windows)
         if: matrix.name == 'windows'
         run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe apri-grezzi
       - name: Collaudo dentro l'app vera (macOS)
         if: startsWith(matrix.name, 'macos')
         run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
