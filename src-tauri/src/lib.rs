@@ -315,13 +315,24 @@ fn join_rel(dir: &Path, rel: &str) -> Result<PathBuf, String> {
             || part == "."
             || part == ".."
             || part.chars().any(|c| c == '\\' || c == ':' || c.is_control())
-            || part.len() > 255;
+            || part.len() > 255
+            || part.ends_with('.')
+            || part.ends_with(' ')
+            || reserved(part)
+            || part.chars().any(|c| "<>\"|?*".contains(c));
         if bad {
             return Err("unsafe-path".into());
         }
         p.push(part);
     }
     Ok(p)
+}
+
+/// Nomi che Windows riserva ai dispositivi, anche con un'estensione («NUL.txt»).
+fn reserved(part: &str) -> bool {
+    let stem = part.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ((stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && matches!(stem.as_bytes()[3], b'1'..=b'9'))
 }
 
 /// Quali dei file da esportare esistono già nella cartella: la pagina chiede se sostituirli, rinominarli o saltarli.
@@ -692,7 +703,10 @@ mod tests {
     fn export_paths_stay_inside_the_chosen_folder() {
         let d = Path::new("/out");
         assert_eq!(join_rel(d, "analisi/qc.csv").unwrap(), d.join("analisi").join("qc.csv"));
-        for bad in ["", "../x.csv", "a/../../x", "/etc/passwd", "a//b", "./a", "C:x", "a\\b.csv", "a\u{0}b", "a/"] {
+        for ok in ["COM10.csv", "console.txt", "nul_2.csv", "_CON.csv", "a.b.c"] {
+            assert!(join_rel(d, ok).is_ok(), "rifiutato: {ok:?}");
+        }
+        for bad in ["", "../x.csv", "a/../../x", "/etc/passwd", "a//b", "./a", "C:x", "a\\b.csv", "a\u{0}b", "a/", "x.", "x ", "NUL", "con.txt", "a/COM1.csv", "lpt9", "a<b", "a?b", "a*b", "a|b", "a\"b"] {
             assert!(join_rel(d, bad).is_err(), "accettato: {bad:?}");
         }
     }

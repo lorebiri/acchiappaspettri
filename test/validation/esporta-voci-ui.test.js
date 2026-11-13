@@ -104,13 +104,68 @@ describe('Esportazione per voci, desktop', {timeout:10*60*1000}, ()=>{
     const r=await o.p.evaluate(async ()=>{ const M=window.__mock, n=async sc=>{ M.disk={}; S.expScope=sc; await runExport(); return Object.keys(M.disk).filter(k=>/\.png$/.test(k)).length; };
       files[1].include=false; const res={sel:await n('sel'), all:await n('all'), one:await n('one')};
       Object.assign(S,{outPng:false, csvRaw:true, outProject:true, expScope:'one'}); M.disk={}; await runExport(); res.files=Object.keys(M.disk).sort();
-      const raw=Object.entries(M.disk).find(([k])=>/dati_originali/.test(k)); const L=raw && new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(raw[1])).split('\r\n'); res.raw=L && [L[0], L.length, L.includes('4000;0,1')];
+      const raw=Object.entries(M.disk).find(([k])=>/dati_originali/.test(k)); const L=raw && new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(raw[1])).split('\r\n'); res.raw=L && [L[0], L.length, L[1], L[400]];
       const pj=Object.entries(M.disk).find(([k])=>/\.acchspettri$/.test(k)); res.proj=pj && (await AcchFormat.decode(Uint8Array.from(pj[1]), JSZip)).spectra.length; return res; });
     await done(o);
     assert.deepStrictEqual([r.sel, r.all, r.one], [2, 3, 1]);
     assert.strictEqual(r.files.length, 2, r.files.join(', ')); assert.ok(r.files.some(k=>/dati_originali\/a\.csv$/.test(k)), r.files.join(', '));
-    assert.deepStrictEqual(r.raw, ['﻿Numero d\'onda (cm-1);Assorbanza', 401, true], 'BOM, intestazione e i 400 punti letti dal file');
+    assert.deepStrictEqual(r.raw, ['﻿Wavenumber (cm-1);Absorbance', 401, '4000;0,1', '808;0,1'], 'BOM, nomi delle colonne del file, 400 punti nell\'ordine del file (4000 → 808)');
     assert.strictEqual(r.proj, 3, 'il progetto contiene tutti gli spettri');
+  });
+  it('dati originali: ordine delle righe del file e valori scritti, anche quando l\'app converte l\'asse (eV → nm)', async ()=>{
+    // SINTETICO: asse in eV crescente (l'app lo converte in nm e lo riordina), valori con molte cifre
+    const ev='Energy (eV),Absorbance\n'+Array.from({length:60},(_,i)=>(1.5+i*0.025).toFixed(3)+','+(0.123456789012+i*1e-7).toFixed(12)).join('\n');
+    const o=await desk({csvRaw:true});
+    const r=await o.p.evaluate(async t=>{ await addEntries([{file:new File([t],'uv_ev.csv'), path:'uv_ev.csv'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+      cur=files.findIndex(f=>f.name==='uv_ev.csv'); S.expScope='one'; await runExport();
+      const k=Object.keys(window.__mock.disk).find(x=>/uv_ev\.csv$/.test(x)); const f=files[cur];
+      return {lines:new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(window.__mock.disk[k])).split('\r\n'), shownFirst:f.xs[0], shownLast:f.xs[f.xs.length-1]}; }, ev);
+    await done(o);
+    const src=ev.split('\n');
+    assert.ok(r.shownFirst<r.shownLast && r.shownFirst>400, `l'app mostra l'asse convertito in nm (${r.shownFirst}…${r.shownLast})`);
+    assert.strictEqual(r.lines[0], '﻿Energy (eV);Absorbance');
+    assert.deepStrictEqual(r.lines.slice(1).map(l=>l.split(';').map(v=>+v.replace(',','.'))), src.slice(1).map(l=>l.split(',').map(Number)), 'stessi valori, stesso ordine del file');
+  });
+  it('conflitti file per file: senza la spunta si chiede per ogni file; con «Applica a tutti i file rimanenti» una volta sola', async ()=>{
+    const o=await desk({csvPeaks:true, outTrace:true});
+    const prep=()=>o.p.evaluate(()=>{ const M=window.__mock; M.disk={'/out/scelta/elenco_picchi.csv':[1],'/out/scelta/tracciabilita.csv':[1,2]}; window.__asked=[]; });
+    const ask=(btn, all)=>o.p.waitForFunction(()=>$('#dlgConfirm').open, null, {timeout:20000}).then(()=>o.p.evaluate(([btn,all])=>{ const box=document.querySelector('.cfall input'); window.__asked.push({msg:$('#cfMsg').textContent, box:!!box, boxText:box&&box.parentElement.textContent});
+      if (all) box.checked=true; [...document.querySelectorAll('#cfBtns button')].find(b=>b.textContent.trim()===btn).click(); }, [btn, all]));
+    const state=()=>o.p.evaluate(()=>({disk:Object.fromEntries(Object.entries(window.__mock.disk).map(([k,v])=>[k.slice(12), v.length])), asked:window.__asked}));
+    await prep(); let run=o.p.evaluate(()=>runExport()); await ask('Rinomina'); await ask('Salta'); await run; const a=await state();
+    await prep(); run=o.p.evaluate(()=>runExport()); await ask('Sostituisci', true); await run; const b=await state();
+    await prep(); run=o.p.evaluate(()=>runExport()); await ask('Sostituisci'); await ask('Annulla'); await run; const c=await state();
+    await done(o);
+    assert.strictEqual(a.asked.length, 2, 'una domanda per file'); assert.match(a.asked[0].msg, /«scelta».*«tracciabilita\.csv»/); assert.ok(a.asked[0].box && /rimanenti \(1\)/.test(a.asked[0].boxText)); assert.strictEqual(a.asked[1].box, false, 'all\'ultimo file la casella non serve');
+    assert.deepStrictEqual(a.disk, {'elenco_picchi.csv':1, 'tracciabilita.csv':2, 'tracciabilita_2.csv':a.disk['tracciabilita_2.csv']}); assert.ok(a.disk['tracciabilita_2.csv']>2);
+    assert.strictEqual(b.asked.length, 1, 'con la spunta una sola domanda'); assert.ok(b.disk['elenco_picchi.csv']>1 && b.disk['tracciabilita.csv']>2, 'tutti sostituiti');
+    assert.deepStrictEqual(c.disk, {'elenco_picchi.csv':1, 'tracciabilita.csv':2}, 'Annulla al secondo file: niente scritto, nemmeno il primo');
+  });
+  it('nomi validi su Windows: punto o spazio finale, nomi riservati, caratteri vietati, percorsi lunghi; avviso chiaro', async ()=>{
+    const o=await desk({csvPeaks:true, outTrace:true, csvData:true, expNames:{trace:'CON', data:'dati<1>?'}});
+    const r=await o.p.evaluate(async ()=>{ const M=window.__mock; files[0].title='NUL'; files[1].title='prova. '; files[2].title='COM3.dati'; [0,1,2].forEach(i=>persist(files[i]));
+      const el=$('[data-nm="peaks"]'); el.value='picchi: finale. '; el.dispatchEvent(new Event('change')); const note=el.parentElement.querySelector('.nmwarn');
+      await runExport();
+      const longP=winPath('a'.repeat(100)+'/'+'b'.repeat(150)+'.csv');
+      M.disk={}; M.pick.pick_export_dir={path:'/'+'x'.repeat(250), name:'lunga'}; await runExport();
+      return {note:note&&!note.hidden&&note.textContent, names:[expName('peaks'), expName('trace'), expName('data')], disk:Object.keys(window.__mock.disk),
+        long:[longP.length, /\.csv$/.test(longP)], done:$('#expDone').innerText, status:$('#status').textContent,
+        res:['CON','con.txt','lpt1','COM9.csv','a.','b ','x<y>|z?*"','COM10','console'].map(winSeg)}; });
+    await done(o);
+    assert.match(r.note||'', /Nome corretto in «picchi_ finale\.csv»: caratteri non ammessi da Windows.*punto o spazio finale/);
+    assert.deepStrictEqual(r.names, ['picchi_ finale.csv', '_CON.csv', 'dati_1_']);
+    assert.deepStrictEqual(r.res, ['_CON','_con.txt','_lpt1','_COM9.csv','a','b','x_y__z___','COM10','console']);
+    assert.ok(r.long[0]<=180 && r.long[1], 'percorso relativo accorciato con l\'estensione: '+r.long);
+    assert.strictEqual(r.disk.length, 0, 'su Windows nulla oltre 260 caratteri');
+    assert.match(r.status, /incompleta/); assert.match(r.done, /Percorso troppo lungo per Windows/);
+  });
+  it('nomi proposti dai titoli degli spettri: corretti per Windows e dichiarati', async ()=>{
+    const o=await desk({csvData:true});
+    const r=await o.p.evaluate(async ()=>{ files[0].title='NUL'; files[1].title='prova. '; files[2].title='a|b'; [0,1,2].forEach(i=>persist(files[i])); await runExport();
+      return {disk:Object.keys(window.__mock.disk).map(k=>k.slice(12)).sort(), done:$('#expDone').innerText}; });
+    await done(o);
+    assert.deepStrictEqual(r.disk, ['dati_elaborati/_NUL.csv','dati_elaborati/a_b.csv','dati_elaborati/prova..csv']);
+    assert.match(r.done, /Nomi corretti per Windows[\s\S]*NUL\.csv → dati_elaborati\/_NUL\.csv/);
   });
   it('errore di scrittura: elenco dei file non scritti, nessun «completata»', async ()=>{
     const o=await desk({csvPeaks:true, outTrace:true});

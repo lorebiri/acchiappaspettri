@@ -389,7 +389,7 @@ body.busy, body.busy *{cursor:progress !important}
 .dlcard{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .outcard .oname{margin:0 0 8px}.outcard .oname input,.expwhere input[type=text]{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px;background:var(--panel);color:var(--ink)}
 .expwhere{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;margin-bottom:14px}.expwhere .field{margin:0;flex:1 1 240px}.expwhere .check{margin:0 0 4px}
-.expdone ul{margin:6px 0;padding-left:18px;max-height:120px;overflow:auto}.expdone .bad{color:var(--bad,#b3261e)}
+.nmwarn{display:block;color:var(--warn,#8a5a00);font-size:12px;margin-top:3px}.expdone ul{margin:6px 0;padding-left:18px;max-height:120px;overflow:auto}.expdone .bad{color:var(--bad,#b3261e)}
 .dlcard .summary{margin-bottom:4px}
 #doDl{font-size:17px;padding:14px 26px}
 /* ---- giro guidato ---- */
@@ -2367,7 +2367,9 @@ function parseText0(text, opt){
   // Solo sull'asse: una Y «4,836» con la X «100.0» resta ambigua (corpus c/50), come lo stesso separatore nelle due colonne. Tappa I1, decisione del Capo Progetto.
   { const c=cols[0], o=cols[1], only=!c.int && !c.other;
     if (only && c.com && !c.dot && o.pd && !o.pc && !o.com) thou+=c.com; else if (only && c.dot && !c.com && o.pc && !o.pd && !o.dot) thou+=c.dot; }
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
+  const R={xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
+  if (opt && opt.keepOrder) R.order=idx;   // solo per l'esportazione dei «dati originali»: posizione di ogni punto nel file
+  return R;
 }
 /* intestazioni in stile JCAMP / JASCO / PerkinElmer: DATA TYPE, XUNITS, YUNITS, nome strumento */
 function headerField(meta, re){ for (const l of meta){ const m=l.match(re); if (m) return m[1].trim(); } return ''; }
@@ -6199,6 +6201,7 @@ const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data
 const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
 const DESK_EXP=()=>!!window.__TAURI__;
 let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
+let EXP_FIXED=[];   // nomi proposti corretti per Windows durante l'ultima esportazione: [prima, dopo]
 function expSel(){ const o={}; for (const k in EXP_FLAG) o[k]=!!S[EXP_FLAG[k]]; return o; }
 function expList(scope){ const sc=scope||S.expScope; return sc==='all' ? files.slice() : sc==='one' ? (files[cur] ? [files[cur]] : []) : null; }
 function expBase(){ return safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp(); }
@@ -6208,10 +6211,25 @@ function expDefault(k){ const Lx=T_(), en=LANG==='en';
     case 'raw': return en?'original_data':'dati_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
     case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx';
     case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
+/* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
+   niente punto o spazio finale, niente nomi riservati (CON, PRN, AUX, NUL, COM1–9, LPT1–9, anche con estensione), percorso relativo entro EXP_MAXREL */
+const WIN_BAD=/[<>:"\\/|?*\u0000-\u001f]/g, WIN_RES=/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i, EXP_MAXREL=180;
+function winWhy(seg){ const w=[]; seg=String(seg); if (/[<>:"\\|?*\u0000-\u001f]/.test(seg)) w.push('caratteri non ammessi da Windows (< > : " / \\ | ? *)'); if (/[. ]$/.test(seg)) w.push('punto o spazio finale');
+  if (WIN_RES.test(seg.replace(/[. ]+$/,''))) w.push('nome riservato di Windows'); return w; }
+function winSeg(seg){ let t=String(seg).replace(WIN_BAD,'_').replace(/[. ]+$/,''); if (!t) t='_'; if (WIN_RES.test(t)) t='_'+t; return t; }
+function winPath(p){ const parts=String(p).split('/').map(winSeg); let s=parts.join('/');
+  if (s.length>EXP_MAXREL){ const last=parts.pop(), m=/^(.*?)((?:\.[^.]{1,12})?)$/.exec(last), room=Math.max(8, EXP_MAXREL-(parts.join('/').length+1)-m[2].length); parts.push(winSeg(Array.from(m[1]).slice(0,room-1).join('')+'…')+m[2]); s=parts.join('/'); }
+  return s; }
 // nome scritto dall'utente, reso sicuro: niente separatori, «..» o caratteri che Windows rifiuta; l'estensione resta quella della voce
 function expClean(k, v){ v=String(v==null?'':v).trim(); const ext=EXP_EXT[k];
-  if (ext){ const b=v.replace(new RegExp('\\.'+ext+'$','i'),'').replace(/[\\/]+/g,'_'); const t=b ? safeName(b+'.x') : ''; return t && !/^\.+$/.test(t) ? t+'.'+ext : ''; }
-  return v.split(/[\\/]+/).map(p=>p.trim() ? safeName(p.trim()+'.x') : '').filter(p=>p && !/^\.+$/.test(p)).join('/'); }
+  if (ext){ const b=v.replace(new RegExp('\\.'+ext+'$','i'),'').replace(/[\\/]+/g,'_'); const t=b ? winSeg(safeName(b+'.x')) : ''; return t && !/^[._]+$/.test(t) ? winSeg(t+'.'+ext) : ''; }
+  return v.split(/[\\/]+/).map(p=>p.trim() ? safeName(p.trim()+'.x') : '').filter(p=>p && !/^\.+$/.test(p)).map(winSeg).join('/'); }
+// avviso accanto al campo quando il nome scritto è stato corretto
+function expNameNote(el, raw, clean){ let n=el.parentElement.querySelector('.nmwarn'); const why=[...new Set(String(raw).split(/[\\/]/).flatMap(winWhy))];
+  const same=!String(raw).trim() || !clean || (clean===String(raw).trim() && !why.length);
+  if (same){ if (n) n.hidden=true; return; }
+  if (!n){ n=document.createElement('small'); n.className='nmwarn'; el.insertAdjacentElement('afterend', n); }
+  n.hidden=false; n.textContent=`Nome corretto in «${clean}»`+(why.length?': '+why.join('; '):'')+'.'; }
 function expName(k){ const o=S.expNames&&S.expNames[k], c=o!=null ? expClean(k,o) : ''; return c || expDefault(k); }
 const expDir=k=>{ const d=expName(k); return d ? d+'/' : ''; };
 function expBytes(d){ if (d instanceof Uint8Array) return Promise.resolve(d); if (d instanceof Blob) return d.arrayBuffer().then(b=>new Uint8Array(b)); return Promise.resolve(new TextEncoder().encode(String(d))); }   // come JSZip: testo in UTF-8
@@ -6224,7 +6242,7 @@ function renderExpNames(){
     for (const o of sc.options) if (t[o.value] && o.textContent!==t[o.value]) o.textContent=t[o.value]; }
 }
 $$('[data-nm]').forEach(el=>el.addEventListener('input', ()=>{ const k=el.dataset.nm; S.expNames=Object.assign({}, S.expNames); if (el.value===expDefault(k)) delete S.expNames[k]; else S.expNames[k]=el.value; saveS(); renderSummary(); }));
-$$('[data-nm]').forEach(el=>el.addEventListener('change', ()=>{ const k=el.dataset.nm, c=expClean(k, el.value); if (el.value.trim() && c && c!==el.value){ S.expNames=Object.assign({}, S.expNames, {[k]:c}); saveS(); } renderExpNames(); }));
+$$('[data-nm]').forEach(el=>el.addEventListener('change', ()=>{ const k=el.dataset.nm, raw=el.value, c=expClean(k, raw); expNameNote(el, raw, c); if (raw.trim() && c && c!==raw){ S.expNames=Object.assign({}, S.expNames, {[k]:c}); saveS(); } renderExpNames(); }));
 
 /* ---------------- RIEPILOGO ---------------- */
 function included(){
@@ -6677,7 +6695,7 @@ function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[
 /* i file delle voci scelte, nell'ordine e con i percorsi di sempre dentro lo ZIP: [{key, path, data}] (data: Blob o testo).
    Il contenuto di ogni file è quello che buildZip ha sempre scritto: cambia solo il contenitore (cartella, file singoli o ZIP) */
 async function exportEntries(sel, zipping){
-  const Lx=T_(), out=[], add=(key,path,data)=>out.push({key,path,data});
+  const Lx=T_(), out=[], add=(key,path,data)=>{ const w=winPath(path); if (w!==path) EXP_FIXED.push([path,w]); out.push({key,path:w,data}); };
   const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
   const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
   const rows=[(S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()).concat([Lx.csvNote])];
@@ -6709,9 +6727,11 @@ async function exportEntries(sel, zipping){
       for (let k=0;k<P.xs.length;k++) lines.push(String(+P.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+P.ys[k].toPrecision(8)).replace('.',dsep)+(extra?csep+String(+extra[k].toPrecision(8)).replace('.',dsep):''));
       add('data', uniq(expDir('data')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
-    if (sel.raw){   // dati originali: x e y come letti dal file, stessa forma del CSV dei dati elaborati
-      const lines=[[Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[f.kind]||'Y')].map(c=>csvCell(c.replace('−','-'),csep)).join(csep)];
-      for (let k=0;k<f.xs.length;k++) lines.push(String(+f.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+f.ys[k].toPrecision(8)).replace('.',dsep));
+    if (sel.raw){   // dati originali: i punti nell'ordine delle righe del file, con i valori scritti nel file (nessun riordino, conversione o taratura)
+      const R=rawFileXY(f), xs=R.xs, ys=R.ys, num=v=>String(v).replace('.',dsep);
+      const head=R.names || [Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[f.kind]||'Y')];
+      const lines=[head.map(c=>csvCell(String(c).replace('−','-'),csep)).join(csep)];
+      for (let k=0;k<xs.length;k++) lines.push(num(xs[k])+csep+num(ys[k]));
       add('raw', uniq(expDir('raw')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
     progress((i+1)/total*0.9); say_(i+1); await tick();
@@ -6726,6 +6746,18 @@ async function exportEntries(sel, zipping){
   if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
   if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   return out;
+}
+/* dati originali di uno spettro: nei file di testo a colonne si rilegge il file e si rimette ogni punto nella sua riga
+   (parseText0 con keepOrder), prima di conversioni di unità, taratura dell'asse e riordino; i valori restano quelli scritti, senza arrotondare.
+   Negli altri formati (binari, JCAMP, MCA, tabelle termiche ed EPR) i punti restano come li ha letti il lettore del formato */
+function rawFileXY(f){
+  if (f.raw && !f.rawBin){ try{ const yc=f.ycolNow||(f.an&&f.an.ycol)||1, P=parseText0(decodeBuffer(f.raw), {ycol:yc, keepOrder:true});
+    if (P && !P.reject && P.order && P.order.length===P.xs.length && P.xs.length===P.ys.length){ const n=P.xs.length, X=new Float64Array(n), Y=new Float64Array(n), rank=Float64Array.from(P.order).sort();
+      // l'ordine del file tra i punti letti: le righe scartate non lasciano buchi
+      const pos=new Map(); rank.forEach((k,i)=>pos.set(k,i)); P.order.forEach((k,i)=>{ const j=pos.get(k); X[j]=P.xs[i]; Y[j]=P.ys[i]; });
+      const names=P.colNames && P.colNames[0] && P.colNames[yc] ? [P.colNames[0], P.colNames[yc]] : null;
+      return {xs:X, ys:Y, names, file:true}; } }catch(e){ console.warn(e); } }
+  return {xs:f.xs0||f.xs, ys:f.ys, names:null, file:false};
 }
 /* ZIP con le voci di sempre (senza PDF né progetto): «extra» va in testa, come prima */
 async function buildZip(extra, sel){
@@ -6743,9 +6775,9 @@ async function zipOf(ents, root){
 /* tutte le voci scelte, PDF e progetto compresi */
 async function buildExportFiles(sel, zipping){
   const out=[];
-  if (sel.pdf){ progress(0); out.push({key:'pdf', path:expName('pdf'), data:await buildPdf()}); progress(0); }
+  if (sel.pdf){ progress(0); out.push({key:'pdf', path:winPath(expName('pdf')), data:await buildPdf()}); progress(0); }
   out.push(...await exportEntries(sel, zipping));
-  if (sel.project){ status('💾 Preparo il progetto…'); out.push({key:'project', path:expName('project'), data:await AcchProject.buildBytes()}); }
+  if (sel.project){ status('💾 Preparo il progetto…'); out.push({key:'project', path:winPath(expName('project')), data:await AcchProject.buildBytes()}); }
   return out;
 }
 const expShow=(list,max)=>list.slice(0,max).map(x=>`<li data-noi18n>${esc(x)}</li>`).join('')+(list.length>max?`<li>e altri ${list.length-max}</li>`:'');
@@ -6757,6 +6789,7 @@ function showExpDone(r){
     +(r.written.length?`<ul>${expShow(r.written,12)}</ul>`:'')
     +(r.failed.length?`<div class="bad"><b>File non scritti</b><ul>${r.failed.slice(0,12).map(x=>`<li><span data-noi18n>${esc(x.rel)}</span>: ${esc(x.msg)}</li>`).join('')}</ul></div>`:'')
     +(r.skipped.length?`<div><b>File già presenti, lasciati com'erano</b><ul>${expShow(r.skipped,12)}</ul></div>`:'')
+    +(r.fixed&&r.fixed.length?`<div><b>Nomi corretti per Windows</b><ul>${expShow(r.fixed.map(([a,b])=>a+' → '+b),12)}</ul></div>`:'')
     +(r.written.length?'<button type="button" class="btn small" id="expReveal">Mostra nella cartella</button>':'');
   box.hidden=false;
   const b=$('#expReveal'); if (b) b.onclick=()=>AcchDesktop.revealExport(r.dir, (r.sub?r.sub+'/':'')+r.written[0]);
@@ -6767,7 +6800,7 @@ async function runExport(){
   if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
   if (!Object.values(sel).some(Boolean)) return;
   const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
-  setReady([]); showExpDone(null); status('');
+  setReady([]); showExpDone(null); status(''); EXP_FIXED=[];
   try{
     // desktop: prima la cartella (dialogo nativo, l'ultima usata per le esportazioni), poi si preparano i file
     let target=null;
@@ -6779,13 +6812,13 @@ async function runExport(){
     // online: il browser blocca spesso i download multipli; oltre 3 file si propone lo ZIP, ma l'utente può rifiutare
     if (!desk && !zip && ents.length>3){ const a = window.ACCH_TEST ? 'zip' : await AcchUi.choice(`Sono ${ents.length} file: molti browser bloccano i download multipli. Li raccolgo in un unico file ZIP?`, [['cancel','Annulla','ghost'],['files','No, uno per uno','ghost'],['zip','Sì, un file ZIP','primary']]);
       if (a==='cancel'){ status(''); return; } zip = a==='zip'; }
-    const out = zip ? [{key:'zip', path:expName('zip'), data:await zipOf(ents, expName('zip').replace(/\.zip$/i,''))}] : ents;
+    const zn=winPath(expName('zip')), out = zip ? [{key:'zip', path:zn, data:await zipOf(ents, zn.replace(/\.zip$/i,''))}] : ents;
     if (desk){
-      const sub = S.expSub ? (expName('sub')||'') : '';
+      const sub = S.expSub ? winPath(expName('sub')||'') : '';
       const list=[]; for (const o of out) list.push({rel:(sub?sub+'/':'')+o.path, bytes:await expBytes(o.data)});
       const r=await AcchDesktop.writeExport(target, list);
       if (r.cancelled){ status(''); return; }   // conflitto annullato: niente scritto, nessun messaggio di successo
-      r.sub=sub; if (sub){ r.written=r.written.map(x=>x.slice(sub.length+1)); r.skipped=r.skipped.map(x=>x.slice(sub.length+1)); r.failed.forEach(x=>{ x.rel=x.rel.slice(sub.length+1); }); }
+      r.sub=sub; r.fixed=EXP_FIXED.slice(); if (sub){ r.written=r.written.map(x=>x.slice(sub.length+1)); r.skipped=r.skipped.map(x=>x.slice(sub.length+1)); r.failed.forEach(x=>{ x.rel=x.rel.slice(sub.length+1); }); }
       showExpDone(r);
       if (r.failed.length) status(`Esportazione incompleta: ${r.failed.length===1?'1 file non scritto':r.failed.length+' file non scritti'}.`);
       else if (r.written.length) status(`Esportazione completata: ${r.written.length===1?'1 file':r.written.length+' file'} in «${r.name}».`);
@@ -6796,6 +6829,7 @@ async function runExport(){
     const dl=out.map(o=>({name:o.path.replace(/\//g,'_'), blob:o.data instanceof Blob ? o.data : new Blob([o.data],{type:/\.csv$/i.test(o.path)?'text/csv':'text/plain'})}));
     dl.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
     setReady(dl);
+    if (EXP_FIXED.length) toast('Nomi corretti per Windows: '+EXP_FIXED.slice(0,4).map(([a,b])=>a+' → '+b).join(', ')+(EXP_FIXED.length>4?' …':''));
     status(dl.length>1 ? '✅ Fatto! Se nella cartella Download manca un file, il browser l\'ha bloccato: scaricalo qui sotto con un clic.' : '✅ Fatto! Trovi il file nella cartella Download (o qui sotto).');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
@@ -6818,7 +6852,7 @@ async function quickExport(k){
     else if (k==='peaks'){ EXP_SCOPE='one'; let e; try{ e=await exportEntries({peaks:true}); } finally { EXP_SCOPE=null; progress(null); status(''); }
       blob=new Blob([e[0].data],{type:'text/csv'}); name=base+'_'+expName('peaks'); }
     else return false;
-    return await download(blob, name);
+    return await download(blob, winSeg(name));   // nome valido anche su Windows
   }catch(e){ console.error(e); toast('😬 Qualcosa è andato storto: '+e.message); return false; }
 }
 /* ---------------- ANALISI: assistente, ipotesi, deconvoluzione, parametri per tecnica ---------------- */

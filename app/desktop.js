@@ -15,7 +15,7 @@
 
   async function writeTo(path, bytes){ await inv('write_file', bytes, {headers:{'x-acch-path':encodeURIComponent(path)}}); }
   async function readFrom(path){ const b=await inv('read_file',{path}); return new Uint8Array(b); }
-  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Accesso al percorso non consentito.'; if (/PermissionDenied/.test(s)) return 'Scrittura non consentita in questa cartella: scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/unsafe-path/.test(s)) return 'Nome di file non valido.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Lettura o scrittura del file non riuscita.'; };
+  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Accesso al percorso non consentito.'; if (/PermissionDenied/.test(s)) return 'Scrittura non consentita in questa cartella: scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/unsafe-path/.test(s)) return 'Nome di file non valido.'; if (/path-too-long/.test(s)) return 'Percorso troppo lungo per Windows (oltre 260 caratteri): scegli una cartella più vicina alla radice del disco o un nome più corto.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Lettura o scrittura del file non riuscita.'; };
 
   /* salvataggi: finestra del sistema al posto del download del browser (che nelle webview non funziona) */
   // risponde true solo se il file è stato scritto; false se annullato o non riuscito
@@ -29,17 +29,26 @@
   async function pickExportDir(){ const p=await inv('pick_export_dir',{title:tr('Scegli la cartella di destinazione'), kind:'export'}); return p||null; }
   async function freeName(dir, rel, taken){ const m=/^(.*?)((?:\.[^./]{1,12})?)$/.exec(rel);
     for (let n=2;n<10000;n++){ const c=m[1]+'_'+n+m[2]; if (taken.has(c)) continue; const ex=await inv('export_existing',{dir, rels:[c]}); if (!ex.length) return c; } throw 'write-failed: AlreadyExists'; }
+  // finestra di scelta della pagina con la casella «Applica a tutti i file rimanenti» (solo se ne restano)
+  async function askConflict(msg, rest){
+    const p=win.AcchUi.choice(msg, [['cancel','Annulla','ghost'],['skip','Salta','ghost'],['rename','Rinomina','ghost'],['replace','Sostituisci','primary']]);
+    let box=null; if (rest>0){ box=document.createElement('label'); box.className='check cfall'; box.innerHTML='<input type="checkbox"> <span></span>'; box.querySelector('span').textContent=fmt(tr('Applica a tutti i file rimanenti ({0})'), rest); $('#cfBtns').insertAdjacentElement('beforebegin', box); }
+    const v=await p, all=!!(box && box.querySelector('input').checked); if (box) box.parentNode.removeChild(box); return {v, all}; }
   async function writeExport(target, list){
     const rels=list.map(x=>x.rel), ex=new Set(await inv('export_existing',{dir:target.path, rels})), res={cancelled:false, dir:target.path, name:target.name, written:[], failed:[], skipped:[]};
-    let mode='replace';
-    if (ex.size){ const names=rels.filter(r=>ex.has(r)), shown=names.slice(0,6).join(', ')+(names.length>6?' '+fmt(tr('e altri {0}'), names.length-6):'');
-      mode=await win.AcchUi.choice(fmt(tr(names.length===1?'Nella cartella «{0}» esiste già un file con lo stesso nome: {1}.':'Nella cartella «{0}» esistono già {1} file con lo stesso nome: {2}.'), target.name, ...(names.length===1?[shown]:[names.length, shown])),
-        [['cancel','Annulla','ghost'],['skip','Salta','ghost'],['rename','Rinomina','ghost'],['replace','Sostituisci','primary']]);
-      if (mode==='cancel'){ res.cancelled=true; return res; } }
-    const taken=new Set(rels);
+    // prima si decide per ogni file già presente (uno alla volta, oppure per tutti i rimanenti), poi si scrive: «Annulla» non lascia niente a metà
+    const conflicts=rels.filter(r=>ex.has(r)), mode=new Map(); let forAll=null;
+    for (let i=0;i<conflicts.length;i++){ const r=conflicts[i];
+      if (forAll){ mode.set(r, forAll); continue; }
+      const a=await askConflict(fmt(tr('Nella cartella «{0}» esiste già «{1}».'), target.name, r), conflicts.length-1-i);
+      if (a.v==='cancel'){ res.cancelled=true; return res; }
+      mode.set(r, a.v); if (a.all) forAll=a.v; }
+    const taken=new Set(rels), sep=target.path.includes('\\')?'\\':'/';
     for (const it of list){ let rel=it.rel;
       try{
-        if (ex.has(rel)){ if (mode==='skip'){ res.skipped.push(rel); continue; } if (mode==='rename'){ rel=await freeName(target.path, rel, taken); taken.add(rel); } }
+        if (ex.has(rel)){ const m=mode.get(rel); if (m==='skip'){ res.skipped.push(rel); continue; } if (m==='rename'){ rel=await freeName(target.path, rel, taken); taken.add(rel); } }
+        // Windows non apre percorsi oltre 260 caratteri: meglio dirlo prima che scrivere a metà
+        if (info.os==='windows' && (target.path.replace(/[\\/]+$/,'')+sep+rel).length>259) throw 'path-too-long';
         await inv('write_in_dir', it.bytes, {headers:{'x-acch-dir':encodeURIComponent(target.path), 'x-acch-rel':encodeURIComponent(rel)}}); res.written.push(rel); }
       catch(e){ console.error(e); res.failed.push({rel, msg:tr(errMsg(e))}); } }
     return res; }

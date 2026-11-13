@@ -1029,5 +1029,15 @@
 "Un file CSV con i picchi di questo spettro": "A CSV file with the peaks of this spectrum",
 "esporta immagine png grafico": "export image png plot",
 "esporta tabella picchi csv excel": "export table peaks csv excel",
-"esporta vettoriale svg grafico": "export vector svg plot"
+"esporta vettoriale svg grafico": "export vector svg plot",
+"Applica a tutti i file rimanenti ({0})": "Apply to all remaining files ({0})",
+"Nella cartella «{0}» esiste già «{1}».": "The folder «{0}» already contains «{1}».",
+"Nome corretto in «{0}»": "Name corrected to «{0}»",
+"Nomi corretti per Windows": "Names corrected for Windows",
+"Nomi corretti per Windows:": "Names corrected for Windows:",
+"Percorso troppo lungo per Windows (oltre 260 caratteri): scegli una cartella più vicina alla radice del disco o un nome più corto.": "Path too long for Windows (over 260 characters): choose a folder closer to the root of the drive or a shorter name.",
+"caratteri non ammessi da Windows (": "characters not allowed by Windows (",
+"caratteri non ammessi da Windows (< > : \" / \\ | ? *)": "characters not allowed by Windows (< > : \" / \\ | ? *)",
+"nome riservato di Windows": "name reserved by Windows",
+"punto o spazio finale": "trailing dot or space"
 }

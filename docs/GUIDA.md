@@ -9,12 +9,14 @@
 ## Esportare
 Nella pagina *Esporta* ogni voce ha la sua casella e un nome di file (o di cartella) già proposto, che puoi cambiare:
 - PDF del report; immagini PNG e SVG (una per grafico e per ogni confronto); elenco dei picchi in CSV;
-- dati elaborati e dati originali, un CSV per spettro; tabelle di analisi (bande, tarature, parametri per tecnica, controllo di qualità, ipotesi, bozza dei metodi con la bibliografia);
+- dati elaborati e dati originali, un CSV per spettro (i dati originali con i valori e l'ordine delle righe del file, prima di conversioni e tarature); tabelle di analisi (bande, tarature, parametri per tecnica, controllo di qualità, ipotesi, bozza dei metodi con la bibliografia);
 - tracciabilità (impronta SHA-256 di ogni file e scelte usate); cartella Excel per Origin; il progetto `.acchspettri`.
 
 In *Spettri inclusi* scegli quali spettri esportare: quelli spuntati, tutti, oppure solo quello aperto.
 
-**App desktop.** Premi **Esporta nella cartella…** e scegli la cartella: i file vanno lì, uno per voce (le voci con più file in una loro sottocartella). Puoi raccoglierli in una sottocartella con il nome del progetto. Il dialogo si apre nell'ultima cartella usata per le esportazioni. Se un file esiste già, l'app chiede se **sostituirlo**, **rinominare** quello nuovo (`_2`, `_3`…) o **saltarlo**; *Annulla* non scrive niente. Alla fine compare l'elenco dei file scritti, quello dei file non scritti con il motivo e il pulsante **Mostra nella cartella** (Esplora risorse, Finder o il gestore dei file).
+**App desktop.** Premi **Esporta nella cartella…** e scegli la cartella: i file vanno lì, uno per voce (le voci con più file in una loro sottocartella). Puoi raccoglierli in una sottocartella con il nome del progetto. Il dialogo si apre nell'ultima cartella usata per le esportazioni. Se un file esiste già, l'app chiede, file per file, se **sostituirlo**, **rinominare** quello nuovo (`_2`, `_3`…) o **saltarlo**; con **Applica a tutti i file rimanenti** la risposta vale per gli altri; *Annulla* non scrive niente. Alla fine compare l'elenco dei file scritti, quello dei file non scritti con il motivo e il pulsante **Mostra nella cartella** (Esplora risorse, Finder o il gestore dei file).
+
+I nomi sono sempre validi anche su Windows: caratteri come `<>:"/\|?*`, il punto o lo spazio finale e i nomi riservati (CON, PRN, AUX, NUL, COM1–9, LPT1–9) vengono corretti, e l'app lo dice accanto al campo e nel riepilogo. Su Windows un percorso oltre 260 caratteri non viene scritto e il riepilogo lo spiega.
 
 **Nella pagina online** il browser scarica i file uno per uno. Se sono più di 3, l'app propone di raccoglierli in uno ZIP, perché i browser spesso bloccano i download multipli; puoi rifiutare.
 
