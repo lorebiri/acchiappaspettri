@@ -1246,5 +1246,17 @@
 "Aggiungere {0} file al progetto aperto «{1}»?": "Add {0} files to the open project «{1}»?",
 "Aggiungi": "Add",
 "«{0}»: altre {1} righe di numeri, più brevi dei canali, sono in genere tabelle riassuntive e non sono state usate.": "«{0}»: another {1} rows of numbers, shorter than the channels, are usually summary tables and were not used.",
-"«{0}»: another {1} rows of numbers, shorter than the channels, are usually summary tables and were not used.": "«{0}»: another {1} rows of numbers, shorter than the channels, are usually summary tables and were not used."
+"«{0}»: another {1} rows of numbers, shorter than the channels, are usually summary tables and were not used.": "«{0}»: another {1} rows of numbers, shorter than the channels, are usually summary tables and were not used.",
+"Progetto Origin ricevuto: scegli gli spettri da importare.": "Origin project received: choose the spectra to import.",
+"Dati come scelto per la cartella Excel per Origin (come nel grafico o originali del file). Il file viene riletto prima di consegnarlo: se i valori non tornano identici non viene scritto.": "Data as chosen for the Excel workbook for Origin (as plotted or original file data). The file is read back before it is delivered: if the values do not come back identical it is not written.",
+"Non ancora verificato in Origin.": "Not yet verified in Origin.",
+"Organizzazione": "Layout",
+"Per un lavoro da consegnare usa la cartella Excel per Origin.": "For work to be delivered use the Excel workbook for Origin.",
+"Progetto Origin .opj": "Origin project .opj",
+"Progetto Origin .opju": "Origin project .opju",
+"lo stesso contenuto nel formato di Origin 2018 e successivi": "the same content in the format of Origin 2018 and later",
+"un foglio con tutte le coppie X/Y": "one sheet with all X/Y pairs",
+"un progetto Origin con nome lungo, unità e commento nelle colonne e i valori esatti": "an Origin project with long name, units and comment in the columns and the exact values",
+"una cartella per spettro": "one workbook per spectrum",
+"📈 Preparo il progetto Origin…": "📈 Preparing the Origin project…"
 }

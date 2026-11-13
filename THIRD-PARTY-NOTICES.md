@@ -15,6 +15,7 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 | Carattere Nunito (@fontsource/nunito 5.1.0) | pagina web e app desktop (`vendor/fonts/`) | SIL Open Font License 1.1 |
 | Carattere WenQuanYi Micro Hei 0.2.0-beta | pagina web e app desktop (`vendor/fonts/WenQuanYiMicroHei.ttf`), solo nei PDF con cinese, giapponese o coreano | Apache 2.0 (scelta tra Apache 2.0 e GPLv3 con eccezione per i font) |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
+| Descrizione del formato .opj di Origin da liborigin 3.0.x (nessun codice incluso) | `app/origin-core.js` | liborigin: GPL-2.0-or-later (avviso sotto) |
 | Crate Rust (Tauri 2, wry, tao, rustls, ring e altri: 336 crate) | eseguibile desktop | MIT, Apache-2.0, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0 (elenco completo sotto) |
 | Microsoft WebView2 Loader (SDK 1.0.3650.58, collegato staticamente) | eseguibile Windows | BSD-3-Clause (Microsoft) |
 | Nullsoft Scriptable Install System 3.x | installatore Windows | zlib/libpng; modulo LZMA: vedi sotto |
@@ -1147,6 +1148,17 @@ THIS SOFTWARE IS PROVIDED BY Bruno Golosio, Antonio Brunetti, Manuel Sanchez del
 
 ### Altre tabelle
 Le tabelle di bande (FTIR, Raman, UV-Vis, fluorescenza, NMR), di righe (XRF secondo X-ray Data Booklet; LIBS da NIST Atomic Spectra Database) e di pigmenti sono compilate dall'autore a partire dalla letteratura citata nel programma e nella documentazione (tra gli altri Socrates 2001; Larkin 2011; Eastaugh et al. 2008; Janssens & Van Grieken 2004; Bell, Clark & Gibbs 1997; Burgio & Clark 2001; Caggiani et al. 2016). Si tratta di valori numerici selezionati e riordinati, non di copie delle opere. Le fonti vanno citate quando si usano i risultati.
+
+### liborigin (formato dei progetti Origin .opj)
+Il lettore e lo scrittore dei progetti Origin in `app/origin-core.js` sono scritti da zero in JavaScript, ma seguono la struttura dei blocchi e le posizioni dei campi del formato .opj («CPYA») come documentate dal codice di liborigin (https://sourceforge.net/projects/liborigin/, https://github.com/SciDAVis/liborigin), usato da SciDAVis e LabPlot. Nessun file di liborigin è incluso. liborigin è distribuito sotto la GNU General Public License, versione 2 o successiva, compatibile con la licenza di Acchiappaspettri (GPL-3.0-or-later).
+
+```text
+liborigin: Copyright (C) 2005-2008, 2017 Stefan Gerlach; (C) 2007-2008 Alex Kargovsky, Ion Vasilief;
+(C) 2017 Miquel Garriga. This program is free software; you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of
+the License, or (at your option) any later version.
+```
+Per .opju («CPYUA») non esiste documentazione pubblica: la struttura è stata ricostruita da Acchiappaspettri; la codifica dei valori è FPC (M. Burtscher, P. Ratanaworabhan, «FPC: A High-Speed Compressor for Double-Precision Floating-Point Data», IEEE Trans. Computers 58 (2009) 18–31), algoritmo riscritto da zero.
 
 ## 3. Windows
 

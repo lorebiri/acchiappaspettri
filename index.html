@@ -25,6 +25,7 @@
 <script src="app/i18n.js"></script>
 <script src="app/channels-core.js"></script>
 <script src="app/project-format.js"></script>
+<script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
 <script src="app/sorption-core.js"></script>
 <style>
@@ -1080,6 +1081,23 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
         <div class="field oname"><label>Nome del file</label><input type="text" data-nm="origin" spellcheck="false" autocomplete="off"></div>
         <div class="field"><label>Dati</label><select data-k="originData"><option value="proc">come nel grafico (con conversioni, linea di base, smoothing…)</option><option value="raw">originali del file</option></select></div>
         <p class="why" style="margin:6px 0 0">In Origin: <b>File → Apri → Excel</b> (oppure trascina il file nella finestra) e scegli <b>3 righe di intestazione: Long Name, Units, Comments</b>. Poi salva come progetto <b>.opju</b>. Il formato .opj di Origin è chiuso e non si può creare fuori da Origin.</p>
+      </div>
+    </div>
+    <div class="outcard" data-out="outOpj">
+      <label class="ohead"><input type="checkbox" data-k="outOpj"><span class="oico">📈</span><span><b>Progetto Origin .opj</b><small>un progetto Origin con nome lungo, unità e commento nelle colonne e i valori esatti</small></span></label>
+      <div class="obody">
+        <div class="field oname"><label>Nome del file</label><input type="text" data-nm="opj" spellcheck="false" autocomplete="off"></div>
+        <div class="field"><label>Organizzazione</label><select data-k="opjMode"><option value="each">una cartella per spettro</option><option value="one">un foglio con tutte le coppie X/Y</option></select></div>
+        <p class="why" style="margin:6px 0 0">Dati come scelto per la cartella Excel per Origin (come nel grafico o originali del file). Il file viene riletto prima di consegnarlo: se i valori non tornano identici non viene scritto.</p>
+        <p class="why opjWarn" data-fmt="opj" style="margin:6px 0 0"><b>Non ancora verificato in Origin.</b> Per un lavoro da consegnare usa la cartella Excel per Origin.</p>
+      </div>
+    </div>
+    <div class="outcard" data-out="outOpju">
+      <label class="ohead"><input type="checkbox" data-k="outOpju"><span class="oico">📈</span><span><b>Progetto Origin .opju</b><small>lo stesso contenuto nel formato di Origin 2018 e successivi</small></span></label>
+      <div class="obody">
+        <div class="field oname"><label>Nome del file</label><input type="text" data-nm="opju" spellcheck="false" autocomplete="off"></div>
+        <div class="field"><label>Organizzazione</label><select data-k="opjMode"><option value="each">una cartella per spettro</option><option value="one">un foglio con tutte le coppie X/Y</option></select></div>
+        <p class="why opjWarn" data-fmt="opju" style="margin:6px 0 0"><b>Non ancora verificato in Origin.</b> Per un lavoro da consegnare usa la cartella Excel per Origin.</p>
       </div>
     </div>
     <div class="outcard" data-out="csvPeaks">
@@ -4506,7 +4524,7 @@ const DEFAULTS = {
   outPdf:true, outPng:true, pngW:16, pngH:10, pngDpi:600, csvPeaks:true, csvData:false, keepFolders:true,
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
-  showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
+  showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, outOpj:false, outOpju:false, opjMode:'each', originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
   csvRaw:false, outOrig:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
   logY:{xrf:true}
@@ -4514,7 +4532,7 @@ const DEFAULTS = {
 for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
-const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','trace','origin','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
+const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ return hostGet(k); }
 function lsSet(k,v){ hostSet(k,v); }
@@ -4531,9 +4549,9 @@ function sanitizeS(r){
   if (!SAMPLE_TYPES[r.sample]) r.sample='all';
   if (typeof r.docTitle!=='string') r.docTitle=''; r.docTitle=r.docTitle.slice(0,120);
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
-  oneOf('originData',['proc','raw']); oneOf('expScope',['sel','all','one']);
+  oneOf('originData',['proc','raw']); oneOf('opjMode',['each','one']); oneOf('expScope',['sel','all','one']);
   { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
-  ['csvRaw','outOrig','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['csvRaw','outOrig','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
@@ -5186,7 +5204,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
   return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[];
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
@@ -5196,7 +5214,7 @@ async function addEntries(entries){
                    tube:(p.xrf&&p.xrf.tube)||'', uncal: !!(p.xrf && !p.xrf.calibrated), ecal:null,
                    instr:det.instr, autoInstr:det.instr, reason:det.reason, include:true, removed:[], added:[], labels:{}, title:'', desc:'', xr:null};
         f._p = {peY:p.peY, ys:p.ys, meta:p.meta, chemKind:p.chem?p.chem.kind:undefined}; f.raw = buf; f.rawBin = !!pbin;   // dati originali, per salvare il progetto
-        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1 && !ch){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false;
+        f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1 && !ch){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; if (p.origin){ f.origin=p.origin; f.rawName=path.replace(/#origin:[^#]*$/,'').split('/').pop(); }
         // un canale di un file multicanale: la colonna Y e i blocchi non si scelgono più a mano, il canale è quello letto
         if (ch){ f.sampleKey=ch.sampleKey==null?null:String(ch.sampleKey); f.channel=ch.channel||null; f.chInfo=ch.info||null; f.chSrc=ch.src||'canali'; f.nCols=2; f.colNames=null; f.ycolNow=1; f.nBlocks=1; f.chIx=0; f.nChan=1; f.afterCh=0; f._chan=ch.label||''; if (f.importIssue && f.importIssue.channel) f.importIssue=null; }
         if (p.iso) f.iso=p.iso;   // isoterma completa (rami, p, p₀, meta), ricostruita dai byte originali alla riapertura
@@ -5232,20 +5250,23 @@ async function addEntries(entries){
       if (err || !file){ unreadable.push(path); continue; }
       if (/\.(acchiappa\.json|acchspettri)$/i.test(file.name)){ projects.push(file); continue; }
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
-      if (!ACCEPT.test(file.name)){ skipped.push(path); continue; }
+      const om=window.AcchOriginUI ? /#origin:([^#]*)$/.exec(path) : null;   // uno spettro scelto da un progetto Origin (vedi app/origin-ui.js)
+      if (/\.opju?$/i.test(file.name) && window.AcchOriginUI && !om){ origins.push({file, path}); continue; }
+      if (!ACCEPT.test(file.name) && !om){ skipped.push(path); continue; }
       const lkey=path+'\u0000'+file.size, same=files.filter(f=>f.path===path && f.size===file.size);
       if ((same.length && !same.some(f=>f.chSrc)) || LOADING.has(lkey)){ dup++; continue; }
       LOADING.add(lkey);
       let buf;
       try{ buf = await file.arrayBuffer(); }catch(e){ console.error(e); unreadable.push(path); LOADING.delete(lkey); continue; }
+      if (om) buf=AcchOriginUI.shared(buf);   // più spettri dallo stesso progetto Origin: un solo buffer in memoria
       try{
         // progetto della versione 1 (o spettro salvato senza canale): si rilegge come allora, un solo spettro
         const legacy=Array.isArray(ent.want) && ent.want.every(w=>w.sampleKey==null && w.channel==null);
         const C=window.AcchChannels;
-        if (C && /\.uv$/i.test(file.name)){ const uv=C.readUv(buf); if (!uv){ errors.push(path); continue; } { const o={kind:'uv', uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); } continue; }
-        const xl = /\.xlsx$/i.test(file.name) ? await xlsxParse(buf) : null;   // cartelle di Excel: solo isoterme e chemisorbimento (Kaomi, DEDOTTO)
-        let mc=(C && !xl) ? C.readBinary(buf, file.name) : null, text=null, pb=null, mbin=!!mc;
-        if (!mc && !xl){ pb=parseBinary(buf, file.name); if (!pb){ text=decodeBuffer(buf); if (C && !legacy) mc=C.readText(text, file.name); } }
+        if (C && !om && /\.uv$/i.test(file.name)){ const uv=C.readUv(buf); if (!uv){ errors.push(path); continue; } { const o={kind:'uv', uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); } continue; }
+        const xl = !om && /\.xlsx$/i.test(file.name) ? await xlsxParse(buf) : null;   // cartelle di Excel: solo isoterme e chemisorbimento (Kaomi, DEDOTTO)
+        let mc=(C && !xl && !om) ? C.readBinary(buf, file.name) : null, text=null, pb=null, mbin=!!mc;
+        if (!mc && !xl){ pb=om ? AcchOriginUI.parseSel(buf, om[1]) : parseBinary(buf, file.name); if (!pb){ text=decodeBuffer(buf); if (C && !legacy) mc=C.readText(text, file.name); } }
         if (mc){ if (!mc.read){ errors.push(path); continue; } const o={kind:'mc', mc, file, path, buf, bin:mbin, want:ent.want}; msrc.push(o); order.push({src:o}); continue; }
         const p = xl || pb || parseText(text);
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); if (p.chemGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.chemGuided); continue; }
@@ -5299,6 +5320,8 @@ async function addEntries(entries){
     if (lost){ const why=msgs.filter(m=>/^(🙈|⛔|🤔|🔒)/.test(m)).map(m=>m.replace(/<[^>]+>/g,'').replace(/^(🙈|⛔|🤔|🔒)\s*/,'')).join(' '); setTimeout(()=>toast('⚠️ '+why), 50); }
   } else if (dup && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
+  } else if (origins.length && !skipped.length && !errors.length && !unreadable.length){
+    say('#hello', 'Progetto Origin ricevuto: scegli gli spettri da importare.');
   } else if (images.length && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', `Ho ricevuto ${images.length===1?'una foto':images.length+' foto'}: ti chiedo cosa farne. 🖼️`);
   } else if (!entries.length){
@@ -5311,6 +5334,7 @@ async function addEntries(entries){
   if (added && curView===2) renderPreview();
   loader(false);
   if (images.length) askImages(images);
+  if (origins.length) AcchOriginUI.ask(origins);
   if (projects.length) await AcchProject.openFile(projects[0]);
 }
 async function entriesFromDrop(dt, fallback){
@@ -6369,7 +6393,7 @@ $$('[data-k]').forEach(el=>{
     S[k]=v; saveS();
     if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
     if (k==='expert') applyExpert();
-    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','outOpj','outOpju','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
@@ -6420,8 +6444,8 @@ $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
 
 /* ---------------- VOCI DELL'ESPORTAZIONE: che cosa, con quale nome, dove ---------------- */
 // requisito 3.0.0: l'utente sceglie le voci; lo ZIP è solo una voce in più, spenta di default. Il contenuto di ogni file resta quello di buildZip
-const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', project:'outProject'};
-const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
+const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', opj:'outOpj', opju:'outOpju', project:'outProject'};
+const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', opj:'opj', opju:'opju', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
 const DESK_EXP=()=>!!window.__TAURI__;
 let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
 let EXP_FIXED=[];   // nomi proposti corretti per Windows durante l'ultima esportazione: [prima, dopo]
@@ -6432,7 +6456,7 @@ function expSubDefault(){ const n=window.AcchProject && AcchProject.path ? Strin
 function expDefault(k){ const Lx=T_(), en=LANG==='en';
   switch (k){ case 'pdf': return expBase()+'.pdf'; case 'zip': return expBase()+'.zip'; case 'png': return ''; case 'svg': return 'svg'; case 'data': return Lx.dataDir;
     case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
-    case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx';
+    case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx'; case 'opj': return 'per_Origin.opj'; case 'opju': return 'per_Origin.opju';
     case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
 /* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
    niente punto o spazio finale, niente nomi riservati (CON, PRN, AUX, NUL, COM1–9, LPT1–9, anche con estensione), percorso relativo entro EXP_MAXREL */
@@ -6500,6 +6524,8 @@ function renderSummary(){
     if (sel.analysis) parts.push(`<li>🔬 <span>Tabelle di analisi e bozza dei metodi</span> · ${nm('analysis')}</li>`);
     if (sel.trace) parts.push(`<li>🧾 <span>Tracciabilità</span>: ${nm('trace')}</li>`);
     if (sel.origin) parts.push(`<li>📈 <span>Cartella Excel per Origin</span>: ${nm('origin')}</li>`);
+    if (sel.opj) parts.push(`<li>📈 <span>Progetto Origin .opj</span>: ${nm('opj')}</li>`);
+    if (sel.opju) parts.push(`<li>📈 <span>Progetto Origin .opju</span>: ${nm('opju')}</li>`);
     if (sel.project) parts.push(`<li>💾 <span>Progetto</span>: ${nm('project')}</li>`);
     items.push(...parts);
     if (parts.length && S.zipAll) items.push(`<li>📦 <span>Tutto dentro un solo file ZIP</span>: ${nm('zip')}</li>`);
@@ -6965,7 +6991,7 @@ async function exportEntries(sel, zipping){
       add('raw', uniq(expDir('raw')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
     // copia identica: i byte del file come è stato caricato (anche binari e JCAMP); più spettri dallo stesso file → una copia sola
-    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.name||'file');
+    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.rawName||f.name||'file');
       add('orig', uniq(expDir('orig')+dir, m[1]||'file', m[2]), new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)); }
     progress((i+1)/total*0.9); say_(i+1); await tick();
   }
@@ -6976,6 +7002,7 @@ async function exportEntries(sel, zipping){
     await tick();
   }
   if (sel.origin){ status('📈 Preparo la cartella per Origin…'); add('origin', expName('origin'), await buildOriginXlsx()); }
+  for (const k of ['opj','opju']) if (sel[k] && window.AcchOriginUI){ status('📈 Preparo il progetto Origin…'); await tick(); add(k, expName(k), AcchOriginUI.buildProject(k, S.opjMode)); }   // riletto e confrontato prima di consegnarlo
   if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
   if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   return out;
@@ -9073,6 +9100,7 @@ window.ACCH_USER_TEXTS=()=>{ const o=[]; try{ files.forEach(f=>{ o.push(f.name, 
 window.ACCH_AXSYNC=bindAxisFields();
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
+<script src="app/origin-ui.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
 <script src="app/web.js"></script>
