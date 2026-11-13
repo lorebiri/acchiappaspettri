@@ -25,4 +25,12 @@
     <glob pattern="*.arw"/>
     <magic priority="60"><match type="string" value="&quot;Sample" offset="0"/></magic>
   </mime-type>
+  <!-- I4: libreria dei picchi, .acchlib (e i .acchlib.json della prima versione: il glob doppio vince su *.json) -->
+  <mime-type type="application/vnd.acchiappaspettri.library+json">
+    <comment>Acchiappaspettri peak library</comment>
+    <comment xml:lang="it">Libreria dei picchi di Acchiappaspettri</comment>
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.acchlib"/>
+    <glob pattern="*.acchlib.json" weight="80"/>
+  </mime-type>
 </mime-info>
