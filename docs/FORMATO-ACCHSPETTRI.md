@@ -135,8 +135,67 @@ Campi facoltativi dentro `memory.an`: un lettore 2 che non li conosce li ignora 
 ```
 - Ogni libreria usata dal progetto (REQUISITO-LIBRERIA, punto 7) è copiata per intero in `file`: il progetto resta autonomo anche su un altro computer.
 - `id` unico nel progetto, `revision` intero ≥ 1: con lo stesso `id` vale la revisione più alta, e l'unione con la libreria dell'utente segue la strategia del Capo Progetto (voce per voce, conflitti all'utente).
-- Il contenuto del file è il documento `.acchlib.json` così com'è: il suo schema è della libreria dei picchi (I4). Il formato di progetto controlla solo che sia un oggetto JSON.
+- Il contenuto del file è il documento `.acchlib.json` così com'è (schema qui sotto). Il formato di progetto controlla solo che sia un oggetto JSON; la libreria dei picchi lo valida all'apertura. Si incorporano le librerie usate dagli spettri del progetto e quelle già incorporate all'apertura.
 - La vecchia «libreria dei nomi» (`state.LIB`) resta in `state.json`.
+
+### Il documento `.acchlib` (libreria dei picchi, tappa I4)
+
+Una libreria vale per **una coppia (strumento, tipo di campione)**. Si salva con l'estensione **`.acchlib`** (decisione del Capo Progetto, 13/11/2026); il contenuto è JSON (UTF-8, formato `acchlib` 1). I file `.acchlib.json` della prima versione si leggono ancora, come le importazioni da un `.json`. È un file che si apre con qualsiasi editor; codice in `app/library.js` (`AcchLib.parse`, `normalize`, `serialize`, `merge`). Lo stesso documento sta in `libraries/*.acchlib.json` del progetto (nome interno dell'archivio, invariato), in `app_data_dir()/librerie/*.acchlib` (desktop), nelle cartelle condivise registrate e in IndexedDB (online).
+
+```json
+{"format":"acchlib", "formatVersion":1, "id":"lib-agilent-1260-infinity-dad-g4212b-alimenti-x7k2", "revision":3,
+ "name":"Agilent 1260 Infinity · DAD — alimenti", "technique":"hplc",
+ "instrument":{"brand":"Agilent", "model":"1260 Infinity", "detector":"DAD G4212B", "serial":""}, "sampleType":"alimenti",
+ "methods":[{"id":"METODO-A.M", "column":"C18 150 × 4,6 mm", "notes":"", "aliases":["METODO-A"]}],
+ "author":"", "createdAt":"2026-11-13T10:00:00Z", "modifiedAt":"2026-11-13T10:00:00Z", "description":"",
+ "profile":"ricerca", "thresholds":{"dev":10, "diff":5, "drift":5}, "thresholdReason":"", "reminderDays":180,
+ "maintenance":[{"date":"2026-12-01", "kind":"lampada", "target":"", "note":"", "author":"Tecnico A"}],
+ "suitability":[{"date":"2026-12-02", "ok":true, "note":"", "author":"Tecnico A"}],
+ "entries":[{"id":"v-…", "rev":2, "modifiedAt":"…", "name":"Caffeina", "x":3.21, "window":0.1, "rrt":null, "rrtRef":"",
+   "channel":"DAD1A 220/4 nm ref off",
+   "method":"METODO-A.M", "column":"", "integration":{"a":3.05, "b":3.38}, "profile":"",
+   "cal":{"kind":"line", "slope":612.4, "intercept":0.8, "sa":0.6, "sb":2.1, "syx":1.9, "srel":0.008, "srelDf":12, "n":18, "df":16, "r2":0.9996,
+          "xm":7.6, "ym":4660, "sxx":620, "lod":0.03, "loq":0.09, "range":[1,20], "areaUnit":"mAU·min", "concUnit":"mg/L",
+          "date":"2026-11-13", "standardLot":"L-42", "normalized":false, "source":"taratura", "uStd":null, "measure":"area", "rrf":null},
+   "source":null, "notes":"", "warnings":[], "chart":[{"date":"2026-11-14", "k":1.004}]}]}
+```
+
+| Campo | Significato |
+|---|---|
+| `format`, `formatVersion` | `"acchlib"`, `1`. Un file più nuovo si apre solo se `minReaderVersion` ≤ 1, altrimenti «aggiorna l'applicazione» |
+| `id`, `revision` | identità della libreria e sua revisione (≥ 1, +1 a ogni modifica). Con lo stesso `id` le copie si uniscono voce per voce |
+| `instrument`, `sampleType`, `technique` | la coppia (strumento, tipo di campione) e la tecnica (`hplc`, `ftir`, `raman`, `xrf`, `uv`). Campi liberi |
+| `methods` | metodi della libreria; `aliases` sono i nomi del metodo nei file dello strumento (per esempio `ICCOM-A.M`) |
+| `profile`, `thresholds`, `thresholdReason`, `reminderDays` | profilo predefinito delle voci e soglie (docs/SPEC-TARATURA-SALVATA.md). Soglie più larghe di quelle predefinite valgono solo con `thresholdReason`, mai oltre i massimi |
+| `maintenance` | eventi di manutenzione (data, tipo, parte, nota, autore): invalidano le tarature salvate precedenti di quello strumento o colonna |
+| `suitability` | idoneità del sistema del giorno (data, superata o no, nota, autore): una non superata blocca le tarature salvate di quel giorno. Registri: all'unione si sommano, senza conflitti |
+| `entries[].x`, `window`, `rrt`, `rrtRef` | posizione (tR in min per l'HPLC, cm⁻¹, keV…), semiampiezza della finestra, RRT rispetto alla voce `rrtRef` |
+| `entries[].channel` | canale del rivelatore come testo nel formato della tappa I3 (`AcchChannels.formatChannel`, per esempio `DAD1A 254/4 nm ref 360/100 nm`). Confronto con il file: rivelatore e λ obbligatori, banda e riferimento solo se presenti in entrambi |
+| `entries[].integration` | zona di integrazione usata alla taratura; nel campione si sposta con il tR trovato |
+| `entries[].cal` | taratura salvata: `kind` `line` (y = a + b·x) o `rf` (y = b·x); `srel` ripetibilità relativa per l'incertezza e `srelDf` i suoi gradi di libertà (U = t_df · x · …, decisione del Capo Progetto); `range` intervallo (nessuna estrapolazione); `areaUnit` e `concUnit`; `date` e `standardLot`; `source` `taratura` o `letteratura`; `rrf` per il profilo Impurezze |
+| `entries[].chart` | carta di controllo della voce: k di ogni serie |
+| `entries[].deleted` | voce tolta (lapide): resta perché un'altra copia non la faccia ricomparire all'unione |
+
+Regole: chiavi `__proto__`, `constructor`, `prototype` scartate; testi limitati; solo numeri finiti; ogni voce senza nome si scarta con un avviso. Il testo si scrive in modo stabile (`serialize`): lo stesso contenuto dà la stessa impronta SHA-256.
+
+**Scritture contemporanee** (DECISIONE-PO §7): si scrive solo se l'impronta del file è ancora quella letta (lato nativo `libs.rs`, oppure transazione IndexedDB). Altrimenti si unisce voce per voce con la versione letta come base (`id`, `rev`, `modifiedAt`): le voci cambiate da una parte sola entrano da sole, quelle cambiate da entrambe le parti le sceglie l'utente; annullare non scrive niente. Le copie di conflitto di OneDrive (`nome-PC.acchlib`, `nome (1).acchlib`, oppure lo stesso `id` in due file) si segnalano e non si usano mai al posto dell'originale. Nel desktop la versione precedente di una libreria dell'utente resta in `librerie/versioni/` (ultime 20). Sequenza della scrittura (`libs.rs`): lettura e confronto dell'impronta, file temporaneo nella stessa cartella, nuova lettura dell'impronta dell'originale, rinomina atomica; se l'originale è cambiato dopo il temporaneo si annulla e la pagina unisce. **Rischio residuo**: una scrittura di un altro computer che arriva tra l'ultima lettura e la rinomina (pochi millisecondi) verrebbe sostituita; su OneDrive la sincronizzazione ne fa di solito una copia di conflitto (segnalata), sulle librerie dell'utente la versione resta in `versioni/`. Su una cartella di rete senza blocchi non si può escludere del tutto (decisione PO §7: niente file di blocco).
+
+**Apertura dal sistema**: `.acchlib` è associato con l'app come programma predefinito su Windows, macOS e Linux (`tauri.conf.json`, tipo `application/vnd.acchiappaspettri.library+json`): doppio clic → importazione con l'unione voce per voce e i conflitti espliciti. I vecchi `.acchlib.json`: doppio clic su Linux; su Windows e macOS, che vedono solo `.json`, l'app compare in «Apri con» (mai predefinita per tutti i JSON).
+
+**Importazione della bozza di letteratura**: `examples/librerie/saliva-hplc-dad220.bozza.json` (schema `draft-acchiappaspettri-library-…`) si converte all'apertura (`AcchLib.fromDraft`). Non è installata né attiva di serie.
+
+### Campi della libreria nella memoria dello spettro (`memory.an`)
+
+Campi facoltativi aggiunti dalla tappa I4, che un lettore 2 senza libreria ignora senza perdere numeri (non cambiano `formatVersion`):
+
+| Campo | Significato |
+|---|---|
+| `an.lib.st` | tipo di campione scelto dall'utente per lo spettro (ricordato nel progetto) |
+| `an.lib.id` | libreria scelta a mano (assente: scelta automatica per strumento e tipo di campione) |
+| `an.lib.ins`, `an.lib.insOk` | strumento corretto o confermato dall'utente (`{brand, model, detector, serial}`) |
+| `an.libCtrl`, `an.libPos` | spettro di controllo del giorno (`an.role` = `qc`): valore nominale per `id` di voce; posizione `open` o `close` nella serie |
+
+**Canale**: è il testo di `f.channel` della tappa I3 (per i file a un canale `chanOf(f)`), letto con `AcchChannels.parseChannel`. La prima versione della tappa I4 salvava un oggetto `{detector, lambda, …}`: all'apertura si converte nel testo.
 
 ## `project/state.json`
 
@@ -169,4 +228,4 @@ Campi facoltativi dentro `memory.an`: un lettore 2 che non li conosce li ignora 
 Le fotografie del falso colore e i preset globali non fanno parte del progetto. Zoom e scheda aperta non vengono ripristinati.
 
 ---
-**English summary.** `.acchspettri` is a plain, documented, versioned ZIP (format 2 since 3.0.0; format 1 and legacy `.acchiappa.json` are still read and migrated in memory). `manifest.json` lists every entry with SHA-256; `project/sources.json` and `data/` keep each original file once, byte for byte, even when several spectra (channels, told apart by `sampleKey` and `channel`) come from it; `project/spectra.json` holds per-spectrum work plus optional `series` (time × wavelength matrix), `cube` (nx × ny × channels map, binary data in a separate little-endian entry) and `iso` (adsorption isotherm); `project/libraries.json` and `libraries/` embed the peak libraries used (id and revision). No absolute paths and no executable content; every entry is verified on opening. `minReaderVersion` is 2.
+**English summary.** `.acchspettri` is a plain, documented, versioned ZIP (format 2 since 3.0.0; format 1 and legacy `.acchiappa.json` are still read and migrated in memory). `manifest.json` lists every entry with SHA-256; `project/sources.json` and `data/` keep each original file once, byte for byte, even when several spectra (channels, told apart by `sampleKey` and `channel`) come from it; `project/spectra.json` holds per-spectrum work plus optional `series` (time × wavelength matrix), `cube` (nx × ny × channels map, binary data in a separate little-endian entry) and `iso` (adsorption isotherm); `project/libraries.json` and `libraries/` embed the peak libraries used (id and revision). A peak library (`.acchlib`, JSON format `acchlib` 1; older `.acchlib.json` files are still read) belongs to one (instrument, sample type) pair and holds entries with position, window, RRT, detector channel, method, column and the saved calibration (slope or response factor, intercept, units, range, n, R², s_y/x, relative repeatability, LOD, LOQ, date, standard lot); concurrent writes are merged entry by entry after a SHA-256 check, conflicts go to the user. Optional `memory.an.lib*` fields keep the sample type, chosen library, confirmed instrument and same-day control values of each spectrum. No absolute paths and no executable content; every entry is verified on opening. `minReaderVersion` is 2.

@@ -12,6 +12,15 @@
       },
       {
         "ext": [
+          "acchlib"
+        ],
+        "name": "Acchiappaspettri peak library",
+        "description": "Acchiappaspettri peak library",
+        "role": "Editor",
+        "mimeType": "application/vnd.acchiappaspettri.library+json"
+      },
+      {
+        "ext": [
           "ch"
         ],
         "name": "Agilent ChemStation chromatogram",
@@ -86,6 +95,15 @@
           "xlsx"
         ],
         "name": "Gas sorption data (AIF, Kaomi Excel)",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "json"
+        ],
+        "name": "Acchiappaspettri peak library",
+        "description": "Acchiappaspettri peak library (.acchlib.json)",
         "role": "Viewer",
         "rank": "Alternate"
       }

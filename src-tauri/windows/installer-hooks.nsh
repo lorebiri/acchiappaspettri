@@ -3,6 +3,8 @@
 ;  .ch e .uv (Agilent) e JCAMP-DX sono associati da tauri.conf.json (predefiniti); .csv, .txt, .arw (anche foto Sony) e gli altri solo qui, con OpenWithProgids.
 ; Stesso elenco di RAW_EXT in src/lib.rs (test/unit/associazioni.test.js).
 !define ACCH_PROGID "Acchiappaspettri.Dati"
+; I4: librerie dei picchi. .acchlib è predefinito da tauri.conf.json; i vecchi .acchlib.json (Windows vede solo .json) restano in «Apri con», mai predefiniti.
+!define ACCH_LIBPROGID "Acchiappaspettri.Libreria"
 !macro ACCH_OPENWITH EXT
   WriteRegStr SHCTX "Software\Classes\.${EXT}\OpenWithProgids" "${ACCH_PROGID}" ""
   WriteRegStr SHCTX "Software\Classes\Applications\${MAINBINARYNAME}.exe\SupportedTypes" ".${EXT}" ""
@@ -39,11 +41,17 @@
   WriteRegStr SHCTX "Software\Classes\Applications\${MAINBINARYNAME}.exe\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
   WriteRegStr SHCTX "Software\Classes\Applications\${MAINBINARYNAME}.exe" "FriendlyAppName" "Acchiappaspettri"
   !insertmacro ACCH_OPENWITH_ALL ACCH_OPENWITH
+  WriteRegStr SHCTX "Software\Classes\${ACCH_LIBPROGID}" "" "Acchiappaspettri peak library"
+  WriteRegStr SHCTX "Software\Classes\${ACCH_LIBPROGID}\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "Software\Classes\${ACCH_LIBPROGID}\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
+  WriteRegStr SHCTX "Software\Classes\.json\OpenWithProgids" "${ACCH_LIBPROGID}" ""
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 !macro NSIS_HOOK_PREUNINSTALL
   Delete "$INSTDIR\installer-language.txt"
   !insertmacro ACCH_OPENWITH_ALL ACCH_OPENWITH_DEL
+  DeleteRegValue SHCTX "Software\Classes\.json\OpenWithProgids" "${ACCH_LIBPROGID}"
+  DeleteRegKey SHCTX "Software\Classes\${ACCH_LIBPROGID}"
   DeleteRegKey SHCTX "Software\Classes\${ACCH_PROGID}"
   DeleteRegKey SHCTX "Software\Classes\Applications\${MAINBINARYNAME}.exe"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
