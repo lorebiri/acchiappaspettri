@@ -1132,6 +1132,10 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
       <label class="ohead"><input type="checkbox" data-k="outTrace"><span class="oico">🧾</span><span><b>Tracciabilità</b><small>un CSV con l'impronta SHA-256 di ogni file e le scelte usate, per ricostruire i dati esportati</small></span></label>
       <div class="obody"><div class="field oname"><label>Nome del file</label><input type="text" data-nm="trace" spellcheck="false" autocomplete="off"></div></div>
     </div>
+    <div class="outcard" data-out="outLibCharts">
+      <label class="ohead"><input type="checkbox" data-k="outLibCharts"><span class="oico">📉</span><span><b>Carte di controllo delle librerie</b><small>per ogni voce di libreria con una carta di controllo: grafico PNG e SVG e tabella CSV dei k delle serie</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="libcharts" spellcheck="false" autocomplete="off"></div><small class="opt-l" id="libChartsNote" hidden></small></div>
+    </div>
     <div class="outcard" data-out="outProject">
       <label class="ohead"><input type="checkbox" data-k="outProject"><span class="oico">💾</span><span><b>Progetto</b><small>il file .acchspettri con i dati originali e tutto il lavoro, da riaprire qui</small></span></label>
       <div class="obody"><div class="field oname"><label>Nome del file</label><input type="text" data-nm="project" spellcheck="false" autocomplete="off"></div></div>
@@ -4529,14 +4533,14 @@ const DEFAULTS = {
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, outOpj:false, outOpju:false, opjMode:'each', originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
-  csvRaw:false, outOrig:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
+  csvRaw:false, outOrig:false, outLibCharts:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
   logY:{xrf:true}
 };
 for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
-const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
+const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','libcharts','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ return hostGet(k); }
 function lsSet(k,v){ hostSet(k,v); }
@@ -4555,7 +4559,7 @@ function sanitizeS(r){
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
   oneOf('originData',['proc','raw']); oneOf('opjMode',['each','one']); oneOf('expScope',['sel','all','one']);
   { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
-  ['csvRaw','outOrig','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['csvRaw','outOrig','outLibCharts','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
@@ -6448,7 +6452,7 @@ $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
 
 /* ---------------- VOCI DELL'ESPORTAZIONE: che cosa, con quale nome, dove ---------------- */
 // requisito 3.0.0: l'utente sceglie le voci; lo ZIP è solo una voce in più, spenta di default. Il contenuto di ogni file resta quello di buildZip
-const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', opj:'outOpj', opju:'outOpju', project:'outProject'};
+const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', libcharts:'outLibCharts', trace:'outTrace', origin:'outOrigin', opj:'outOpj', opju:'outOpju', project:'outProject'};
 const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', opj:'opj', opju:'opju', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
 const DESK_EXP=()=>!!window.__TAURI__;
 let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
@@ -6459,7 +6463,7 @@ function expBase(){ return safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+
 function expSubDefault(){ const n=window.AcchProject && AcchProject.path ? String(AcchProject.path).split(/[\\/]/).pop().replace(/\.acchspettri$/i,'') : (S.docTitle||T_().title); return safeName(n+'.x').replace(/\s+/g,'_')||'export'; }
 function expDefault(k){ const Lx=T_(), en=LANG==='en';
   switch (k){ case 'pdf': return expBase()+'.pdf'; case 'zip': return expBase()+'.zip'; case 'png': return ''; case 'svg': return 'svg'; case 'data': return Lx.dataDir;
-    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
+    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'libcharts': return en?'control_charts':'carte_di_controllo'; case 'peaks': return Lx.csvName;
     case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx'; case 'opj': return 'per_Origin.opj'; case 'opju': return 'per_Origin.opju';
     case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
 /* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
@@ -6526,6 +6530,7 @@ function renderSummary(){
     const noRaw=inc.filter(f=>!f.raw).length;
     if (sel.orig && noRaw<inc.length) parts.push(`<li>📎 <span>${inc.length-noRaw===1?'1 copia identica del file originale':(inc.length-noRaw)+' copie identiche dei file originali'}</span> · ${nm('orig')}</li>`);
     if (sel.analysis) parts.push(`<li>🔬 <span>Tabelle di analisi e bozza dei metodi</span> · ${nm('analysis')}</li>`);
+    if (sel.libcharts){ const n=window.AcchLibUi ? AcchLibUi.chartCount() : 0; if (n) parts.push(`<li>📉 <span>${n===1?'1 carta di controllo':n+' carte di controllo'} (PNG, SVG, CSV)</span> · ${nm('libcharts')}</li>`); }
     if (sel.trace) parts.push(`<li>🧾 <span>Tracciabilità</span>: ${nm('trace')}</li>`);
     if (sel.origin) parts.push(`<li>📈 <span>Cartella Excel per Origin</span>: ${nm('origin')}</li>`);
     if (sel.opj) parts.push(`<li>📈 <span>Progetto Origin .opj</span>: ${nm('opj')}</li>`);
@@ -7008,7 +7013,7 @@ async function exportEntries(sel, zipping){
   if (sel.origin){ status('📈 Preparo la cartella per Origin…'); add('origin', expName('origin'), await buildOriginXlsx()); }
   for (const k of ['opj','opju']) if (sel[k] && window.AcchOriginUI){ status('📈 Preparo il progetto Origin…'); await tick(); add(k, expName(k), AcchOriginUI.buildProject(k, S.opjMode)); }   // riletto e confrontato prima di consegnarlo
   if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
-  if (sel.analysis && window.AcchLibUi) await AcchLibUi.zipExtras({file:(p,d)=>add('analysis', expDir('analysis')+p, d)});   // carte di controllo delle librerie (PNG, SVG, CSV)
+  if (sel.libcharts && window.AcchLibUi) await AcchLibUi.chartFiles((p,d)=>add('libcharts', expDir('libcharts')+p, d));   // carte di controllo delle librerie (PNG, SVG, CSV), voce propria
   if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   return out;
 }

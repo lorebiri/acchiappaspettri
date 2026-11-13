@@ -146,15 +146,13 @@
     if (kind==='csv') return win.download(new Blob([chartCsv(e, o.lib)],{type:'text/csv'}), n+'.csv');
     if (kind==='svg') return win.download(new Blob([chartSvg(e, o.lib)],{type:'image/svg+xml'}), n+'.svg');
     return win.download(await chartPng(e, o.lib), n+'.png'); }
-  const OUT_CHARTS='acch.lib.outCharts', chartsOn=()=>hs(OUT_CHARTS)!==false;
-  /* nello ZIP di Esporta: le carte di controllo delle librerie usate, se l'opzione è attiva */
-  async function zipExtras(folder){ try{ if (!chartsOn()) return 0; let n=0; const dir=TD('carte_di_controllo/','control_charts/');
-      for (const lib of usedLibs()) for (const e of Lib.liveEntries(lib)) if ((e.chart||[]).length){ const nm=dir+chartName(lib,e); folder.file(nm+'.csv', chartCsv(e, lib)); folder.file(nm+'.svg', chartSvg(e, lib)); const b=await chartPng(e, lib); if (b) folder.file(nm+'.png', new Uint8Array(await b.arrayBuffer())); n++; }
-      return n; }catch(err){ console.error(err); return 0; } }
-  function exportOption(){ const card=doc.querySelector('.outcard[data-out="outAnalysis"]'); if (!card || $('#libOutCharts')) return;
-    const l=doc.createElement('label'); l.className='check'; l.id='libOutCharts'; l.style.display='block'; l.style.margin='6px 0 0 4px';
-    const c=doc.createElement('input'); c.type='checkbox'; c.checked=chartsOn(); c.onchange=()=>hset(OUT_CHARTS, c.checked);
-    const t=doc.createElement('span'); t.textContent=' '+T('Carte di controllo delle librerie (PNG, SVG e CSV, nello ZIP)','Library control charts (PNG, SVG and CSV, in the ZIP)'); l.append(c, t); card.parentNode.insertBefore(l, card.nextSibling); }
+  /* voce propria della finestra Esporta («Carte di controllo delle librerie», exportEntries in index.html): per ogni voce delle librerie usate
+     che ha una carta, PNG, SVG e CSV. add(percorso relativo, contenuto) è quello di exportEntries */
+  const chartEntries=()=>{ const out=[]; for (const lib of usedLibs()) for (const e of Lib.liveEntries(lib)) if ((e.chart||[]).length) out.push({lib, e}); return out; };
+  function chartCount(){ try{ return chartEntries().length; }catch(err){ return 0; } }
+  async function chartFiles(add){ let n=0; try{ for (const {lib, e} of chartEntries()){ const nm=chartName(lib,e); add(nm+'.png', await chartPng(e, lib)); add(nm+'.svg', chartSvg(e, lib)); add(nm+'.csv', chartCsv(e, lib)); n++; } }catch(err){ console.error(err); } return n; }
+  // nella finestra Esporta la voce dice se non c'è niente da esportare (nessuna carta nelle librerie usate)
+  function exportNote(){ const note=$('#libChartsNote'); if (!note) return; const n=chartCount(); note.hidden=n>0; note.textContent=T('Nessuna voce delle librerie usate ha ancora una carta di controllo: non c\'è niente da esportare.','No entry of the libraries in use has a control chart yet: there is nothing to export.'); }
 
   /* ---------- sezione nella scheda Analisi ---------- */
   function ensureSection(){
@@ -478,16 +476,17 @@
 
   /* ---------- aggancio alla pagina ---------- */
   function init(){
-    hookProject(); exportOption(); refresh().then(()=>{ try{ render(); }catch(e){} });
+    hookProject(); refresh().then(()=>{ try{ render(); }catch(e){} });
     const wrap=(n, after)=>{ const o=win[n]; if (typeof o!=='function') return; win[n]=function(){ const r=o.apply(this, arguments); try{ after.apply(this, arguments); }catch(e){ console.error(e); } return r; }; };
     wrap('renderAnalysis', ()=>render());
     wrap('renderMulti', ()=>multiHook());
+    wrap('renderExpNames', ()=>exportNote());
     const ae=win.addEntries; if (typeof ae==='function') win.addEntries=async function(){ const before=new Set(files); const r=await ae.apply(this, arguments); try{ await onLoaded(before); }catch(e){ console.error(e); } return r; };
     // comando nella tavolozza
     const c0=win.commands; if (typeof c0==='function') win.commands=function(){ const C=c0.apply(this, arguments); try{ C.push({grp:T('Analisi','Analysis'), ic:'📚', label:T('Librerie dei picchi…','Peak libraries…'), run:()=>openManager(), kw:'libreria library pendenze slope taratura salvata'}); }catch(e){} return C; };
     const css=doc.createElement('style'); css.textContent='#secLib .libmark{font-weight:700;color:var(--warn,#9a5b00)} #secLib .libbad,.libdlg .libbad{color:var(--bad,#b3261e)} #secLib .libprov{color:var(--muted);font-size:12px} #secLib table.libq td{vertical-align:top} .libdlg table td,.libdlg table th{padding:4px 6px;text-align:left;vertical-align:top} #secLib .libsrc{color:var(--muted)}';
     doc.head.appendChild(css);
   }
-  win.AcchLibUi={init, render, refresh, openManager, importText, saveLib, quantRows, chooseFor, recognize:rec, ctxItems, exportFiles, csvRows, zipExtras, chartSvg, chartCsv, chartPng, logDialog, libMatches, compareText, methodsText, pdfPages, setCtx, ctx, instrumentOf, askConflicts, mergeInto, get items(){ return items; }, get embedded(){ return embedded; }, ready:()=>ready||refresh()};
+  win.AcchLibUi={init, render, refresh, openManager, importText, saveLib, quantRows, chooseFor, recognize:rec, ctxItems, exportFiles, csvRows, chartFiles, chartCount, chartSvg, chartCsv, chartPng, logDialog, libMatches, compareText, methodsText, pdfPages, setCtx, ctx, instrumentOf, askConflicts, mergeInto, get items(){ return items; }, get embedded(){ return embedded; }, ready:()=>ready||refresh()};
   if (doc.readyState==='loading') doc.addEventListener('DOMContentLoaded', init); else init();
 })(typeof self!=='undefined' ? self : this);

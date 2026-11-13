@@ -30,13 +30,18 @@ async function importBozza(o, desk){
 async function confirmLoad(o, st, name){ if (st!=null){ await o.p.fill('#lpSt', st); await o.p.dispatchEvent('#lpSt', 'input'); } await o.p.click('#lpOk');
   await o.p.waitForFunction(n=>{ const f=files.find(g=>g.name===n); return f && f.an && f.an.lib && f.an.lib.insOk; }, name); }
 async function load(o, name, text){ await o.p.evaluate(async ([n,t])=>{ await addEntries([{file:new File([t],n), path:n}]); await new Promise(r=>setTimeout(r,250)); }, [name, text]); }
-async function exportZip(o, desk){
-  await o.p.evaluate(()=>{ S.outPdf=true; S.outAnalysis=true; S.oneFile=true; saveS(); go(3); });
-  if (desk){ await o.p.evaluate(()=>{ window.__mock.keepBytes=true; window.__mock.writes.length=0; window.__mock.pick.pick_save={path:'/utente/Documenti/risultati.zip', name:'risultati.zip'}; });
-    await o.p.click('#doDl'); await o.p.waitForFunction(()=>window.__mock.writes.some(w=>/\.zip$/.test(w.path)), null, {timeout:60000});
-    return Buffer.from(await o.p.evaluate(()=>window.__mock.writes.find(w=>/\.zip$/.test(w.path)).bytes)); }
+// finestra Esporta per voci (pacchetto «esporta»): online lo ZIP chiesto dall'utente (un download), desktop i file nella cartella scelta.
+// Restituisce {names, get(nome)→Buffer} con i percorsi relativi.
+async function exportOut(o, desk, extra){
+  await o.p.evaluate(x=>{ Object.assign(S, {outPdf:true, outAnalysis:true, outPng:false, outSvg:false, csvPeaks:false, csvData:false, csvRaw:false, outOrig:false, outTrace:false, outOrigin:false, outProject:false, expSub:false, expScope:'all', zipAll:!x.desk}, x.extra||{}); saveS(); syncControls(); go(3); renderSummary(); }, {desk, extra});
+  if (desk){ await o.p.evaluate(()=>{ const M=window.__mock; M.disk={}; M.pick.pick_export_dir={path:'/out/scelta', name:'scelta'}; });
+    await o.p.click('#doDl'); await o.p.waitForFunction(()=>/completata/.test($('#status').textContent), null, {timeout:60000});
+    const d=await o.p.evaluate(()=>{ const M=window.__mock, out={}; for (const [k,v] of Object.entries(M.disk)) if (k.startsWith('/out/scelta/')) out[k.slice(12)]=Array.from(v); return out; });
+    return {names:Object.keys(d), get:n=>Buffer.from(d[n])}; }
   const [dl]=await Promise.all([o.p.waitForEvent('download',{timeout:60000}), o.p.click('#doDl')]);
-  return fs.readFileSync(await dl.path());
+  const z=await JSZip.loadAsync(fs.readFileSync(await dl.path())), names=Object.keys(z.files).filter(n=>!z.files[n].dir), data={};
+  for (const n of names) data[n]=Buffer.from(await z.file(n).async('uint8array'));
+  return {names, get:n=>data[n]};
 }
 
 describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1000}, ()=>{
@@ -66,15 +71,15 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
     assert.match(sec.txt, /senza controllo del giorno/);
     if (desk){ const t=await o.p.evaluate(()=>document.querySelector('#secLib').innerText+[...document.querySelectorAll('.libdlg')].map(d=>d.innerText).join(' ')); assert.ok(!/[\p{Extended_Pictographic}]/u.test(t) && !/!/.test(t) && !/Gino/.test(t), 'desktop: tono professionale'); }
     // 4. Esporta: CSV e PDF con la provenienza
-    const zip=await JSZip.loadAsync(await exportZip(o, desk)), names=Object.keys(zip.files);
-    const csvN=names.find(n=>/concentrazioni_da_libreria\.csv$/.test(n)); assert.ok(csvN, w+': CSV delle concentrazioni nello ZIP: '+names.join(', '));
-    const csv=(await zip.file(csvN).async('string')).replace(/^\uFEFF/,''), L=csv.split(/\r\n/), H=L[0].split(';');
+    const X=await exportOut(o, desk), names=X.names;
+    const csvN=names.find(n=>/concentrazioni_da_libreria\.csv$/.test(n)); assert.ok(csvN, w+': CSV delle concentrazioni esportato: '+names.join(', '));
+    const csv=X.get(csvN).toString('utf8').replace(/^\uFEFF/,''), L=csv.split(/\r\n/), H=L[0].split(';');
     for (const k of ['Concentrazione','U','Fattore di copertura','Segno','Profilo','Metodo di taratura','Libreria','Revisione libreria','Voce','Data taratura','Età (giorni)','Lotto standard','Strumento della libreria','Tipo di campione','Fonte']) assert.ok(H.includes(k), 'colonna '+k);
     const row=n=>L.find(l=>l.split(';')[2]===n).split(';'), cr=row('Creatinine');
     assert.strictEqual(cr[H.indexOf('Segno')], 'senza controllo del giorno'); assert.strictEqual(cr[H.indexOf('Libreria')], LIBNAME); assert.strictEqual(cr[H.indexOf('Metodo di taratura')], 'salvata senza controllo'); assert.strictEqual(cr[H.indexOf('Data taratura')], '2020-01-01'); assert.strictEqual(cr[H.indexOf('Profilo')], 'Ricerca');
     { const num=t=>+String(t).replace(',','.'), c=num(cr[H.indexOf('Concentrazione')]), sc=num(sec.rows.find(x=>x.e==='Creatinine').x); assert.strictEqual(+c.toPrecision(4), sc, w+': CSV uguale allo schermo (a schermo 4 cifre)'); }
-    const met=await zip.file(names.find(n=>/metodi_e_bibliografia\.txt$/.test(n))).async('string'); assert.match(met, /senza controllo del giorno/); assert.match(met, new RegExp(LIBNAME));
-    const pdfN=names.find(n=>/\.pdf$/.test(n)); assert.ok(pdfN, w+': PDF nello ZIP'); const P=pdfText(Buffer.from(await zip.file(pdfN).async('uint8array'))).join('\n');
+    const met=X.get(names.find(n=>/metodi_e_bibliografia\.txt$/.test(n))).toString('utf8'); assert.match(met, /senza controllo del giorno/); assert.match(met, new RegExp(LIBNAME));
+    const pdfN=names.find(n=>/\.pdf$/.test(n)); assert.ok(pdfN, w+': PDF esportato'); const P=pdfText(X.get(pdfN)).join('\n');
     assert.match(P, /Concentrazioni dalla libreria dello strumento/); assert.match(P, /SENZA CONTROLLO DEL GIORNO/); assert.match(P, /voce «Creatinine»/); assert.match(P, /taratura del 01\/01\/2020/);
     await done(o);
   });
@@ -226,9 +231,13 @@ describe('Tappa I4: librerie per strumento e tipo di campione', {timeout:20*60*1
       if (!desk){ await o.p.evaluate(()=>{ const id=AcchLibUi.items.find(x=>x.lib&&x.lib.name==='Agilent 1260 Infinity · DAD — saliva').lib.id; return AcchLibUi.openManager(id); });
         for (const k of ['png','svg','csv']){ const [dl]=await Promise.all([o.p.waitForEvent('download'), o.p.click(`#lmEntries [data-chart][data-kind="${k}"]`)]); assert.match(dl.suggestedFilename(), new RegExp('creatinine\\.'+k+'$')); const b=fs.readFileSync(await dl.path()); if (k==='png') assert.strictEqual(b.slice(1,4).toString(),'PNG'); if (k==='csv') assert.match(b.toString(), /Serie[;,]Data[;,]k/); }
         await closeAll(o.p); }
-      assert.ok(await o.p.evaluate(()=>{ go(3); return !!document.querySelector('#libOutCharts input') && document.querySelector('#libOutCharts input').checked; }), w+': opzione in Esporta');
-      const zip=await JSZip.loadAsync(await exportZip(o, desk)), names=Object.keys(zip.files);
-      for (const k of ['png','svg','csv']) assert.ok(names.some(n=>new RegExp('carte_di_controllo/.*creatinine\\.'+k+'$').test(n)), w+': carta '+k+' nello ZIP: '+names.join(', '));
+      // voce propria della finestra Esporta: «Carte di controllo delle librerie»
+      const vc=await o.p.evaluate(()=>{ go(3); renderSummary(); const c=document.querySelector('.outcard[data-out="outLibCharts"]'); return {card:!!c, text:c&&c.textContent, note:document.querySelector('#libChartsNote').hidden}; });
+      assert.ok(vc.card && /Carte di controllo delle librerie/.test(vc.text) && vc.note, w+': voce in Esporta');
+      const X=await exportOut(o, desk, {outLibCharts:true, outPdf:false, outAnalysis:false}), names=X.names;
+      for (const k of ['png','svg','csv']) assert.ok(names.some(n=>new RegExp('carte_di_controllo/.*creatinine\\.'+k+'$').test(n)), w+': carta '+k+' esportata: '+names.join(', '));
+      assert.strictEqual(X.get(names.find(n=>/creatinine\.png$/.test(n))).slice(1,4).toString(), 'PNG');
+      assert.ok(!names.some(n=>/concentrazioni_da_libreria/.test(n)), w+': solo la voce scelta');
       // 2. doppio clic su un .acchlib (desktop): importazione con l'unione e i conflitti espliciti
       if (desk){ const r=await o.p.evaluate(async ()=>{ const M=window.__mock, it=AcchLibUi.items.find(x=>x.lib&&x.lib.sampleType==='polimeri'), L=JSON.parse(JSON.stringify(it.lib));
           AcchLib.upsert(L, Object.assign({}, L.entries[0], {x:1720})); AcchLib.upsert(L, {name:'C-H', x:2920, window:15});

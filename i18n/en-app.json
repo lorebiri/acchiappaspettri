@@ -1264,5 +1264,11 @@
   "Fisisorbimento e chemisorbimento": "Physisorption and chemisorption",
   "Isoterme dell'Autosorb (Kaomi, ASiQwin, AIF, anche Excel): BET con i criteri di Rouquerol, Langmuir, t-plot, BJH, DR, calore isosterico e DFT; per il chemisorbimento TPR/TPD, impulsi e dispersione.": "Autosorb isotherms (Kaomi, ASiQwin, AIF, Excel too): BET with the Rouquerol criteria, Langmuir, t-plot, BJH, DR, isosteric heat and DFT; for chemisorption TPR/TPD, pulses and dispersion.",
   "Progetti Origin": "Origin projects",
-  "Apri i tuoi .opju e .opj: scegli le colonne da importare, con i valori identici all'originale. Puoi anche esportare in formato Origin (non ancora provato in Origin).": "Open your .opju and .opj files: choose the columns to import, with values identical to the original. You can also export in Origin format (not yet tried in Origin)."
+  "Apri i tuoi .opju e .opj: scegli le colonne da importare, con i valori identici all'originale. Puoi anche esportare in formato Origin (non ancora provato in Origin).": "Open your .opju and .opj files: choose the columns to import, with values identical to the original. You can also export in Origin format (not yet tried in Origin).",
+"Carte di controllo delle librerie": "Library control charts",
+"per ogni voce di libreria con una carta di controllo: grafico PNG e SVG e tabella CSV dei k delle serie": "for each library entry with a control chart: PNG and SVG chart and CSV table of the run k values",
+"1 carta di controllo": "1 control chart",
+"carte di controllo": "control charts",
+"{0} (PNG, SVG, CSV)": "{0} (PNG, SVG, CSV)",
+"Nessuna voce delle librerie usate ha ancora una carta di controllo: non c'è niente da esportare.": "No entry of the libraries in use has a control chart yet: there is nothing to export."
 }
