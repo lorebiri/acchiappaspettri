@@ -2,14 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Finto window.__TAURI__ per provare nel browser il ponte desktop (app/desktop.js) senza l'app vera.
 // I comandi nativi rispondono con i dati preparati nel test (window.__mock) e ogni chiamata resta registrata.
+// Esportazione in cartella: M.disk è il disco finto ({percorso: byte}); pick_export_dir concede la cartella di M.pick.pick_export_dir.
 'use strict';
 function tauriMock(){
-  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], writeDelay:0, shown:0,
+  const M=window.__mock={calls:[], listeners:{}, drag:[], menu:null, files:{}, pick:{}, writes:[], store:{}, storeWrites:[], writeDelay:0, shown:0, disk:{}, dirs:new Set(), failRel:null, reveals:[],
     emit(name, payload){ (M.listeners[name]||[]).forEach(cb=>cb({event:name, payload})); },
     dragEvent(payload){ M.drag.forEach(cb=>cb({event:'tauri://drag', payload})); } };
   const enc=s=>new TextEncoder().encode(s);
   async function invoke(cmd, args, opt){
-    M.calls.push({cmd, t:performance.now(), args: cmd==='write_file' ? {size:args.length, path:decodeURIComponent(opt.headers['x-acch-path'])} : JSON.parse(JSON.stringify(args||{}))});
+    const h=k=>decodeURIComponent(opt.headers[k]);
+    M.calls.push({cmd, t:performance.now(), args: cmd==='write_file' ? {size:args.length, path:h('x-acch-path')} : cmd==='write_in_dir' ? {size:args.length, dir:h('x-acch-dir'), rel:h('x-acch-rel')} : JSON.parse(JSON.stringify(args||{}))});
+    const join=(d,r)=>d.replace(/\/+$/,'')+'/'+r, granted=d=>{ if (!M.dirs.has(d)) throw 'not-allowed'; };
     switch (cmd){
       case 'install_info': return {os:'windows', kind:'nsis', arch:'x86_64', e2e:true};
       case 'installer_language': return null;
@@ -19,6 +22,13 @@ function tauriMock(){
       case 'pick_open': case 'pick_save': return M.pick[cmd]===undefined ? null : M.pick[cmd];
       case 'read_file': { const t=M.files[args.path]; if (t==null) throw 'read-failed: NotFound'; return Array.from(typeof t==='string' ? enc(t) : t); }
       case 'write_file': { if (M.writeDelay) await new Promise(r=>setTimeout(r,M.writeDelay)); if (M.writeFail) throw 'write-failed: PermissionDenied'; M.writes.push({path:decodeURIComponent(opt.headers['x-acch-path']), size:args.length, t:performance.now()}); return null; }
+      case 'pick_export_dir': { const p=M.pick.pick_export_dir; if (!p) return null; M.dirs.add(p.path); return p; }
+      case 'export_existing': granted(args.dir); return args.rels.filter(r=>Object.prototype.hasOwnProperty.call(M.disk, join(args.dir,r)));
+      case 'write_in_dir': { const d=h('x-acch-dir'), r=h('x-acch-rel'); granted(d); if (/(^|\/)\.\.?(\/|$)|^\/|\\/.test(r)) throw 'unsafe-path';
+        if (M.writeDelay) await new Promise(res=>setTimeout(res,M.writeDelay)); if (M.failRel && M.failRel.test(r)) throw 'write-failed: PermissionDenied';
+        M.disk[join(d,r)]=args.slice(); M.writes.push({path:join(d,r), size:args.length, t:performance.now()}); return null; }
+      case 'reveal_in_dir': granted(args.dir); M.reveals.push(args.rel ? join(args.dir,args.rel) : args.dir); return null;
+      case 'store_write': { M.storeWrites.push(args.items); for (const [k,v] of Object.entries(args.items)){ if (v==null) delete M.store[k]; else M.store[k]=v; } return null; }   // archivio su file (lib.rs, store.rs)
       default: throw 'mock: comando sconosciuto '+cmd;
     }
   }

@@ -78,7 +78,7 @@ Con il file d'esempio lo stagno può andare da 4,78 a 17,5%, il rame da 75,5 a 8
 
 ## 6. Scarica i risultati
 - **Solo la tabella:** premi **⬇️ CSV** sotto le note. Ottieni `composizione_FP_BRONZO_SIMULATO_Rh40kV_SINTETICO.csv`.
-- **Tutto:** premi **Tutto ok, vai a scaricare** (*app desktop:* **Esporta**), poi **⬇️ Scarica tutto in un file ZIP**. Nello ZIP:
+- **Tutto:** premi **Tutto ok, vai a scaricare** (*app desktop:* **Esporta**), lascia spuntati **PDF** e **Risultati delle analisi** e premi **⬇️ Scarica i file scelti** (*app desktop:* **Esporta nella cartella…** e scegli la cartella; con **Raccogli tutto in un file ZIP** ottieni un solo file). Trovi:
   - `analisi/composizione_xrf_parametri_fondamentali.csv`: ogni elemento con la % in peso, il ±, anodo, kV, angoli e la colonna «Tipo di valore» = «stima senza standard, non validata»;
   - il PDF: nella pagina «Analisi: controllo dei dati e ipotesi» c'è la riga «Stima senza standard, non validata (parametri fondamentali)» con la composizione, le condizioni e gli avvisi.
 

@@ -82,7 +82,7 @@ How to read them:
 
 ## 6. Download the results
 - **Table only:** press **⬇️ CSV** below the table. You get `misure_hplc.csv` for Excel: areas, estimated concentrations, interval, status of each row, and at the end the line, LOD, LOQ and Mandel test. Its column names follow the plot language.
-- **Everything:** press **All good, go and download** (*desktop app:* **Export**), then **⬇️ Download everything in one ZIP file**. The last page of the PDF is «Calibration line · HPLC» with line, LOD, LOQ, control, blank and unknowns. The ZIP also contains `analysis/band_measurements_hplc.csv`.
+- **Everything:** press **All good, go and download** (*desktop app:* **Export**), keep **PDF** and **Analysis results** ticked and press **⬇️ Download the chosen files** (*desktop app:* **Export to folder…** and choose the folder). If you want a single file, first tick **Collect everything in one ZIP file**. The last page of the PDF is «Calibration line · HPLC» with line, LOD, LOQ, control, blank and unknowns. The analysis results also include `analysis/band_measurements_hplc.csv`.
 
 ## If something goes wrong
 - **⚠️ «region edges far from the baseline: widen the region or interferent» appears next to the area:** the region cuts the peak. Widen it (for example 3.8–4.6) while looking at the plot.

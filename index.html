@@ -15,6 +15,7 @@
 <link href="vendor/fonts/nunito.css" rel="stylesheet">
 <link href="app/app.css" rel="stylesheet">
 <link href="app/theme-dark.css" rel="stylesheet">
+<script src="app/host.js"></script>
 <script src="app/shell-boot.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
@@ -388,6 +389,9 @@ body.busy, body.busy *{cursor:progress !important}
 .outcard.on .obody{display:block}
 .outcard:not(.on) .ohead b{color:var(--muted)}
 .dlcard{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.outcard.off .ohead{opacity:.55}.outcard .oname{margin:0 0 8px}.outcard .oname input,.expwhere input[type=text]{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px;background:var(--panel);color:var(--ink)}
+.expwhere{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;margin-bottom:14px}.expwhere .field{margin:0;flex:1 1 240px}.expwhere .check{margin:0 0 4px}
+.nmwarn{display:block;color:var(--warn,#8a5a00);font-size:12px;margin-top:3px}.expdone ul{margin:6px 0;padding-left:18px;max-height:120px;overflow:auto}.expdone .bad{color:var(--bad,#b3261e)}
 .dlcard .summary{margin-bottom:4px}
 #doDl{font-size:17px;padding:14px 26px}
 /* ---- giro guidato ---- */
@@ -785,6 +789,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
           <button class="btn small primary" id="acceptAll" title="Mette su ogni picco senza nome il primo suggerimento (poi puoi annullare con Ctrl+Z)">✓ Accetta i suggerimenti</button>
           <button class="btn small" id="suggestAll">💡 Rivedi i suggerimenti…</button>
           <button class="btn small ghost" id="undoPk" title="Annulla l'ultima modifica ai picchi (Ctrl+Z)">↶ Annulla</button>
+          <button class="btn small ghost" id="pkCsv" title="Un file CSV con i picchi di questo spettro">⬇️ CSV dei picchi</button>
           <span class="spacer"></span>
           <button class="btn small ghost" id="clearNames" title="Lascia solo i numeri">Togli i nomi</button>
           <button class="btn small ghost" id="resetPeaks" title="Torna ai picchi trovati in automatico, senza nomi">↺ Picchi automatici</button>
@@ -1017,6 +1022,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
     <div class="outcard" data-out="outPdf">
       <label class="ohead"><input type="checkbox" data-k="outPdf"><span class="oico">📄</span><span><b>PDF per consultare</b><small>più grafici per pagina, da sfogliare o stampare</small></span></label>
       <div class="obody">
+        <div class="field oname"><label>Nome del file</label><input type="text" data-nm="pdf" spellcheck="false" autocomplete="off"></div>
         <div class="field"><label>Grafici per pagina</label><div class="layoutpick" id="lpick"></div></div>
         <div class="field"><label>Foglio A4</label><div class="seg" id="orientSeg"><button data-v="landscape">Orizzontale</button><button data-v="portrait">Verticale</button></div></div>
         <label class="check"><input type="checkbox" data-k="summary"> Prima pagina con l'elenco dei campioni e dei picchi</label>
@@ -1038,6 +1044,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
     <div class="outcard" data-out="outPng">
       <label class="ohead"><input type="checkbox" data-k="outPng"><span class="oico">🖼️</span><span><b>Immagini PNG</b><small>una per grafico, alta risoluzione per tesi e articoli</small></span></label>
       <div class="obody">
+        <div class="field oname"><label>Cartella</label><input type="text" data-nm="png" spellcheck="false" autocomplete="off" placeholder="nella cartella principale"></div>
         <div class="row">
           <div class="field" style="flex:1 1 100%"><label>Formato pronto</label><div class="row" id="sizePresets" style="gap:6px;flex-wrap:wrap">
             <button type="button" class="btn small ghost" data-wh="8.5,6">Colonna singola · 8,5 × 6 cm</button>
@@ -1056,22 +1063,48 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
     <div class="outcard" data-out="outOrigin">
       <label class="ohead"><input type="checkbox" data-k="outOrigin"><span class="oico">📈</span><span><b>Cartella Excel per Origin</b><small>un foglio per spettro e uno con tutti gli spettri affiancati per strumento, con nome, unità e commento già nelle righe che Origin usa</small></span></label>
       <div class="obody">
+        <div class="field oname"><label>Nome del file</label><input type="text" data-nm="origin" spellcheck="false" autocomplete="off"></div>
         <div class="field"><label>Dati</label><select data-k="originData"><option value="proc">come nel grafico (con conversioni, linea di base, smoothing…)</option><option value="raw">originali del file</option></select></div>
         <p class="why" style="margin:6px 0 0">In Origin: <b>File → Apri → Excel</b> (oppure trascina il file nella finestra) e scegli <b>3 righe di intestazione: Long Name, Units, Comments</b>. Poi salva come progetto <b>.opju</b>. Il formato .opj di Origin è chiuso e non si può creare fuori da Origin.</p>
       </div>
     </div>
     <div class="outcard" data-out="csvPeaks">
       <label class="ohead"><input type="checkbox" data-k="csvPeaks"><span class="oico">📊</span><span><b>Elenco dei picchi</b><small>un file per Excel con posizione, valore e nome di ogni picco</small></span></label>
+      <div class="obody"><div class="field oname"><label>Nome del file</label><input type="text" data-nm="peaks" spellcheck="false" autocomplete="off"></div></div>
     </div>
     <div class="outcard" data-out="outSvg">
       <label class="ohead"><input type="checkbox" data-k="outSvg"><span class="oico">✒️</span><span><b>Immagini vettoriali SVG</b><small>stesse dimensioni delle PNG, ingrandibili senza perdere qualità: per riviste, poster e Illustrator/Inkscape</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="svg" spellcheck="false" autocomplete="off"></div></div>
     </div>
     <div class="outcard" data-out="outAnalysis">
       <label class="ohead"><input type="checkbox" data-k="outAnalysis"><span class="oico">🔬</span><span><b>Risultati delle analisi</b><small>controllo di qualità, ipotesi, deconvoluzione, parametri per tecnica, tarature e PCA in CSV, più una bozza del paragrafo «Metodi» con la bibliografia</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="analysis" spellcheck="false" autocomplete="off"></div></div>
     </div>
     <div class="outcard" data-out="csvData">
       <label class="ohead"><input type="checkbox" data-k="csvData"><span class="oico">🗂️</span><span><b>Dati elaborati</b><small>un CSV per spettro, con le correzioni che hai scelto, per rifare i grafici altrove</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="data" spellcheck="false" autocomplete="off"></div></div>
     </div>
+    <div class="outcard" data-out="csvRaw">
+      <label class="ohead"><input type="checkbox" data-k="csvRaw"><span class="oico">📑</span><span><b>Dati originali</b><small>un CSV per spettro con i valori letti dal file, senza correzioni</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="raw" spellcheck="false" autocomplete="off"></div></div>
+    </div>
+    <div class="outcard" data-out="outOrig">
+      <label class="ohead"><input type="checkbox" data-k="outOrig"><span class="oico">📎</span><span><b>Copia identica del file originale</b><small>per ogni spettro il file così come è stato caricato, byte per byte, con il suo nome e la sua estensione</small></span></label>
+      <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="orig" spellcheck="false" autocomplete="off"></div><small class="opt-l" id="origNote" hidden></small></div>
+    </div>
+    <div class="outcard" data-out="outTrace">
+      <label class="ohead"><input type="checkbox" data-k="outTrace"><span class="oico">🧾</span><span><b>Tracciabilità</b><small>un CSV con l'impronta SHA-256 di ogni file e le scelte usate, per ricostruire i dati esportati</small></span></label>
+      <div class="obody"><div class="field oname"><label>Nome del file</label><input type="text" data-nm="trace" spellcheck="false" autocomplete="off"></div></div>
+    </div>
+    <div class="outcard" data-out="outProject">
+      <label class="ohead"><input type="checkbox" data-k="outProject"><span class="oico">💾</span><span><b>Progetto</b><small>il file .acchspettri con i dati originali e tutto il lavoro, da riaprire qui</small></span></label>
+      <div class="obody"><div class="field oname"><label>Nome del file</label><input type="text" data-nm="project" spellcheck="false" autocomplete="off"></div></div>
+    </div>
+  </div>
+  <div class="card expwhere" id="expWhere">
+    <div class="field"><label for="expScope">Spettri inclusi</label><select data-k="expScope" id="expScope"><option value="sel">Quelli spuntati</option><option value="all">Tutti</option><option value="one">Solo quello aperto</option></select></div>
+    <div class="field" id="expSubRow"><label class="check"><input type="checkbox" data-k="expSub"> In una sottocartella</label><input type="text" data-nm="sub" spellcheck="false" autocomplete="off" aria-label="Nome della sottocartella"></div>
+    <div class="field"><label class="check"><input type="checkbox" data-k="zipAll"> Raccogli tutto in un file ZIP</label><input type="text" data-nm="zip" spellcheck="false" autocomplete="off" aria-label="Nome del file ZIP"></div>
   </div>
 
   <div class="card" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -1080,17 +1113,18 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
   </div>
   <div class="card dlcard">
     <ul class="summary" id="sumList"></ul>
-    <label class="check" id="oneFileRow" style="margin:0 0 10px"><input type="checkbox" data-k="oneFile"> Tutto in un unico file ZIP <small class="opt-l">consigliato: i browser a volte bloccano due download di fila</small></label>
     <button class="btn primary big" id="doDl">Scarica</button>
     <div class="progress" id="prog"><div></div></div>
     <div class="status" id="status"></div>
     <div class="ready" id="readyBox" hidden><b>File pronti</b> <small class="opt-l">se il browser ne ha bloccato uno, scaricalo da qui con un clic</small><div id="readyList"></div></div>
+    <div class="ready expdone" id="expDone" hidden></div>
   </div>
 
   <details class="sec card" style="margin-top:14px;padding:6px 18px">
     <summary>💾 Salva queste impostazioni per la prossima volta</summary>
     <div class="in">
       <p class="why">Le ultime impostazioni restano già ricordate su questo computer, insieme a nomi, descrizioni e picchi di ogni spettro. Qui puoi salvarle con un nome (es. «FTIR saliva») o passarle a un collega.</p>
+      <p class="why">Una preimpostazione ricorda anche le voci da esportare, i loro nomi e gli spettri inclusi.</p>
       <div class="row">
         <select id="presetSel" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--panel);color:var(--ink)"></select>
         <button class="btn small" id="presetLoad">Usa</button>
@@ -1576,8 +1610,11 @@ BANDS.xrf = (()=>{
   return out;
 })();
 const LS_LIB='spectraplot.lib.v1';
-let LIB = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_LIB)); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; }catch(e){ return []; } })();
-function saveLib(){ try{ localStorage.setItem(LS_LIB, JSON.stringify(LIB)); }catch(e){} }
+// il nucleo non tocca l'archivio direttamente: passa dall'adattatore dell'host (app/host.js); senza host (worker, test) la libreria è vuota
+function hostGet(k){ try{ return typeof AcchHost!=='undefined' && AcchHost.store ? JSON.parse(AcchHost.store.getItem(k)) : null; }catch(e){ return null; } }
+function hostSet(k,v){ try{ if (typeof AcchHost==='undefined' || !AcchHost.store) return false; AcchHost.store.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+let LIB = (()=>{ const v=hostGet(LS_LIB); return Array.isArray(v) ? v.filter(e=>e&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b)) : []; })();
+function saveLib(){ hostSet(LS_LIB, LIB); }
 /* LIBS: righe atomiche più intense e persistenti (nm, in aria, NIST ASD; valori indicativi). I = atomo neutro, II = ione singolo. */
 const LIBS_LINES = {
   H:[['I',656.28],['I',486.13]], Li:[['I',670.78],['I',610.36]], Be:[['II',313.04],['I',234.86]], B:[['I',249.68],['I',249.77]],
@@ -2341,7 +2378,9 @@ function parseText0(text, opt){
   // Solo sull'asse: una Y «4,836» con la X «100.0» resta ambigua (corpus c/50), come lo stesso separatore nelle due colonne. Tappa I1, decisione del Capo Progetto.
   { const c=cols[0], o=cols[1], only=!c.int && !c.other;
     if (only && c.com && !c.dot && o.pd && !o.pc && !o.com) thou+=c.com; else if (only && c.dot && !c.com && o.pc && !o.pd && !o.dot) thou+=c.dot; }
-  return {xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
+  const R={xs:X, ys:Y, meta:meta.concat(tail), pe, peX, peY, extraCols, importIssue: (dropped||thou||after||midText) ? {dropped, thou, after, midText, channel, total:xs.length+dropped} : null, afterCh, nCols:extraCols+2, ycol, colNames:colNamesOf(meta, extraCols+2), blockHead:M.hdr, blockIx:mainIx, nBlocks:blocks.length, chIx:chK.indexOf(mainIx), nChan:chK.length};
+  if (opt && opt.keepOrder) R.order=idx;   // solo per l'esportazione dei «dati originali»: posizione di ogni punto nel file
+  return R;
 }
 /* fisisorbimento: lettori e calcoli in app/sorption-core.js (SorpCore), qui solo l'aggancio. Sull'asse: il ramo di adsorbimento; i due rami in p.iso */
 function sorpParse(text){
@@ -4427,16 +4466,18 @@ const DEFAULTS = {
   lineW:0.25, grid:true, colorMode:'instr', color:'#1f5fbf', showInstr:true,
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
+  csvRaw:false, outOrig:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
   conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
   logY:{xrf:true}
 };
 for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
 const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
+const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','trace','origin','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
-function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function lsGet(k){ return hostGet(k); }
+function lsSet(k,v){ hostSet(k,v); }
+function lsDel(k){ try{ AcchHost.store.removeItem(k); }catch(e){} }
 function merge(base, o){ const r=mergeRaw(base,o); return sanitizeS(r); }
 function mergeRaw(base, o){ const r=clone(base); if(o) for(const k in o){ if(OBJ_KEYS.includes(k)) Object.assign(r[k],o[k]||{}); else if(k in r) r[k]=o[k]; } if (r.docTitle==='Grafici'||r.docTitle==='Report spettri') r.docTitle=''; return r; }
 function sanitizeS(r){
@@ -4449,8 +4490,9 @@ function sanitizeS(r){
   if (!SAMPLE_TYPES[r.sample]) r.sample='all';
   if (typeof r.docTitle!=='string') r.docTitle=''; r.docTitle=r.docTitle.slice(0,120);
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
-  oneOf('originData',['proc','raw']);
-  ['sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  oneOf('originData',['proc','raw']); oneOf('expScope',['sel','all','one']);
+  { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
+  ['csvRaw','outOrig','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
     if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
@@ -4810,8 +4852,8 @@ function infoLines(f, P, peaks, L){
 }
 /* ---- spettri di riferimento: libreria personale e somiglianza ---- */
 const LS_REFS='acch.refs.v1';
-let REFS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_REFS)); return Array.isArray(v) ? v.filter(r=>r && typeof r.id==='string' && INSTR[r.i] && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length>=8) : []; }catch(e){ return []; } })();
-function saveRefs(){ try{ localStorage.setItem(LS_REFS, JSON.stringify(REFS)); return true; }catch(e){ return false; } }
+let REFS = (()=>{ try{ const v=JSON.parse(AcchHost.store.getItem(LS_REFS)); return Array.isArray(v) ? v.filter(r=>r && typeof r.id==='string' && INSTR[r.i] && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length>=8) : []; }catch(e){ return []; } })();
+function saveRefs(){ try{ AcchHost.store.setItem(LS_REFS, JSON.stringify(REFS)); return true; }catch(e){ return false; } }
 /* riduce uno spettro a n punti equidistanti; %T diventa assorbanza (picchi in su) */
 function refVector(xs, ys, kind, n){
   n=n||1200; const y = kind==='T' ? transformY(ys,'T','A').ys : ys, a=xs[0], b=xs[xs.length-1], X=[], Y=[];
@@ -4900,7 +4942,7 @@ function sugCtx(f, peaks){
 /* ---------------- CONFRONTI (spettri sovrapposti) ---------------- */
 const LS_CMP='acch.cmp.v1';
 let viewMode='one', curCmpId=null;
-let COMPS = (()=>{ try{ const v=JSON.parse(localStorage.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
+let COMPS = (()=>{ try{ const v=JSON.parse(AcchHost.store.getItem(LS_CMP)); return Array.isArray(v) ? v.filter(c=>c&&typeof c.id==='string'&&Array.isArray(c.keys)).map(c=>({
   id:c.id.slice(0,40), name:(/^(Confronto |Nuovo confronto$)/.test(String(c.name||'')) ? '' : String(c.name||'')).slice(0,120), instr:INSTR[c.instr]?c.instr:null, mode:['stack','over','norm'].includes(c.mode)?c.mode:'stack',
   gap:isFinite(+c.gap)?Math.min(2,Math.max(0.3,+c.gap)):1.1, out:c.out!==false, keys:c.keys.filter(k=>typeof k==='string').slice(0,60), inset:cleanInset(c.inset) })) : []; }catch(e){ return []; } })();
 function saveCmps(){ lsSet(LS_CMP, COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined}))); }
@@ -5644,15 +5686,22 @@ $('#daOk').onclick=()=>{
   say('#tip2', chosen.length ? `Fatto! ${chosen.length} nom${chosen.length===1?'e':'i'} sul grafico${nOther?` e su altri ${nOther} file`:''}. 🏷️` : 'Ok, lascio solo i numeri. 👍');
 };
 /* libreria personale */
-// unisce voci importate: stesso id e stesso contenuto = già presente; stesso id e contenuto diverso = nuova voce con un altro id (mai scartata in silenzio)
-function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0}; if (!Array.isArray(list)) return out;
+// unisce voci importate: stesso id e stesso contenuto = già presente; stesso id e contenuto diverso = nuova voce con un altro id (mai scartata in silenzio).
+// map: id importato → id nella libreria locale, quando cambia (rinominata, accorciata a 40 caratteri, o già presente con un altro id):
+// chi importa riscrive con map i rimandi «@id» dei picchi, altrimenti punterebbero a un'altra voce o a nessuna
+function libMerge(list){ const out={nuove:0, uguali:0, rinominate:0, scartate:0, map:{}}; if (!Array.isArray(list)) return out;
+  const done=new Set();
   for (const e of list){ if (!(e&&typeof e.id==='string'&&INSTR[e.i]&&typeof e.n==='string'&&isFinite(+e.a)&&isFinite(+e.b))){ out.scartate++; continue; }
     const v={id:e.id.slice(0,40), i:e.i, a:+e.a, b:+e.b, n:e.n.slice(0,120)}, old=LIB.find(x=>x.id===v.id);
     const same=x=>x.i===v.i && +x.a===v.a && +x.b===v.b && String(x.n).slice(0,120)===v.n;   // confronto sui valori normalizzati come v (nome tagliato a 120)
-    if (!old){ LIB.push(v); out.nuove++; } else if (same(old)) out.uguali++;
-    // stessa voce già aggiunta con un altro codice (riapertura dello stesso progetto): non si duplica a ogni apertura
-    else if (LIB.some(x=>same(x) && x.id.startsWith(v.id.slice(0,30)+'_'))) out.uguali++;
-    else { v.id=(v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8)); LIB.push(v); out.rinominate++; } }
+    let id;
+    if (old && same(old)){ out.uguali++; id=old.id; }
+    else { const twin=LIB.find(same);   // stessa voce già presente con un altro codice (riapertura dello stesso progetto, rinomina precedente): non si duplica
+      if (twin){ out.uguali++; id=twin.id; }
+      else if (!old){ LIB.push(v); out.nuove++; id=v.id; }
+      else { do{ v.id=v.id.slice(0,30)+'_'+Math.random().toString(36).slice(2,8); }while(LIB.some(x=>x.id===v.id)); LIB.push(v); out.rinominate++; id=v.id; } }
+    if (id!==e.id && !done.has(e.id)) out.map[e.id]=id;   // con due voci importate con lo stesso id vale la prima
+    done.add(e.id); }
   if (out.nuove||out.rinominate) saveLib(); return out; }
 window.libMerge=libMerge;
 function libMergeMsg(r){ return `Libreria dei nomi: ${r.nuove} voci nuove, ${r.uguali} già presenti${r.rinominate?`, ${r.rinominate} con lo stesso codice ma diverse, aggiunte come voci separate`:''}${r.scartate?`, ${r.scartate} non valide scartate`:''}.`; }
@@ -6129,7 +6178,7 @@ $$('[data-k]').forEach(el=>{
     S[k]=v; saveS();
     if (k==='showArea'||k==='shadeArea') files.forEach(f=>f._areaKey=null);
     if (k==='expert') applyExpert();
-    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color','outAnalysis'].includes(k)) syncControls();
+    if (['colorMode','overlay','pngW','pngH','pngDpi','sample','outPdf','outPng','outSvg','outOrigin','csvPeaks','csvData','color','outAnalysis','csvRaw','outOrig','outTrace','outProject','zipAll','expSub'].includes(k)) syncControls();
     if (k==='sample') renderLoaded();
     renderPreview(); renderSummary();
   });
@@ -6178,45 +6227,101 @@ $('#presetFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
     renderPresets(); say('#tip3','Impostazioni importate! 📥'); }catch(err){ say('#tip3','Mmm, quel file non lo capisco. 🤷'); }
   e.target.value=''; };
 
+/* ---------------- VOCI DELL'ESPORTAZIONE: che cosa, con quale nome, dove ---------------- */
+// requisito 3.0.0: l'utente sceglie le voci; lo ZIP è solo una voce in più, spenta di default. Il contenuto di ogni file resta quello di buildZip
+const EXP_FLAG={pdf:'outPdf', png:'outPng', svg:'outSvg', peaks:'csvPeaks', data:'csvData', raw:'csvRaw', orig:'outOrig', analysis:'outAnalysis', trace:'outTrace', origin:'outOrigin', project:'outProject'};
+const EXP_EXT={pdf:'pdf', peaks:'csv', trace:'csv', origin:'xlsx', project:'acchspettri', zip:'zip'};   // le altre voci sono cartelle
+const DESK_EXP=()=>!!window.__TAURI__;
+let EXP_SCOPE=null;   // durante un'esportazione: quali spettri (vedi included)
+let EXP_FIXED=[];   // nomi proposti corretti per Windows durante l'ultima esportazione: [prima, dopo]
+function expSel(){ const o={}; for (const k in EXP_FLAG) o[k]=!!S[EXP_FLAG[k]]; if (o.orig && !files.some(f=>f.raw)) o.orig=false; return o; }
+function expList(scope){ const sc=scope||S.expScope; return sc==='all' ? files.slice() : sc==='one' ? (files[cur] ? [files[cur]] : []) : null; }
+function expBase(){ return safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp(); }
+function expSubDefault(){ const n=window.AcchProject && AcchProject.path ? String(AcchProject.path).split(/[\\/]/).pop().replace(/\.acchspettri$/i,'') : (S.docTitle||T_().title); return safeName(n+'.x').replace(/\s+/g,'_')||'export'; }
+function expDefault(k){ const Lx=T_(), en=LANG==='en';
+  switch (k){ case 'pdf': return expBase()+'.pdf'; case 'zip': return expBase()+'.zip'; case 'png': return ''; case 'svg': return 'svg'; case 'data': return Lx.dataDir;
+    case 'raw': return en?'original_data':'dati_originali'; case 'orig': return en?'original_files':'file_originali'; case 'analysis': return en?'analysis':'analisi'; case 'peaks': return Lx.csvName;
+    case 'trace': return en?'traceability.csv':'tracciabilita.csv'; case 'origin': return 'per_Origin.xlsx';
+    case 'project': return window.AcchProject && AcchProject.stampName ? AcchProject.stampName() : 'progetto.acchspettri'; case 'sub': return expSubDefault(); } return ''; }
+/* nomi validi su Windows (anche esportando da macOS o Linux: i file poi viaggiano): niente <>:"/\|?* né caratteri di controllo,
+   niente punto o spazio finale, niente nomi riservati (CON, PRN, AUX, NUL, COM1–9, LPT1–9, anche con estensione), percorso relativo entro EXP_MAXREL */
+const WIN_BAD=/[<>:"\\/|?*\u0000-\u001f]/g, WIN_RES=/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i, EXP_MAXREL=180;
+function winWhy(seg){ const w=[]; seg=String(seg); if (/[<>:"\\|?*\u0000-\u001f]/.test(seg)) w.push('caratteri non ammessi da Windows (< > : " / \\ | ? *)'); if (/[. ]$/.test(seg)) w.push('punto o spazio finale');
+  if (WIN_RES.test(seg.replace(/[. ]+$/,''))) w.push('nome riservato di Windows'); return w; }
+function winSeg(seg){ let t=String(seg).replace(WIN_BAD,'_').replace(/[. ]+$/,''); if (!t) t='_'; if (WIN_RES.test(t)) t='_'+t; return t; }
+function winPath(p){ const parts=String(p).split('/').map(winSeg); let s=parts.join('/');
+  if (s.length>EXP_MAXREL){ const last=parts.pop(), m=/^(.*?)((?:\.[^.]{1,12})?)$/.exec(last), room=Math.max(8, EXP_MAXREL-(parts.join('/').length+1)-m[2].length); parts.push(winSeg(Array.from(m[1]).slice(0,room-1).join('')+'…')+m[2]); s=parts.join('/'); }
+  return s; }
+// nome scritto dall'utente, reso sicuro: niente separatori, «..» o caratteri che Windows rifiuta; l'estensione resta quella della voce
+function expClean(k, v){ v=String(v==null?'':v).trim(); const ext=EXP_EXT[k];
+  if (ext){ const b=v.replace(new RegExp('\\.'+ext+'$','i'),'').replace(/[\\/]+/g,'_'); const t=b ? winSeg(safeName(b+'.x')) : ''; return t && !/^[._]+$/.test(t) ? winSeg(t+'.'+ext) : ''; }
+  return v.split(/[\\/]+/).map(p=>p.trim() ? safeName(p.trim()+'.x') : '').filter(p=>p && !/^\.+$/.test(p)).map(winSeg).join('/'); }
+// avviso accanto al campo quando il nome scritto è stato corretto
+function expNameNote(el, raw, clean){ let n=el.parentElement.querySelector('.nmwarn'); const why=[...new Set(String(raw).split(/[\\/]/).flatMap(winWhy))];
+  const same=!String(raw).trim() || !clean || (clean===String(raw).trim() && !why.length);
+  if (same){ if (n) n.hidden=true; return; }
+  if (!n){ n=document.createElement('small'); n.className='nmwarn'; el.insertAdjacentElement('afterend', n); }
+  n.hidden=false; n.textContent=`Nome corretto in «${clean}»`+(why.length?': '+why.join('; '):'')+'.'; }
+function expName(k){ const o=S.expNames&&S.expNames[k], c=o!=null ? expClean(k,o) : ''; return c || expDefault(k); }
+const expDir=k=>{ const d=expName(k); return d ? d+'/' : ''; };
+function expBytes(d){ if (d instanceof Uint8Array) return Promise.resolve(d); if (d instanceof Blob) return d.arrayBuffer().then(b=>new Uint8Array(b)); return Promise.resolve(new TextEncoder().encode(String(d))); }   // come JSZip: testo in UTF-8
+function renderExpNames(){
+  $$('[data-nm]').forEach(el=>{ if (document.activeElement===el) return; const k=el.dataset.nm, o=S.expNames&&S.expNames[k]; el.value = o!=null ? o : expDefault(k); });
+  const sub=$('#expSubRow'); if (sub) sub.hidden=!DESK_EXP();   // online i file vanno dove li mette il browser
+  const subIn=$('[data-nm="sub"]'), zipIn=$('[data-nm="zip"]'); if (subIn) subIn.disabled=!S.expSub; if (zipIn) zipIn.disabled=!S.zipAll;
+  // copia identica: spenta se nessuno spettro ha più i byte originali (per esempio un progetto vecchio senza originali), e lo dice
+  { EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; } const miss=inc.filter(f=>!f.raw), box=$('[data-k="outOrig"]'), note=$('#origNote'), card=box&&box.closest('.outcard'), none=inc.length>0 && miss.length===inc.length;
+    if (box){ box.disabled=none; if (card) card.classList.toggle('off', none); if (card) card.title=none?'I file originali non sono disponibili: il progetto non li contiene.':''; }
+    if (note){ note.hidden=!miss.length; note.textContent = none ? 'Non disponibile: il progetto non contiene i file originali (per esempio un progetto salvato con una versione vecchia).' : miss.length ? (miss.length===1 ? `Senza file originale, viene saltato: ${miss[0].name}.` : `Senza file originale, vengono saltati ${miss.length} spettri: ${miss.slice(0,3).map(f=>f.name).join(', ')}${miss.length>3?'…':''}.`) : ''; }
+  }
+  const sc=$('#expScope'); if (sc){ const sel=files.filter(f=>f.include).length, f=files[cur];
+    const t={sel:`Spettri spuntati (${sel} di ${files.length})`, all:`Tutti gli spettri (${files.length})`, one:f?`Solo lo spettro aperto: ${dispTitle(f)}`:'Solo lo spettro aperto'};
+    for (const o of sc.options) if (t[o.value] && o.textContent!==t[o.value]) o.textContent=t[o.value]; }
+}
+$$('[data-nm]').forEach(el=>el.addEventListener('input', ()=>{ const k=el.dataset.nm; S.expNames=Object.assign({}, S.expNames); if (el.value===expDefault(k)) delete S.expNames[k]; else S.expNames[k]=el.value; saveS(); renderSummary(); }));
+$$('[data-nm]').forEach(el=>el.addEventListener('change', ()=>{ const k=el.dataset.nm, raw=el.value, c=expClean(k, raw); expNameNote(el, raw, c); if (raw.trim() && c && c!==raw){ S.expNames=Object.assign({}, S.expNames, {[k]:c}); saveS(); } renderExpNames(); }));
+
 /* ---------------- RIEPILOGO ---------------- */
 function included(){
-  const list = files.filter(f=>f.include), ord=Object.keys(INSTR), cmp=(a,b)=>dispTitle(a).localeCompare(dispTitle(b),'it',{numeric:true});
+  const list = (EXP_SCOPE && expList(EXP_SCOPE)) || files.filter(f=>f.include), ord=Object.keys(INSTR), cmp=(a,b)=>dispTitle(a).localeCompare(dispTitle(b),'it',{numeric:true});
   if (S.order==='name') list.sort(cmp);
   else if (S.order==='instr') list.sort((a,b)=>ord.indexOf(a.instr)-ord.indexOf(b.instr) || cmp(a,b));
   return list;
 }
 function renderSummary(){
-  const inc=included(), ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0;
+  EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; }
+  const ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0, sel=expSel(), desk=DESK_EXP();
   const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length?pdfAnalysisPageCount():0);
-  const zipParts=[];
-  const ovPng = (S.outPng && S.cmpPng) ? ovAll : 0;
-  if (S.outPng) zipParts.push(`${inc.length+ovPng} immagin${inc.length+ovPng===1?'e':'i'} PNG${ovPng?` (di cui ${ovPng} di confronto)`:''}`);
-  const ovSvg = (S.outSvg && S.cmpPng) ? ovAll : 0;
-  if (S.outSvg) zipParts.push(`${inc.length+ovSvg} immagin${inc.length+ovSvg===1?'e':'i'} vettorial${inc.length+ovSvg===1?'e':'i'} SVG`);
-  if (S.csvPeaks) zipParts.push('elenco dei picchi');
-  if (S.csvData) zipParts.push('dati elaborati');
-  if (S.outAnalysis) zipParts.push('i risultati delle analisi con la bozza dei metodi');
-  const originAlone = S.outOrigin && !zipParts.length;
-  if (S.outOrigin && zipParts.length) zipParts.push('la cartella Excel per Origin');
-  const items=[];
+  const ovImg = S.cmpPng ? ovAll : 0, nm=k=>`<b data-noi18n>${esc(expName(k))}</b>`, dirNm=k=>expName(k) ? nm(k) : 'cartella principale';
+  const items=[], parts=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
   else {
     items.push(`<li><b>${inc.length}</b> spettr${inc.length===1?'o':'i'}${inc.length<files.length?` su ${files.length}`:''}, grafici in <b data-noi18n>${uiEn()?(S.lang==='en'?'English':'Italian'):(S.lang==='en'?'inglese':'italiano')}</b></li>`);   // il nome della lingua nella lingua dell'interfaccia («plots in inglese»)
-    if (S.outPdf) items.push(`<li>📄 <b>1 PDF</b>: A4 <span>${S.orient==='landscape'?'orizzontale':'verticale'}</span>, <span>${S.perPage===1?'1 grafico per pagina':S.perPage+' grafici per pagina'}</span>, <span>${pages===1?'circa 1 pagina':'circa '+pages+' pagine'}</span>${ov?`, <span>${ov===1?'1 pagina di confronto':ov+' pagine di confronto'}</span>`:''}</li>`);
-    if (zipParts.length) items.push(S.oneFile && (S.outPdf||originAlone) ? `<li>🗜️ nello ZIP anche ${zipParts.join(', ')}</li>` : `<li>🗜️ <b>1 cartella ZIP</b> con ${zipParts.join(', ')}</li>`);
-    if (originAlone) items.push('<li>📈 <b>1 file Excel per Origin</b>: un foglio per spettro e i fogli con gli spettri affiancati</li>');
+    if (sel.pdf) parts.push(`<li>📄 PDF: ${nm('pdf')} · <span>${S.orient==='landscape'?'orizzontale':'verticale'}</span>, <span>${S.perPage===1?'1 grafico per pagina':S.perPage+' grafici per pagina'}</span>, <span>${pages===1?'circa 1 pagina':'circa '+pages+' pagine'}</span>${ov?`, <span>${ov===1?'1 pagina di confronto':ov+' pagine di confronto'}</span>`:''}</li>`);
+    const nImg=inc.length+ovImg;
+    if (sel.png) parts.push(`<li>🖼️ <span>${nImg===1?'1 immagine PNG':nImg+' immagini PNG'}</span>${ovImg?` <span>(di cui ${ovImg} di confronto)</span>`:''} · ${expName('png')?nm('png'):'<span>nella cartella principale</span>'}</li>`);
+    if (sel.svg) parts.push(`<li>✒️ <span>${nImg===1?'1 immagine SVG':nImg+' immagini SVG'}</span> · ${nm('svg')}</li>`);
+    if (sel.peaks) parts.push(`<li>📊 <span>Elenco dei picchi</span>: ${nm('peaks')}</li>`);
+    if (sel.data) parts.push(`<li>🗂️ <span>${inc.length===1?'1 CSV di dati elaborati':inc.length+' CSV di dati elaborati'}</span> · ${nm('data')}</li>`);
+    if (sel.raw) parts.push(`<li>📑 <span>${inc.length===1?'1 CSV di dati originali':inc.length+' CSV di dati originali'}</span> · ${nm('raw')}</li>`);
+    const noRaw=inc.filter(f=>!f.raw).length;
+    if (sel.orig && noRaw<inc.length) parts.push(`<li>📎 <span>${inc.length-noRaw===1?'1 copia identica del file originale':(inc.length-noRaw)+' copie identiche dei file originali'}</span> · ${nm('orig')}</li>`);
+    if (sel.analysis) parts.push(`<li>🔬 <span>Tabelle di analisi e bozza dei metodi</span> · ${nm('analysis')}</li>`);
+    if (sel.trace) parts.push(`<li>🧾 <span>Tracciabilità</span>: ${nm('trace')}</li>`);
+    if (sel.origin) parts.push(`<li>📈 <span>Cartella Excel per Origin</span>: ${nm('origin')}</li>`);
+    if (sel.project) parts.push(`<li>💾 <span>Progetto</span>: ${nm('project')}</li>`);
+    items.push(...parts);
+    if (parts.length && S.zipAll) items.push(`<li>📦 <span>Tutto dentro un solo file ZIP</span>: ${nm('zip')}</li>`);
+    else if (parts.length && desk && S.expSub) items.push(`<li>📁 <span>Nella sottocartella</span> ${nm('sub')}</li>`);
     const halfCmp = COMPS.filter(c=>c.out && members(c).length===1).length;
     if (halfCmp) items.push(`<li>ℹ️ ${halfCmp} confront${halfCmp===1?'o ha':'i hanno'} un solo spettro e non ${halfCmp===1?'verrà stampato':'verranno stampati'}: servono almeno 2 spettri.</li>`);
   }
   $('#sumList').innerHTML = items.join('');
-  let what = [S.outPdf?'PDF':null, zipParts.length?'ZIP':null, originAlone?'Excel':null].filter(Boolean);
-  $('#oneFileRow').hidden = what.length<2;
-  if (what.length>1 && S.oneFile){ what=['tutto in un file ZIP']; if (inc.length) items.push('<li>📦 Tutto quanto sopra arriva dentro <b>un solo file ZIP</b></li>'); $('#sumList').innerHTML = items.join(''); }
+  renderExpNames();
   const btn=$('#doDl');
-  btn.disabled = !inc.length || !what.length;
-  btn.textContent = !what.length ? 'Spunta almeno una cosa da scaricare' : `⬇️ Scarica ${what.join(' + ')}`;
+  btn.disabled = !inc.length || !parts.length;
+  btn.textContent = !parts.length ? 'Spunta almeno una cosa da scaricare' : desk ? 'Esporta nella cartella…' : S.zipAll ? '⬇️ Scarica lo ZIP' : '⬇️ Scarica i file scelti';
 }
-
 /* ---------------- EXPORT ---------------- */
 function progress(fr){ const p=$('#prog'); p.style.display = fr==null?'none':'block'; p.firstElementChild.style.width=((fr||0)*100)+'%'; }
 function status(t){ $('#status').textContent=deskT(t); }
@@ -6626,24 +6731,27 @@ function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[
   const now=new Date().toISOString(); for (const f of list){ let h=''; try{ if (f.raw) h=AcchFormat.sha256(new Uint8Array(f.raw)); }catch(e){}
     out.push([f.path||f.name, h, f.size, f.xs.length, NOME_IT[f.instr], f.instr===f.autoInstr?f.reason:(en?'chosen by hand':'scelta a mano'), ((f.an&&f.an.ycol)||1)+1, n(f.ecal&&f.ecal.b), n(f.ecal&&f.ecal.a), procNote(f,processed(f))||'', f.xr?f.xr.join(' - '):'', (S.sens&&typeof S.sens==='object'?S.sens[f.instr]:S.sens)??'', S.spike&&S.spike[f.instr]&&['raman','fluo','gen'].includes(f.instr)?'z > 7; larghezza ≤ 3 punti':'', f.an&&f.an.calc?(en?'yes':'sì'):'', APP_VERSION_FULL(), now]); }
   return out; }
-async function buildZip(extra){
-  const Lx=T_(), zip=new JSZip(), root=(S.oneFile && extra && extra.length ? safeName(S.docTitle||Lx.title).replace(/\s+/g,'_') : Lx.zip)+'_'+stamp(), folder=zip.folder(root);
-  for (const e of (extra||[])) folder.file(e.name, e.blob);
+/* i file delle voci scelte, nell'ordine e con i percorsi di sempre dentro lo ZIP: [{key, path, data}] (data: Blob o testo).
+   Il contenuto di ogni file è quello che buildZip ha sempre scritto: cambia solo il contenitore (cartella, file singoli o ZIP) */
+async function exportEntries(sel, zipping){
+  const Lx=T_(), out=[], add=(key,path,data)=>{ const w=winPath(path); if (w!==path) EXP_FIXED.push([path,w]); out.push({key,path:w,data}); };
   const inc=included(), used=new Set(), dsep=Lx.dec, csep=LANG==='en'?',':';';
   const wmm=S.pngW*10, hmm=S.pngH*10, fontPt=Math.max(7, Math.min(11, hmm/11));
   const rows=[(S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()).concat([Lx.csvNote])];
   const uniq=(dir,base,ext)=>{ let name=dir+base+ext, n=2; while (used.has(name)) name=dir+base+'_'+(n++)+ext; used.add(name); return name; };
-  const groups = ((S.outPng || S.outSvg) && S.cmpPng) ? outComparisons() : [];
-  const total=inc.length+groups.length;
-  { const q=c=>{ c=String(c==null?'':c); return csvCell(c,csep); }; folder.file(LANG==='en'?'traceability.csv':'tracciabilita.csv','\uFEFF'+traceRows(inc).map(r=>r.map(q).join(csep)).join('\r\n')); }
-  for (let i=0;i<inc.length;i++){
+  const groups = ((sel.png || sel.svg) && S.cmpPng) ? outComparisons() : [];
+  const total=inc.length+groups.length, say_=(i)=>status(zipping ? `🗜️ Preparo lo ZIP: spettro ${i} di ${inc.length}…` : `📁 Preparo i file: spettro ${i} di ${inc.length}…`);
+  if (sel.trace){ const q=c=>{ c=String(c==null?'':c); return csvCell(c,csep); }; add('trace', expName('trace'), '\uFEFF'+traceRows(inc).map(r=>r.map(q).join(csep)).join('\r\n')); }
+  const perSpectrum = sel.png || sel.svg || sel.peaks || sel.data || sel.raw || sel.orig, origDone=new Set();
+  for (let i=0; perSpectrum && i<inc.length; i++){
     const f=inc[i], view=viewOf(f);
     const dir = S.keepFolders && f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')+1) : '';
     const base = (f.title && f.title.trim() ? safeName(f.title.trim()+'.x') : safeName(f.name))+(f.an&&f.an.calc?(LANG==='en'?'_computed':'_calcolato'):'');
-    if (S.outPng){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); folder.file(uniq(dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
-    if (S.outSvg) folder.file(uniq('svg/'+dir, base, '.svg'), renderSvg(viewOf(f), wmm, hmm, fontPt));
+    if (sel.png){ const canvas=renderCanvas(view, wmm, hmm, S.pngDpi, fontPt); add('png', uniq(expDir('png')+dir, base, '.png'), await pngWithDpi(canvas, S.pngDpi)); canvas.width=canvas.height=0; }
+    if (sel.svg) add('svg', uniq(expDir('svg')+dir, base, '.svg'), renderSvg(viewOf(f), wmm, hmm, fontPt));
     // picchi su una banda tagliata (saturazione segnalata dal controllo del dato): nota nell'elenco esportato
     // sui dati orientati come nel controllo del dato (in %T le bande sature sono minimi): FTIR oltre A = 2, oppure picchi sul tratto piatto segnalato
+    if (sel.peaks){
     let satOf=()=>false; if (S.showPeaks && view.peaks.length){ try{ const P=processed(f), U=upData(P), uAt=x=>interpY(P.xs,U.y,x), flat=badItems(f).some(t=>/massimo è piatto/.test(t)), uMax=arrMax(U.y);
       const absLike = f.instr==='ftir' && (P.kind==='A' || P.kind==='T') && !P.deriv;
       satOf=p=>{ const u=uAt(p.x); return (absLike && u>2) || (flat && u>=uMax-Math.abs(uMax)*0.005); }; }catch(e){} }
@@ -6651,63 +6759,144 @@ async function buildZip(extra){
       String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?nameOrigin(f.labels[lblKey(p.x)], Lx):'']
       .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
         p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satOf(p) ? Lx.satNote : '']));
-    if (S.csvData){
+    }
+    if (sel.data){
       const P=processed(f), extra = P.y2 || (f.instr==='tga' && P.kind==='W' ? P.dtg : null);
       const lines=[[Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[P.kind]||'Y')+(P.kind==='HF'&&f.therm&&f.therm.yUnit?` (${f.therm.yUnit})`:'')].concat(extra?[Lx.y.DTG]:[]).map(c=>csvCell(c.replace('−','-'),csep)).join(csep)];
       for (let k=0;k<P.xs.length;k++) lines.push(String(+P.xs[k].toPrecision(10)).replace('.',dsep)+csep+String(+P.ys[k].toPrecision(8)).replace('.',dsep)+(extra?csep+String(+extra[k].toPrecision(8)).replace('.',dsep):''));
-      folder.file(uniq(Lx.dataDir+'/'+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
+      add('data', uniq(expDir('data')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
     }
-    progress((i+1)/total*0.9); status(`🗜️ Preparo lo ZIP: spettro ${i+1} di ${inc.length}…`); await tick();
+    if (sel.raw){   // dati originali: i punti nell'ordine delle righe del file, con i valori scritti nel file (nessun riordino, conversione o taratura)
+      const R=rawFileXY(f), xs=R.xs, ys=R.ys, num=v=>String(v).replace('.',dsep);
+      const head=R.names || [Lx.x[f.instr].replace('⁻¹','-1'), (Lx.y[f.kind]||'Y')];
+      const lines=[head.map(c=>csvCell(String(c).replace('−','-'),csep)).join(csep)];
+      for (let k=0;k<xs.length;k++) lines.push(num(xs[k])+csep+num(ys[k]));
+      add('raw', uniq(expDir('raw')+dir, base, '.csv'), '﻿'+lines.join('\r\n'));
+    }
+    // copia identica: i byte del file come è stato caricato (anche binari e JCAMP); più spettri dallo stesso file → una copia sola
+    if (sel.orig && f.raw && !origDone.has(f.raw)){ origDone.add(f.raw); const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(f.name||'file');
+      add('orig', uniq(expDir('orig')+dir, m[1]||'file', m[2]), new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)); }
+    progress((i+1)/total*0.9); say_(i+1); await tick();
   }
   for (const {c:cmp} of groups){
-    if (S.outPng){ const c=renderCanvas(cmpViewOf(cmp), wmm, hmm, S.pngDpi, fontPt);
-      folder.file(uniq(Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; }
-    if (S.outSvg) folder.file(uniq('svg/'+Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.svg'), renderSvg(cmpViewOf(cmp), wmm, hmm, fontPt));
+    if (sel.png){ const c=renderCanvas(cmpViewOf(cmp), wmm, hmm, S.pngDpi, fontPt);
+      add('png', uniq(expDir('png')+Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.png'), await pngWithDpi(c, S.pngDpi)); c.width=c.height=0; }
+    if (sel.svg) add('svg', uniq(expDir('svg')+Lx.ovName+'/', safeName(cmpTitle(cmp, Lx))||Lx.ovName, '.svg'), renderSvg(cmpViewOf(cmp), wmm, hmm, fontPt));
     await tick();
   }
-  if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); folder.file('per_Origin.xlsx', await buildOriginXlsx()); }
-  if (S.outAnalysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) folder.file((LANG==='en'?'analysis/':'analisi/')+nm, txt); }
-  if (S.csvPeaks) folder.file(Lx.csvName, '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
+  if (sel.origin){ status('📈 Preparo la cartella per Origin…'); add('origin', expName('origin'), await buildOriginXlsx()); }
+  if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
+  if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
+  return out;
+}
+/* dati originali di uno spettro: nei file di testo a colonne si rilegge il file e si rimette ogni punto nella sua riga
+   (parseText0 con keepOrder), prima di conversioni di unità, taratura dell'asse e riordino; i valori restano quelli scritti, senza arrotondare.
+   Negli altri formati (binari, JCAMP, MCA, tabelle termiche ed EPR) i punti restano come li ha letti il lettore del formato */
+function rawFileXY(f){
+  if (f.raw && !f.rawBin){ try{ const yc=f.ycolNow||(f.an&&f.an.ycol)||1, P=parseText0(decodeBuffer(f.raw), {ycol:yc, keepOrder:true});
+    if (P && !P.reject && P.order && P.order.length===P.xs.length && P.xs.length===P.ys.length){ const n=P.xs.length, X=new Float64Array(n), Y=new Float64Array(n), rank=Float64Array.from(P.order).sort();
+      // l'ordine del file tra i punti letti: le righe scartate non lasciano buchi
+      const pos=new Map(); rank.forEach((k,i)=>pos.set(k,i)); P.order.forEach((k,i)=>{ const j=pos.get(k); X[j]=P.xs[i]; Y[j]=P.ys[i]; });
+      const names=P.colNames && P.colNames[0] && P.colNames[yc] ? [P.colNames[0], P.colNames[yc]] : null;
+      return {xs:X, ys:Y, names, file:true}; } }catch(e){ console.warn(e); } }
+  return {xs:f.xs0||f.xs, ys:f.ys, names:null, file:false};
+}
+/* ZIP con le voci di sempre (senza PDF né progetto): «extra» va in testa, come prima */
+async function buildZip(extra, sel){
+  const Lx=T_(), root=(S.oneFile && extra && extra.length ? safeName(S.docTitle||Lx.title).replace(/\s+/g,'_') : Lx.zip)+'_'+stamp();
+  const s=sel||expSel(); s.pdf=false; s.project=false;
+  const ents=(extra||[]).map(e=>({path:e.name, data:e.blob})).concat(await exportEntries(s, true));
+  return zipOf(ents, root);
+}
+async function zipOf(ents, root){
+  const zip=new JSZip(), folder=zip.folder(root);
+  for (const e of ents) folder.file(e.path, e.data);
   status('🗜️ Impacchetto lo ZIP…');
   return await zip.generateAsync({type:'blob', compression:'STORE'}, m=>progress(0.9+m.percent/1000));
 }
-async function runExport(what){
-  try{ if (S.outPdf) await ensurePdfLib(); }catch(e){ console.error(e); }
+/* tutte le voci scelte, PDF e progetto compresi */
+async function buildExportFiles(sel, zipping){
+  const out=[];
+  if (sel.pdf){ progress(0); out.push({key:'pdf', path:winPath(expName('pdf')), data:await buildPdf()}); progress(0); }
+  out.push(...await exportEntries(sel, zipping));
+  if (sel.project){ status('💾 Preparo il progetto…'); out.push({key:'project', path:winPath(expName('project')), data:await AcchProject.buildBytes()}); }
+  return out;
+}
+const expShow=(list,max)=>list.slice(0,max).map(x=>`<li data-noi18n>${esc(x)}</li>`).join('')+(list.length>max?`<li>e altri ${list.length-max}</li>`:'');
+/* riepilogo del desktop, dopo la scrittura vera: file scritti, cartella, file non scritti e «Mostra nella cartella» */
+function showExpDone(r){
+  const box=$('#expDone'); if (!box) return; if (!r){ box.hidden=true; box.innerHTML=''; return; }
+  const where=r.sub ? r.dir.replace(/[\\/]+$/,'')+(r.dir.includes('\\')?'\\':'/')+r.sub.replace(/\//g, r.dir.includes('\\')?'\\':'/') : r.dir;
+  box.innerHTML=`<b>${r.written.length===1?'1 file scritto':r.written.length+' file scritti'}</b> <span class="opt-l">in</span> <b data-noi18n>${esc(where)}</b>`
+    +(r.written.length?`<ul>${expShow(r.written,12)}</ul>`:'')
+    +(r.failed.length?`<div class="bad"><b>File non scritti</b><ul>${r.failed.slice(0,12).map(x=>`<li><span data-noi18n>${esc(x.rel)}</span>: ${esc(x.msg)}</li>`).join('')}</ul></div>`:'')
+    +(r.skipped.length?`<div><b>File già presenti, lasciati com'erano</b><ul>${expShow(r.skipped,12)}</ul></div>`:'')
+    +(r.fixed&&r.fixed.length?`<div><b>Nomi corretti per Windows</b><ul>${expShow(r.fixed.map(([a,b])=>a+' → '+b),12)}</ul></div>`:'')
+    +(r.written.length?'<button type="button" class="btn small" id="expReveal">Mostra nella cartella</button>':'');
+  box.hidden=false;
+  const b=$('#expReveal'); if (b) b.onclick=()=>AcchDesktop.revealExport(r.dir, (r.sub?r.sub+'/':'')+r.written[0]);
+}
+async function runExport(){
+  const sel=expSel(), desk=DESK_EXP();
+  try{ if (sel.pdf) await ensurePdfLib(); }catch(e){ console.error(e); }
   if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
+  if (!Object.values(sel).some(Boolean)) return;
   const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
-  say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
+  setReady([]); showExpDone(null); status(''); EXP_FIXED=[];
   try{
-    setReady([]);
-    const base=safeName(S.docTitle||T_().title).replace(/\s+/g,'_')+'_'+stamp();
-    const zipNeeded = S.outPng || S.outSvg || S.csvPeaks || S.csvData || S.outAnalysis;
-    const nOut = (S.outPdf?1:0) + (zipNeeded?1:0) + (!zipNeeded && S.outOrigin?1:0);
-    const out=[];
-    if (S.oneFile && nOut>1){   // un solo download: il PDF (e il resto) dentro lo ZIP
-      progress(0); const pdf = S.outPdf ? await buildPdf() : null;
-      progress(0); out.push({name:base+'.zip', blob: await buildZip(pdf ? [{name:base+'.pdf', blob:pdf}] : [])});
-    } else {
-      if (S.outPdf){ progress(0); out.push({name:base+'.pdf', blob: await buildPdf()}); }
-      if (zipNeeded){ progress(0); out.push({name:T_().zip+'_'+stamp()+'.zip', blob: await buildZip()}); }
-      else if (S.outOrigin){ status('📈 Preparo la cartella per Origin…'); progress(0.5); out.push({name:'per_Origin_'+stamp()+'.xlsx', blob: await buildOriginXlsx()}); }
+    // desktop: prima la cartella (dialogo nativo, l'ultima usata per le esportazioni), poi si preparano i file
+    let target=null;
+    if (desk){ target=await AcchDesktop.pickExportDir(); if (!target){ status(''); return; } }
+    say('#tip3','Al lavoro! 🏃 Ci vuole un attimo…');
+    EXP_SCOPE=S.expScope;
+    let zip=!!S.zipAll, ents=await buildExportFiles(sel, zip);
+    if (!ents.length){ status(''); return; }
+    // online: il browser blocca spesso i download multipli; oltre 3 file si propone lo ZIP, ma l'utente può rifiutare
+    if (!desk && !zip && ents.length>3){ const a = window.ACCH_TEST ? 'zip' : await AcchUi.choice(`Sono ${ents.length} file: molti browser bloccano i download multipli. Li raccolgo in un unico file ZIP?`, [['cancel','Annulla','ghost'],['files','No, uno per uno','ghost'],['zip','Sì, un file ZIP','primary']]);
+      if (a==='cancel'){ status(''); return; } zip = a==='zip'; }
+    const zn=winPath(expName('zip')), out = zip ? [{key:'zip', path:zn, data:await zipOf(ents, zn.replace(/\.zip$/i,''))}] : ents;
+    if (desk){
+      const sub = S.expSub ? winPath(expName('sub')||'') : '';
+      const list=[]; for (const o of out) list.push({rel:(sub?sub+'/':'')+o.path, bytes:await expBytes(o.data)});
+      const r=await AcchDesktop.writeExport(target, list);
+      if (r.cancelled){ status(''); return; }   // conflitto annullato: niente scritto, nessun messaggio di successo
+      r.sub=sub; r.fixed=EXP_FIXED.slice(); if (sub){ r.written=r.written.map(x=>x.slice(sub.length+1)); r.skipped=r.skipped.map(x=>x.slice(sub.length+1)); r.failed.forEach(x=>{ x.rel=x.rel.slice(sub.length+1); }); }
+      showExpDone(r);
+      if (r.failed.length) status(`Esportazione incompleta: ${r.failed.length===1?'1 file non scritto':r.failed.length+' file non scritti'}.`);
+      else if (r.written.length) status(`Esportazione completata: ${r.written.length===1?'1 file':r.written.length+' file'} in «${r.name}».`);
+      else status('Nessun file scritto: i file erano già presenti.');
+      if (r.written.length && !r.failed.length) say('#tip3','Esportazione completata.');
+      return;
     }
-    let saved=out.length;
-    if (window.__TAURI__){   // desktop: download() apre il salvataggio nativo e dice com'è andata
-      saved=0; for (const o of out){ if (await download(o.blob, o.name)!==true) break; saved++; }
-    } else {
-      out.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
-      setReady(out);
-    }
-    if (saved<out.length) status('');   // annullato o non scritto: nessun messaggio di successo
-    else {
-    status(out.length>1 ? '✅ Fatto! Se nella cartella Download manca un file, il browser l\'ha bloccato: scaricalo qui sotto con un clic.' : '✅ Fatto! Trovi il file nella cartella Download (o qui sotto).');
+    const dl=out.map(o=>({name:o.path.replace(/\//g,'_'), blob:o.data instanceof Blob ? o.data : new Blob([o.data],{type:o.data instanceof Uint8Array?'application/octet-stream':/\.csv$/i.test(o.path)?'text/csv':'text/plain'})}));
+    dl.forEach((o,i)=>setTimeout(()=>download(o.blob, o.name), i*700));   // un piccolo intervallo aiuta i browser con più download
+    setReady(dl);
+    if (EXP_FIXED.length) toast('Nomi corretti per Windows: '+EXP_FIXED.slice(0,4).map(([a,b])=>a+' → '+b).join(', ')+(EXP_FIXED.length>4?' …':''));
+    status(dl.length>1 ? '✅ Fatto! Se nella cartella Download manca un file, il browser l\'ha bloccato: scaricalo qui sotto con un clic.' : '✅ Fatto! Trovi il file nella cartella Download (o qui sotto).');
     say('#tip3', ['Spettri acchiappati e impaginati! 👻🎉','Tutto pronto, buona analisi! 🔬','Missione compiuta, nessuno spettro è sfuggito! 🚀'][Math.floor(Math.random()*3)]);
     confetti();
-    }
   }catch(e){ console.error(e); status('😬 Qualcosa è andato storto: '+e.message); say('#tip3','Ops… riproviamo? 🙈'); }
-  progress(null); renderSummary();
+  finally{ EXP_SCOPE=null; progress(null); renderSummary(); }
 }
 $('#doDl').onclick=()=>runExport();
-
+$('#pkCsv').onclick=()=>quickExport('peaks');
+/* esportazione rapida di una voce sola, dai menu e dai pannelli: un file, con il salvataggio nativo nel desktop */
+async function quickExport(k){
+  const f=files[cur]; if (!f) return false;
+  try{
+    let blob, name;
+    const base=(f.title && f.title.trim() ? safeName(f.title.trim()+'.x') : safeName(f.name));
+    if (k==='pdf'){ await ensurePdfLib(); blob=await buildPdf(); name=expName('pdf'); }
+    else if (k==='png' || k==='svg'){ const fontPt=Math.max(7, Math.min(11, S.pngH*10/11));
+      if (k==='png'){ const cv=renderCanvas(viewOf(f), S.pngW*10, S.pngH*10, S.pngDpi, fontPt); blob=await pngWithDpi(cv, S.pngDpi); cv.width=cv.height=0; }
+      else blob=new Blob([renderSvg(viewOf(f), S.pngW*10, S.pngH*10, fontPt)],{type:'image/svg+xml'});
+      name=base+'.'+k; }
+    else if (k==='peaks'){ EXP_SCOPE='one'; let e; try{ e=await exportEntries({peaks:true}); } finally { EXP_SCOPE=null; progress(null); status(''); }
+      blob=new Blob([e[0].data],{type:'text/csv'}); name=base+'_'+expName('peaks'); }
+    else return false;
+    return await download(blob, winSeg(name));   // nome valido anche su Windows
+  }catch(e){ console.error(e); toast('😬 Qualcosa è andato storto: '+e.message); return false; }
+}
 /* ---------------- ANALISI: assistente, ipotesi, deconvoluzione, parametri per tecnica ---------------- */
 function upData(P){   // dati con i picchi in su per gli algoritmi (%T → assorbanza) e trasformazione inversa per il disegno
   if (P.kind==='T') return {y:Float64Array.from(P.ys, v=>2-Math.log10(Math.max(v,1e-4))), back:v=>100*Math.pow(10,-v)};
@@ -8216,8 +8405,8 @@ function applySober(){ document.body.classList.toggle('sober', !!(S.sober||windo
   else if (soberObs){ soberObs.disconnect(); soberObs=null; } }
 $('#soberBtn').onclick=()=>{ S.sober=!S.sober; saveS(); if (!S.sober){ applySober(); soberNodes.forEach(r=>{ const n=r.deref(), o=n&&soberOrig.get(n); if (n && o && n.nodeValue===o.v) n.nodeValue=o.t; }); soberNodes.clear(); refreshAll(); toast('Aspetto normale di nuovo attivo.'); return; } applySober(); toast('Aspetto sobrio attivo: premi di nuovo «Sobrio» per tornare a quello normale.'); };
 const TXT_ZOOM=[1,1.15,1.3];
-function applyTxtZoom(){ let z=1; try{ z=+localStorage.getItem('acch.zoom')||1; }catch(e){} document.body.style.zoom = z===1 ? '' : String(z); $('#zoomTxt').title=`Testo più grande o più piccolo (ora ${Math.round(z*100)}%)`; if (files.length) setTimeout(()=>{ renderPreview(); }, 30); }
-$('#zoomTxt').onclick=()=>{ let z=1; try{ z=+localStorage.getItem('acch.zoom')||1; }catch(e){} const i=TXT_ZOOM.indexOf(z); z=TXT_ZOOM[(i+1)%TXT_ZOOM.length]; try{ localStorage.setItem('acch.zoom', String(z)); }catch(e){} applyTxtZoom(); };
+function applyTxtZoom(){ let z=1; try{ z=+AcchHost.store.getItem('acch.zoom')||1; }catch(e){} document.body.style.zoom = z===1 ? '' : String(z); $('#zoomTxt').title=`Testo più grande o più piccolo (ora ${Math.round(z*100)}%)`; if (files.length) setTimeout(()=>{ renderPreview(); }, 30); }
+$('#zoomTxt').onclick=()=>{ let z=1; try{ z=+AcchHost.store.getItem('acch.zoom')||1; }catch(e){} const i=TXT_ZOOM.indexOf(z); z=TXT_ZOOM[(i+1)%TXT_ZOOM.length]; try{ AcchHost.store.setItem('acch.zoom', String(z)); }catch(e){} applyTxtZoom(); };
 /* ricette: i percorsi più comuni in un clic, con le impostazioni consigliate */
 function recipesFor(f){
   const it=f.instr, P=processed(f), R=[], go2=sel=>setTimeout(()=>reveal(sel), 60);
@@ -8266,11 +8455,13 @@ function renderRecipes(f){
    Regola per gli sviluppi futuri: ogni novità visibile all'utente va aggiunta in cima a NOVITA con un numero di versione
    più alto in APP_VERSION. Chi ha già usato lo strumento la vede al primo ingresso; chi arriva per la prima volta vede il benvenuto. */
 const APP_VERSION='3.0';
-const APP_VERSION_FULL=()=>'3.0.0-rc.1';
+const APP_VERSION_FULL=()=>'3.0.0-rc.2';
 const NOVITA=[
   {v:'3.0', data:'novembre 2026', voci:[
     ['🧪','Dati controllati meglio','Ora ti avviso se un asse usa il separatore delle migliaia anche con valori sopra 1000 («1,100»). Un asse che torna indietro si legge come due blocchi, e per l\'HPLC ti segnalo due segnali con un solo blocco o un canale del nome diverso dall\'intestazione.',null],
     ['📐','EPR e NMR più precisi','Per il doppio integrale EPR puoi scegliere tu le zone di fondo, e ti avviso se le ali della riga entrano nella base. In NMR ti avviso quando un picco è negativo.',null],
+    ['📦','Esporta solo quello che vuoi','Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.',null],
+    ['📁','Progetti nel formato 2','I progetti salvati ora sono più compatti e pronti per canali, librerie, serie e mappe. I tuoi vecchi progetti si aprono senza perdere nulla.',null],
     ['📄','Esportazioni più pulite','Nel PDF cm⁻¹, ∞ e √ si leggono bene; nel CSV gli intervalli di confidenza stanno in due celle e la pendenza ha la sua unità.',null],
   ]},
   {v:'2.2', data:'novembre 2026', voci:[
@@ -8380,6 +8571,8 @@ function commands(){
   add('Progetto','💾','Salva il progetto',saveProject,{kw:'salva progetto json archivio',key:'⌘S'});
   add('Progetto','📂','Apri un progetto…',()=>$('#openProjIn').click(),{kw:'apri progetto json',key:'⌘O'});
   if (files.length) add('Progetto','⬇️','Scarica adesso (PDF, immagini, risultati)',()=>{ go(3); runExport(); },{kw:'esporta download pdf zip png'});
+  if (files.length && cur>=0){ add('Progetto','🖼','Scarica questo grafico (PNG)',()=>quickExport('png'),{kw:'esporta immagine png grafico'}); add('Progetto','✒️','Scarica questo grafico (SVG)',()=>quickExport('svg'),{kw:'esporta vettoriale svg grafico'});
+    add('Progetto','📊','Scarica i picchi di questo spettro (CSV)',()=>quickExport('peaks'),{kw:'esporta tabella picchi csv excel'}); }
   add('Aspetto','🇮🇹','Grafici in italiano',()=>{ S.lang='it'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='it', kw:'lingua italiano'});
   add('Aspetto','🇬🇧','Grafici in inglese',()=>{ S.lang='en'; saveS(); syncControls(); renderPreview(); },{on:S.lang==='en', kw:'lingua english inglese'});
   add('Aspetto','🔠','Testo più grande / più piccolo',()=>$('#zoomTxt').click(),{kw:'testo grande zoom caratteri'});
@@ -8594,8 +8787,9 @@ function openCtx(cx, cy, hp, xv, yv){
     if (t.o._zoom || t.o._yzoom) it('↺', 'Mostra tutto', ()=>{ t.o._zoom=null; t.o._yzoom=null; renderPreview(); }, {k:'0'});
     if (viewMode!=='cmp' && f){ sep();
       it('📋', 'Copia le coordinate', ()=>{ const txt=`${+xv.toPrecision(7)}\t${+yv.toPrecision(7)}`; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>say('#tip2', `Copiato: x = ${fmtTick(xv,3)}, y = ${fmtTick(yv,4)}. 📋`)).catch(()=>say('#tip2', `x = ${fmtTick(xv,3)}, y = ${fmtTick(yv,4)}`)); });
-      it('🖼', 'Scarica questo grafico (PNG)', async ()=>{ const fontPt=Math.max(7, Math.min(11, S.pngH*10/11)), cv=renderCanvas(viewOf(f), S.pngW*10, S.pngH*10, S.pngDpi, fontPt);
-        download(await pngWithDpi(cv, S.pngDpi), (f.title && f.title.trim() ? safeName(f.title.trim()+'.x') : safeName(f.name))+'.png'); cv.width=cv.height=0; }, {k:`${S.pngW}×${S.pngH} cm`});
+      it('🖼', 'Scarica questo grafico (PNG)', ()=>quickExport('png'), {k:`${S.pngW}×${S.pngH} cm`});
+      it('✒️', 'Scarica questo grafico (SVG)', ()=>quickExport('svg'));
+      it('📊', 'Scarica i picchi di questo spettro (CSV)', ()=>quickExport('peaks'));
     }
   }
   while (items.length && items[items.length-1]===null) items.pop();

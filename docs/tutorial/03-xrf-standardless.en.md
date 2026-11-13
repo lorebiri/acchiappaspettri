@@ -79,7 +79,7 @@ With the example file tin can go from 4.78 to 17.5%, copper from 75.5 to 87.2%. 
 
 ## 6. Download the results
 - **Table only:** press **⬇️ CSV** below the notes. You get `xrf_FP_BRONZO_SIMULATO_Rh40kV_SINTETICO.csv`.
-- **Everything:** press **All good, go and download** (*desktop app:* **Export**), then **⬇️ Download everything in one ZIP file**. In the ZIP:
+- **Everything:** press **All good, go and download** (*desktop app:* **Export**), keep **PDF** and **Analysis results** ticked and press **⬇️ Download the chosen files** (*desktop app:* **Export to folder…** and choose the folder; **Collect everything in one ZIP file** gives a single file). You get:
   - `analysis/xrf_fundamental_parameters.csv`: each element with weight %, ±, anode, kV, angles and the column «Value type» = «estimate without standards, not validated»;
   - the PDF: on the page «Analysis: data check and hypotheses» there is the line «Estimate without standards, not validated (fundamental parameters)» with composition, conditions and warnings.
 

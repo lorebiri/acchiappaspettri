@@ -1,5 +1,9 @@
 # Novità delle versioni
 
+## 3.0.0-rc.2
+
+Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.1, che non è stata pubblicata perché un controllo dei pacchetti Linux nella CI non riscriveva la versione Debian delle prove (X~rc.N). È una pre-release: non viene proposta agli utenti come aggiornamento.
+
 ## 3.0.0-rc.1
 
 Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Contiene la prima tappa della 3.0.0 (correzioni dei collaudi e desktop professionale); le altre funzioni della 3.0.0 arrivano nelle prove successive.
@@ -7,6 +11,8 @@ Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-r
 ## 3.0.0
 
 - Desktop professionale: testi sobri da software scientifico, senza mascotte, emoji, esclamazioni né coriandoli; Novità proprie; nessun riferimento al browser. La versione online non cambia.
+- Nuova finestra Esporta: scegli le voci (PDF, immagini PNG e SVG, picchi, dati elaborati, dati originali nell'ordine e con i valori del file, copia identica del file originale, tabelle di analisi, tracciabilità, Origin, progetto), il nome di ogni file e gli spettri inclusi. Nell'app desktop i file vanno nella cartella scelta, anche in una sottocartella; se un file esiste già si sceglie per ognuno se sostituirlo, rinominarlo o saltarlo (o per tutti i rimanenti); alla fine un riepilogo con i file scritti, quelli non scritti e «Mostra nella cartella». Lo ZIP solo se lo chiedi; online, oltre 3 file viene proposto. Nomi sempre validi su Windows, con avviso. Esportazione rapida di una voce dai menu. Le preimpostazioni ricordano anche le voci.
+- Progetti: formato 2 (.acchspettri). I byte di ogni file originale si salvano una volta sola, c'è spazio per i canali (sampleKey), le librerie incorporate, le serie di spettri, le mappe e le isoterme. I progetti della versione 1 si aprono senza perdite; quelli salvati con la 3.0.0 chiedono di aggiornare la 2.2.0. Desktop: impostazioni, libreria e lavoro si salvano su file nella cartella dell'app, con scrittura atomica e migrazione automatica dal vecchio archivio. Libreria dei nomi: i picchi di un progetto riaperto mostrano il nome giusto anche quando una voce entra con un altro codice (conflitto o codice lungo).
 - Desktop: «Aggiungi spettri» e tutte le scelte di file usano i dialoghi del sistema (prima su Windows la finestra si bloccava); i dialoghi si aprono nell'ultima cartella usata per spettri, progetti ed esportazioni, altrimenti in Documenti; l'esportazione conferma solo dopo aver scritto il file; trascinamento nativo di file e cartelle; finestra mostrata già disegnata; Analisi → Preimpostazioni apre la sezione giusta. Lo stesso file caricato due volte insieme entra una volta sola.
 - Importazione: un asse con il separatore delle migliaia e tutti i valori ≥ 1000 («1,100» con la Y a punto decimale) dà ⛔; un asse di tempo o spettrale che torna indietro dallo stesso punto si legge come due blocchi; XRF .mca con energia negativa nella calibrazione letta per intero.
 - HPLC: avvisi per due segnali con un solo blocco e per un canale del nome diverso dall'intestazione; nomi uguali distinti dalla cartella; tabelle riassuntive non contate come canali; fattore di coda > 2 anche con un picco solo. CSV: nomi della libreria personale non più indicati come proposte.
