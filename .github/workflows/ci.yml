@@ -97,16 +97,19 @@ jobs:
           ACCH_E2E_PAGE=1 npx tauri build --debug --features e2e --no-bundle
       - name: Collaudo dentro l'app vera (Linux)
         if: matrix.name == 'linux'
-        run: xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
-          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
+        run: |
+          xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
           xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
       - name: Collaudo dentro l'app vera (Windows)
         if: matrix.name == 'windows'
-        run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
+        run: |
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
           node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe apri-grezzi
       - name: Collaudo dentro l'app vera (macOS)
         if: startsWith(matrix.name, 'macos')
-        run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+        run: |
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
       - name: Costruisce gli installer veri e li controlla
         shell: bash
         # niente chiave di firma qui: la CI gira su ogni ramo e non pubblica; i pacchetti firmati si costruiscono e controllano in release.yml
