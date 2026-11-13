@@ -137,6 +137,10 @@ test('I3 canali HPLC', async t=>{
       // salvato e riaperto: i canali estratti tornano dalla loro λ
       const s=await withPage(b, server, {}, p=>p.evaluate(async L=>{ window.ACCH_CANALI='tutti'; await I3.load(L); return I3.save(); }, [['STD1.D/DAD1.UV',b64(uv)]]));
       const o=await withPage(b, server, {}, p=>p.evaluate(async s=>I3.open(s), s)); assert.deepEqual(o.list.map(f=>f.channel), ['UV 260/4 nm extracted']); assert.equal(o.dlg, false);
+      // lo stesso .uv aggiunto di nuovo: la λ già estratta è «già caricato», non spuntabile, e non si duplica
+      const d=await withPage(b, server, {}, p=>p.evaluate(async L=>{ await I3.load(L); const r=await I3.load(L, async d=>{ I3.again=I3.dialog(); I3.dis=[...d.querySelectorAll('tbody input[data-r]')].map(i=>i.disabled); d.querySelector('#chCancel').click(); }); return {again:I3.again, dis:I3.dis, list:r.list.map(f=>f.channel)}; }, [['STD1.D/DAD1.UV',b64(uv)]]));
+      assert.deepEqual(d.again.cols, ['UV 260 nm']); assert.deepEqual(d.again.cells, ['x']); assert.deepEqual(d.dis, [true], 'la λ già estratta deve essere disattivata');
+      assert.match(d.again.text, /già caricato/); assert.deepEqual(d.list, ['UV 260/4 nm extracted'], 'nessun cromatogramma doppio');
     });
 
     await t.test('progetto della versione 1 con un file a due blocchi: si riapre come allora, un solo spettro (nessun numero cambia)', async ()=>{

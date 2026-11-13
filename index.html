@@ -5011,6 +5011,8 @@ function textChannels(text, p, name){ const C=window.AcchChannels; if (!C || !p 
   return C.finish({format:'text', declared, notes, samples:[{sampleKey:null, name:'', channels:chs}]}); }
 /* I3: finestra «Canali trovati». rows: [{key, label, sub, cells:Map(colKey → cella)}], cols: [{key, label, sub}]. Restituisce le celle scelte o null (annullato) */
 const CH_PREF='acch.canali.scelta';
+// un cromatogramma già estratto dallo stesso .uv (stessa λ e banda) è «già caricato», come i canali dei .ch
+const uvLoaded=(src, wl, bw)=>{ const ch=AcchChannels.formatChannel({det:'UV', wl, bw:bw||null, ref:null, ex:null, em:null, extracted:true}); return files.some(f=>f.path===src.path && f.size===src.file.size && f.channel===ch); };
 function askChannels(rows, cols, uvRows, defaultUv){ const d=$('#dlgChan'), desk=!!window.ACCH_DESK, en=uiEn(), grid=$('#chGrid');
   return new Promise(res=>{
     const cellOf=(r,c)=>r.cells.get(c.key), uvCol=wl=>'UV '+wl+'/'+(+$('#chUvBw').value||0)+' nm extracted';
@@ -5020,7 +5022,7 @@ function askChannels(rows, cols, uvRows, defaultUv){ const d=$('#dlgChan'), desk
       const all=cols.concat(uc), old=new Map([...grid.querySelectorAll('input[data-r]')].map(i=>[i.dataset.r+'|'+i.dataset.c, i.checked]));
       let h='<thead><tr><th class="chrow">'+(en?'Sample':'Campione')+'</th>'+all.map((c,j)=>`<th><label><input type="checkbox" data-col="${j}"> ${esc(c.label)}</label>${c.sub?`<small>${esc(c.sub)}</small>`:''}</th>`).join('')+'</tr></thead><tbody>';
       rows.forEach((r,i)=>{ h+=`<tr><th class="chrow"><label><input type="checkbox" data-row="${i}"> ${esc(r.label)}</label>${r.sub?`<small>${esc(r.sub)}</small>`:''}</th>`;
-        all.forEach((c,j)=>{ const cell=c.uv!=null ? (r.uv ? {uv:true} : null) : cellOf(r,c);
+        all.forEach((c,j)=>{ const cell=c.uv!=null ? (r.uv ? {uv:true, loaded:uvLoaded(r.uv, c.uv, +$('#chUvBw').value||0)} : null) : cellOf(r,c);
           if (!cell){ h+='<td class="chna">—</td>'; return; }
           const k=i+'|'+j, was=old.has(k)?old.get(k):(cell.loaded?true:c.uv!=null?r.uvOn:cell.def!==false), dis=cell.loaded?' disabled':'';
           h+=`<td><input type="checkbox" data-r="${i}" data-c="${j}"${was?' checked':''}${dis} aria-label="${esc(r.label+' · '+c.label)}">${cell.loaded?`<small>${en?'already loaded':'già caricato'}</small>`:''}</td>`; });
@@ -5084,7 +5086,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     const offered=R.flatMap(r=>[...r.cells.values()].filter(c=>!c.loaded).map(cell=>({row:r, cell})));
     const ask=R.some(r=>r.cells.size+(r.uv?1:0)>1) || uvRows.length>0;
     if (!offered.length && !uvRows.length){ msrc.forEach(()=>onDup()); return chosen; }
-    if (!ask || window.ACCH_CANALI==='tutti') sel=offered.concat(uvRows.filter(r=>r.uvOn).flatMap(r=>defUv.map(wl=>({row:r, uv:wl, bw:4}))));
+    if (!ask || window.ACCH_CANALI==='tutti') sel=offered.concat(uvRows.filter(r=>r.uvOn).flatMap(r=>defUv.filter(wl=>!uvLoaded(r.uv, wl, 4)).map(wl=>({row:r, uv:wl, bw:4}))));
     else { sel=await askChannels(R, COLS, uvRows, defUv);
       if (sel==null){ const n=msrc.length; msgs.push(en?`⚠️ Channel selection cancelled: ${n} ${n===1?'file was':'files were'} not loaded.`:`⚠️ Scelta dei canali annullata: ${n} file non ${n===1?'è stato caricato':'sono stati caricati'}.`); return chosen; } }
     const unchosen=offered.filter(x=>!sel.some(y=>y.cell===x.cell));
