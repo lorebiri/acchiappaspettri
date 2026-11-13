@@ -205,5 +205,7 @@
 "not reliable (signal in the baseline or negative value)",
 "DejaVuSans-Bold.ttf",
 "WenQuanYiMicroHei",
-"WenQuanYiMicroHei.ttf"
+"WenQuanYiMicroHei.ttf",
+"write-failed: AlreadyExists",
+"check cfall"
 ]

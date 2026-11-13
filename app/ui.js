@@ -4,7 +4,7 @@
 (function(win){
   'use strict';
   const REPO='lorebiri/acchiappaspettri', RELEASES='https://github.com/'+REPO+'/releases';
-  const $=s=>document.querySelector(s), lsG=k=>{ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  const $=s=>document.querySelector(s), lsG=k=>{ try{ return JSON.parse(AcchHost.store.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ AcchHost.store.setItem(k,JSON.stringify(v)); }catch(e){} };
   const isDesktop=()=>!!win.__TAURI__;
   /* finestra di scelta della pagina: uguale su ogni sistema, tradotta, non blocca il resto */
   function choice(message, buttons){ return new Promise(res=>{

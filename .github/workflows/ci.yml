@@ -110,6 +110,8 @@ jobs:
         # nuovi tentativi solo per gli errori passeggeri noti (hdiutil «Resource busy», download falliti per la rete), con ::warning::
         run: |
           node .github/scripts/tauri-build.js build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          # come in release.yml: nelle versioni di prova la versione Debian del .deb diventa «X~rc.N» prima del controllo
+          for d in src-tauri/target/release/bundle/deb/*.deb; do if [ -f "$d" ]; then node scripts/deb-version.js "$d" "$(node -p "require('./package.json').version")"; fi; done
           node scripts/check-packages.js
       - name: Installa, avvia e disinstalla l'installer vero (Windows)
         if: matrix.name == 'windows'

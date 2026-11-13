@@ -81,7 +81,7 @@ Come leggerli:
 
 ## 6. Scarica i risultati
 - **Solo la tabella:** premi **⬇️ CSV** sotto la tabella. Ottieni `misure_hplc.csv` per Excel: aree, concentrazioni stimate, intervallo, stato di ogni riga, e in fondo retta, LOD, LOQ e test di Mandel.
-- **Tutto:** premi **Tutto ok, vai a scaricare** (*app desktop:* **Esporta**), poi **⬇️ Scarica tutto in un file ZIP**. Nel PDF l'ultima pagina è «Retta di taratura · HPLC» con retta, LOD, LOQ, controllo, bianco e incogniti. Nello ZIP c'è anche `analisi/misure_bande_hplc.csv`.
+- **Tutto:** premi **Tutto ok, vai a scaricare** (*app desktop:* **Esporta**), lascia spuntati **PDF** e **Risultati delle analisi** e premi **⬇️ Scarica i file scelti** (*app desktop:* **Esporta nella cartella…** e scegli la cartella). Se vuoi un solo file, spunta prima **Raccogli tutto in un file ZIP**. Nel PDF l'ultima pagina è «Retta di taratura · HPLC» con retta, LOD, LOQ, controllo, bianco e incogniti. Tra i risultati delle analisi c'è anche `analisi/misure_bande_hplc.csv`.
 
 ## Se qualcosa non va
 - **Accanto all'area compare ⚠️ «bordi della zona lontani dalla linea di base»:** la zona taglia il picco. Allargala (per esempio 3,8–4,6) guardando il grafico.
