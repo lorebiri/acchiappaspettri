@@ -15,6 +15,7 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
+mod engine;
 mod segnala;
 mod store;
 
@@ -25,8 +26,8 @@ struct Store {
 }
 
 #[derive(Default)]
-struct Grants {
-    paths: Mutex<HashSet<PathBuf>>,
+pub(crate) struct Grants {
+    pub(crate) paths: Mutex<HashSet<PathBuf>>,
     pending: Mutex<Vec<PathBuf>>,
     /// Cartelle scelte nel dialogo «Esporta»: dentro si possono scrivere file (anche in sottocartelle), mai fuori.
     dirs: Mutex<HashSet<PathBuf>>,
@@ -451,7 +452,7 @@ fn write_file(g: State<'_, Grants>, request: Request<'_>) -> Result<(), String> 
     write_atomic(&path, bytes, is_project(&path))
 }
 
-fn url_decode(s: &str) -> Result<String, String> {
+pub(crate) fn url_decode(s: &str) -> Result<String, String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -674,6 +675,7 @@ pub fn run() {
         .manage(Grants::default())
         .manage(Dirs::default())
         .manage(Store::default())
+        .manage(engine::Jobs::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
             if let Ok(dir) = app.path().app_config_dir() {
@@ -722,12 +724,14 @@ pub fn run() {
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
-        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi
+        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder

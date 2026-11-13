@@ -16,4 +16,9 @@ function extractCore(buf){ if (typeof buf==='string') buf=Buffer.from(buf,'utf8'
 // Si copiano byte per byte; l'elenco in ordine di caricamento è quello degli <script> della pagina.
 function coreModules(html){ if (Buffer.isBuffer(html)) html=html.toString('utf8'); const a=html.indexOf('/*CORE-START*/'); if (a<0) throw new Error('nucleo: marcatori /*CORE-START*/ e /*CORE-END*/ non trovati');
   return [...html.slice(0,a).matchAll(/<script src="(app\/[\w-]+-core\.js)"><\/script>/g)].map(m=>m[1]); }
-module.exports={extractCore, coreRange, coreModules};
+// I5: core-worker.js, il worker del nucleo nel desktop: carica i moduli puri elencati dalla pagina (anche quelli aggiunti dopo),
+// poi core.js e infine app/worker.js, che risponde alla pagina. I file restano copie identiche: nessun codice scientifico qui.
+function workerSource(html){ const mods=coreModules(html).concat(['core.js']);
+  return '// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli\n// SPDX-License-Identifier: GPL-3.0-or-later\n// Generato da scripts/prepare-desktop.js (workerSource in scripts/core-extract.js): non modificare.\n'
+    +'importScripts('+mods.map(m=>JSON.stringify(m)).join(', ')+');\nimportScripts("app/worker.js");\n'; }
+module.exports={extractCore, coreRange, coreModules, workerSource};

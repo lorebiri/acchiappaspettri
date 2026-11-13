@@ -11,7 +11,7 @@ function tauriMock(){
   const enc=s=>new TextEncoder().encode(s);
   async function invoke(cmd, args, opt){
     const h=k=>decodeURIComponent(opt.headers[k]);
-    M.calls.push({cmd, t:performance.now(), args: cmd==='write_file' ? {size:args.length, path:h('x-acch-path')} : cmd==='save_report_shot' ? {size:args.length, name:opt.headers['x-acch-name'], dest:opt.headers['x-acch-dest'], png:Array.from(args.slice(0,8))} : cmd==='write_in_dir' ? {size:args.length, dir:h('x-acch-dir'), rel:h('x-acch-rel')} : JSON.parse(JSON.stringify(args||{}))});
+    M.calls.push({cmd, t:performance.now(), args: cmd==='write_file' ? {size:args.length, path:h('x-acch-path')} : cmd==='save_report_shot' ? {size:args.length, name:opt.headers['x-acch-name'], dest:opt.headers['x-acch-dest'], png:Array.from(args.slice(0,8))} : cmd==='acch_read' ? {size:args.length, name:h('x-acch-name'), path:opt.headers['x-acch-path']?h('x-acch-path'):null, legacy:opt.headers['x-acch-legacy']} : cmd==='write_in_dir' ? {size:args.length, dir:h('x-acch-dir'), rel:h('x-acch-rel')} : JSON.parse(JSON.stringify(args||{}))});
     const join=(d,r)=>d.replace(/\/+$/,'')+'/'+r, granted=d=>{ if (!M.dirs.has(d)) throw 'not-allowed'; };
     switch (cmd){
       case 'install_info': return {os:'windows', kind:'nsis', arch:'x86_64', e2e:true};
@@ -31,6 +31,10 @@ function tauriMock(){
       case 'store_write': { M.storeWrites.push(args.items); for (const [k,v] of Object.entries(args.items)){ if (v==null) delete M.store[k]; else M.store[k]=v; } return null; }   // archivio su file (lib.rs, store.rs)
       case 'save_report_shot': { M.shots=(M.shots||[]); M.shots.push(args); return (opt.headers['x-acch-dest']==='temp'?'C:\\Temp\\Acchiappaspettri\\':'C:\\Users\\Prova\\Downloads\\')+opt.headers['x-acch-name']; }
       case 'send_report_mapi': if (M.mapi instanceof Error || typeof M.mapi==='string' && /^mapi-/.test(M.mapi)) throw String(M.mapi.message||M.mapi); return M.mapi||'sent';
+      // I5: motore. Di norma senza Rust (solo il worker JS); i test mettono M.engine e M.rustRead (risposta wire o eccezione)
+      case 'engine_config': if (!M.engine) throw 'mock: comando sconosciuto engine_config'; return M.engine;
+      case 'acch_watch': case 'acch_cancel': return null;
+      case 'acch_read': { if (!M.rustRead) throw 'mock: lettore Rust assente'; return await M.rustRead(args, opt.headers); }
       default: throw 'mock: comando sconosciuto '+cmd;
     }
   }

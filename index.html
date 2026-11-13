@@ -24,6 +24,7 @@
 <script src="app/testi-desktop.js"></script>
 <script src="app/i18n.js"></script>
 <script src="app/channels-core.js"></script>
+<script src="app/read-core.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
@@ -5096,23 +5097,7 @@ async function xlsxParse(buf){
 const LOADING=new Set();   // file in lettura: il controllo dei doppioni vale anche per due caricamenti contemporanei dello stesso file
 // I3: chiave della memoria di uno spettro nel progetto (percorso, poi campione e canale se il file ne ha più d'uno)
 const memKey=(path, sk, ch)=>window.AcchChannels ? AcchChannels.memKey(path, sk, ch) : path;
-/* I3: canali di un file di testo ChemStation/OpenLab con più segnali, uno per colonna o un blocco per segnale.
-   Ogni canale si rilegge con il nucleo come se fosse un file a sé (stesse regole e stessi controlli); null se il file ha un solo canale */
-function textChannels(text, p, name){ const C=window.AcchChannels; if (!C || !p || p.reject) return null;
-  const lines=text.split(/\r\n|\n|\r/), chs=[], notes=[]; let declared=0;
-  if ((p.nCols||2)>2){ const k0=lines.findIndex(l=>/^\s*"?[-+]?\d/.test(l) && (l.match(/[-+]?\d+(?:[.,]\d+)?(?:e[-+]?\d+)?/gi)||[]).length>=2), names=k0>0 ? C.headerNames(lines.slice(Math.max(0,k0-8),k0), p.nCols) : null;
-    if (names){ const cand=[]; for (let j=1;j<names.length;j++){ const info=C.parseChannel(names[j]); if (info.det || info.wl!=null) cand.push({j, info, name:names[j]}); }
-      if (cand.length>=2 && new Set(cand.map(c=>C.formatChannel(c.info))).size>=2){ declared=cand.length;
-        for (const c of cand){ const q=parseText(text,{ycol:c.j}); if (q && !q.reject && q.xs.length>=5) chs.push({info:c.info, raw:c.name, xs:q.xs, ys:q.ys, meta:q.meta, p:q, col:c.j}); }
-        const other=names.slice(1).filter((n,j)=>!cand.some(c=>c.j===j+1)); if (other.length) notes.push({code:'cols-other', list:other}); } } }
-  if (!chs.length && p.chSpans && p.chSpans.length>1){ declared=p.chSpans.length;
-    const sig=new Set(lines.filter(l=>/\bSig\s*=|^\W*(Signal|Segnale)\s*\d+\s*[:=]/i.test(l)).map(l=>C.canon(l)).filter(Boolean)); declared=Math.max(declared, sig.size);
-    p.chSpans.forEach((sp,k)=>{ const body=sp.hdr.concat(lines.slice(sp.l0, sp.l1+1)).join('\n'), q=parseText(body); if (!q || q.reject || q.xs.length<5) return;
-      let info=null; for (let h=sp.hdr.length-1;h>=0;h--){ const o=C.parseChannel(sp.hdr[h]); if (o.det || o.wl!=null){ info=o; break; } }
-      chs.push({info:info||{det:'', wl:null, bw:null, ref:null, ex:null, em:null, extracted:false}, raw:'', xs:q.xs, ys:q.ys, meta:q.meta, p:q, block:k}); }); }
-  if (chs.length<2) return null;
-  { const q=p.importIssue, tab=q && p.chSpans ? q.after-(p.afterCh||0) : 0; if (tab>0) notes.push({code:'tables', rows:tab}); }   // blocchi corti dopo i canali: tabelle riassuntive, dette e non lette
-  return C.finish({format:'text', declared, notes, samples:[{sampleKey:null, name:'', channels:chs}]}); }
+// I3: i canali dei file di testo con più segnali li divide AcchRead.textChannels (app/read-core.js, tappa I5)
 /* I3: finestra «Canali trovati». rows: [{key, label, sub, cells:Map(colKey → cella)}], cols: [{key, label, sub}]. Restituisce le celle scelte o null (annullato) */
 const CH_PREF='acch.canali.scelta';
 // un cromatogramma già estratto dallo stesso .uv (stessa λ e banda) è «già caricato», come i canali dei .ch
@@ -5204,10 +5189,11 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
   return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
+  if (window.AcchEngine) AcchEngine.begin();   // I5: «Annulla» vale per questo lotto
   // uno spettro dal file letto: p come lo dà il nucleo; ch (I3) = {sampleKey, channel, label, info} se viene da un file con più canali
   const makeFile=(p, file, path, buf, pbin, det, ch)=>{
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
@@ -5263,6 +5249,17 @@ async function addEntries(entries){
         // progetto della versione 1 (o spettro salvato senza canale): si rilegge come allora, un solo spettro
         const legacy=Array.isArray(ent.want) && ent.want.every(w=>w.sampleKey==null && w.channel==null);
         const C=window.AcchChannels;
+        // I5: tutti i file tranne progetti Origin e cartelle di Excel: AcchRead.read (app/read-core.js), la stessa lettura di prima;
+        // nel desktop AcchEngine (app/engine.js) la fa nel worker, con il lettore Rust se è attivo, e dà lo stesso risultato
+        if (!om && !/\.xlsx$/i.test(file.name) && window.AcchRead){
+          const R=window.AcchEngine ? await AcchEngine.read(buf, file.name, {legacy, onProgress:q=>{ const b=$('#ldBar'); if (b && b.firstElementChild) b.firstElementChild.style.width=Math.min(100,(done-1+q)/tot*100)+'%'; }}, file) : AcchRead.read(buf, file.name, {legacy});
+          if (R.kind==='cancelled'){ cancelled++; continue; }
+          if (R.kind==='uv'){ const o={kind:'uv', uv:R.uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); continue; }
+          if (R.kind==='error'){ errors.push(path); continue; }
+          if (R.kind==='mc'){ const o={kind:'mc', mc:R.mc, file, path, buf, bin:R.bin, want:ent.want}; if (R.det) o.det=R.det; msrc.push(o); order.push({src:o}); continue; }
+          const p=R.p;
+          if (R.kind==='reject'){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); if (p.chemGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.chemGuided); continue; }
+          order.push({args:[p, file, path, buf, R.pb, R.det, null]}); continue; }
         if (C && !om && /\.uv$/i.test(file.name)){ const uv=C.readUv(buf); if (!uv){ errors.push(path); continue; } { const o={kind:'uv', uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); } continue; }
         const xl = !om && /\.xlsx$/i.test(file.name) ? await xlsxParse(buf) : null;   // cartelle di Excel: solo isoterme e chemisorbimento (Kaomi, DEDOTTO)
         let mc=(C && !xl && !om) ? C.readBinary(buf, file.name) : null, text=null, pb=null, mbin=!!mc;
@@ -5272,7 +5269,7 @@ async function addEntries(entries){
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); if (p.chemGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.chemGuided); continue; }
         if (p.xs.length<5) { errors.push(path); continue; }
         const det = detectInstrument(p, file.name);
-        if (det.instr==='hplc' && !pb && !xl && !legacy){ const tc=textChannels(text, p, file.name); if (tc){ const o={kind:'mc', mc:tc, file, path, buf, bin:false, want:ent.want, det}; msrc.push(o); order.push({src:o}); continue; } }
+        if (det.instr==='hplc' && !pb && !xl && !legacy){ const tc=AcchRead.textChannels(text, p, file.name); if (tc){ const o={kind:'mc', mc:tc, file, path, buf, bin:false, want:ent.want, det}; msrc.push(o); order.push({src:o}); continue; } }
         order.push({args:[p, file, path, buf, !!pb || !!xl, det, null]});   // gli spettri si creano dopo la scelta dei canali, nell'ordine del lotto
       }catch(e){ console.error(e); errors.push(path); }
       finally{ LOADING.delete(lkey); }
@@ -5280,6 +5277,7 @@ async function addEntries(entries){
     const chosen=msrc.length ? await loadChannels(msrc, chMsgs, ()=>{ dup++; }, chStat) : new Map();
     for (const o of order) for (const a of (o.args ? [o.args] : chosen.get(o.src)||[])){ try{ makeFile(...a); }catch(e){ console.error(e); errors.push(a[2]); } }
   }catch(e){ console.error(e); }
+  if (window.AcchEngine) AcchEngine.end();
   // I3: quali file del lotto hanno dato almeno uno spettro (project.js conta così i file non riconosciuti)
   window.ACCH_LAST_ADD={produced:[...produced], added, chMsgs:chMsgs.slice(), missing:chStat.missing};
   const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
@@ -5308,6 +5306,7 @@ async function addEntries(entries){
   if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=Math.round(f.xs.length/Math.max(1,f.xs.length*0.01))+'|'+Math.round(f.xs[0]*2)/2+'|'+Math.round(f.xs[f.xs.length-1]*2)/2; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
   if (dup) msgs.push(`👯 ${dup} file ${dup===1?'era':'erano'} già caricat${dup===1?'o':'i'}.`);
+  if (cancelled) msgs.push(`Lettura annullata: ${cancelled} file non letti.`);   // I5, desktop: «Annulla» durante la lettura
   note.style.display = msgs.length?'block':'none'; note.innerHTML = msgs.join('<br>');
   if (files.length && cur<0) cur=0;
   if (added){
@@ -9108,6 +9107,7 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/sorption-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
+<script src="app/engine.js"></script>
 <script src="app/desktop.js"></script>
 <script src="app/segnala.js"></script>
 </body>

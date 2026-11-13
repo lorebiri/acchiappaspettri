@@ -3,9 +3,14 @@
 version = 3
 
 [[package]]
+name = "acch-core"
+version = "3.0.0-rc.3"
+
+[[package]]
 name = "acchiappaspettri"
 version = "3.0.0-rc.3"
 dependencies = [
+ "acch-core",
  "serde",
  "serde_json",
  "tauri",
