@@ -6561,7 +6561,7 @@ function included(){
 function renderSummary(){
   EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; }
   const ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0, sel=expSel(), desk=DESK_EXP();
-  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length&&curView===3?pdfAnalysisPageCount():0);   // I5: le pagine di analisi (assess su ogni spettro) si contano solo in Esporta, dove il numero si vede: go(3) rifà il riepilogo
+  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length&&(curView===3 || !inc.some(f=>f.xs && f.xs.length>=200000))?pdfAnalysisPageCount():0);   // I5: con spettri grandi le pagine di analisi (assess su ogni spettro) si contano solo in Esporta, dove il numero si vede: go(3) rifà il riepilogo
   const ovImg = S.cmpPng ? ovAll : 0, nm=k=>`<b data-noi18n>${esc(expName(k))}</b>`, dirNm=k=>expName(k) ? nm(k) : 'cartella principale';
   const items=[], parts=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
