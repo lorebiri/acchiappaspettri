@@ -778,7 +778,6 @@ pub fn run() {
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
-        lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove
     ]);
     #[cfg(feature = "e2e")]
