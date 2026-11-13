@@ -1048,5 +1048,7 @@
 "per ogni spettro il file così come è stato caricato, byte per byte, con il suo nome e la sua estensione": "for each spectrum the file exactly as it was loaded, byte for byte, with its name and extension",
 "Senza file originale, viene saltato: {0}.": "No original file, skipped: {0}.",
 "Senza file originale, vengono saltati {0} spettri: {1}.": "No original file, {0} spectra skipped: {1}.",
-"Senza file originale, vengono saltati {0} spettri:": "No original file, {0} spectra skipped:"
+"Senza file originale, vengono saltati {0} spettri:": "No original file, {0} spectra skipped:",
+  "Esporta solo quello che vuoi": "Export only what you want",
+  "Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.": "Choose the files to export (PDF, images, peaks, data, tables, project, even an identical copy of the original file), their names and where to save them. ZIP only if you ask for it."
 }
