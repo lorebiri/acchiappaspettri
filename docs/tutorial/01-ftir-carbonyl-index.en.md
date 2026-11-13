@@ -70,7 +70,9 @@ How to read them:
 4. Online: press **⬇️ Download the chosen files**. There are more than 3 files, so the app offers to collect them in a ZIP: answer **Yes, one ZIP file** (or **No, one by one**). If you always want the ZIP, tick **Collect everything in one ZIP file**.
    *Desktop app:* press **Export to folder…**, choose the folder and the files are written there; at the end **Show in folder** opens it.
 
-![The «What do you want to download?» page](img/t1-en-4-scarica.png)
+![The «What do you want to download?» page: each item has its own box and file name (online version)](img/t1-en-4-scarica.png)
+
+![Export in the desktop app: the files written to the chosen folder and «Show in folder»](img/t1-en-4-esporta-desktop.png)
 
 In the folder (or in the ZIP) you find:
 - `Spectra_report_….pdf`: the plots and, on the last page, «Trend · FTIR / ATR-FTIR» with the plot and the values;

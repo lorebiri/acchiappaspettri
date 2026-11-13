@@ -67,7 +67,9 @@ Come leggerli:
 4. Online: premi **⬇️ Scarica i file scelti**. Sono più di 3 file, quindi l'app propone di raccoglierli in uno ZIP: rispondi **Sì, un file ZIP** (oppure **No, uno per uno**). Se vuoi sempre lo ZIP, spunta **Raccogli tutto in un file ZIP**.
    *App desktop:* premi **Esporta nella cartella…**, scegli la cartella e i file vengono scritti lì; alla fine **Mostra nella cartella** la apre.
 
-![La pagina «Cosa vuoi scaricare?»](img/t1-it-4-scarica.png)
+![La pagina «Cosa vuoi scaricare?»: ogni voce ha la sua casella e il suo nome di file (versione online)](img/t1-it-4-scarica.png)
+
+![Esporta nell'app desktop: i file scritti nella cartella scelta e «Mostra nella cartella»](img/t1-it-4-esporta-desktop.png)
 
 Nella cartella (o nello ZIP) trovi:
 - `Report_spettri_….pdf`: i grafici e, nell'ultima pagina, «Andamento · FTIR / ATR-FTIR» con il grafico e i valori;
