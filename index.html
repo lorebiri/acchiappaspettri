@@ -6290,17 +6290,23 @@ function pdfWarn(){ return window.ACCH_SHELL ? (LANG==='en'?'WARNING: ':'AVVISO:
 // «⁻¹» diventa «-¹» (¹ è nel font standard): pdfSup, al momento di scrivere, lo disegna come esponente «-1» rialzato e più piccolo
 // font Unicode (DejaVu Sans) caricato solo per i PDF con testi fuori da WinAnsi (č, ł, greco, CJK…): con il font il testo resta com'è
 let PDF_UNI=false; const PDF_FONT_URL='vendor/fonts/DejaVuSans.ttf';
+// ideogrammi, kana e hangul: DejaVu non li ha, serve WenQuanYi Micro Hei (4,6 MB, ha anche latino e greco), chiesto solo se un testo li contiene
+let PDF_CJK=false; const PDF_CJK_URL='vendor/fonts/WenQuanYiMicroHei.ttf', PDF_CJK_RE=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u31F0-\u31FF\u3400-\u4DBF\u4E00-\u9FFF\uA960-\uA97F\uAC00-\uD7AF\uF900-\uFAFF\uFF66-\uFF9F]/;
 const pdfFits=t=>!/[^\x20-\x7E\xA0-\xFF·\n]/.test(String(t).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/[⁻¹₀-₉⁰⁴≈≠≥≤−✓✗→∞√αβγηℓνδλΦΔσχ]/g,'').split('').filter(c=>!PDF_WIN.includes(c)).join(''));
 // testi scritti dall'utente o presi dai file (nomi, titoli, etichette, descrizioni): sono loro a portare caratteri che il font standard non ha
 function pdfUserTexts(){ const inc=included(), out=[S.docTitle, S.docAuthor, S.docProject]; inc.forEach(f=>{ out.push(dispTitle(f), f.desc, f.path, f.name); Object.values(f.labels||{}).forEach(v=>out.push(v)); const mi=f.minfo||{}; out.push(mi.op, mi.inst); }); return out.filter(Boolean).map(String); }
 async function pdfUseUnicodeFont(doc){
-  if (pdfUserTexts().every(pdfFits)) return false;
+  PDF_CJK=false; const T=pdfUserTexts(); if (T.every(pdfFits)) return false;
+  if (T.some(t=>PDF_CJK_RE.test(t))) try{ const r=await fetch(PDF_CJK_URL); if (r.ok){ const u=new Uint8Array(await r.arrayBuffer()); let b=''; for (let i=0;i<u.length;i+=0x8000) b+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000));
+    // un solo font per tutto il PDF (le misure delle righe restano coerenti) e un solo stile: il font non ha grassetto, e ogni stile in più lo incorporerebbe di nuovo
+    doc.addFileToVFS('WenQuanYiMicroHei.ttf', btoa(b)); doc.addFont('WenQuanYiMicroHei.ttf','WenQuanYiMicroHei','normal');
+    const sf=doc.setFont.bind(doc); doc.setFont=(fam, st)=>fam==='helvetica' ? sf('WenQuanYiMicroHei','normal') : sf(fam, st); doc.setFont('helvetica','normal'); PDF_CJK=true; return true; } }catch(e){ console.warn(e); }
   try{ const r=await fetch(PDF_FONT_URL); if (!r.ok) return false; const u=new Uint8Array(await r.arrayBuffer()); let b=''; for (let i=0;i<u.length;i+=0x8000) b+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000));
     doc.addFileToVFS('DejaVuSans.ttf', btoa(b)); for (const st of ['normal','italic']) doc.addFont('DejaVuSans.ttf','DejaVu',st);
     // grassetto vero per titoli e intestazioni; se manca, il regolare
     try{ const rb=await fetch(PDF_FONT_URL.replace('.ttf','-Bold.ttf')); if (rb.ok){ const ub=new Uint8Array(await rb.arrayBuffer()); let bb=''; for (let i=0;i<ub.length;i+=0x8000) bb+=String.fromCharCode.apply(null, ub.subarray(i,i+0x8000)); doc.addFileToVFS('DejaVuSans-Bold.ttf', btoa(bb)); for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans-Bold.ttf','DejaVu',st); } else for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st); }catch(e){ for (const st of ['bold','bolditalic']) doc.addFont('DejaVuSans.ttf','DejaVu',st); }
     const sf=doc.setFont.bind(doc); doc.setFont=(fam, st)=>sf(fam==='helvetica'?'DejaVu':fam, st); doc.setFont('helvetica','normal'); return true; }catch(e){ console.warn(e); return false; } }
-function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); if (PDF_UNI) return String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\uFE0F]/gu, c=>PDF_MAP[c]||'');
+function pdfText(s){ if (window.ACCH_SHELL) s=String(s).replace(/⚠\uFE0F?\s*/g, LANG==='en'?'Warning: ':'Avviso: '); if (PDF_UNI){ const u=String(s).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\uFE0F]/gu, c=>PDF_MAP[c]||''); return PDF_CJK ? u.replace(/⁻¹/g,'-\u00B9').replace(/[₀-₉⁰⁴⁻]/g, c=>PDF_MAP[c]) : u; }
   return String(s).replace(/⁻¹/g,'-\u00B9').replace(/[αβγηℓνδλΦΔσχ₀-₉⁰⁴⁻≈≠≥≤−✓✗⚠→∞√]/g, c=>PDF_MAP[c]||c).replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'')
   .replace(/[^\x20-\x7E\xA0-\xFF·]/gu, c=>{ if (PDF_WIN.includes(c)) return c; const b=c.normalize('NFD').replace(/[\u0300-\u036F]/g,''); return /^[\x20-\x7E\xA0-\xFF]+$/.test(b) ? b : '?'; }); }
 // metadati (Title, Subject, Author): jsPDF li scrive in UTF-16, quindi restano interi anche fuori da WinAnsi; si tolgono solo le emoji
@@ -6635,7 +6641,7 @@ async function buildPdf(){
   for (let p=1;p<=total;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text(pdfText([title, date, S.docAuthor].filter(Boolean).join('  ·  ')), M, PH-5); doc.text(`${Lx.page} ${p} ${Lx.of} ${total}`, PW-M, PH-5, {align:'right'}); }
   { const tot=doc.internal.getNumberOfPages(); for (let i=1;i<=tot;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(140); doc.text('Acchiappaspettri '+APP_VERSION_FULL(), doc.internal.pageSize.getWidth()/2, doc.internal.pageSize.getHeight()-2, {align:'center'}); } doc.setProperties({creator:'Acchiappaspettri '+APP_VERSION_FULL()}); }
-  PDF_UNI=false;
+  PDF_UNI=false; PDF_CJK=false;
   return doc.output('blob');
 }
 

@@ -13,6 +13,7 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 | jsPDF 4.2.1 (con fflate 0.8.x e moduli interni elencati sotto) | pagina web e app desktop (`vendor/jspdf.umd.min.js`) | MIT, più alcuni moduli interni con licenze proprie (vedi sotto) |
 | JSZip 3.10.1 (con pako 1.0.11, lie 3.3.0, immediate 3.0.6, setimmediate 1.0.5) | pagina web e app desktop (`vendor/jszip.min.js`) | MIT (JSZip è MIT o GPL-3.0; si usa MIT); pako MIT e Zlib |
 | Carattere Nunito (@fontsource/nunito 5.1.0) | pagina web e app desktop (`vendor/fonts/`) | SIL Open Font License 1.1 |
+| Carattere WenQuanYi Micro Hei 0.2.0-beta | pagina web e app desktop (`vendor/fonts/WenQuanYiMicroHei.ttf`), solo nei PDF con cinese, giapponese o coreano | Apache 2.0 (scelta tra Apache 2.0 e GPLv3 con eccezione per i font) |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
 | Crate Rust (Tauri 2, wry, tao, rustls, ring e altri: 336 crate) | eseguibile desktop | MIT, Apache-2.0, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0 (elenco completo sotto) |
 | Microsoft WebView2 Loader (SDK 1.0.3650.58, collegato staticamente) | eseguibile Windows | BSD-3-Clause (Microsoft) |
@@ -9070,3 +9071,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 ## DejaVu Sans 2.37 (vendor/fonts/DejaVuSans.ttf, DejaVuSans-Bold.ttf)
 
 Font incorporato nei PDF solo quando i testi contengono caratteri fuori dalla codifica WinAnsi (per esempio č, ł, greco). Fonte: https://github.com/dejavu-fonts/dejavu-fonts, versione 2.37 (archivio dejavu-fonts-ttf-2.37.tar.bz2, SHA-256 fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7). Font © Bitstream, Inc. (licenza Bitstream Vera); glifi Arev © Tavmjong Bah; le modifiche DejaVu sono di pubblico dominio. Testo completo della licenza: vendor/fonts/LICENSE-DejaVu.txt.
+
+## WenQuanYi Micro Hei 0.2.0-beta (vendor/fonts/WenQuanYiMicroHei.ttf)
+
+Font incorporato nei PDF solo quando i testi contengono ideogrammi cinesi, kana giapponesi o hangul coreani; contiene anche latino, latino esteso e greco, così i testi misti restano in un solo font.
+Fonte: progetto WenQuanYi, http://wenq.org/ e https://sourceforge.net/projects/wqy/files/wqy-microhei/0.2.0-beta/ (archivio wqy-microhei-0.2.0-beta.tar.gz, 2 418 536 byte, SHA-256 2802ac8023aa36a66ea6e7445854e3a078d377ffff42169341bd237871f7213e, identico all'archivio originale del pacchetto Debian fonts-wqy-microhei).
+
+```text
+Copyright: Digitized data copyright (c) 2007, Google Corporation.
+           Copyright (c) 2008-2009, WenQuanYi Project Board of Trustees, All rights reserved.
+           Droid Sans Fallback extension interface, copyright (c) 2008-2009 mozbug and Qianqian Fang
+License  : This font is licensed under Apache2.0 or GPLv3 with font embedding exceptions.
+```
+
+Acchiappaspettri lo usa con la licenza Apache 2.0 (testo integrale in `vendor/fonts/LICENSE-WenQuanYi-Apache2.txt` e nella sezione 6).
+
+**File modificato** (Apache 2.0, sezione 4b): `WenQuanYiMicroHei.ttf` è stato ricavato da `wqy-microhei.ttc` con `scripts/font-cjk.js`, che estrae la prima faccia della raccolta e, per i glifi composti marcati USE_MY_METRICS (gli hangul), copia nella tabella `hmtx` l'avanzamento del componente; contorni e altre tabelle sono invariati. File risultante: 4 626 376 byte, SHA-256 3c7bc48d8a280628aa0c9f6bb0068ea6b8b52a1b6ffcf5f68ac7900bcfb13329.
