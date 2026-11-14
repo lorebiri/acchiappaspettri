@@ -42,7 +42,7 @@
     for (const r of kept) spectra.push(r);
     let results=[]; try{ results=analysisFiles().map(([n,t])=>({name:n, text:t})); }catch(e){ console.warn(e); }
     { const have=new Set(results.map(r=>r.name)); for (const r of prevResults){ const nm=r.name.startsWith('precedenti/')?r.name:'precedenti/'+r.name; if (!have.has(r.name) && !have.has(nm)){ have.add(nm); results.push({name:nm,text:r.text}); } } }   // calcolati in una sessione precedente e non rifatti: non si perdono
-    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip);
+    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip, win.AcchEngine && win.AcchEngine.zipper);   // desktop: ZIP in Rust (I7), altrimenti JSZip
     return {bytes, count:spectra.length, missing:missing.length};
   }
   /* dopo aver scritto, rilegge ciò che ha prodotto: un salvataggio non verificato non conta come salvato */

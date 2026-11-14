@@ -82,6 +82,64 @@ pub fn acch_read(g: State<'_, Grants>, jobs: State<'_, Jobs>, request: Request<'
     res.map(|w| Response::new(w.bytes()))
 }
 
+/// I7: un calcolo del nucleo (picchi, aree, lisciatura, derivata, rumore) sui vettori della richiesta binaria di app/calc-core.js.
+/// Risposta nel formato wire; «decline» se il caso non è coperto (allora calcola il JS).
+#[tauri::command(async)]
+pub fn acch_calc(request: Request<'_>) -> Result<Response, String> {
+    let InvokeBody::Raw(b) = request.body() else { return Err("invalid-body".into()) };
+    let req = acch_core::calc::parse_req(b)?;
+    Ok(Response::new(acch_core::calc::run(&req).bytes()))
+}
+/// I7: archivio ZIP (progetti) con le voci della richiesta «ACZ1» di app/calc-core.js (zipRequest), come lo scriverebbe JSZip.
+/// La richiesta arriva a pezzi (acch_zip_put, il primo con x-acch-first: 1), si scrive con acch_zip_make (risponde la lunghezza)
+/// e si riprende a pezzi con acch_zip_take; con len 0 il lavoro si chiude. Pezzi piccoli: la finestra non si blocca.
+#[derive(Default)]
+pub struct Zips {
+    jobs: Mutex<HashMap<u32, Vec<u8>>>,
+}
+const ZIP_MAX: usize = 2 << 30;
+#[tauri::command(async)]
+pub fn acch_zip_put(z: State<'_, Zips>, request: Request<'_>) -> Result<(), String> {
+    let h = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).map(|s| s.to_string());
+    let job: u32 = h("x-acch-job").and_then(|s| s.parse().ok()).ok_or("job")?;
+    let InvokeBody::Raw(b) = request.body() else { return Err("invalid-body".into()) };
+    let mut jobs = z.jobs.lock().unwrap();
+    let buf = jobs.entry(job).or_default();
+    if h("x-acch-first").as_deref() == Some("1") {
+        buf.clear();
+    }
+    if buf.len() + b.len() > ZIP_MAX {
+        jobs.remove(&job);
+        return Err("zip-too-large".into());
+    }
+    buf.extend_from_slice(b);
+    Ok(())
+}
+#[tauri::command(async)]
+pub fn acch_zip_make(z: State<'_, Zips>, job: u32) -> Result<usize, String> {
+    let req = z.jobs.lock().unwrap().remove(&job).ok_or("job")?;
+    let out = acch_core::zip::parse(&req).and_then(|e| acch_core::zip::write(&e, &|| false, &mut |_, _| {}))?;
+    let n = out.len();
+    z.jobs.lock().unwrap().insert(job, out);
+    Ok(n)
+}
+#[tauri::command(async)]
+pub fn acch_zip_take(z: State<'_, Zips>, job: u32, offset: usize, len: usize) -> Result<Response, String> {
+    let mut jobs = z.jobs.lock().unwrap();
+    if len == 0 {
+        jobs.remove(&job);
+        return Ok(Response::new(Vec::new()));
+    }
+    let buf = jobs.get(&job).ok_or("job")?;
+    let a = offset.min(buf.len());
+    let b = offset.saturating_add(len).min(buf.len());
+    let part = buf[a..b].to_vec();
+    if b == buf.len() {
+        jobs.remove(&job);
+    }
+    Ok(Response::new(part))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

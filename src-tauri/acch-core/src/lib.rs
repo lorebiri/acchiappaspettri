@@ -7,10 +7,12 @@
 //! stesso oggetto che darebbe il JS. Quando un file non rientra nei casi coperti la risposta è «decline» e legge il JS.
 //! Nessuna funzione esiste solo qui.
 pub mod agilent;
+pub mod calc;
 pub mod decode;
 pub mod js;
 pub mod simple;
 pub mod textmc;
+pub mod zip;
 
 use js::{json_str, json_u16};
 

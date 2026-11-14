@@ -85,7 +85,8 @@
              libraries:[{id, revision, name?, data}], results:[{name,text}]}
      Formato 2: i byte di ogni file originale si scrivono una volta sola (data/, project/sources.json), anche se più spettri
      ne derivano (canali di un file multicanale, distinti da sampleKey). Vedi docs/FORMATO-ACCHSPETTRI.md. */
-  async function encode(input, JSZip){
+  /* zipper (facoltativo, desktop, I7): async (oggettoJSZip, opzioni) → byte dell'archivio con le stesse voci, oppure null per usare JSZip */
+  async function encode(input, JSZip, zipper){
     if (!JSZip) throw new ProjectError('no-zip');
     const zip=new JSZip(), entries={}, now=new Date().toISOString();
     const add=(path, data, opt, hash)=>{ const bytes=typeof data==='string' ? utf8(data) : data; entries[path]={sha256:hash||sha256(bytes), size:bytes.length}; zip.file(path, bytes, Object.assign({binary:true, date:new Date(now)}, opt||{})); };
@@ -125,7 +126,9 @@
     out.file('mimetype', MIME, {compression:'STORE', date:new Date(now)});
     out.file('manifest.json', JSON.stringify(manifest,null,1), {date:new Date(now)});
     for (const p of Object.keys(zip.files)) if (!zip.files[p].dir) out.file(p, await zip.files[p].async('uint8array'), {binary:true, date:new Date(now)});
-    return out.generateAsync({type:'uint8array', compression:'DEFLATE', compressionOptions:{level:6}});
+    const gen={type:'uint8array', compression:'DEFLATE', compressionOptions:{level:6}};
+    if (zipper){ const b=await zipper(out, gen); if (b) return b; }
+    return out.generateAsync(gen);
   }
 
   /* migrazioni: da una versione del formato alla successiva, in memoria, senza toccare il file originale */
