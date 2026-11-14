@@ -1,0 +1,66 @@
+{
+ "format": "acchplugin",
+ "formatVersion": 1,
+ "manifest": {
+  "id": "org.acchiappaspettri.esempio.binario-wasm",
+  "name": "Binario AWB1 (esempio WebAssembly)",
+  "version": "1.0.0",
+  "author": "Lorenzo Birindelli",
+  "license": "GPL-3.0-or-later",
+  "extensions": [
+   "awb"
+  ],
+  "minAppVersion": "3.0.0",
+  "permissions": [
+   "read-file"
+  ],
+  "description": {
+   "it": "Esempio dimostrativo di lettore WebAssembly: file binari AWB1 con n punti x e y in float32.",
+   "en": "Demonstration WebAssembly reader: AWB1 binary files with n float32 x and y points."
+  },
+  "homepage": "https://github.com/lorebiri/acchiappaspettri/blob/main/docs/ESTENSIONI.md"
+ },
+ "wasm": "AGFzbQEAAAABDAJgAX8Bf2ACf38BfwMDAgABBQUBAQGAAgcjAwZtZW1vcnkCAAphY2NoX2FsbG9jAAAJYWNjaF9yZWFkAAEK9QICMAEBfyAAQQNsQcAIakEQdkEBaiEBIAE/AEsEQCABPwBrQABBf0YEQEF/DwsLQYAIC8ECAQR/IAAgAWpBB2pBeHEhAiABQQhJBEAgAkEBNgIAIAIPCyAAKAIAQcGuiYoDRwRAIAJBATYCACACDwsgACgCBCEDIAMgAUEIa0EDdksEQCACQQI2AgAgAkEANgIEIAJBADYCCCACQTk2AgwgAkEMaiEFQQAhBANAIARBOUkEQCAFIARqIAQtAIAEOgAEIARBAWohBAwBCwsgAg8LIAJBADYCACACQQE2AgQgAiADNgIIQQAhBANAIAQgA0kEQCACIARBA3RqIAAgBEECdGoqAgi7OQMMIAIgA0EDdGogBEEDdGogACADQQJ0aiAEQQJ0aioCCLs5AwwgBEEBaiEEDAELCyACQQxqIANBBHRqIQUgBUHdADYCAEEAIQQDQCAEQd0ASQRAIAUgBGogBC0AEDoABCAEQQFqIQQMAQsLIAILC6IBAgBBEAtdeyJjaGFubmVscyI6WyJJbnRlbnNpdMOgIl0sInRlY2huaXF1ZSI6InJhbWFuIiwibWV0YSI6WyJGb3JtYXRvIEFXQjEgKGVzZW1waW8gV2ViQXNzZW1ibHkpIl19AEGABAs5eyJlcnJvciI6ImZpbGUgdHJvbmNhdG86IG1hbmNhbm8gcHVudGkgLyB0cnVuY2F0ZWQgZmlsZSJ9",
+ "examples": [
+  {
+   "name": "esempio-SINTETICO.awb",
+   "data": "QVdCMQwAAAAAAEhDAACWQwAAyEMAAPpDAAAWRAAAL0QAAEhEAABhRAAAekQAgIlEAACWRACAokQAACBBAABAQQAAcEEAACBCAADwQgAAlkMAADRDAABwQgAAyEEAAGBBAAAwQQAAIEE=",
+   "expected": {
+    "technique": "raman",
+    "channels": [
+     {
+      "name": "Intensità",
+      "x": [
+       200,
+       300,
+       400,
+       500,
+       600,
+       700,
+       800,
+       900,
+       1000,
+       1100,
+       1200,
+       1300
+      ],
+      "y": [
+       10,
+       12,
+       15,
+       40,
+       120,
+       300,
+       180,
+       60,
+       25,
+       14,
+       11,
+       10
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

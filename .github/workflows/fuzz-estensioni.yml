@@ -1,0 +1,43 @@
+# Fuzzing delle estensioni (I11, R16), solo su richiesta: test/fuzz/estensioni-fuzz.js con semi diversi in job paralleli.
+# Le 24 ore della SPEC: per esempio 5 job da 300 minuti (un job di GitHub dura al massimo 6 ore).
+name: Fuzzing estensioni
+on:
+  workflow_dispatch:
+    inputs:
+      minuti:
+        description: "Minuti per job (1–330)"
+        default: "60"
+      job:
+        description: "Job in parallelo, ognuno con il suo seme (1–20)"
+        default: "1"
+permissions:
+  contents: read
+jobs:
+  piano:
+    runs-on: ubuntu-24.04
+    outputs:
+      semi: ${{ steps.p.outputs.semi }}
+      secondi: ${{ steps.p.outputs.secondi }}
+    steps:
+      - id: p
+        env: { MINUTI: "${{ inputs.minuti }}", JOB: "${{ inputs.job }}" }
+        run: |
+          node -e 'const m=Math.min(330,Math.max(1,parseInt(process.env.MINUTI)||60)), j=Math.min(20,Math.max(1,parseInt(process.env.JOB)||1)); console.log("semi="+JSON.stringify(Array.from({length:j},(_,i)=>i+1))); console.log("secondi="+m*60);' >> "$GITHUB_OUTPUT"
+  fuzz:
+    needs: piano
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        seme: ${{ fromJSON(needs.piano.outputs.semi) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version: 22 }
+      - name: Fuzzing
+        run: node test/fuzz/estensioni-fuzz.js --seconds ${{ needs.piano.outputs.secondi }} --seed ${{ matrix.seme }} --workers 2 --out fuzz-esiti
+      - name: Rapporto e casi trovati
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with: { name: "fuzz-estensioni-${{ matrix.seme }}", path: fuzz-esiti, if-no-files-found: warn }

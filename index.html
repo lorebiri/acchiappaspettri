@@ -5223,7 +5223,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
         if (!cols.has(key)) cols.set(key,{key, label:key===c.channel?(c.label||c.channel):key, sub:key===c.channel && c.channel!==c.label ? c.channel : ''});
         const loaded=files.some(f=>f.path===src.path && f.size===src.file.size && (f.sampleKey==null?null:f.sampleKey)===(s.sampleKey==null?null:String(s.sampleKey)) && (f.channel||null)===(c.channel||null));
         // di norma si spunta tutto tranne la fluorescenza e i canali senza sigla né λ (ROADMAP I3), e ciò che l'utente ha chiesto di ricordare
-        const o=c.info||{}, def=prefOn.has(key) || (!(o.ex!=null || /^FLD/.test(o.det||'') || (!o.det && o.wl==null)) && !prefOff.has(key));
+        const o=c.info||{}, def=prefOn.has(key) || ((src.plugin || !(o.ex!=null || /^FLD/.test(o.det||'') || (!o.det && o.wl==null))) && !prefOff.has(key));   // i canali di un'estensione hanno nomi suoi: tutti spuntati
         r.cells.set(key,{src, s, c, loaded, def}); } } }
   const R=[...rows.values()], COLS=[...cols.values()].sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true}));
   R.forEach(r=>{ r.uvOn=r.uv && r.cells.size===0; });
@@ -5254,7 +5254,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
   return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[], pkgs=[];   // pkgs: pacchetti .acchplugin da installare (I11); progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
@@ -5268,6 +5268,7 @@ async function addEntries(entries){
         f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1 && !ch){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; if (p.origin){ f.origin=p.origin; f.rawName=path.replace(/#origin:[^#]*$/,'').split('/').pop(); }
         // un canale di un file multicanale: la colonna Y e i blocchi non si scelgono più a mano, il canale è quello letto
         if (ch){ f.sampleKey=ch.sampleKey==null?null:String(ch.sampleKey); f.channel=ch.channel||null; f.chInfo=ch.info||null; f.chSrc=ch.src||'canali'; f.nCols=2; f.colNames=null; f.ycolNow=1; f.nBlocks=1; f.chIx=0; f.nChan=1; f.afterCh=0; f._chan=ch.label||''; if (f.importIssue && f.importIssue.channel) f.importIssue=null; }
+        if (p.plugin) f.plugin=p.plugin;   // I11: estensione (id, versione, impronta) che ha letto il file; si salva nel progetto
         if (p.iso) f.iso=p.iso;   // isoterma completa (rami, p, p₀, meta), ricostruita dai byte originali alla riapertura
         if (p.chem) f.chem=p.chem;   // chemisorbimento: impostazioni in f.an.chem
         postDetect(f, p);
@@ -5303,7 +5304,11 @@ async function addEntries(entries){
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
       const om=window.AcchOriginUI ? /#origin:([^#]*)$/.exec(path) : null;   // uno spettro scelto da un progetto Origin (vedi app/origin-ui.js)
       if (/\.opju?$/i.test(file.name) && window.AcchOriginUI && !om){ origins.push({file, path}); continue; }
-      if (!ACCEPT.test(file.name) && !om){ skipped.push(path); continue; }
+      if (/\.acchplugin$/i.test(file.name) && window.AcchPlugins){ pkgs.push(file); continue; }
+      let plugs=(window.AcchPlugins && !om) ? AcchPlugins.candidates(file.name, ent) : [];   // I11: estensioni che leggono questo formato
+      // I11: controllo preventivo della dimensione, prima di leggere il file; se lo legge anche l'app, ci pensa lei
+      if (plugs.length && file.size>AcchPlugins.maxBytes()){ plugs=[]; if (!ACCEPT.test(file.name)){ rejected.push(`${path}: ${AcchPlugins.tooBigText(file.size)}`); continue; } }
+      if (!ACCEPT.test(file.name) && !om && !plugs.length){ skipped.push(path); continue; }
       const lkey=path+'\u0000'+file.size, same=files.filter(f=>f.path===path && f.size===file.size);
       if ((same.length && !same.some(f=>f.chSrc)) || LOADING.has(lkey)){ dup++; continue; }
       LOADING.add(lkey);
@@ -5314,6 +5319,11 @@ async function addEntries(entries){
         // progetto della versione 1 (o spettro salvato senza canale): si rilegge come allora, un solo spettro
         const legacy=Array.isArray(ent.want) && ent.want.every(w=>w.sampleKey==null && w.channel==null);
         const C=window.AcchChannels;
+        if (plugs.length){ const r=await pluginRead(plugs, buf, file, path, ent);   // I11: lettore isolato; null = nessuna estensione lo riconosce
+          if (r && r.error){ rejected.push(`${path}: ${r.error}`); continue; }
+          if (r && r.src){ msrc.push(r.src); order.push({src:r.src}); continue; }
+          if (r && r.args){ order.push({args:r.args}); continue; }
+          if (!ACCEPT.test(file.name)){ skipped.push(path); continue; } }
         // I5: tutti i file tranne progetti Origin e cartelle di Excel: AcchRead.read (app/read-core.js), la stessa lettura di prima;
         // nel desktop AcchEngine (app/engine.js) la fa nel worker, con il lettore Rust se è attivo, e dà lo stesso risultato
         if (!om && !/\.xlsx$/i.test(file.name) && window.AcchRead){
@@ -5384,6 +5394,8 @@ async function addEntries(entries){
     if (lost){ const why=msgs.filter(m=>/^(🙈|⛔|🤔|🔒)/.test(m)).map(m=>m.replace(/<[^>]+>/g,'').replace(/^(🙈|⛔|🤔|🔒)\s*/,'')).join(' '); setTimeout(()=>toast('⚠️ '+why), 50); }
   } else if (dup && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
+  } else if (pkgs.length && !skipped.length && !errors.length && !unreadable.length && !origins.length && !images.length && !projects.length){
+    say('#hello', 'Pacchetto di estensione ricevuto: controlla e conferma l\'installazione.');
   } else if (origins.length && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Progetto Origin ricevuto: scegli gli spettri da importare.');
   } else if (images.length && !skipped.length && !errors.length && !unreadable.length){
@@ -5403,7 +5415,22 @@ async function addEntries(entries){
   if (images.length) askImages(images);
   if (origins.length) AcchOriginUI.ask(origins);
   if (projects.length) await AcchProject.openFile(projects[0]);
+  for (const k of pkgs) await AcchPlugins.installFile(k);   // I11: uno alla volta, ciascuno con il suo avviso
 }
+/* I11: un file letto da un'estensione (app/plugins.js). Restituisce {args} (uno spettro), {src} (più canali: finestra «Canali trovati»),
+   {error} o null se nessuna delle estensioni lo riconosce. Lo strumento è quello dichiarato dall'estensione, altrimenti si riconosce come sempre */
+async function pluginRead(ids, buf, file, path, ent){ const C=window.AcchChannels;
+  for (const id of ids){ const r=await AcchPlugins.read(id, buf, file.name, {techniques:Object.keys(INSTR)});
+    if (r.none) continue;
+    if (r.error) return {error:r.error};
+    const pl={id:r.plugin.id, version:r.plugin.version, name:r.plugin.name, sha256:r.plugin.sha256}, by=`letto dall'estensione «${pl.name}» ${pl.version}`;
+    const pOf=c=>({xs:c.xs, ys:c.ys, meta:r.meta.concat(c.meta), nCols:2, plugin:pl});
+    const p0=pOf(r.channels[0]), d0=r.technique ? {instr:r.technique, reason:by} : detectInstrument(p0, file.name), det={instr:d0.instr, reason:r.technique?by:(d0.reason?d0.reason+' · ':'')+by};
+    if (r.channels.length===1 || !C) return {args:[p0, file, path, buf, true, det, null]};
+    const mc=C.finish({format:'plugin', declared:r.channels.length, notes:[], samples:[{sampleKey:null, name:r.sample||'', channels:r.channels.map(c=>({info:C.parseChannel(c.name), raw:c.name, xs:c.xs, ys:c.ys, meta:pOf(c).meta, p:pOf(c)}))}]});
+    mc.samples[0].channels.forEach((c,i)=>{ c.channel=r.channels[i].name; c.label=r.channels[i].name; });   // nomi dell'estensione, già distinti (validateOutput)
+    return {src:{kind:'mc', mc, file, path, buf, bin:true, want:ent.want, det, plugin:pl}}; }
+  return null; }
 async function entriesFromDrop(dt, fallback){
   const roots = [...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
   if (!roots.length || roots.some(r=>!r)) return fallback;
@@ -9211,6 +9238,8 @@ window.ACCH_AXSYNC=bindAxisFields();
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 <script src="app/origin-ui.js"></script>
+<script src="app/plugins-base.js"></script>
+<script src="app/plugins.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
 <script src="app/chemo-ui.js"></script>
