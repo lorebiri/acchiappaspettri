@@ -1,5 +1,9 @@
 # Novità delle versioni
 
+## 3.0.0-rc.5
+
+Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.4, che non è stata pubblicata perché lo script del collaudo nell'app vera era troncato e i comandi della CI erano uniti in una riga. È una pre-release: non viene proposta agli utenti come aggiornamento.
+
 ## 3.0.0-rc.4
 
 Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.3 aggiunge Segnala un problema, l'HPLC multicanale, le librerie per strumento e tipo di campione con le pendenze salvate, il fisisorbimento e chemisorbimento (Autosorb) e i progetti Origin (sotto, nella sezione 3.0.0).
