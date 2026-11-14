@@ -24,7 +24,7 @@
         if (!r || m.dual) js=AcchRead.read(m.buf, m.name, opt);
         if (m.dual && r) dual=AcchRead.same(r, js) || 'identici';   // ACCH_DUAL=1: i due motori sullo stesso file
         const use=dual && dual!=='identici' ? js : (r || js);   // con una differenza vale il JS di riferimento
-        out={id:m.id, ok:true, r:packUv(use), engine:use===r?'rust':'js', why, dual};
+        out={id:m.id, ok:true, r:packUv(use), engine:use===r?'rust':'js', why, dual, fnv:AcchRead.fnv(m.buf)};   // l'impronta del file (quickHash della pagina), fuori dalla finestra
       } else if (m.op==='call'){ const f=self[m.fn]; if (typeof f!=='function') throw new Error('funzione del nucleo sconosciuta: '+m.fn); out={id:m.id, ok:true, r:f.apply(null, m.args||[])}; }
       else if (m.op==='ping') out={id:m.id, ok:true, r:{modules:Object.keys(self).filter(k=>/^Acch|^SorpCore$/.test(k))}};
       else throw new Error('operazione sconosciuta: '+m.op);

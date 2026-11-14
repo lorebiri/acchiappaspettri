@@ -2642,6 +2642,13 @@ function kthSmallest(a, k){ let lo=0, hi=a.length-1;
     let i=lo, j=hi; while (i<=j){ while (a[i]<p) i++; while (a[j]>p) j--; if (i<=j){ const t=a[i]; a[i]=a[j]; a[j]=t; i++; j--; } }
     if (k<=j) hi=j; else if (k>=i) lo=i; else return a[k]; }
   return a[k]; }
+/* I5: l'elemento k di Array.from(a).sort((x,y)=>x−y) senza ordinare tutto: stesso elemento (kthSmallest); con NaN, o se il valore è
+   uno zero (il segno dipenderebbe dall'ordine), si ordina come prima. Ricordato per vettore e posizione */
+const SORTED_AT=new WeakMap();
+function sortedAt(arr, k){ const m=SORTED_AT.get(arr); if (m && m.has(k)) return m.get(k); let v=null;
+  if (arr.length>=2048){ const a=Float64Array.from(arr); let nan=false; for (let i=0;i<a.length;i++) if (a[i]!==a[i]){ nan=true; break; } if (!nan){ const r=kthSmallest(a, k); if (r!==0) v=r; } }
+  if (v===null) v=Array.from(arr).sort((x,y)=>x-y)[k];
+  if (typeof arr==='object'){ let mm=m; if (!mm){ mm=new Map(); SORTED_AT.set(arr, mm); } mm.set(k, v); } return v; }
 function sgNoiseGain(m){ const den=(2*m+3)*(2*m+1)*(2*m-1); let c2=0; for (let i=-m;i<=m;i++){ const c=3*(3*m*m+3*m-1-5*i*i)/den; c2+=c*c; } return Math.sqrt(c2); }
 /* massimi locali con la prominenza: per ogni massimo il minimo fra lui e il primo valore più alto a sinistra e a destra.
    I5: in O(n) con una pila (il primo valore più alto e il minimo dei tratti scavalcati), invece di scorrere a ogni massimo fino al
@@ -4642,7 +4649,9 @@ const dispTitle = f => ((f.title && f.title.trim()) || f.name)+chTag(f)+sameName
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
 function fkey(f){ return LS_FILE + f.path + '|' + (f.n0||f.xs.length) + (f.channel!=null||f.sampleKey!=null ? '|'+(f.sampleKey||'')+'|'+(f.channel||'') : ''); }   // i canali di uno stesso file hanno ciascuno la sua memoria (I3)
-function quickHash(buf){ const u=new Uint8Array(buf); let h=0x811c9dc5; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,0x01000193); } return (h>>>0).toString(16); }
+// I5: nel desktop l'impronta la calcola già il worker durante la lettura (stesso FNV-1a, AcchRead.fnv): qui si riusa per lo stesso buffer
+const QH_MEMO=new WeakMap();
+function quickHash(buf){ if (buf && typeof buf==='object' && QH_MEMO.has(buf)) return QH_MEMO.get(buf); const u=new Uint8Array(buf); let h=0x811c9dc5; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,0x01000193); } return (h>>>0).toString(16); }
 function fileMemory(f){
   return {hash:f.hash, size:f.size, title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined, ecal:f.ecal||undefined, inset:f.inset||undefined,
     seg: f.therm && f.seg!==f.therm.seg ? f.seg : undefined, sub:f.sub||undefined, freqU:f.freqU||undefined, lexU:f.lexU||undefined, endoU:f.endoU||undefined, userRate:f.userRate||undefined, massU:f.massU||undefined, refShow:f.refShow||undefined, nucU:f.nucU||undefined, an:f.an||undefined, fit:f.fit||undefined};
@@ -5385,6 +5394,9 @@ async function addEntries(entries){
     say('#hello', 'Ops, con questo non ci riesco… 😕 Guarda il messaggio qui sotto.');
   }
   if (tot){ loader(true, 'Preparo i grafici…', `${added} spettri acchiappati`, 1); await frame(); }
+  // I5: spettri grandi nel desktop: elaborazione e picchi (viewOf) preparati con i calcoli pesanti nel worker, a pezzi brevi;
+  // il disegno che segue trova tutto pronto. Stessi risultati: sono le stesse funzioni con gli stessi argomenti
+  if (window.AcchEngine && AcchEngine.prefetch) for (const f of files.slice(files.length-added)) if (f.xs && f.xs.length>=200000){ try{ await AcchEngine.prefetch(()=>{ viewOf(f); }); }catch(e){ console.error(e); } }
   try{ refreshAll(); }catch(e){ console.error(e); }
   if (added && curView===2) renderPreview();
   loader(false);
@@ -7340,11 +7352,11 @@ function assess(f, d){
   if (it==='epr' && !(f.freq>0)) add('warn', 'Frequenza delle microonde mancante: senza, i fattori g non si calcolano. Inseriscila in «Dati dello spettro».');
   if (it==='tga' && P.mass){ const m=P.mass, xs=P.xs; let k=0; while (k<xs.length-1 && xs[k]<150) k++; const loss=m[0]-m[k];
     if (xs[0]<120 && loss>1) add('info', `Perdita di ${fmtG(loss,2)}% sotto i 150 °C: di solito acqua adsorbita o solvente. Per confrontare campioni conviene riferire le masse al secco (a 150 °C).`); }
-  if (it==='hplc'){ const U=upData(P).y, v=Array.from(U).sort((a,b)=>a-b), med=v[v.length>>1], top=v[v.length-1], n=U.length; const edge=k=>k?(U[n-1]+U[n-2]+U[n-3])/3:(U[0]+U[1]+U[2])/3, hi=e=>(e-med)>0.05*(top-med)&&(e-med)>5*(noiseSigma(U)||0); if (top>med && (hi(edge(0))||hi(edge(1)))) add('warn','Il segnale è ancora alto al bordo del cromatogramma: un picco può essere tagliato e non viene contato. Controlla l\'inizio e la fine della corsa.'); }
+  if (it==='hplc'){ const U=upData(P).y, n=U.length, med=sortedAt(U, n>>1), top=sortedAt(U, n-1); const edge=k=>k?(U[n-1]+U[n-2]+U[n-3])/3:(U[0]+U[1]+U[2])/3, hi=e=>(e-med)>0.05*(top-med)&&(e-med)>5*(noiseSigma(U)||0); if (top>med && (hi(edge(0))||hi(edge(1)))) add('warn','Il segnale è ancora alto al bordo del cromatogramma: un picco può essere tagliato e non viene contato. Controlla l\'inizio e la fine della corsa.'); }
   // polarità invertita: i picchi veri vanno in giù (rivelatore RI, segno scambiato): i «picchi» trovati sono i fianchi
-  if (it==='hplc'){ const v=Array.from(raw).sort((a,b)=>a-b), med=v[v.length>>1], up=v[v.length-1]-med, dn=med-v[0], sg=noiseSigma(raw)||0; if (dn>2*up && dn>20*sg) add('bad','Il segnale ha picchi negativi molto più grandi di quelli positivi: polarità invertita (per esempio rivelatore a indice di rifrazione)? I picchi trovati possono essere i fianchi. Inverti il segno del segnale prima di integrare.'); }
+  if (it==='hplc'){ const nr=raw.length, med=sortedAt(raw, nr>>1), up=sortedAt(raw, nr-1)-med, dn=med-sortedAt(raw, 0), sg=noiseSigma(raw)||0; if (dn>2*up && dn>20*sg) add('bad','Il segnale ha picchi negativi molto più grandi di quelli positivi: polarità invertita (per esempio rivelatore a indice di rifrazione)? I picchi trovati possono essere i fianchi. Inverti il segno del segnale prima di integrare.'); }
   // buchi nell'asse X: un picco sul bordo di un buco ha posizione e area non affidabili
-  { const xs=f.xs, n=xs.length; if (n>20){ const st=[]; for (let i=1;i<n;i++) st.push(Math.abs(xs[i]-xs[i-1])); const ms=st.slice().sort((a,b)=>a-b)[st.length>>1]; const gaps=[]; st.forEach((v,i)=>{ if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); });
+  { const xs=f.xs, n=xs.length; if (n>20){ const st=new Float64Array(n-1); for (let i=1;i<n;i++) st[i-1]=Math.abs(xs[i]-xs[i-1]); const ms=sortedAt(st, st.length>>1); const gaps=[]; st.forEach((v,i)=>{ if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); });
     if (gaps.length){ const edge=d.peaks.filter(p=>gaps.some(([a,b])=>Math.min(Math.abs(p.x-a),Math.abs(p.x-b))<=3*ms)); add(edge.length?'bad':'warn', `L'asse X ha ${gaps.length===1?'un buco':gaps.length+' buchi'} (${gaps.slice(0,3).map(([a,b])=>fmtTick(Math.min(a,b),2)+'–'+fmtTick(Math.max(a,b),2)).join(', ')}) senza dati.${edge.length?` Il picco a ${edge.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')} cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.`:' Un picco dentro il buco non si vede.'}`); } } }
   if (it==='hplc' && d.peaks.length){ const ft=flatTopPeaks(P.xs, upData(P).y, d.peaks); { const up=upData(P).y, as=d.peaks.filter(p=>peakShape(P.xs,up,p.x).asym); if (as.length) add('warn',`Picco asimmetrico a ${as.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}: coda o interferente non separato. L'area può comprendere un altro composto.`); }
     if (ft.length) add('warn', `Cima piatta in ${ft.length===1?'un picco':ft.length+' picchi'} (${ft.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.`); }
@@ -7459,7 +7471,14 @@ function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+
 function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
-function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2]; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=noiseSigma(y)||0; if (!(h>0) || h<20*sg) return {};
+/* I5: il quartile basso e il rumore dei dati non dipendono dal picco: si calcolano una volta per vettore (prima a ogni picco, con un
+   ordinamento di tutto lo spettro). Il quartile si sceglie senza ordinare (kthSmallest): stesso elemento; con NaN o uno zero si ordina come prima */
+const PS_MEMO=new WeakMap();
+function peakShapeBase(y){ let m=PS_MEMO.get(y); if (m) return m; let base=null;
+  if (y.length>=2048){ const a=Float64Array.from(y); let nan=false; for (let i=0;i<a.length;i++) if (a[i]!==a[i]){ nan=true; break; } if (!nan){ const v=kthSmallest(a, a.length>>2); if (v!==0) base=v; } }
+  if (base===null){ const v=Array.from(y).sort((a,b)=>a-b); base=v[v.length>>2]; }
+  m={base, sg:noiseSigma(y)||0}; PS_MEMO.set(y, m); return m; }
+function peakShape(xs, y, x0){ const M=peakShapeBase(y), base=M.base; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=M.sg; if (!(h>0) || h<20*sg) return {};
   const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
   // posizioni dei fianchi interpolate tra i due punti a cavallo della soglia: con picchi stretti l'arrotondamento al punto intero falsava il rapporto
   const at=(i,j,q)=>{ const t=base+q*h, d=y[j]-y[i]; return xs[i]+(d? (t-y[i])/d : 0.5)*(xs[j]-xs[i]); };
@@ -7708,15 +7727,20 @@ const QB_LATER=200000, afterPaint=fn=>requestAnimationFrame(()=>requestAnimation
 function badItemsSoon(f){ if (!f.xs || f.xs.length<QB_LATER) return badItems(f);
   let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0), c=QBAD.get(f.id);
   if (c && c.sig===sig) return c.bad;
-  if (!f._qbLater){ f._qbLater=true; afterPaint(()=>{ f._qbLater=false; if (!files.includes(f)) return; badItems(f); if (files[cur]===f) qualBanner(f); }); }   // dopo che il fotogramma con il grafico è stato mostrato
+  if (!f._qbLater){ f._qbLater=true; afterPaint(()=>badItemsAsync(f).then(()=>{ f._qbLater=false; if (files.includes(f) && files[cur]===f) qualBanner(f); })); }   // dopo che il fotogramma con il grafico è stato mostrato
   return []; }
+// nel desktop i calcoli pesanti del controllo vanno al worker (AcchEngine.prefetch, app/engine.js): la pagina lavora a pezzi brevi.
+// Ogni prova ricomincia da zero (QBAD tolto): conta solo l'ultima, fatta con tutti i risultati pronti e quindi identica a badItems
+function badItemsAsync(f){ if (!files.includes(f)) return Promise.resolve([]);
+  if (!(window.AcchEngine && AcchEngine.prefetch)) return Promise.resolve(badItems(f));
+  return AcchEngine.prefetch(()=>{ QBAD.delete(f.id); return badItems(f); }).catch(e=>{ console.error(e); return badItems(f); }); }
 /* un problema grave sul dato (⛔) non resta nascosto nella scheda: riga sotto il grafico e, nel desktop, nella barra di stato */
 window.qualBannerRefresh=()=>{ const b=$('#qualBanner'); if (b) b._h=null; if (files[cur]) qualBanner(files[cur]); };
 // I5: uno spettro per volta, ognuno nel suo momento libero, e mai prima che il grafico sia disegnato: con più canali grandi
 // i controlli non si sommano in un unico blocco della finestra
 function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true; let any=false;
   const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,200));
-  const step=()=>{ const f=todo.shift(); if (f && files.includes(f) && !QBAD.has(f.id) && badItems(f).length) any=true;
+  const step=async ()=>{ const f=todo.shift(); if (f && files.includes(f) && !QBAD.has(f.id) && (f.xs && f.xs.length>=QB_LATER ? await badItemsAsync(f) : badItems(f)).length) any=true;
     if (todo.length) afterPaint(()=>idle(step, {timeout:1500})); else { qbadScan.busy=false; if (any) renderList(); } };
   afterPaint(()=>idle(step, {timeout:1500})); }
 function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');

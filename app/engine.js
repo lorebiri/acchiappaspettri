@@ -50,17 +50,18 @@
       const c=await config(); let wire=null; const t0=performance.now();
       const shown=setTimeout(()=>showCancel(true), 800);
       try{
-        if (c.rust && !JS_FASTER.test(name)){ try{ wire=await rust(buf, name, Object.assign({onProgress}, opt), file); }
+        let tR=0, tW=0; if (c.rust && !JS_FASTER.test(name)){ try{ const q=performance.now(); wire=await rust(buf, name, Object.assign({onProgress}, opt), file); tR=performance.now()-q; }
           catch(e){ if (stopBatch || /cancelled/.test(String(e))) return {kind:'cancelled'}; stats.rustErrors++; warn('lettore Rust non riuscito su un file ('+String(e).slice(0,120)+'): uso il lettore JS di riferimento'); } }
         let m;
         // copia dei byte per il worker (la pagina tiene i suoi per il progetto); la risposta del Rust si trasferisce
-        try{ m=await call({op:'read', buf, name, opt, wire, dual:c.dual}, wire ? [wire] : []); stats.worker++; }
+        try{ const q=performance.now(); m=await call({op:'read', buf, name, opt, wire, dual:c.dual}, wire ? [wire] : []); tW=performance.now()-q; stats.worker++; }
         catch(e){ if (stopBatch || /cancelled/.test(String(e))) return {kind:'cancelled'}; warn('lettura nel worker non riuscita ('+String(e).slice(0,120)+'): leggo nella pagina'); stats.main++; return win.AcchRead.read(buf, name, opt); }
+        if (m.fnv!=null && buf && typeof buf==='object') try{ QH_MEMO.set(buf, (m.fnv>>>0).toString(16)); }catch(e){}   // impronta per quickHash, già calcolata nel worker
         if (m.engine==='rust') stats.rust++; else stats.js++;
         win.ACCH_ENGINE_LAST=m.dual||null;
         if (wire && m.engine!=='rust' && m.why && !/^(text|binary|decline|channels|ycol)$/.test(m.why)){ stats.fallback++; warn('risposta del lettore Rust non usata ('+m.why+'): letto con il JS'); }
         if (m.dual){ if (m.dual==='identici') stats.dualSame++; else { stats.dualDiff++; warn('ACCH_DUAL: i due motori danno risultati diversi ('+m.dual.slice(0,200)+'): uso il JS'); } }
-        stats.last={name, engine:m.engine, why:m.why||null, ms:Math.round(performance.now()-t0)};
+        stats.last={name, engine:m.engine, why:m.why||null, ms:Math.round(performance.now()-t0), rustMs:Math.round(tR), workerMs:Math.round(tW)};
         return m.r;
       } finally { clearTimeout(shown); current=null; }
     },
@@ -72,5 +73,50 @@
     if (!on){ if (b) b.hidden=true; return; }
     if (!b){ b=document.createElement('button'); b.id='ldCancel'; b.type='button'; b.className='btn small ghost'; b.addEventListener('click', ()=>AcchEngine.cancel()); L.appendChild(b); }
     b.textContent=tr('Annulla la lettura'); b.hidden=false; }
+  /* ---------- calcoli pesanti del nucleo nel worker (I5, decisione del Capo Progetto) ----------
+     Le funzioni del nucleo che con gli spettri grandi costano centinaia di ms (HEAVY) si eseguono nel worker: stessa funzione, stessi
+     argomenti (copiati bit per bit), stesso risultato. Il codice della pagina che le usa (assess, viewOf…) resta sincrono e invariato:
+     prefetch(run) lo esegue «in prova»; ogni chiamata pesante non ancora pronta viene annotata e interrompe la prova, il worker la calcola,
+     e si riprova finché tutte le chiamate trovano il risultato pronto. Così la pagina lavora a pezzi brevi, mai per secondi interi.
+     Fuori da prefetch le funzioni si comportano come sempre. */
+  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates'];
+  const BIG=200000, NEED={need:true}, MAXE=24;
+  let probe=false, needs=[];
+  const cache=[];   // [{fn, args, fps, res}], i più recenti in fondo
+  const isBig=a=>ArrayBuffer.isView(a) && !(a instanceof DataView) && a.length>=BIG;
+  // impronta veloce di un vettore (lunghezza e 256 campioni) per scartare subito i candidati; l'uguaglianza vera si controlla elemento per elemento
+  function fp(a){ if (!ArrayBuffer.isView(a)) return JSON.stringify(a); if (a._acchFp!==undefined) return a._acchFp; let h=a.length>>>0; const st=Math.max(1, Math.floor(a.length/256)), f=new Float64Array(1), u=new Uint32Array(f.buffer);
+    for (let i=0;i<a.length;i+=st){ f[0]=a[i]; h=Math.imul(h^u[0], 16777619)>>>0; h=Math.imul(h^u[1], 16777619)>>>0; } return a.constructor.name+a.length+':'+h; }
+  function sameArr(a, b){ if (a===b) return true; if (!b || a.length!==b.length || a.constructor!==b.constructor) return false; for (let i=0;i<a.length;i++){ const x=a[i], y=b[i]; if (x!==y && !(x!==x && y!==y) ) return false; if (x===0 && !Object.is(x,y)) return false; } return true; }
+  const plainArgs=A=>A.every(a=>a==null || ['number','string','boolean'].includes(typeof a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>v==null || ['number','string','boolean'].includes(typeof v))));
+  const copy=r=>ArrayBuffer.isView(r) ? r.slice() : (r && typeof r==='object') ? structuredClone(r) : r;   // chi riceve può modificare il risultato
+  function lookup(fn, A){ const F=A.map(fp);
+    for (let k=cache.length-1;k>=0;k--){ const e=cache[k]; if (e.fn!==fn || e.args.length!==A.length || e.fps.some((x,i)=>x!==F[i])) continue;
+      if (A.every((a,i)=>ArrayBuffer.isView(a) ? sameArr(a, e.args[i]) : true)){ cache.splice(k,1); cache.push(e); return e; } }
+    return null; }
+  function store(fn, A, res){ cache.push({fn, args:A, fps:A.map(fp), res}); while (cache.length>MAXE) cache.shift(); }
+  for (const fn of HEAVY){ const orig=win[fn]; if (typeof orig!=='function') continue;
+    win[fn]=function(...A){
+      if (!A.some(isBig) || !plainArgs(A)) return orig.apply(this, A);
+      const e=lookup(fn, A); if (e) return copy(e.res);   // già calcolato (nel worker) con gli stessi argomenti, bit per bit
+      if (probe){ needs.push({fn, args:A}); throw NEED; }
+      return orig.apply(this, A); }; }
+  const pause=()=>new Promise(r=>setTimeout(r,0));
+  /* run: funzione sincrona della pagina. Restituisce il suo risultato, calcolato con i risultati pesanti già pronti dal worker.
+     I risultati restano in memoria (al massimo MAXE, controllati elemento per elemento), così chi chiede di nuovo lo stesso calcolo lo trova.
+     Al massimo 40 giri; se il worker non risponde si calcola nella pagina come prima */
+  let chain=Promise.resolve();
+  AcchEngine.prefetch=function(run){ const job=chain.then(async ()=>{
+      for (let k=0;k<40;k++){ needs=[]; probe=true; let out, err=null;
+        try{ out=run(); }catch(e){ err=e; } finally{ probe=false; }
+        const got=needs; needs=[];
+        if (!got.length){ if (err) throw err; return out; }   // nessuna chiamata mancante: è il risultato vero, identico a quello sincrono
+        for (const n of got){ if (lookup(n.fn, n.args)) continue;
+          let r; try{ r=await AcchEngine.call(n.fn, ...n.args); }catch(e){ r=win[n.fn].apply(null, n.args); }   // worker non disponibile: nella pagina
+          store(n.fn, n.args, r); }
+        await pause(); }
+      return run(); });
+    chain=job.catch(()=>{}); return job; };
+  AcchEngine.heavyCache=()=>cache.map(e=>e.fn);
   win.AcchEngine=AcchEngine;
 })(window);

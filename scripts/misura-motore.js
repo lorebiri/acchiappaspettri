@@ -51,7 +51,7 @@ function once(name, engine){ return new Promise(res=>{ const run=fs.mkdtempSync(
   console.log('\ncriteri (mediane):');
   for (const engine of ['rust','js']) for (const n of names){ const L=out.filter(m=>m.asked===engine && m.file===n && !m.error); if (!L.length) continue;
     const g=med(L.map(m=>m.clickToGraphMs)), r=med(L.map(m=>m.readMs)), lt=L[0].longTaskMaxMs==null ? null : med(L.map(m=>m.longTaskMaxMs));
-    const t=/1M/.test(n) ? (GRAFICO ? ['clic→grafico ≤ 5 s', g!=null && g<=5000, g] : ['lettura (usa --grafico per clic→grafico)', r<=5000, r]) : ['lettura ≤ 5 s', r<=5000, r];
+    const t=GRAFICO ? ['clic→grafico ≤ 5 s', g!=null && g<=5000, g] : ['lettura ≤ 5 s (usa --grafico per clic→grafico)', r<=5000, r];
     console.log(`${engine}\t${n}\t${t[0]}: ${t[1]?'OK':'NO'} (${t[2]} ms)\tblocco lungo ≤ 50 ms: ${lt==null?'n.d. (WebView senza API, es. macOS)':(lt<=50?'OK':'NO')+' ('+lt+' ms)'}`); }
   if (OUT) fs.writeFileSync(OUT, JSON.stringify(out,null,1));
   fs.rmSync(base,{recursive:true,force:true});

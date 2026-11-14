@@ -593,7 +593,17 @@ fn queue_open(app: &AppHandle, list: Vec<PathBuf>) {
 mod e2e {
     /// Collaudo automatico: la pagina scrive il rapporto e l'app si chiude con il codice d'uscita. Non esiste negli installer pubblicati.
     #[tauri::command]
-    pub fn e2e_config() -> serde_json::Value {
+    pub fn e2e_config(app: tauri::AppHandle) -> serde_json::Value {
+        // misure (scenario «misura»): finestra in primo piano, come quando la usa una persona; una finestra coperta o in secondo piano
+        // ha i timer e i fotogrammi rallentati dal sistema (App Nap su macOS) e falserebbe i tempi
+        if std::env::var("ACCH_E2E_SCENARIO").as_deref() == Ok("misura") {
+            use tauri::Manager;
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.set_always_on_top(true);
+                let _ = w.set_focus();
+            }
+        }
         serde_json::json!({
             "dir": std::env::var("ACCH_E2E_DIR").unwrap_or_default(),
             "updateUrl": std::env::var("ACCH_E2E_UPDATE_URL").unwrap_or_default(),

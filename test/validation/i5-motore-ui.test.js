@@ -14,7 +14,7 @@ const DATA=new Map();
 const add=(name, buf)=>{ DATA.set(name, Buffer.from(buf)); return name; };
 for (const rel of ['canali/STD1.D/DAD1A.ch','canali/waters-2canali.arw','canali/shimadzu-2canali.txt']) add(path.basename(rel), fs.readFileSync(path.join(ROOT,'test','fixtures',rel)));
 for (const [n,b] of Object.entries(D.files())) if (!/50MB/.test(n)) add(n, b);
-add('dad.uv', D.uv(3000)); add('medio.txt', D.spectrum(30000));
+add('dad.uv', D.uv(3000)); add('medio.txt', D.spectrum(30000)); add('shimadzu-2x1M.txt', D.shimadzu(1e6, ['Detector A-Ch1','Detector B-Ch1']));
 add('corpus.txt', fs.readFileSync(path.join(ROOT,'test','corpus','generale','ft_A.csv')));
 // risposte vere del lettore Rust (acch-core-cli), se cargo c'è
 let WIRES=null;
@@ -122,6 +122,22 @@ test('1M punti dal caricamento al grafico disegnato in ≤ 5 s; il controllo del
   assert.ok(r.done, 'oltre 60 s'); assert.equal(r.n, 1e6);
   assert.ok(r.ms<=5000, 'dal caricamento al grafico '+Math.round(r.ms)+' ms (primo disegno a '+Math.round(r.drawn)+' ms)');
   assert.equal(r.early, false, 'il controllo del dato non deve stare prima del grafico'); assert.ok(r.later, 'controllo del dato fatto dopo');
+  await o.ctx.close();
+});
+
+test('dopo il grafico nessun blocco oltre 50 ms (API dei long task, Chromium come WebView2): il controllo del dato va al worker e dà lo stesso risultato', async()=>{
+  const o=await page(br, server, true);
+  for (const n of ['grande-1M.txt','shimadzu-2x1M.txt']){
+    const r=await o.p.evaluate(async n=>{ files.length=0; QBAD.clear(); const b=await I5.get(n); await AcchEngine.read(new ArrayBuffer(8),'riscalda.txt',{});
+      const L=[]; const ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>L.push({t:e.startTime, d:e.duration}))); ob.observe({type:'longtask'});
+      await addEntries([{file:new File([b],n), path:n}]); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); const tg=performance.now();
+      for (let i=0;i<600 && !files.every(f=>QBAD.has(f.id));i++) await new Promise(r=>setTimeout(r,50));
+      await new Promise(r=>setTimeout(r,300)); ob.disconnect(); const done=files.every(f=>QBAD.has(f.id));
+      const asyncBad=files.map(f=>QBAD.get(f.id).bad); QBAD.clear(); const syncBad=files.map(f=>badItems(f));
+      return {n:files.length, done, after:L.filter(x=>x.t>=tg).map(x=>Math.round(x.d)), same:JSON.stringify(asyncBad)===JSON.stringify(syncBad)}; }, n);
+    assert.ok(r.done, n+': controllo del dato non finito');
+    assert.deepEqual(r.after.filter(d=>d>50), [], n+': blocchi dopo il grafico '+JSON.stringify(r.after));
+    assert.ok(r.same, n+': il controllo fatto nel worker deve essere identico a quello sincrono'); }
   await o.ctx.close();
 });
 

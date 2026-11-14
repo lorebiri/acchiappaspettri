@@ -38,7 +38,7 @@ window.AcchE2E=async function(info){
         if (full){ let drawn=0; const od=window.drawPlot; window.drawPlot=function(){ const r=od.apply(this,arguments); if (!drawn) drawn=performance.now(); return r; };
           let worst2=0, last2=performance.now(); const iv2=setInterval(()=>{ const t=performance.now(); worst2=Math.max(worst2,t-last2); last2=t; },10);
           const t1=performance.now(); T.event.emit('acch-dropped',[{path:pth, name:n, rel:n}]); await until(()=>drawn && files.length, 600000); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-          m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
+          m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); m.readInGraph=Object.assign({}, AcchEngine.stats.last); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
         res.misure.push(m); }
       check('misure eseguite', res.misure.length>0); }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }

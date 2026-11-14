@@ -24,5 +24,5 @@ function files(){ return {
   'grande-1M.txt': spectrum(1e6),
   'grande-1M-decrescente.csv': spectrum(1e6, {down:true, sep:',', eol:'\r\n', head:'Wavenumber,Absorbance', seed:4}),
   'dad-50MB.uv': uv(120000),
-  'shimadzu-50MB.txt': shimadzu(1e6, ['Detector A-Ch1','Detector A-Ch2','Detector B-Ch1']) }; }
+  'shimadzu-50MB.txt': shimadzu(1e6, ['Detector A-Ch1','Detector A-Ch2','Detector B-Ch1','Detector B-Ch2']) }; }
 module.exports={spectrum, uv, shimadzu, files};
