@@ -120,6 +120,8 @@
       catch(e){ stats.rustErrors++; warn('calcolo Rust non riuscito ('+fn+': '+String(e).slice(0,120)+'): uso il JS'); } }
     stats.calcJs++; return AcchEngine.call(fn, ...args); }
   AcchEngine.heavy=heavy; AcchEngine.calcRust=calcRust;
+  // I7: una funzione del nucleo nel worker; se il worker non risponde, nella pagina (stesso risultato), con un avviso nel registro
+  AcchEngine.callOrPage=(fn, ...a)=>AcchEngine.call(fn, ...a).catch(e=>{ warn(fn+' nel worker non riuscito ('+String(e).slice(0,120)+'): calcolo nella pagina'); return win[fn](...a); });
   /* zipper(zip, opzioni): l'archivio dell'oggetto JSZip scritto dal Rust, con le stesse voci, nomi, ordine, date e metodo
      (DEFLATE: equivalente, test/unit/dual-zip.test.js); null → JSZip. Solo per i progetti (DEFLATE): per lo ZIP di Esporta (STORE)
      il Rust non porta guadagno nell'app (misura I7) e scrive JSZip. Richiesta e risposta passano a pezzi da 8 MB, con una pausa fra

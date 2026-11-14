@@ -7524,8 +7524,7 @@ function fitRange(f){ const P=processed(f); const a=numIn($('#fitA').value), b=n
 /* I7: calcoli che durano secondi (deconvoluzione, fit di più spettri, stima XRF a parametri fondamentali) nel desktop girano nel worker
    del nucleo (AcchEngine.call: stessa funzione JS, stessi argomenti, stesso risultato), così la finestra non si blocca. Online, o se il
    worker non risponde, si calcola nella pagina come prima. Il Rust non c'è: fit e XRF FP non raggiungono l'identità (~/build/c27/dev-rust7.md) */
-function coreAsync(fn, ...a){ if (!window.AcchEngine) return Promise.resolve(window[fn](...a));
-  return AcchEngine.call(fn, ...a).catch(e=>{ console.warn('[motore] '+fn+' nel worker non riuscito ('+String(e).slice(0,120)+'): calcolo nella pagina'); return window[fn](...a); }); }
+function coreAsync(fn, ...a){ return window.AcchEngine ? AcchEngine.callOrPage(fn, ...a) : Promise.resolve(window[fn](...a)); }
 async function runFitUI(fromAssist){
   const f=files[cur]; if (!f) return; const P=processed(f), U=upData(P), msg=$('#fitMsg');
   if (fromAssist){ openTab('an'); reveal('#secFit'); if (f._zoom){ $('#fitA').value=+f._zoom[0].toPrecision(6); $('#fitB').value=+f._zoom[1].toPrecision(6); } }
