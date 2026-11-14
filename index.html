@@ -35,6 +35,7 @@
 <script src="app/hplc-stored-cal.js"></script>
 <script src="app/librerie-sistema.js"></script>
 <script src="app/library-store.js"></script>
+<script src="app/plot-index.js"></script>
 <style>
 :root{
   --bg:#f3f6fb; --panel:#ffffff; --ink:#1c2230; --muted:#5f6b7d; --line:#dfe4ec;
@@ -4177,7 +4178,7 @@ function packCols(want, gap, lo, hi){   // posizioni orizzontali delle etichette
       a.n+=b.n; fix(a); cl.pop(); } });
   const out=new Array(want.length); cl.forEach(c=>{ for (let j=0;j<c.n;j++) out[c.i0+j]=c.s+j*gap; }); return out;
 }
-function drawPlot(ctx, W, H, k, d, S){
+function drawPlot(ctx, W, H, k, d, S, layers){   // layers (I6, solo a schermo nel desktop): {gl, over} di app/plot-gl.js
   ctx.save();
   ctx.setTransform(k,0,0,k,0,0);
   ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
@@ -4185,8 +4186,12 @@ function drawPlot(ctx, W, H, k, d, S){
   const font = (sz, w) => `${w||''} ${sz}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const series=d.series, s2=d.series2 && d.series2.xs && d.series2.xs.length ? d.series2 : null;
   let dmin=Infinity, dmax=-Infinity, xmin=Infinity, xmax=-Infinity, mp=Infinity, xpos=Infinity;
+  const PI=window.AcchPlot;   // I6: indice min/max dei vettori grandi (app/plot-index.js), stessi valori del ciclo su tutti i punti
   for (const s of series){ const n=s.xs.length; if(!n) continue;
     if (s.xs[0]<xmin) xmin=s.xs[0]; if (s.xs[n-1]>xmax) xmax=s.xs[n-1];
+    const R=PI && PI.ready(s.xs, s.ys);
+    if (R) PI.warmup();   // una volta sola, a pezzi brevi dopo questo disegno
+    if (R){ const q=PI.stats(R, s.xs, !!d.logY, !!d.logX); if (q.min<dmin) dmin=q.min; if (q.max>dmax) dmax=q.max; if (q.mp<mp) mp=q.mp; if (q.xpos<xpos) xpos=q.xpos; continue; }
     for (let i=0;i<n;i++){ const v=s.ys[i]; if(v<dmin)dmin=v; if(v>dmax)dmax=v; if (v>0 && v<mp) mp=v; const x=s.xs[i]; if (x>0 && x<xpos) xpos=x; } }
   if (!isFinite(dmin)){ dmin=0; dmax=1; xmin=0; xmax=1; }
   if (dmax===dmin){ dmax+=1; dmin-=1; }
@@ -4242,12 +4247,14 @@ function drawPlot(ctx, W, H, k, d, S){
                    : (x => d.invertX ? px0 + (xmax-x)/(xmax-xmin)*pw : px0 + (x-xmin)/(xmax-xmin)*pw);
     const Y = y => py0 + (hi-U(y))/((hi-lo)||1)*ph;
     const Y2 = y => py0 + (hi2-y)/((hi2-lo2)||1)*ph;
+    X.lin=!logX; Y.lin=!logY; Y2.lin=true; if (!logX){ X.key=[px0,pw,xmin,xmax,d.invertX?1:0].join('|'); X.par={o:px0, lo:xmin, hi:xmax, den:xmax-xmin, w:pw, inv:!!d.invertX}; }   // mappe lineari: monotone anche in virgola mobile, il percorso veloce dà lo stesso risultato
     G={lo,hi,lo2,hi2,yt,yt2,fy,px0,py0,pw,ph,X,Y,Y2,ylabW2};
 
     // inviluppo della curva per colonne: dove la traccia occupa spazio
     const nc=Math.max(60, Math.min(2400, Math.round(pw*Math.min(k,8)))), eT=new Float64Array(nc).fill(Infinity), eB=new Float64Array(nc).fill(-Infinity);
     const colOf = x => Math.min(nc-1, Math.max(0, Math.floor((x-px0)/pw*nc)));
     const addEnv = (xs, ys, YY) => { let pc=-1, pyv=0;
+      const R=PI && X.lin && YY.lin && PI.ready(xs, ys); if (R){ PI.envelope(R, xs, ys, X, YY, px0, pw, py0, ph, colOf, eT, eB, !!d.invertX, nc); return; }
       for (let i=0;i<xs.length;i++){ const x=X(xs[i]); if (x<px0-1e-6 || x>px0+pw+1e-6 || !isFinite(x)){ pc=-1; continue; }
         const y=Math.min(py0+ph, Math.max(py0, YY(ys[i]))), c=colOf(x);
         const a=pc<0?c:Math.min(c,pc), b=pc<0?c:Math.max(c,pc), ya=pc<0?y:Math.min(y,pyv), yb=pc<0?y:Math.max(y,pyv);
@@ -4439,9 +4446,17 @@ function drawPlot(ctx, W, H, k, d, S){
   }
 
   // tracce
-  ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
+  // I6: a schermo nel desktop le tracce vanno al livello WebGL (app/plot-gl.js) con la stessa geometria; il resto continua sul livello «sopra»
+  const GLR = layers && layers.gl && layers.gl.available ? layers : null;
+  if (GLR){ const rec=GLR.gl.recorder(k);
+    if (s2) traceLine(rec, s2, X, Y2, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, S.lineW);
+    for (const s of series){ if (s.dash) rec.setLineDash(s.dash.map(v=>v*f)); traceLine(rec, s, X, Y, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, s.lineW || S.lineW); rec.setLineDash([]); }
+    GLR.gl.begin(Math.round(W*k), Math.round(H*k), {x:px0*k, y:py0*k, w:pw*k, h:ph*k}); GLR.gl.add(rec.list); GLR.gl.end();
+    ctx.restore(); ctx=GLR.over; ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); ctx.setTransform(k,0,0,k,0,0);
+    ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip(); }
+  else { ctx.save(); ctx.beginPath(); ctx.rect(px0,py0,pw,ph); ctx.clip();
   if (s2) traceLine(ctx, s2, X, Y2, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, S.lineW);
-  for (const s of series){ if (s.dash) ctx.setLineDash(s.dash.map(v=>v*f)); traceLine(ctx, s, X, Y, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, s.lineW || S.lineW); ctx.setLineDash([]); }
+  for (const s of series){ if (s.dash) ctx.setLineDash(s.dash.map(v=>v*f)); traceLine(ctx, s, X, Y, px0, pw, Math.max(50, Math.round(pw*k)), d.invertX, s.lineW || S.lineW); ctx.setLineDash([]); } }
   // contorno della zona ingrandita (rettangolo scelto dall'utente)
   if (insBox){
     ctx.strokeStyle='#4b5563'; ctx.lineWidth=0.16; ctx.setLineDash([0.9,0.6]); ctx.beginPath();
@@ -4514,6 +4529,12 @@ function traceLine(ctx, s, X, Y, px0, pw, cols, invertX, lineW){   // traccia de
     const flush=(c)=>{ const x=px0+(c+0.5)/cols*pw;
       if(!started){ ctx.moveTo(x,Y(cfirst)); started=true; } else ctx.lineTo(x,Y(cfirst));
       ctx.lineTo(x,Y(cmin)); ctx.lineTo(x,Y(cmax)); ctx.lineTo(x,Y(clast)); };
+    // I6: con X lineare e crescente gli stessi gruppi si trovano con l'indice min/max (app/plot-index.js): stessi comandi, O(colonne·log n)
+    const PI=window.AcchPlot, R=PI && X.lin && PI.ready(xs, ys);
+    if (R){ const par=X.par && X.par.o===px0 && X.par.w===pw && X.par.inv===!!invertX ? X.par : null;
+      const G=PI.groupsArr(R, ys, par ? PI.linCol(xs, 0, par, cols) : (i=>Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)))), invertX, X.key==null ? null : X.key+'|'+cols+'|x'+R.gx.I.id+'@'+R.gx.off);
+      for (let j=0;j<G.m;j++){ cfirst=G.f[j]; cmin=G.mn[j]; cmax=G.mx[j]; clast=G.l[j]; flush(G.c[j]); }
+      ctx.stroke(); return; }
     for (let t=0;t<n;t++){
       const i = invertX ? n-1-t : t;
       const c=Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)));
@@ -4550,6 +4571,7 @@ function drawInset(ctx, box, d, S, f, font, k, logY){
   ctx.strokeStyle='#4b5563'; ctx.lineWidth=0.16; ctx.setLineDash([0.9,0.6]); ctx.strokeRect(box.x, box.y, box.w, box.h); ctx.setLineDash([]);
   const X = x => d.invertX ? ix + (b-x)/((b-a)||1)*iw : ix + (x-a)/((b-a)||1)*iw;
   const Y = y => iy + (hi-U(y))/((hi-lo)||1)*ih;
+  X.lin=true; X.key=[ix,iw,a,b,d.invertX?1:0,'r'].join('|'); X.par={o:ix, lo:a, hi:b, den:(b-a)||1, w:iw, inv:!!d.invertX};
   if (S.grid){ ctx.strokeStyle='#eef0f3'; ctx.lineWidth=0.1; ctx.beginPath();
     for (const v of xt.ticks){ const x=X(v); ctx.moveTo(x,iy); ctx.lineTo(x,iy+ih); }
     if (!d.hideYTicks) for (const v of yt.ticks){ const y=Y(v); ctx.moveTo(ix,y); ctx.lineTo(ix+iw,y); } ctx.stroke(); }
@@ -5089,18 +5111,38 @@ function newCmp(instr, list){
   COMPS.push(c); curCmpId=c.id; saveCmps(); return c;
 }
 function outComparisons(){ return COMPS.filter(c=>c.out).map(c=>({c, list:members(c)})).filter(o=>o.list.length>=2); }
+const NORM_MEMO=new WeakMap();   // vettore dello spettro → {posizione e verso, vettore normalizzato}
+// I6: il vettore normalizzato del confronto si calcola una volta per spettro e posizione (prima a ogni disegno: 20×1M vettori nuovi a ogni passo di zoom)
+function normYs(P, i, n, mode, gap, dir){ let ys=P.ys;
+  const memo=NORM_MEMO.get(ys), off0=mode==='stack' ? (n-1-i)*gap : 0, flip0=P.dir!==dir, key=off0+'|'+flip0;
+  if (memo && memo.key===key) return memo.o;
+  let mn=Infinity,mx=-Infinity; for(const v of ys){ if(v<mn)mn=v; if(v>mx)mx=v; }
+  const r=(mx-mn)||1, off= mode==='stack' ? (n-1-i)*gap : 0, o=new Float64Array(ys.length), flip = P.dir!==dir;
+  for (let k=0;k<ys.length;k++) o[k]=(flip ? (mx-ys[k]) : (ys[k]-mn))/r+off;   // picchi tutti dallo stesso verso del primo spettro
+  NORM_MEMO.set(ys, {key, o}); return o; }
+// I6: prima del primo disegno di un confronto di spettri grandi, vettori normalizzati e indici si preparano a pezzi di al più ~25 ms
+// (20 spettri da 1M punti: circa 300 ms in tutto), così la finestra non si blocca; false = non ancora pronto, si riprova al giro dopo
+function cmpReady(c){ const PI=window.AcchPlot; if (!PI) return true; const list=members(c); if (!list.length) return true;
+  const t0=performance.now(), over=()=>performance.now()-t0>25, mode=c.mode||'stack', gap=c.gap||1.1, normd=mode!=='over';
+  let dir=null;
+  for (let i=0;i<list.length;i++){ const f=list[i];
+    if (f._pk!==procKey(f) && over()) return false;
+    const P=processed(f); if (dir==null) dir=P.dir;
+    if (P.xs.length<PI.MIN_N) continue;
+    if (!PI.has(P.xs)){ if (over()) return false; PI.get(P.xs); }
+    if (normd){ const m=NORM_MEMO.get(P.ys), key=(mode==='stack' ? (list.length-1-i)*gap : 0)+'|'+(P.dir!==dir);
+      if (!(m && m.key===key)){ if (over()) return false; normYs(P, i, list.length, mode, gap, dir); }
+      const o=normYs(P, i, list.length, mode, gap, dir); if (!PI.has(o)){ if (over()) return false; PI.get(o); } }
+    else if (!PI.has(P.ys)){ if (over()) return false; PI.get(P.ys); } }
+  return true; }
+let cmpPrepT=null;
 function overlayView(instr, list, mode, gap, title){
   const L=T_(), prof=INSTR[instr]; mode=mode||'stack'; gap=gap||1.1;
   const procs=list.map(f=>processed(f));
   const dir = procs[0].dir, n=list.length, normd = mode!=='over';
   const series=list.map((f,i)=>{
     const P=procs[i]; let ys=P.ys;
-    if (normd){
-      let mn=Infinity,mx=-Infinity; for(const v of ys){ if(v<mn)mn=v; if(v>mx)mx=v; }
-      const r=(mx-mn)||1, off= mode==='stack' ? (n-1-i)*gap : 0, o=new Float64Array(ys.length), flip = P.dir!==dir;
-      for (let k=0;k<ys.length;k++) o[k]=(flip ? (mx-ys[k]) : (ys[k]-mn))/r+off;   // picchi tutti dallo stesso verso del primo spettro
-      ys=o;
-    }
+    if (normd) ys=normYs(P, i, n, mode, gap, dir);
     return {xs:P.xs, ys, color:PALETTE[i%PALETTE.length], name:dispTitle(f)};
   });
   // assorbimento (UV-Vis) + emissione (fluorescenza): spostamento di Stokes
@@ -5622,11 +5664,18 @@ $('#filter').addEventListener('input', renderList);
 
 /* ---------------- ANTEPRIMA ---------------- */
 const pv=$('#pv'), pvo=$('#pvo'); let geo=null, pvView=null, pvHover=null;
+// I6: livelli WebGL del grafico a schermo, solo nel desktop (app/plot-gl.js); null = tutto con Canvas 2D come prima (online, o WebGL assente)
+let PV_GL=undefined;
+function pvLayers(){ if (PV_GL===undefined){ PV_GL=null; if (window.ACCH_SHELL && window.AcchPlotGL && !window.ACCH_NO_WEBGL){ const g=AcchPlotGL.create(pv); if (g.available){ PV_GL=g; g.onLost=()=>{ g.clear(); requestAnimationFrame(renderPreview); }; } else if (g.reason) console.warn('[grafico] disegno con Canvas 2D: '+g.reason); } }
+  if (!PV_GL || !PV_GL.available) return null;
+  PV_GL.size(pv.width, pv.height); return {gl:PV_GL, over:PV_GL.over.getContext('2d')}; }
+function pvLayersClear(){ if (PV_GL) PV_GL.clear(); }
 let PV_W=160, PV_H=100;
 function zoomSlice(d, z){
   if (!z) return d;
   const xs=d.xs; let lo=0, hi=xs.length-1;
-  while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--;
+  if (window.AcchPlot && AcchPlot.sortedX(xs)) [lo,hi]=AcchPlot.span(xs, z[0], z[1]);   // I6: stesso tratto, per bisezione
+  else { while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--; }
   if (hi-lo<3) return d;
   const sx=xs.subarray(lo,hi+1), sy=d.ys.subarray(lo,hi+1);
   const rest = d.series.length>1 ? zoomSliceMulti({series:d.series.slice(1)}, z).series : [];   // riferimento e componenti del fit seguono lo zoom
@@ -5643,7 +5692,8 @@ function sizeCanvas(){
 function zoomSliceMulti(d, z){
   if (!z) return d;
   if (!d.series || !d.series.length) return d;
-  const series=d.series.map(sr=>{ if (!sr.xs.length) return sr; const xs=sr.xs; let lo=0, hi=xs.length-1; while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--;
+  const series=d.series.map(sr=>{ if (!sr.xs.length) return sr; const xs=sr.xs; let lo=0, hi=xs.length-1;
+    if (window.AcchPlot && AcchPlot.sortedX(xs)) [lo,hi]=AcchPlot.span(xs, z[0], z[1]); else { while (lo<hi && xs[lo]<z[0]) lo++; while (hi>lo && xs[hi]>z[1]) hi--; }
     return hi-lo<3 ? sr : Object.assign({}, sr, {xs:xs.subarray(lo,hi+1), ys:sr.ys.subarray(lo,hi+1)}); });
   return Object.assign({}, d, {series, xs:series[0].xs, ys:series[0].ys});
 }
@@ -5658,21 +5708,23 @@ function zoomView(full, o, multi){   // vista d'anteprima: zoom su X (rotellina)
 }
 function renderCompare(){
   const c=curCmp(), big=sizeCanvas(), ctx=pv.getContext('2d');
-  const v = c ? cmpViewOf(c) : null;
+  const wait = !!c && members(c).length>=2 && !cmpReady(c);   // I6: spettri grandi ancora da preparare
+  if (wait){ clearTimeout(cmpPrepT); cmpPrepT=setTimeout(()=>{ cmpPrepT=null; if (viewMode==='cmp') renderPreview(); }, 0); }
+  const v = c && !wait ? cmpViewOf(c) : null;
   $('#cmpEdit').hidden = !c;
   const note=$('#cmpEmpty'), n=members(c).length;
   note.hidden = n>=2; note.innerHTML = !c ? '<b>Nessun confronto ancora.</b> Spunta nella lista a sinistra due o più spettri dello stesso strumento, oppure premi «Uno per ogni strumento».'
     : n===0 ? '<b>Confronto vuoto.</b> Spunta nella lista a sinistra gli spettri da sovrapporre.' : '<b>Manca ancora uno spettro.</b> Spuntane almeno un altro dello stesso strumento per sovrapporli.';
   if (!v){
-    geo=null; pvView=null; renderInsetBar(null); $('.preview').classList.remove('zoomed'); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
+    pvLayersClear(); geo=null; pvView=null; renderInsetBar(null); $('.preview').classList.remove('zoomed'); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,pv.width,pv.height);
     const trX=x=>window.AcchI18n&&AcchI18n.lang==='en'?AcchI18n.tr(x):x, shellUi=!!window.ACCH_SHELL;
     ctx.fillStyle='#8a94a6'; ctx.font=`${Math.round(15*(window.devicePixelRatio||1))}px ${shellUi?'system-ui, -apple-system, "Segoe UI", sans-serif':'Nunito, sans-serif'}`; ctx.textAlign='center';
-    ctx.fillText(shellUi?trX('Spunta gli spettri da sovrapporre nella lista a sinistra'):trX('Spunta gli spettri da sovrapporre nella lista a sinistra 👈'), pv.width/2, pv.height/2);
+    ctx.fillText(wait ? trX('Preparazione del grafico…') : shellUi?trX('Spunta gli spettri da sovrapporre nella lista a sinistra'):trX('Spunta gli spettri da sovrapporre nella lista a sinistra 👈'), pv.width/2, pv.height/2);
     $('#pvTitle').textContent = c ? cmpTitle(c) : trX('Confronta grafici');
   } else {
     v.fontPt = big ? 10 : 9;
     const d = zoomView(v, c, true); pvView=d;
-    geo = drawPlot(ctx, PV_W, PV_H, pv.width/PV_W, d, S); closePop(); drawOverlay();
+    geo = drawPlot(ctx, PV_W, PV_H, pv.width/PV_W, d, S, pvLayers()); closePop(); drawOverlay();
     $('#pvTitle').textContent=cmpTitle(c, T_());
   }
   if (c){
@@ -5743,12 +5795,12 @@ function renderPreview(){
   const ro=$('#readout'); if (ro && !pvHover) ro.innerHTML='&nbsp;';
   if (viewMode==='cmp') return renderCompare();
   const f=files[cur];
-  if (!f){ renderInsetBar(null); closePop(); $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); drawOverlay(); $('#pkTable').innerHTML=''; return; }
+  if (!f){ pvLayersClear(); renderInsetBar(null); closePop(); $('#pvTitle').textContent='—'; pv.getContext('2d').clearRect(0,0,pv.width,pv.height); drawOverlay(); $('#pkTable').innerHTML=''; return; }
   if (pop && pop.f!==f) closePop();
   const big=sizeCanvas();
   const full = viewOf(f); full.fontPt = big ? 10 : 9; full.highlightManual = true;
   const d = zoomView(full, f, false); pvView=d;
-  geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S);
+  geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S, pvLayers());
   if (f._sel!=null && !d.peaks.some(q=>Math.abs(q.x-f._sel)<1e-9)) f._sel=null;
   drawOverlay(); placePop();
   $('#pvTitle').textContent=dispTitle(f); $('#pvTitle').title=f.path;
@@ -9217,6 +9269,7 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/engine.js"></script>
+<script src="app/plot-gl.js"></script>
 <script src="app/desktop.js"></script>
 <script src="app/segnala.js"></script>
 <script src="app/library-ui.js"></script>
