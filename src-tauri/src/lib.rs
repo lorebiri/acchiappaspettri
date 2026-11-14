@@ -19,6 +19,7 @@ mod engine;
 mod segnala;
 mod libs;
 mod store;
+mod viste;
 
 /// Archivio dell'app su file (store.rs): cartella e serratura, così due lotti non si scrivono mai insieme.
 #[derive(Default)]
@@ -740,6 +741,7 @@ pub fn run() {
         .manage(Store::default())
         .manage(engine::Jobs::default())
         .manage(LibDirState::default())
+        .manage(viste::Viste::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
             if let Ok(dir) = app.path().app_config_dir() {
@@ -775,6 +777,11 @@ pub fn run() {
         })
         // trascinamento nativo: i percorsi trascinati (anche le cartelle, espanse) diventano leggibili, poi la pagina li riceve
         .on_window_event(|w, ev| {
+            if w.label() == "main" {
+                if let tauri::WindowEvent::Destroyed = ev {
+                    viste::close_all(w.app_handle());
+                }
+            }
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = ev {
                 let app = w.app_handle().clone();
                 let paths = paths.clone();
@@ -791,7 +798,8 @@ pub fn run() {
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
-        lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove
+        lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
+        viste::view_open, viste::view_put, viste::view_take
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
@@ -799,6 +807,7 @@ pub fn run() {
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
+        viste::view_open, viste::view_put, viste::view_take,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder

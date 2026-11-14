@@ -79,7 +79,9 @@
      prefetch(run) lo esegue «in prova»; ogni chiamata pesante non ancora pronta viene annotata e interrompe la prova, il worker la calcola,
      e si riprova finché tutte le chiamate trovano il risultato pronto. Così la pagina lavora a pezzi brevi, mai per secondi interi.
      Fuori da prefetch le funzioni si comportano come sempre. */
-  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates'];
+  // I6: anche i calcoli EPR del controllo del dato (con 1M punti 0,1–0,4 s ciascuno)
+  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates',
+    'eprIsAbsorption','eprEdgeSignal','eprDoubleIntegral','eprWings','eprLines','peakFwhmPts','axisGaps'];
   const BIG=200000, NEED={need:true}, MAXE=24;
   let probe=false, needs=[];
   const cache=[];   // [{fn, args, fps, res}], i più recenti in fondo
@@ -88,7 +90,9 @@
   function fp(a){ if (!ArrayBuffer.isView(a)) return JSON.stringify(a); if (a._acchFp!==undefined) return a._acchFp; let h=a.length>>>0; const st=Math.max(1, Math.floor(a.length/256)), f=new Float64Array(1), u=new Uint32Array(f.buffer);
     for (let i=0;i<a.length;i+=st){ f[0]=a[i]; h=Math.imul(h^u[0], 16777619)>>>0; h=Math.imul(h^u[1], 16777619)>>>0; } return a.constructor.name+a.length+':'+h; }
   function sameArr(a, b){ if (a===b) return true; if (!b || a.length!==b.length || a.constructor!==b.constructor) return false; for (let i=0;i<a.length;i++){ const x=a[i], y=b[i]; if (x!==y && !(x!==x && y!==y) ) return false; if (x===0 && !Object.is(x,y)) return false; } return true; }
-  const plainArgs=A=>A.every(a=>a==null || ['number','string','boolean'].includes(typeof a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>v==null || ['number','string','boolean'].includes(typeof v))));
+  // argomenti copiabili bit per bit: numeri, testi, vettori numerici e piccoli elenchi, anche di coppie (le zone di fondo EPR [[a,b],…])
+  const prim=v=>v==null || ['number','string','boolean'].includes(typeof v);
+  const plainArgs=A=>A.every(a=>prim(a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>prim(v) || (Array.isArray(v) && v.length<16 && v.every(prim)))));
   const copy=r=>ArrayBuffer.isView(r) ? r.slice() : (r && typeof r==='object') ? structuredClone(r) : r;   // chi riceve può modificare il risultato
   function lookup(fn, A){ const F=A.map(fp);
     for (let k=cache.length-1;k>=0;k--){ const e=cache[k]; if (e.fn!==fn || e.args.length!==A.length || e.fps.some((x,i)=>x!==F[i])) continue;
@@ -107,6 +111,7 @@
      Al massimo 40 giri; se il worker non risponde si calcola nella pagina come prima */
   let chain=Promise.resolve();
   AcchEngine.prefetch=function(run){ const job=chain.then(async ()=>{
+      await pause();   // I6: ogni lavoro parte in un compito suo; prima il secondo partiva subito dopo il primo e i due giri facevano un blocco solo
       for (let k=0;k<40;k++){ needs=[]; probe=true; let out, err=null;
         try{ out=run(); }catch(e){ err=e; } finally{ probe=false; }
         const got=needs; needs=[];

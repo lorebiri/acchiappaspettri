@@ -13,7 +13,15 @@ function I6_SETUP(){
     for (let i=0;i<n;i++){ const x=400+i*3600/(n-1); xs[i]=x; ys[i]=0.05+g(x,1000+7*k,4)+0.6*g(x,2500-5*k,6)+0.4*g(x,3300,5)+0.01*r(); }
     for (let i=50000+137*k;i<n;i+=100000) ys[i]+=0.8;   // picchi stretti
     return {xs, ys}; }
-  async function load(N, n, instr){ const ents=[]; for (let k=0;k<N;k++) ents.push(spectrum(n, k));
+  // spettri della tecnica (per il controllo del dato): XRF in conteggi interi con righe e fondo, NMR con picchi lorentziani, EPR in derivata
+  function spectrumFor(instr, n, k){ if (!instr) return spectrum(n, k); const r=rnd(31+k), xs=new Float64Array(n), ys=new Float64Array(n), L=(x,c,w)=>1/(1+((x-c)/w)**2);
+    for (let i=0;i<n;i++){
+      if (instr==='xrf'){ const x=0.5+i*39.5/(n-1); xs[i]=x; ys[i]=Math.max(0, Math.round(40+600*g(x,6.40,0.07)+300*g(x,7.06,0.08)+250*g(x,8.05,0.08)+120*g(x,20.2,0.12)+8*Math.sqrt(40)*r())); }
+      else if (instr==='nmr'){ const x=-1+i*13/(n-1); xs[i]=x; ys[i]=0.002*r()+L(x,1.2,0.004)+0.6*L(x,3.7,0.004)+0.3*L(x,7.26,0.003); }
+      else if (instr==='epr'){ const x=3300+i*200/(n-1); xs[i]=x; const u=(x-3400)/3; ys[i]=-2*u/((1+u*u)**2)+0.002*r(); }
+      else { xs[i]=i; ys[i]=r(); } }
+    return {xs, ys}; }
+  async function load(N, n, instr){ const ents=[]; for (let k=0;k<N;k++) ents.push(spectrumFor(instr, n, k));
     // lettura vera per il primo (stessa strada dell'utente); gli altri spettri copiano la sua struttura con i loro numeri
     const head='Wavenumber (cm-1)\tAbsorbance\n';
     const txt=head+Array.from(ents[0].xs.subarray(0,4096), (x,i)=>x.toFixed(4)+'\t'+ents[0].ys[i].toFixed(6)).join('\n')+'\n';
@@ -39,6 +47,6 @@ function I6_SETUP(){
       L.push(performance.now()-a); }
     await new Promise(r=>requestAnimationFrame(r)); dt.push(performance.now()-last);
     return {work:L, frames:dt.slice(1)}; }
-  window.I6={spectrum, load, compare, frames, animate};
+  window.I6={spectrum, spectrumFor, load, compare, frames, animate};
 }
 module.exports={I6_SETUP};

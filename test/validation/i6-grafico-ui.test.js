@@ -104,6 +104,23 @@ test('G1/G2 nel browser: 20 spettri da 1M punti; primo disegno del confronto ≤
   assert.deepEqual(o.errors, []); await o.ctx.close();
 });
 
+test('controllo del dato di XRF, NMR ed EPR con 1M punti: nel worker, nessun blocco oltre 50 ms, risultato identico al calcolo sincrono', async()=>{
+  for (const instr of ['xrf','nmr','epr']){ const o=await desk();
+    const r=await o.p.evaluate(async instr=>{ const L=await I6.load(1, 1e6, instr), f=L[0]; for (let i=0;i<600 && !QBAD.has(f.id);i++) await new Promise(r=>setTimeout(r,50));
+      await new Promise(r=>setTimeout(r,300)); QBAD.clear(); f._autoKey=null;   // da capo: viewOf e controllo rifatti
+      const LT=[]; const ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push({t:e.startTime, d:e.duration}))); ob.observe({type:'longtask'});
+      const draws=[], orp=window.renderPreview; window.renderPreview=function(){ const a=performance.now(); try{ return orp.apply(this,arguments); } finally { draws.push([a, performance.now()]); } };
+      const bad=await badItemsAsync(f); await new Promise(r=>setTimeout(r,300)); ob.disconnect(); window.renderPreview=orp;
+      const drawing=x=>draws.some(([a,b])=>a<x.t+x.d && b>x.t);
+      QBAD.delete(f.id); const sync=badItems(f);
+      return {instr:f.instr, kind:f.kind, n:f.xs.length, long:LT.filter(x=>!drawing(x)).map(x=>Math.round(x.d)), same:JSON.stringify(bad)===JSON.stringify(sync), worker:AcchEngine.heavyCache().length}; }, instr);
+    assert.equal(r.n, 1e6); assert.equal(r.instr, instr);
+    assert.deepEqual(r.long.filter(d=>d>50), [], instr+': blocchi '+JSON.stringify(r.long));
+    assert.ok(r.same, instr+': il controllo fatto a pezzi deve essere identico a quello sincrono');
+    assert.ok(r.worker>0, instr+': calcoli pesanti nel worker');
+    assert.deepEqual(o.errors, []); await o.ctx.close(); }
+});
+
 test('online: niente livelli WebGL, il grafico resta su un solo canvas e si disegna come prima', async()=>{
   const o=await B.openPage(br, server); await o.p.evaluate(I6_SETUP);
   const r=await o.p.evaluate(async()=>{ await I6.load(1, 200000); await I6.frames(); return {layers:document.querySelectorAll('.pvlayer').length, gl:typeof PV_GL==='undefined' ? 'x' : PV_GL, plot:!!window.AcchPlot}; });

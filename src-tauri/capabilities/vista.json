@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "vista",
+  "description": "Finestre aggiuntive (grafico staccato, confronto): solo eventi, titolo e chiusura. Nessun accesso a file, archivio o aggiornamenti",
+  "windows": ["vista-grafico", "vista-confronto"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title",
+    "core:window:allow-close"
+  ]
+}

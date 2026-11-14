@@ -21,4 +21,8 @@ function coreModules(html){ if (Buffer.isBuffer(html)) html=html.toString('utf8'
 function workerSource(html){ const mods=coreModules(html).concat(['core.js']);
   return '// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli\n// SPDX-License-Identifier: GPL-3.0-or-later\n// Generato da scripts/prepare-desktop.js (workerSource in scripts/core-extract.js): non modificare.\n'
     +'importScripts('+mods.map(m=>JSON.stringify(m)).join(', ')+');\nimportScripts("app/worker.js");\n'; }
-module.exports={extractCore, coreRange, coreModules, workerSource};
+// I6: il blocco del disegno (/*PLOT-START*/…/*PLOT-END*/, drawPlot e le sue funzioni) per le finestre aggiuntive del desktop (vista.html):
+// stesso codice della pagina, copiato byte per byte. Usa il nucleo (niceTicks, fmtTick, T_), caricato prima.
+function extractPlot(buf){ if (typeof buf==='string') buf=Buffer.from(buf,'utf8'); const S=Buffer.from('/*PLOT-START*/'), E=Buffer.from('/*PLOT-END*/'), a=buf.indexOf(S), b=buf.indexOf(E);
+  if (a<0 || b<a || buf.indexOf(S,a+1)>=0 || buf.indexOf(E,b+1)>=0) throw new Error('disegno: marcatori /*PLOT-START*/ e /*PLOT-END*/ mancanti o ripetuti'); return buf.subarray(a, b+E.length); }
+module.exports={extractCore, coreRange, coreModules, workerSource, extractPlot};
