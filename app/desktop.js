@@ -80,7 +80,7 @@
   const IMG_EXT=['jpg','jpeg','png','tif','tiff','webp','bmp','heic','heif'];
   function acceptExt(input){ const out=[]; for (const a of String(input.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean)){ if (a[0]==='.') out.push(a.slice(1)); else if (a==='image/*') out.push(...IMG_EXT); else if (a==='application/json') out.push('json'); else if (a==='application/zip') out.push('zip'); else return []; } return [...new Set(out)]; }
   // file di una cartella che la pagina scarta comunque per nome: non si leggono (restano nell'elenco dei saltati, come online)
-  const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri)$/i.test(name); }catch(e){ return true; } };
+  const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri|acchplugin)$/i.test(name) || !!(win.AcchPlugins && win.AcchPlugins.handlesName(name)); }catch(e){ return true; } };   // I11: anche i pacchetti e i formati delle estensioni
   async function readPicked(L, onlyWanted){ const out=[]; for (const p of L){ try{ const b=(onlyWanted && !wanted(p.name)) ? new Uint8Array(0) : await readFrom(p.path); out.push({p, file:new File([b], p.name)}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } return out; }
   let picking=false;
   async function nativePick(input){

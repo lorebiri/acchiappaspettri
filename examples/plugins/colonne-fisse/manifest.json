@@ -1,0 +1,15 @@
+{
+ "id": "org.acchiappaspettri.esempio.colonne-fisse",
+ "name": "Colonne fisse (esempio)",
+ "version": "1.0.0",
+ "author": "Lorenzo Birindelli",
+ "license": "GPL-3.0-or-later",
+ "extensions": ["fwf"],
+ "minAppVersion": "3.0.0",
+ "permissions": ["read-file"],
+ "description": {
+  "it": "Esempio dimostrativo: legge file di testo a colonne di larghezza fissa (ACCH-FWF 1), una colonna x e uno o più canali y.",
+  "en": "Demonstration example: reads fixed-width text files (ACCH-FWF 1), one x column and one or more y channels."
+ },
+ "homepage": "https://github.com/lorebiri/acchiappaspettri/blob/main/docs/ESTENSIONI.md"
+}
