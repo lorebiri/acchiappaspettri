@@ -29,6 +29,9 @@ const PAGE=()=>{ window.I11={
     await pr; return {shown, list:I11.list(), note:$('#skipNote').innerText}; },
   list(){ return files.map(f=>({name:f.name, channel:f.channel||null, instr:f.instr, plugin:f.plugin||null, xs:Array.from(f.xs), ys:Array.from(f.ys), reason:f.reason})); },
   async build(){ const b=await AcchProject._build(); let s=''; for (let i=0;i<b.bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null, b.bytes.subarray(i,i+0x8000)); return btoa(s); },
+  // installazione come dall'interfaccia: avviso, «Installa»; restituisce il testo dell'avviso (null se non è comparso) e i messaggi
+  async ui(text, name){ I11_TOASTS.length=0; let shown=null; const iv=setInterval(()=>{ const d=$('#dlgPlugin'); if (d && d.open && shown==null){ shown=d.innerText; $('#plOk').click(); } },20);
+    try{ await AcchPlugins.installFile(new File([text], name||'p.acchplugin')); } finally { clearInterval(iv); } return {shown, toasts:I11_TOASTS.slice(), ids:AcchPlugins.list().map(e=>e.id)}; },
   async open(b64){ I11_TOASTS.length=0; const h=AcchProject.host, ask=h.ask; h.ask=async ()=>'discard';   // il lavoro aperto prima non si salva
     let ok; try{ ok=await AcchProject.openBytes(Uint8Array.from(atob(b64),c=>c.charCodeAt(0)),'i11.acchspettri',null); } finally { h.ask=ask; } return {ok, list:I11.list(), toasts:I11_TOASTS.slice(), missing:AcchProject.pluginMissing||[]}; }
 }; window.I11_TOASTS=[]; const o=toast; toast=function(t){ I11_TOASTS.push(String(t)); return o.apply(this, arguments); }; };
@@ -91,6 +94,8 @@ function assertEvil(r){
   assert.match(r.stringhe.r.error, /non validi/); assert.match(r.promessa.r.error, /promessa/); assert.match(r.sintassi.r.error, /interrotta/);
 }
 
+const PKGS=Object.fromEntries(['colonne-fisse','punto-e-virgola','binario-wasm'].map(d=>[d, fs.readFileSync(path.join(ROOT,'examples','plugins',d,d+'.acchplugin'),'utf8')]));
+const SAMPLES={sxp:fs.readFileSync(path.join(ROOT,'examples','plugins','punto-e-virgola','esempio-SINTETICO.sxp')), awb:fs.readFileSync(path.join(ROOT,'examples','plugins','binario-wasm','esempio-SINTETICO.awb'))};
 test('I11 estensioni', async t=>{
   const server=await startServer(), b=await launch();
   try{
@@ -106,6 +111,42 @@ test('I11 estensioni', async t=>{
       const r=await withPage(b, server, {}, p=>p.evaluate(L=>L.map(s=>{ try{ AcchPlugins.inspect(new TextEncoder().encode(s)); return 'installabile'; }catch(e){ return AcchPlugins.errText(e); } }),
         [pkgOf('registerReader(function(){ return import("x"); });'), pkgOf('registerReader(function(){});', {permissions:['network']}), pkgOf('x', {extensions:['acchspettri']}), pkgOf('x', {minAppVersion:'9.0.0'}), 'non è json']));
       assert.match(r[0], /import/); assert.match(r[1], /permessi/); assert.match(r[2], /acchspettri/); assert.match(r[3], /9\.0\.0/); assert.match(r[4], /non è un pacchetto/);
+    });
+    for (const [desk, csp] of [[false, null], [true, CSP.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")]]) await t.test(`R17 dichiarativo e WebAssembly (${desk?'desktop con la sua CSP':'online'}): avviso con tipo e verifica, numeri, canali`, async ()=>{
+      await withPage(b, server, {desk, csp, canali:'tutti'}, async p=>{
+        const d=await p.evaluate(t=>I11.ui(t, 'punto-e-virgola.acchplugin'), PKGS['punto-e-virgola']);
+        assert.match(d.shown, /dichiarativo \(nessun codice/); assert.match(d.shown, /letti come atteso 1 file d'esempio/);
+        const w=await p.evaluate(t=>I11.ui(t, 'binario-wasm.acchplugin'), PKGS['binario-wasm']);
+        assert.match(w.shown, /WebAssembly senza importazioni/); assert.match(w.shown, /letti come atteso 1 file d'esempio/); assert.equal(w.ids.length, 2);
+        const a=await p.evaluate(s=>I11.load('esempio-SINTETICO.sxp', s), SAMPLES.sxp.toString('utf8'));
+        assert.deepEqual(a.list.map(f=>f.channel), ['Assorbanza A','Assorbanza B']); assert.deepEqual(a.list[0].ys, [0.1,0.25,0.4,0.3,0.15,0.05]); assert.ok(a.list.every(f=>f.instr==='uv'));
+        const r=await p.evaluate(b64=>I11.load('esempio-SINTETICO.awb', Uint8Array.from(atob(b64),c=>c.charCodeAt(0))), SAMPLES.awb.toString('base64'));
+        const f=r.list.find(f=>f.name==='esempio-SINTETICO.awb'); assert.ok(f, r.note); assert.equal(f.instr, 'raman'); assert.deepEqual(f.ys, [10,12,15,40,120,300,180,60,25,14,11,10]); assert.equal(f.xs[11], 1300);
+        if (desk) assert.ok(!EMOJI.test(d.shown+w.shown));
+      });
+    });
+    await t.test('verifica all\'installazione: un atteso diverso dal risultato fa rifiutare il pacchetto, senza avviso né installazione', async ()=>{
+      const j=JSON.parse(PKGS['colonne-fisse']); j.examples[0].expected.channels[1].y[3]=0.22;
+      const r=await withPage(b, server, {}, p=>p.evaluate(t=>I11.ui(t), JSON.stringify(j)));
+      assert.equal(r.shown, null); assert.deepEqual(r.ids, []); assert.ok(r.toasts.some(m=>/non legge come atteso il suo file d'esempio «esempio-SINTETICO\.fwf» \(canale 2, punto 4\)/.test(m)), r.toasts.join(' | '));
+    });
+    await t.test('limite dei file in ingresso: impostabile, controllato prima di leggere il file', async ()=>{
+      await withPage(b, server, {}, async p=>{
+        await p.evaluate(t=>I11.ui(t), PKGS['colonne-fisse']);
+        await p.evaluate(()=>AcchUi.openSettings()); assert.equal(await p.inputValue('#stPlugMax'), '64');
+        await p.fill('#stPlugMax', '1'); await p.dispatchEvent('#stPlugMax', 'change'); await p.click('#stClose');
+        const big='# ACCH-FWF 1\n'+'#'.repeat(1.5*1048576)+'\n';
+        const r=await p.evaluate(async s=>{ let runs=0; const o=AcchPlugins.run; AcchPlugins.run=function(){ runs++; return o.apply(this, arguments); }; const r=await I11.load('grande.fwf', s); return Object.assign(r, {max:AcchPlugins.maxMB(), runs}); }, big);
+        assert.equal(r.max, 1); assert.equal(r.runs, 0, 'il file non arriva all\'estensione'); assert.equal(r.list.length, 0); assert.match(r.note, /troppo grande per le estensioni \(1\.5 MB, limite 1 MB/);
+        await p.evaluate(()=>AcchUi.openSettings()); await p.fill('#stPlugMax', '5000'); await p.dispatchEvent('#stPlugMax', 'change');
+        assert.equal(await p.evaluate(()=>AcchPlugins.maxMB()), 1, 'valori fuori scala rifiutati');
+      });
+    });
+    await t.test('R16 dichiarativo ostile: una regex lenta che passa i controlli si ferma con il tempo massimo', async ()=>{
+      const pkg=PC.buildPackage(Object.assign({}, MAN, {id:'it.prova.regex'}), {reader:{kind:'text', delimiter:';', x:{column:1}, channels:'all', signature:{regex:'^a*a*a*a*a*a*a*a*a*b$'}}});
+      const r=await withPage(b, server, {}, p=>p.evaluate(async t=>{ const id=await I11.add(t); const t0=performance.now(); let lag=null; const pr=AcchPlugins.read(id, new TextEncoder().encode('a'.repeat(1000)+'!').buffer, 'x.mal', {timeoutMs:1500});
+        await new Promise(r=>setTimeout(r,200)); lag=performance.now()-t0; const r=await pr; return {error:r.error, ms:performance.now()-t0, lag}; }, pkg));
+      assert.match(r.error, /fermata/); assert.ok(r.lag<1000, 'pagina reattiva: '+r.lag); assert.ok(r.ms<5000);
     });
     for (const desk of [false, true]) await t.test(`R17 esempio colonne fisse (${desk?'desktop':'online'}): avviso, installazione, caricamento, «Canali trovati», progetto, estensione mancante`, async ()=>{
       await withPage(b, server, {desk}, async p=>{

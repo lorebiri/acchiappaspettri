@@ -5264,7 +5264,9 @@ async function addEntries(entries){
       const om=window.AcchOriginUI ? /#origin:([^#]*)$/.exec(path) : null;   // uno spettro scelto da un progetto Origin (vedi app/origin-ui.js)
       if (/\.opju?$/i.test(file.name) && window.AcchOriginUI && !om){ origins.push({file, path}); continue; }
       if (/\.acchplugin$/i.test(file.name) && window.AcchPlugins){ pkgs.push(file); continue; }
-      const plugs=(window.AcchPlugins && !om) ? AcchPlugins.candidates(file.name, ent) : [];   // I11: estensioni che leggono questo formato
+      let plugs=(window.AcchPlugins && !om) ? AcchPlugins.candidates(file.name, ent) : [];   // I11: estensioni che leggono questo formato
+      // I11: controllo preventivo della dimensione, prima di leggere il file; se lo legge anche l'app, ci pensa lei
+      if (plugs.length && file.size>AcchPlugins.maxBytes()){ plugs=[]; if (!ACCEPT.test(file.name)){ rejected.push(`${path}: ${AcchPlugins.tooBigText(file.size)}`); continue; } }
       if (!ACCEPT.test(file.name) && !om && !plugs.length){ skipped.push(path); continue; }
       const lkey=path+'\u0000'+file.size, same=files.filter(f=>f.path===path && f.size===file.size);
       if ((same.length && !same.some(f=>f.chSrc)) || LOADING.has(lkey)){ dup++; continue; }

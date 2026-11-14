@@ -1,0 +1,103 @@
+{
+ "format": "acchplugin",
+ "formatVersion": 1,
+ "manifest": {
+  "id": "org.acchiappaspettri.esempio.punto-e-virgola",
+  "name": "Esportazione con punto e virgola (esempio dichiarativo)",
+  "version": "1.0.0",
+  "author": "Lorenzo Birindelli",
+  "license": "GPL-3.0-or-later",
+  "extensions": [
+   "sxp"
+  ],
+  "minAppVersion": "3.0.0",
+  "permissions": [
+   "read-file"
+  ],
+  "description": {
+   "it": "Esempio dimostrativo di lettore dichiarativo, senza codice: testo con intestazione, punto e virgola e virgola decimale.",
+   "en": "Demonstration declarative reader, with no code: text with a header, semicolons and decimal commas."
+  },
+  "homepage": "https://github.com/lorebiri/acchiappaspettri/blob/main/docs/ESTENSIONI.md"
+ },
+ "reader": {
+  "kind": "text",
+  "encoding": "utf-8",
+  "signature": {
+   "regex": "^Strumento: Spettrometro SINTETICO",
+   "lines": 1
+  },
+  "headerLine": 4,
+  "delimiter": ";",
+  "decimal": ",",
+  "x": {
+   "column": 1,
+   "unit": "nm",
+   "label": "Lunghezza d'onda"
+  },
+  "channels": "all",
+  "technique": "uv",
+  "meta": [
+   {
+    "name": "Strumento",
+    "regex": "^Strumento:\\s*(.+)$"
+   },
+   {
+    "name": "Data",
+    "regex": "^Data:\\s*(.+)$"
+   }
+  ],
+  "sample": {
+   "regex": "^Campione:\\s*(.+)$"
+  }
+ },
+ "examples": [
+  {
+   "name": "esempio-SINTETICO.sxp",
+   "data": "U3RydW1lbnRvOiBTcGV0dHJvbWV0cm8gU0lOVEVUSUNPIFgtMTAwCkNhbXBpb25lOiBTdGFuZGFyZCBTSU5URVRJQ08KRGF0YTogMjAyNi0xMS0xNApMdW5naGV6emEgZCdvbmRhIChubSk7QXNzb3JiYW56YSBBO0Fzc29yYmFuemEgQgo0MDAsMDswLDEwMDA7MCwwMjAwCjQxMCwwOzAsMjUwMDswLDA0MDAKNDIwLDA7MCw0MDAwOzAsMDkwMAo0MzAsMDswLDMwMDA7MCwxNjAwCjQ0MCwwOzAsMTUwMDswLDI1MDAKNDUwLDA7MCwwNTAwOzAsMTgwMAo=",
+   "expected": {
+    "technique": "uv",
+    "channels": [
+     {
+      "name": "Assorbanza A",
+      "x": [
+       400,
+       410,
+       420,
+       430,
+       440,
+       450
+      ],
+      "y": [
+       0.1,
+       0.25,
+       0.4,
+       0.3,
+       0.15,
+       0.05
+      ]
+     },
+     {
+      "name": "Assorbanza B",
+      "x": [
+       400,
+       410,
+       420,
+       430,
+       440,
+       450
+      ],
+      "y": [
+       0.02,
+       0.04,
+       0.09,
+       0.16,
+       0.25,
+       0.18
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

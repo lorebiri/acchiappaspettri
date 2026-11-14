@@ -27,7 +27,7 @@
   /* ---------- elenco ---------- */
   const reg=new Map();   // id → {id, manifest, code, sha256, size, enabled, installedAt, compatible}
   function entryOf(rec){ const p=C.parsePackage(rec.text); if (p.manifest.id!==rec.id) throw new C.PluginError('manifest','id');
-    return {id:rec.id, manifest:p.manifest, code:p.code, sha256:p.sha256, size:p.size, text:rec.text, enabled:rec.enabled!==false, installedAt:rec.installedAt||'', compatible:C.appSatisfies(p.manifest.minAppVersion, appVersion())}; }
+    return {id:rec.id, manifest:p.manifest, kind:p.kind, code:p.code, sha256:p.sha256, size:p.size, text:rec.text, enabled:rec.enabled!==false, installedAt:rec.installedAt||'', compatible:C.appSatisfies(p.manifest.minAppVersion, appVersion())}; }
   const broken=[];   // voci dell'archivio che non si leggono più: si mostrano per poterle togliere
   async function load(){ reg.clear(); broken.length=0; let L=[]; try{ L=await store.list(); }catch(e){ console.error('estensioni', e); }
     const recs=L.slice().sort((a,b)=>String(a.installedAt||'').localeCompare(String(b.installedAt||'')));
@@ -48,11 +48,18 @@
     if (Array.isArray(ent.want)) return [];
     return forName(name); }
 
+  /* ---------- limite dei file in ingresso: controllo preventivo, prima di leggere il file (Impostazioni → Estensioni) ---------- */
+  const MAX_KEY='acch.plugins.maxMB', MB=1048576;
+  function maxMB(){ let v=null; try{ v=JSON.parse(win.AcchHost.store.getItem(MAX_KEY)); }catch(e){} v=Math.round(+v); return v>=1 && v<=1024 ? v : Math.round(C.LIMITS.inputBytes/MB); }
+  function setMaxMB(v){ v=Math.round(+v); if (!(v>=1 && v<=1024)) return false; try{ win.AcchHost.store.setItem(MAX_KEY, JSON.stringify(v)); }catch(e){ return false; } return true; }
+  const maxBytes=()=>maxMB()*MB;
+  const tooBigText=size=>T(`file troppo grande per le estensioni (${(size/MB).toFixed(1)} MB, limite ${maxMB()} MB: si cambia in Impostazioni → Estensioni)`,`file too large for extensions (${(size/MB).toFixed(1)} MB, limit ${maxMB()} MB: change it in Settings → Extensions)`);
+
   /* ---------- esecuzione isolata ---------- */
   function run(e, buf, name, opt){ opt=opt||{};
     return new Promise(res=>{
       if (typeof win.Worker!=='function' || !win.Blob || !win.URL || !win.URL.createObjectURL) return res({ok:false, code:'worker'});
-      if (buf.byteLength>C.LIMITS.inputBytes) return res({ok:false, code:'input-too-large'});
+      if (buf.byteLength>(opt.maxBytes||maxBytes())) return res({ok:false, code:'input-too-large', msg:buf.byteLength});
       const url=win.URL.createObjectURL(new win.Blob([C.sandboxSource(e.code, opt.limits)], {type:'text/javascript'}));
       let w, over=false, t=null;
       const done=r=>{ if (over) return; over=true; clearTimeout(t); try{ w && w.terminate(); }catch(x){} win.URL.revokeObjectURL(url); res(r); };
@@ -73,12 +80,14 @@
       'too-large':[`l'estensione ${n} ha restituito troppi dati (${msg||''}; al massimo ${C.LIMITS.channels} canali e ${C.LIMITS.points} punti)`, `the extension ${n} returned too much data (${msg||''}; at most ${C.LIMITS.channels} channels and ${C.LIMITS.points} points)`],
       'too-few':[`l'estensione ${n} ha restituito meno di ${C.LIMITS.minPoints} punti (${msg||''})`, `the extension ${n} returned fewer than ${C.LIMITS.minPoints} points (${msg||''})`],
       length:[`l'estensione ${n} ha restituito x e y di lunghezze diverse (${msg||''})`, `the extension ${n} returned x and y of different lengths (${msg||''})`],
-      'input-too-large':[`file troppo grande per un'estensione (oltre ${Math.round(C.LIMITS.inputBytes/1048576)} MB)`, `file too large for an extension (over ${Math.round(C.LIMITS.inputBytes/1048576)} MB)`],
+
       worker:[`questo browser non permette di eseguire le estensioni isolate`, `this browser cannot run extensions in isolation`]};
+    if (code==='input-too-large') return tooBigText(+msg||0);
     const m=M[code]||[`l'estensione ${n} ha restituito dati non validi (${msg||code})`, `the extension ${n} returned invalid data (${msg||code})`];
     return T(m[0], m[1]); }
   /* lettura: {none:true} (non è un file di questa estensione), {error:testo} oppure {channels, meta, sample, technique, plugin} */
-  async function read(id, buf, name, opt){ const e=reg.get(id); if (!usable(e)) return {error:T('estensione non disponibile: ','extension not available: ')+id};
+  async function read(id, buf, name, opt){ const e=reg.get(id); if (!usable(e)) return {error:T('estensione non disponibile: ','extension not available: ')+id}; return readWith(e, buf, name, opt); }
+  async function readWith(e, buf, name, opt){
     const r=await run(e, buf, name, opt);
     if (!r.ok) return {error:failText(e, r.code, r.msg, opt && opt.timeoutMs)};
     let out; try{ out=C.validateOutput(r.out, {techniques:opt && opt.techniques}); }catch(err){ return {error:failText(e, err.code||'bad-output', err.detail||'')}; }
@@ -98,7 +107,15 @@
       'no-code':['Il pacchetto non contiene il codice del lettore.','The package does not contain the reader code.'],
       'too-large':['Il pacchetto è troppo grande (al massimo 2 MB).','The package is too large (at most 2 MB).'],
       empty:['Il file del pacchetto è vuoto.','The package file is empty.'],
-      'min-app':[`L'estensione richiede Acchiappaspettri ${d} o successiva.`,`The extension requires Acchiappaspettri ${d} or later.`]};
+      'min-app':[`L'estensione richiede Acchiappaspettri ${d} o successiva.`,`The extension requires Acchiappaspettri ${d} or later.`],
+      reader:[`Il lettore dichiarativo non è valido (campo «${d}»).`,`The declarative reader is not valid (field «${d}»).`],
+      kind:['Il pacchetto deve contenere un solo lettore: dichiarativo, WebAssembly o JavaScript.','The package must contain one reader only: declarative, WebAssembly or JavaScript.'],
+      wasm:[`Il modulo WebAssembly non è valido (${d}).`,`The WebAssembly module is not valid (${d}).`],
+      'wasm-imports':['Il modulo WebAssembly importa funzioni dall\'esterno: le estensioni non possono avere importazioni. Non si può installare.','The WebAssembly module imports external functions: extensions cannot have imports. It cannot be installed.'],
+      'wasm-memory':['Il modulo WebAssembly deve dichiarare una memoria massima di 256 MB al più (4096 pagine).','The WebAssembly module must declare a maximum memory of at most 256 MB (4096 pages).'],
+      base64:['Il pacchetto contiene dati base64 non validi.','The package contains invalid base64 data.'],
+      examples:[`I file d'esempio del pacchetto non sono validi (${d}).`,`The package example files are not valid (${d}).`],
+      'examples-fail':[`L'estensione non legge come atteso il suo file d'esempio ${d}: non è stata installata.`,`The extension does not read its example file ${d} as expected: it was not installed.`]};
     const m=M[c]||['Il pacchetto dell\'estensione non si può installare.','The extension package cannot be installed.']; return T(m[0], m[1]); }
   function inspect(bytes){ const p=C.parsePackage(bytes); if (!C.appSatisfies(p.manifest.minAppVersion, appVersion())) throw new C.PluginError('min-app', p.manifest.minAppVersion); return p; }
   async function install(p, opt){ opt=opt||{}; const old=reg.get(p.manifest.id);
@@ -107,8 +124,15 @@
   async function remove(id){ await store.del(id); await load(); }
   async function setEnabled(id, v){ const e=reg.get(id); if (!e) return; await store.put({id, text:e.text, sha256:e.sha256, enabled:!!v, installedAt:e.installedAt}); await load(); }
   /* dal file scelto o trascinato: controlla, mostra l'avviso con autore, permessi e impronta, installa solo se l'utente conferma */
+  /* file d'esempio del pacchetto: si leggono nel worker isolato e si confrontano con l'atteso prima di attivare l'estensione */
+  async function verifyExamples(p){ const e={id:p.manifest.id, manifest:p.manifest, code:p.code, sha256:p.sha256};
+    for (const x of p.examples){ const r=await readWith(e, x.bytes.slice().buffer, x.name, {techniques:TECH()});
+      const out=r.error ? {error:r.error} : r; const c=C.compareExpected(out, x.expected);
+      if (!c.ok) throw new C.PluginError('examples-fail', '«'+x.name+'» ('+c.why+')'); }
+    return p.examples.length; }
+  const TECH=()=>{ try{ return typeof INSTR!=='undefined' ? Object.keys(INSTR) : null; }catch(e){ return null; } };
   async function installFile(file){ await ready; let p;
-    try{ p=inspect(new Uint8Array(await file.arrayBuffer())); }catch(err){ console.warn(err); toast(errText(err)); return null; }
+    try{ p=inspect(new Uint8Array(await file.arrayBuffer())); p.verified=await verifyExamples(p); }catch(err){ console.warn(err); toast(errText(err)); return null; }
     const old=reg.get(p.manifest.id);
     if (old && old.sha256===p.sha256 && old.enabled){ toast(T(`L'estensione ${label(old)} è già installata (stessa impronta).`,`The extension ${label(old)} is already installed (same fingerprint).`)); return old; }
     if (!await confirmInstall(p)) return null;
@@ -130,7 +154,8 @@
     doc.body.appendChild(d); return d; }
   function confirmInstall(p){ const d=dialog(), m=p.manifest, old=reg.get(m.id), desc=en() ? m.description.en : m.description.it;
     const rows=[[T('Nome','Name'), m.name], [T('Versione','Version'), m.version], [T('Autore','Author'), m.author], [T('Licenza','Licence'), m.license], ['ID', m.id],
-      [T('Formati','Formats'), m.extensions.map(x=>'.'+x).join(', ')], [T('Richiede','Requires'), 'Acchiappaspettri '+m.minAppVersion]];
+      [T('Formati','Formats'), m.extensions.map(x=>'.'+x).join(', ')], [T('Richiede','Requires'), 'Acchiappaspettri '+m.minAppVersion], [T('Tipo','Type'), kindText(p.kind)],
+      [T('Verifica','Check'), p.verified ? T(`letti come atteso ${p.verified} file d'esempio del pacchetto`,`${p.verified} example files of the package read as expected`) : T('il pacchetto non contiene file d\'esempio','the package contains no example files')]];
     if (m.homepage) rows.push([T('Sito','Website'), m.homepage]);
     const notes=[];
     if (old) notes.push(T(`Sostituisce la versione ${old.manifest.version} già installata.`,`Replaces the installed version ${old.manifest.version}.`));
@@ -148,13 +173,15 @@
       $('#plCancel', d).onclick=()=>finish(false); $('#plOk', d).onclick=()=>finish(true);
       d.addEventListener('cancel', onCancel); if (!d.open) d.showModal(); $('#plCancel', d).focus(); }); }
   function $(s, r){ return (r||doc).querySelector(s); }
+  function kindText(k){ return k==='declarative' ? T('dichiarativo (nessun codice: lo interpreta l\'app)','declarative (no code: the app interprets it)') : k==='wasm' ? T('modulo WebAssembly senza importazioni','WebAssembly module without imports') : T('codice JavaScript','JavaScript code'); }
 
   /* Impostazioni → Estensioni: si inserisce prima di «Informazioni» e si ridisegna a ogni apertura */
   function section(){ const st=doc.getElementById('dlgSettings'); if (!st) return null; let box=doc.getElementById('stPlugins'); if (box) return box;
     const info=[...st.querySelectorAll('h4.anh')].pop(), wrap=doc.createElement('div'); wrap.id='stPlugWrap'; wrap.setAttribute('data-noi18n','');
-    wrap.innerHTML='<h4 class="anh" id="stPlugTitle"></h4><p class="why" id="stPlugWhy"></p><div id="stPlugins"></div><div class="row"><button class="btn small" type="button" id="stPlugAdd"></button><input type="file" id="plugIn" accept=".acchplugin" hidden></div>';
+    wrap.innerHTML='<h4 class="anh" id="stPlugTitle"></h4><p class="why" id="stPlugWhy"></p><div id="stPlugins"></div><div class="row"><button class="btn small" type="button" id="stPlugAdd"></button><input type="file" id="plugIn" accept=".acchplugin" hidden></div><label class="ibf" style="margin-top:8px"><span id="stPlugMaxLab"></span><input type="number" id="stPlugMax" min="1" max="1024" step="1" style="width:7em"></label>';
     if (info) st.querySelector('.dlg').insertBefore(wrap, info); else st.querySelector('.dlg').appendChild(wrap);
     $('#stPlugAdd').onclick=()=>$('#plugIn').click();
+    $('#stPlugMax').onchange=ev=>{ if (!setMaxMB(ev.target.value)) toast(T('Il limite va da 1 a 1024 MB.','The limit ranges from 1 to 1024 MB.')); ev.target.value=maxMB(); };
     $('#plugIn').onchange=async ev=>{ const f=ev.target.files && ev.target.files[0]; ev.target.value=''; if (f) await installFile(f); };
     const box2=$('#stPlugins');
     box2.addEventListener('change', async ev=>{ const t=ev.target; if (t.dataset && t.dataset.plen){ await setEnabled(t.dataset.plen, t.checked); toast(t.checked ? T('Estensione attivata.','Extension enabled.') : T('Estensione disattivata: i suoi formati non si aprono finché non la riattivi.','Extension disabled: its formats do not open until you enable it again.')); } });
@@ -167,11 +194,12 @@
     $('#stPlugTitle').textContent=T('Estensioni','Extensions');
     $('#stPlugWhy').textContent=T('Un\'estensione aggiunge la lettura di un formato di file. Gira isolata, senza rete né accesso ai tuoi dati, e riceve solo i file che apri.','An extension adds a file format reader. It runs in isolation, without network or access to your data, and receives only the files you open.');
     $('#stPlugAdd').textContent=T('Installa un\'estensione…','Install an extension…');
+    $('#stPlugMaxLab').textContent=T('Dimensione massima dei file letti dalle estensioni (MB)','Maximum size of files read by extensions (MB)'); $('#stPlugMax').value=maxMB();
     const L=list();
     let h=L.length ? '' : `<p class="why" id="stPlugNone">${esc(T('Nessuna estensione installata.','No extensions installed.'))}</p>`;
     for (const e of L){ const m=e.manifest;
       h+=`<div class="plitem" data-plid="${esc(e.id)}"><div><b>${esc(m.name)}</b> <span data-noi18n>${esc(m.version)}</span> · ${esc(m.author)} · ${esc(m.license)}`
-        +`<br><small>${esc(m.extensions.map(x=>'.'+x).join(', '))} · SHA-256 <code>${esc(e.sha256.slice(0,16))}…</code>${e.compatible?'':' · '+esc(T('richiede Acchiappaspettri ','requires Acchiappaspettri ')+m.minAppVersion)}</small></div>`
+        +`<br><small>${esc(kindText(e.kind))} · ${esc(m.extensions.map(x=>'.'+x).join(', '))} · SHA-256 <code>${esc(e.sha256.slice(0,16))}…</code>${e.compatible?'':' · '+esc(T('richiede Acchiappaspettri ','requires Acchiappaspettri ')+m.minAppVersion)}</small></div>`
         +`<label class="check"><input type="checkbox" data-plen="${esc(e.id)}"${e.enabled?' checked':''}${e.compatible?'':' disabled'}> ${esc(T('Attiva','Enabled'))}</label>`
         +`<button class="btn small ghost" type="button" data-plrm="${esc(e.id)}">${esc(T('Rimuovi','Remove'))}</button></div>`; }
     for (const id of broken) h+=`<div class="plitem" data-plid="${esc(id)}"><div><b>${esc(id)}</b><br><small>${esc(T('pacchetto non più valido','package no longer valid'))}</small></div><button class="btn small ghost" type="button" data-plrm="${esc(id)}">${esc(T('Rimuovi','Remove'))}</button></div>`;
@@ -184,5 +212,5 @@
       doc.head.appendChild(s); } }
   if (doc.readyState==='loading') doc.addEventListener('DOMContentLoaded', hook); else hook();
 
-  win.AcchPlugins={ready, list, get, available, forName, handlesName, candidates, read, run, inspect, install, installFile, remove, setEnabled, reload:load, errText, store};
+  win.AcchPlugins={ready, list, get, available, forName, handlesName, candidates, read, run, inspect, verifyExamples, maxMB, setMaxMB, maxBytes, tooBigText, install, installFile, remove, setEnabled, reload:load, errText, store};
 })(window);

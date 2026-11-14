@@ -127,3 +127,102 @@ test('progetto: campo «plugin» salvato, riletto e controllato', async ()=>{
   man.entries['project/spectra.json']={sha256:F.sha256(b), size:b.length}; zip.file('manifest.json', JSON.stringify(man));
   await assert.rejects(F.decode(await zip.generateAsync({type:'uint8array'}), JSZip), e=>e.code==='invalid-schema' && e.detail==='plugin');
 });
+
+/* ---------- lettori dichiarativi, WebAssembly, file d'esempio (seconda parte di I11) ---------- */
+const DIR=n=>path.join(ROOT,'examples','plugins',n);
+const runPkg=(p, bytes, name)=>{ let fn=null; new Function('registerReader', p.code)(f=>{ fn=f; }); return C.validateOutput(fn(bytes, name||'x'), {techniques:['uv','raman','ftir']}); };
+const specErr=(s, detail)=>{ const e=code(()=>C.validateReaderSpec(s), 'reader'); if (detail) assert.match(e.detail, detail); };
+const TXT={kind:'text', delimiter:';', decimal:',', x:{column:1}, channels:'all'};
+
+test('i tre esempi: pacchetti uguali ai sorgenti, tipo giusto, file d\'esempio letti come atteso', ()=>{
+  for (const [d, kind] of [['colonne-fisse','js'], ['punto-e-virgola','declarative'], ['binario-wasm','wasm']]){
+    const buf=fs.readFileSync(path.join(DIR(d), d+'.acchplugin')), p=C.parsePackage(new Uint8Array(buf));
+    assert.equal(pack(DIR(d)).text, buf.toString('utf8'), d+': rigenera con scripts/plugin-pack.js');
+    assert.equal(p.kind, kind); assert.equal(p.manifest.license, 'GPL-3.0-or-later'); assert.equal(p.examples.length, 1, d);
+    for (const x of p.examples) assert.deepEqual(C.compareExpected(runPkg(p, x.bytes, x.name), x.expected), {ok:true}, d); }
+});
+
+test('dichiarativo (R17): punto e virgola, virgola decimale, intestazione, metadati, campione, firma', ()=>{
+  const p=C.parsePackage(new Uint8Array(fs.readFileSync(path.join(DIR('punto-e-virgola'),'punto-e-virgola.acchplugin'))));
+  const v=runPkg(p, new Uint8Array(fs.readFileSync(path.join(DIR('punto-e-virgola'),'esempio-SINTETICO.sxp'))));
+  assert.deepEqual(v.channels.map(c=>c.name), ['Assorbanza A','Assorbanza B']); assert.equal(v.sample, 'Standard SINTETICO'); assert.equal(v.technique, 'uv');
+  assert.deepEqual([...v.channels[1].ys], [0.02,0.04,0.09,0.16,0.25,0.18]);
+  assert.ok(v.meta.includes('Strumento: Spettrometro SINTETICO X-100') && v.meta.includes('Data: 2026-11-14') && v.meta.includes("x: Lunghezza d'onda (nm)"));
+  assert.deepEqual(runPkg(p, new TextEncoder().encode('400;1\n')), {none:true}, 'senza firma non è suo');
+  const S=C.validateReaderSpec({kind:'text', delimiter:'whitespace', comment:'#', x:{column:1}, channels:[{column:3, name:'B', unit:'AU'}], onBadLine:'skip'});
+  const r=C.validateOutput(C.DECL(S, new TextEncoder().encode('# prova\n1 2 3\n2 4 6\nx y z\n3 6 9\n4 8 12\n5 10 15\n'), 'a'));
+  assert.deepEqual([...r.channels[0].ys], [3,6,9,12,15]); assert.ok(r.meta.includes('prova') && r.meta.includes('Righe non numeriche saltate: 1')); assert.deepEqual(r.channels[0].meta, ['y: AU']);
+  assert.match(C.DECL(C.validateReaderSpec(TXT), new TextEncoder().encode('1;2\n2;x\n'), 'a').error, /riga 2/);
+  const F=C.validateReaderSpec({kind:'text', delimiter:'fixed', columns:[{start:1,end:4},{start:5,end:8}], x:{column:1}, channels:[{column:2}]});
+  assert.deepEqual([...C.validateOutput(C.DECL(F, new TextEncoder().encode('   1  10\n   2  20\n   3  30\n   4  40\n   5  50\n'), 'a')).channels[0].ys], [10,20,30,40,50]);
+});
+
+test('dichiarativo binario: ordine dei byte, tipo, offset e conteggio da un campo, colonne in sequenza, x da inizio e passo', ()=>{
+  const n=6, b=Buffer.alloc(16+2*n*2); b.write('BNR1',0,'ascii'); b.writeUInt16BE(n,4); b.writeUInt32BE(16,6);
+  for (let i=0;i<n;i++){ b.writeInt16BE(100*i,16+2*i); b.writeInt16BE(-5*i,16+2*n+2*i); }
+  const S=C.validateReaderSpec({kind:'binary', endian:'big', signature:{offset:0, ascii:'BNR1'}, count:{offset:4, type:'u16'}, data:{offset:{offset:6, type:'u32'}, type:'i16', columns:2, layout:'sequential', scale:0.5},
+    x:{start:10, step:{value:2}, unit:'s'}, channels:[{column:1, name:'A'}, {column:2, name:'B'}], technique:'gen'});
+  const r=C.validateOutput(C.DECL(S, new Uint8Array(b), 'a'));
+  assert.deepEqual([...r.channels[0].xs], [10,12,14,16,18,20]); assert.deepEqual([...r.channels[0].ys], [0,50,100,150,200,250]); assert.deepEqual([...r.channels[1].ys], [-0,-2.5,-5,-7.5,-10,-12.5]);
+  assert.equal(C.DECL(S, new Uint8Array(Buffer.from('XXXX0000')), 'a'), null, 'firma diversa');
+  // manifesti ostili: conteggio enorme, dati oltre la fine, campo fuori dal file
+  const H=o=>C.validateReaderSpec(Object.assign({kind:'binary', count:{offset:0, type:'u32'}, data:{offset:8, type:'f64', columns:2}, x:{column:1}, channels:[{column:2}]}, o));
+  const big=Buffer.alloc(16); big.writeUInt32LE(0xffffffff,0); assert.match(C.DECL(H(), new Uint8Array(big), 'a').error, /troppi punti/);
+  big.writeUInt32LE(1000,0); assert.match(C.DECL(H(), new Uint8Array(big), 'a').error, /oltre la fine/);
+  assert.match(C.DECL(H({count:{offset:100, type:'u32'}}), new Uint8Array(big), 'a').error, /fuori dal file/);
+});
+
+test('manifesti dichiarativi rifiutati: campi sconosciuti, regex rischiose, combinazioni ambigue, colonne fuori scala', ()=>{
+  specErr(Object.assign({}, TXT, {codice:'x'}), /codice/);
+  specErr(Object.assign({}, TXT, {kind:'altro'}), /kind/);
+  for (const re of ['(a+)+$', '(\\w*)*x', '(a|aa){2,}', '(.*a){10}', '(a)\\1', 'x'.repeat(201), '[']) specErr(Object.assign({}, TXT, {signature:{regex:re}}), /signature/);
+  specErr(Object.assign({}, TXT, {delimiter:',', decimal:','}), /decimal/);
+  specErr(Object.assign({}, TXT, {delimiter:'tab'}), /delimiter/);
+  specErr(Object.assign({}, TXT, {channels:[{column:1}]}), /channels/);
+  specErr(Object.assign({}, TXT, {channels:[{column:99}]}), /channels/);
+  specErr(Object.assign({}, TXT, {delimiter:'fixed', columns:[{start:5, end:2}, {start:6, end:9}]}), /columns/);
+  specErr(Object.assign({}, TXT, {meta:Array.from({length:21},()=>({name:'a', regex:'a'}))}), /meta/);
+  specErr({kind:'binary', count:{offset:0, type:'f32'}, data:{offset:0, type:'f32', columns:1}, x:{start:0, step:1}, channels:[{column:1}]}, /count/);
+  specErr({kind:'binary', count:{value:10}, data:{offset:0, type:'f128', columns:1}, x:{start:0, step:1}, channels:[{column:1}]}, /data/);
+  specErr({kind:'binary', count:{value:10}, data:{offset:0, type:'f32', columns:1}, x:{start:0, step:1}, channels:[{column:2}]}, /channels/);
+  code(()=>C.parsePackage(C.buildPackage(MAN, {reader:TXT, code:'x'})), 'kind');
+});
+
+// moduli WebAssembly minimi costruiti qui: con un'importazione, senza massimo di memoria, senza le funzioni richieste
+const uleb=n=>{ const o=[]; do { let b=n&0x7f; n>>>=7; if (n) b|=0x80; o.push(b); } while (n); return o; };
+const sec=(id, body)=>[id, ...uleb(body.length), ...body], nm=s=>[s.length, ...Buffer.from(s)];
+function mod({imp, max, exp}){ const b=[0,0x61,0x73,0x6d,1,0,0,0, ...sec(1,[1,0x60,0,0])];
+  if (imp) b.push(...sec(2,[1, ...nm('env'), ...nm('f'), 0, 0]));
+  b.push(...sec(3,[1,0]), ...sec(5, max==null ? [1,0,1] : [1,1,1,...uleb(max)]));
+  const E=exp||['memory','acch_alloc','acch_read'], ex=[E.length]; for (const e of E) ex.push(...nm(e), e==='memory'?2:0, 0);
+  b.push(...sec(7, ex), ...sec(10,[1,2,0,0x0b])); return new Uint8Array(b); }
+test('WebAssembly: niente importazioni, memoria massima ≤ 256 MB, funzioni richieste; intestazioni rotte rifiutate', ()=>{
+  const w=new Uint8Array(fs.readFileSync(path.join(DIR('binario-wasm'),'reader.wasm')));
+  assert.deepEqual(C.checkWasm(w).memories, [{min:1, max:256}]);
+  assert.ok(WebAssembly.validate(mod({max:10})), 'il costruttore dei moduli di prova funziona');
+  code(()=>C.checkWasm(mod({max:10, imp:true})), 'wasm-imports');
+  code(()=>C.checkWasm(mod({})), 'wasm-memory');
+  code(()=>C.checkWasm(mod({max:5000})), 'wasm-memory');
+  code(()=>C.checkWasm(mod({max:10, exp:['memory','acch_read']})), 'wasm');
+  code(()=>C.checkWasm(new Uint8Array([0,0x61,0x73,0x6d,1,0,0,0, 7, 0xff,0xff,0xff,0xff,0x0f])), 'wasm');
+  code(()=>C.checkWasm(new Uint8Array([1,2,3])), 'wasm');
+  code(()=>C.parsePackage(C.buildPackage(MAN, {wasm:mod({max:10, imp:true})})), 'wasm-imports');
+  code(()=>C.parsePackage(C.buildPackage(MAN, {wasm:'@@@'})), 'base64');
+  // il modulo d'esempio: file suo, file non suo, file troncato
+  const b64=Buffer.from(w).toString('base64'), smp=new Uint8Array(fs.readFileSync(path.join(DIR('binario-wasm'),'esempio-SINTETICO.awb')));
+  assert.equal(C.validateOutput(C.WASMRUN(b64, 4096, smp)).channels[0].ys[5], 300);
+  assert.equal(C.WASMRUN(b64, 4096, new Uint8Array([1,2,3,4,5,6,7,8,9])), null);
+  assert.match(C.WASMRUN(b64, 4096, smp.slice(0,40)).error, /troncato/);
+  for (const n of [0,1,2,3,7,100]){ const u=new Uint8Array(n).map((_,i)=>i*37); assert.doesNotThrow(()=>C.WASMRUN(b64, 4096, u)); }
+});
+
+test('file d\'esempio: atteso diverso → la verifica lo dice; base64 andata e ritorno; troppi esempi rifiutati', ()=>{
+  const p=C.parsePackage(new Uint8Array(fs.readFileSync(path.join(DIR('colonne-fisse'),'colonne-fisse.acchplugin')))), x=p.examples[0], out=runPkg(p, x.bytes, x.name);
+  const wrong=JSON.parse(JSON.stringify(x.expected)); wrong.channels[1].y[3]=0.22;
+  assert.match(C.compareExpected(out, wrong).why, /canale 2, punto 4/);
+  assert.match(C.compareExpected(out, Object.assign({}, x.expected, {technique:'ftir'})).why, /tecnica/);
+  assert.equal(C.compareExpected({none:true}, {none:true}).ok, true);
+  const u=new Uint8Array(300).map((_,i)=>(i*91)&255); assert.deepEqual(C.fromB64(C.toB64(u)), u); assert.equal(C.toB64(u), Buffer.from(u).toString('base64'));
+  const ex=Array.from({length:6},()=>({name:'esempio', bytes:new Uint8Array(3), expected:{none:true}}));
+  code(()=>C.parsePackage(C.buildPackage(MAN, 'registerReader(function(){ return null; });', ex)), 'examples');
+});
