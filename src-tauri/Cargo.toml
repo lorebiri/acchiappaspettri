@@ -9,6 +9,9 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/lorebiri/acchiappaspettri"
 homepage = "https://lorebiri.github.io/acchiappaspettri/"
 
+[workspace]
+members = ["acch-core"]
+
 [lib]
 name = "acchiappaspettri_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -25,6 +28,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+acch-core = { path = "acch-core" }
 sha2 = "0.10"
 
 [features]

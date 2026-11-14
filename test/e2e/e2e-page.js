@@ -22,6 +22,25 @@ window.AcchE2E=async function(info){
       check('salva i canali nel progetto', await AcchProject.saveAs()); host.pickSave=oldPick; await AcchProject.closeProject();
       check('riapre: stessi canali, senza finestra', await AcchDesktop.openPath(path,'grezzi.acchspettri') && files.length===6 && window.ACCH_E2E_CANALI.length===1, files.length+' spettri, '+window.ACCH_E2E_CANALI.length+' finestre');
     }
+    // I5, misure (scripts/misura-motore.js): file grandi nella cartella del collaudo, letti come se fossero trascinati (percorsi concessi,
+    // lettore Rust o worker JS secondo ACCH_RUST). Per ogni file: lettura (AcchEngine), clic → grafico disegnato, blocco più lungo della finestra.
+    // elenco dei file in ACCH_E2E_UPDATE_URL (il campo libero di e2e_config), con «grafico» per misurare anche clic → grafico
+    if (cfg.scenario==='misura'){ res.misure=[]; res.engine=await AcchEngine.config(); const full=/(^|,)grafico(,|$)/.test(cfg.updateUrl||'');
+      for (const n of (cfg.updateUrl||'').split(',').filter(x=>x && x!=='grafico')){ const pth=dir+sep+n; await inv('e2e_grant',{path:pth});
+        // blocchi: un timer ogni 10 ms; il ritardo più lungo è il blocco più lungo della finestra (WKWebView non ha «longtask»)
+        let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10);
+        // dove c'è (WebView2, Chromium) anche l'API dei blocchi lunghi: non dipende dal rallentamento dei timer delle finestre in secondo piano (App Nap su macOS)
+        const LT=[]; let ob=null; try{ if ((PerformanceObserver.supportedEntryTypes||[]).includes('longtask')){ ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(e.duration))); ob.observe({type:'longtask'}); } }catch(e){ ob=null; }
+        const b=await inv('read_file',{path:pth}), buf=b instanceof ArrayBuffer ? b : new Uint8Array(b).buffer, t0=performance.now();
+        const R=await AcchEngine.read(buf, n, {}, {acchPath:pth}); const tRead=performance.now()-t0, how=AcchEngine.stats.last; await sleep(50); clearInterval(iv);
+        if (ob) ob.disconnect();
+        const m={file:n, MB:+(buf.byteLength/1e6).toFixed(1), kind:R.kind, engine:how&&how.engine, why:how&&how.why, readMs:Math.round(tRead), worstStallMs:Math.round(worst), longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null, readFileIncluded:true};
+        if (full){ let drawn=0; const od=window.drawPlot; window.drawPlot=function(){ const r=od.apply(this,arguments); if (!drawn) drawn=performance.now(); return r; };
+          let worst2=0, last2=performance.now(); const iv2=setInterval(()=>{ const t=performance.now(); worst2=Math.max(worst2,t-last2); last2=t; },10);
+          const t1=performance.now(); T.event.emit('acch-dropped',[{path:pth, name:n, rel:n}]); await until(()=>drawn && files.length, 600000); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); m.readInGraph=Object.assign({}, AcchEngine.stats.last); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
+        res.misure.push(m); }
+      check('misure eseguite', res.misure.length>0); }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
       try{ const r=await inv('e2e_check_update',{url:cfg.updateUrl, install:cfg.scenario==='update-good'}); res.update=r;

@@ -15,6 +15,7 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
+mod engine;
 mod segnala;
 mod libs;
 mod store;
@@ -32,8 +33,8 @@ struct LibDirState {
 }
 
 #[derive(Default)]
-struct Grants {
-    paths: Mutex<HashSet<PathBuf>>,
+pub(crate) struct Grants {
+    pub(crate) paths: Mutex<HashSet<PathBuf>>,
     pending: Mutex<Vec<PathBuf>>,
     /// Cartelle scelte nel dialogo «Esporta»: dentro si possono scrivere file (anche in sottocartelle), mai fuori.
     dirs: Mutex<HashSet<PathBuf>>,
@@ -463,7 +464,7 @@ fn write_file(g: State<'_, Grants>, request: Request<'_>) -> Result<(), String> 
     write_atomic(&path, bytes, is_project(&path))
 }
 
-fn url_decode(s: &str) -> Result<String, String> {
+pub(crate) fn url_decode(s: &str) -> Result<String, String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -592,7 +593,17 @@ fn queue_open(app: &AppHandle, list: Vec<PathBuf>) {
 mod e2e {
     /// Collaudo automatico: la pagina scrive il rapporto e l'app si chiude con il codice d'uscita. Non esiste negli installer pubblicati.
     #[tauri::command]
-    pub fn e2e_config() -> serde_json::Value {
+    pub fn e2e_config(app: tauri::AppHandle) -> serde_json::Value {
+        // misure (scenario «misura»): finestra in primo piano, come quando la usa una persona; una finestra coperta o in secondo piano
+        // ha i timer e i fotogrammi rallentati dal sistema (App Nap su macOS) e falserebbe i tempi
+        if std::env::var("ACCH_E2E_SCENARIO").as_deref() == Ok("misura") {
+            use tauri::Manager;
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.set_always_on_top(true);
+                let _ = w.set_focus();
+            }
+        }
         serde_json::json!({
             "dir": std::env::var("ACCH_E2E_DIR").unwrap_or_default(),
             "updateUrl": std::env::var("ACCH_E2E_UPDATE_URL").unwrap_or_default(),
@@ -727,6 +738,7 @@ pub fn run() {
         .manage(Grants::default())
         .manage(Dirs::default())
         .manage(Store::default())
+        .manage(engine::Jobs::default())
         .manage(LibDirState::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
@@ -778,12 +790,14 @@ pub fn run() {
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);

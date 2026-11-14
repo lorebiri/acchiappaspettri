@@ -7,6 +7,8 @@ const INDEX=process.env.ACCH_INDEX ? path.resolve(process.env.ACCH_INDEX) : path
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.woff2':'font/woff2','.png':'image/png','.json':'application/json','.svg':'image/svg+xml'};
 function startServer(){
   const server=http.createServer((q,r)=>{ const u=decodeURIComponent(q.url.split('?')[0]);
+    // I5: il worker del nucleo e il nucleo estratto, come in dist-desktop (scripts/prepare-desktop.js), costruiti dalla pagina servita
+    if (u==='/core.js' || u==='/core-worker.js'){ const X=require(path.join(ROOT,'scripts','core-extract.js')), h=fs.readFileSync(INDEX); r.writeHead(200,{'content-type':'text/javascript'}); r.end(u==='/core.js' ? X.extractCore(h) : X.workerSource(h)); return; }
     const p=(u==='/'||u==='/index.html') ? INDEX : path.join(ROOT,u);
     if ((p!==INDEX && !p.startsWith(ROOT)) || !fs.existsSync(p) || fs.statSync(p).isDirectory()){ r.writeHead(404); r.end(); return; }
     r.writeHead(200,{'content-type':MIME[path.extname(p)]||'application/octet-stream'}); fs.createReadStream(p).pipe(r); });

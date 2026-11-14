@@ -81,7 +81,14 @@
   function acceptExt(input){ const out=[]; for (const a of String(input.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean)){ if (a[0]==='.') out.push(a.slice(1)); else if (a==='image/*') out.push(...IMG_EXT); else if (a==='application/json') out.push('json'); else if (a==='application/zip') out.push('zip'); else return []; } return [...new Set(out)]; }
   // file di una cartella che la pagina scarta comunque per nome: non si leggono (restano nell'elenco dei saltati, come online)
   const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri)$/i.test(name); }catch(e){ return true; } };
-  async function readPicked(L, onlyWanted){ const out=[]; for (const p of L){ try{ const b=(onlyWanted && !wanted(p.name)) ? new Uint8Array(0) : await readFrom(p.path); out.push({p, file:new File([b], p.name)}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } return out; }
+  /* I5: file trascinati o aperti dal sistema: per gli spettri un oggetto leggero al posto di File, con i byte ricevuti dal lato nativo
+     (nessuna copia in un Blob e nessuna seconda copia con arrayBuffer) e il percorso concesso, da cui il lettore Rust rilegge senza
+     passare i byte dalla pagina. Foto e progetti restano File veri: le foto vanno in un <img>, i progetti hanno i loro lettori */
+  const isSpectrum=n=>{ try{ return ACCEPT.test(n) && !IMG_RE.test(n) && !/\.(acchiappa\.json|acchspettri)$/i.test(n); }catch(e){ return false; } };
+  function lightFile(b, name, path){ const buf=b.byteOffset===0 && b.byteLength===b.buffer.byteLength ? b.buffer : b.slice().buffer;
+    return {name, size:buf.byteLength, type:'', lastModified:Date.now(), acchPath:path, arrayBuffer(){ return Promise.resolve(buf); }, text(){ return Promise.resolve(new TextDecoder().decode(buf)); }}; }
+  async function readPicked(L, onlyWanted, light){ const out=[]; for (const p of L){ try{ const skip=onlyWanted && !wanted(p.name), b=skip ? new Uint8Array(0) : await readFrom(p.path);
+      out.push({p, file:(light && !skip && isSpectrum(p.name)) ? lightFile(b, p.name, p.path) : new File([b], p.name)}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } return out; }
   let picking=false;
   async function nativePick(input){
     if (picking) return; picking=true;   // un dialogo alla volta
@@ -97,6 +104,7 @@
       const dt=new DataTransfer(); got.forEach(g=>dt.items.add(g.file)); input.files=dt.files;
       // percorso dentro la cartella, come webkitRelativePath della pagina online
       if (folder) [...input.files].forEach((f,i)=>{ const rel=got[i] && got[i].p.rel; if (rel && f.webkitRelativePath!==rel) Object.defineProperty(f,'webkitRelativePath',{value:rel}); });
+      [...input.files].forEach((f,i)=>{ if (got[i] && got[i].p.path) Object.defineProperty(f,'acchPath',{value:got[i].p.path}); });   // I5: il lettore Rust rilegge dal percorso concesso
       input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true}));
     }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); try{ input.dispatchEvent(new Event('cancel')); }catch(_){} }
     finally{ picking=false; }
@@ -122,7 +130,7 @@
       // con un lavoro già aperto si chiede dove metterli (ROADMAP I3): nel progetto aperto o in uno nuovo
       if (files.length && !win.ACCH_TEST){ const ans=await win.AcchUi.choice(tr('Aggiungere {0} file al progetto aperto «{1}»?').replace('{0}',raw.length).replace('{1}',win.AcchProject.displayName()), [['cancel','Annulla','ghost'],['new','Nuovo progetto','ghost'],['add','Aggiungi','primary']]);
         if (ans==='cancel') return; if (ans==='new' && !await win.AcchProject.newProject()) return; }
-      { const got=await readPicked(raw.map(p=>({path:p.path, name:p.name, rel:relOf(p.path)})), false); if (got.length) await win.addEntries(got.map(g=>({file:g.file, path:g.p.rel}))); }
+      { const got=await readPicked(raw.map(p=>({path:p.path, name:p.name, rel:relOf(p.path)})), false, true); if (got.length) await win.addEntries(got.map(g=>({file:g.file, path:g.p.rel}))); }
     }).catch(e=>console.error(e)); return draining; }
   T.event.listen('acch-open-files', drainPending);
 
@@ -138,7 +146,7 @@
   const MAX_TREE=20000, tooBig=L=>{ if (L && L.length>=MAX_TREE) win.toast('⚠️ '+tr('Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.').replace('{0}', L.length)); };
   T.event.listen('acch-dropped', async ev=>{ const L=(ev && ev.payload)||[]; if (!L.length) return; tooBig(L);
     try{ loader(true, 'Gino sta guardando cosa hai trascinato…', '', null); await frame();
-      const got=await readPicked(L, true);
+      const got=await readPicked(L, true, true);
       const ents=got.map(g=>({file:g.file, path:g.p.rel||g.p.name}));
       if (ents.length) await win.addEntries(ents); else loader(false); }
     catch(e){ console.error(e); loader(false); win.toast('😕 '+tr(errMsg(e))); } });
