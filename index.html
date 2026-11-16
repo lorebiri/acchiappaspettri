@@ -24,6 +24,8 @@
 <script src="app/testi-desktop.js"></script>
 <script src="app/i18n.js"></script>
 <script src="app/channels-core.js"></script>
+<script src="app/read-core.js"></script>
+<script src="app/calc-core.js"></script>
 <script src="app/project-format.js"></script>
 <script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
@@ -2583,11 +2585,23 @@ function transformY(ys, kind, conv){
 function sgSmooth(ys, win){
   const n=ys.length; if (!win || win<5 || n<win+2) return ys;
   const m=(win-1)>>1, den=(2*m+3)*(2*m+1)*(2*m-1), c=[];
+  if (m>DERIV_EXACT_M && n>4*DERIV_BLOCK && numsOk(ys)) return sgFast(ys, n, m, den);
   for (let i=-m;i<=m;i++) c.push(3*(3*m*m+3*m-1-5*i*i)/den);
   const out=Float64Array.from(ys);
   for (let i=m;i<n-m;i++){ let s=0; for (let j=-m;j<=m;j++) s+=c[j+m]*ys[i+j]; out[i]=s; }
   return out;
 }
+/* I5: Savitzky–Golay quadratico con finestre larghe (m > DERIV_EXACT_M, file grandi): Σc_j·y = (3(3m²+3m−1)·S0 − 15·S2)/den con
+   S0=Σy e S2=Σj²y sulla finestra, aggiornate a ogni passo (S1=Σj·y serve all'aggiornamento) e ricalcolate da capo ogni DERIV_BLOCK punti,
+   sui valori meno quello del punto di ancoraggio. Entro 1e-12 della scala dei dati rispetto alla somma pesata (test/unit/derivata-veloce.test.js) */
+function sgFast(ys, n, m, den){ const out=Float64Array.from(ys), A=3*(3*m*m+3*m-1), m1=m+1;
+  for (let i0=m;i0<n-m;i0+=DERIV_BLOCK){ const i1=Math.min(n-m, i0+DERIV_BLOCK), Y0=ys[i0]; let S0=0, S1=0, S2=0;
+    for (let j=-m;j<=m;j++){ const v=ys[i0+j]-Y0; S0+=v; S1+=j*v; S2+=j*j*v; }
+    for (let i=i0;i<i1;i++){
+      if (i>i0){ const vo=ys[i-1-m]-Y0, vi=ys[i+m]-Y0, s0=S0-vo+vi, t1=S1+m*vo+m1*vi;   // da i−1 a i: esce i−1−m, entra i+m; indici spostati di uno
+        S2=S2-m*m*vo+m1*m1*vi-2*t1+s0; S1=t1-s0; S0=s0; }
+      out[i]=Y0+(A*S0-15*S2)/den; } }   // Σc_j = 1: l'ancoraggio torna intero
+  return out; }
 // linea di base: inviluppo convesso inferiore (rubber band) o retta tra gli estremi
 function baselineOf(xs, ys, method, upper){
   const n=ys.length, y = upper ? Array.from(ys, v=>-v) : ys, b=new Float64Array(n);
@@ -2627,17 +2641,38 @@ function arrMax(a, f){ let m=-Infinity; for (let i=0;i<a.length;i++){ const v=f?
 function arrMin(a, f){ let m=Infinity; for (let i=0;i<a.length;i++){ const v=f?f(a[i]):a[i]; if (v<m) m=v; } return m; }
 function noiseSigma(ys){
   const n=ys.length; if (n<4) return 0;
-  const a=new Float64Array(n-2); for (let i=1;i<n-1;i++) a[i-1]=Math.abs(ys[i+1]-2*ys[i]+ys[i-1]);
-  a.sort(); return a[a.length>>1]/0.6745/Math.sqrt(6);
+  const a=new Float64Array(n-2); let nan=false; for (let i=1;i<n-1;i++){ const v=Math.abs(ys[i+1]-2*ys[i]+ys[i-1]); a[i-1]=v; if (v!==v) nan=true; }
+  return (nan || a.length<2048 ? (a.sort(), a[a.length>>1]) : kthSmallest(a, a.length>>1))/0.6745/Math.sqrt(6);
 }
+/* I5: k-esimo valore in ordine crescente senza ordinare tutto (selezione di Hoare, O(n) in media): è lo stesso elemento che darebbe
+   l'ordinamento, quindi la mediana è identica bit per bit. Solo senza NaN (con i NaN si ordina come prima). Modifica a sul posto. */
+function kthSmallest(a, k){ let lo=0, hi=a.length-1;
+  while (hi>lo){ const mid=(lo+hi)>>1; let p=a[mid]; const x=a[lo], z=a[hi]; if ((x<=p && p<=z) || (z<=p && p<=x)){} else if ((p<=x && x<=z) || (z<=x && x<=p)) p=x; else p=z;
+    let i=lo, j=hi; while (i<=j){ while (a[i]<p) i++; while (a[j]>p) j--; if (i<=j){ const t=a[i]; a[i]=a[j]; a[j]=t; i++; j--; } }
+    if (k<=j) hi=j; else if (k>=i) lo=i; else return a[k]; }
+  return a[k]; }
+/* I5: l'elemento k di Array.from(a).sort((x,y)=>x−y) senza ordinare tutto: stesso elemento (kthSmallest); con NaN, o se il valore è
+   uno zero (il segno dipenderebbe dall'ordine), si ordina come prima. Ricordato per vettore e posizione */
+const SORTED_AT=new WeakMap();
+function sortedAt(arr, k){ const m=SORTED_AT.get(arr); if (m && m.has(k)) return m.get(k); let v=null;
+  if (arr.length>=2048){ const a=Float64Array.from(arr); let nan=false; for (let i=0;i<a.length;i++) if (a[i]!==a[i]){ nan=true; break; } if (!nan){ const r=kthSmallest(a, k); if (r!==0) v=r; } }
+  if (v===null) v=Array.from(arr).sort((x,y)=>x-y)[k];
+  if (typeof arr==='object'){ let mm=m; if (!mm){ mm=new Map(); SORTED_AT.set(arr, mm); } mm.set(k, v); } return v; }
 function sgNoiseGain(m){ const den=(2*m+3)*(2*m+1)*(2*m-1); let c2=0; for (let i=-m;i<=m;i++){ const c=3*(3*m*m+3*m-1-5*i*i)/den; c2+=c*c; } return Math.sqrt(c2); }
+/* massimi locali con la prominenza: per ogni massimo il minimo fra lui e il primo valore più alto a sinistra e a destra.
+   I5: in O(n) con una pila (il primo valore più alto e il minimo dei tratti scavalcati), invece di scorrere a ogni massimo fino al
+   primo valore più alto, che con 1M punti rumorosi diventava quadratico. Stessi confronti (anche con i NaN), minimi esatti: risultato identico */
+function peakCandidatesMin(sm, rev){ const n=sm.length, out=new Float64Array(n), st=new Int32Array(n), sv=new Float64Array(n); let top=0;
+  for (let t=0;t<n;t++){ const i=rev ? n-1-t : t, v=sm[i]; let run=v;   // run: minimo dei valori dopo il primo più alto, fino a i compreso
+    while (top>0 && sm[st[top-1]]<=v){ const m=sv[top-1]; if (m<run) run=m; top--; }
+    out[i]=run; st[top]=i; sv[top]=run; top++; }
+  return out; }
 function peakCandidates(sm){
-  const n=sm.length, out=[];
+  const n=sm.length, out=[]; if (n<3) return out;
+  const L=peakCandidatesMin(sm, false), R=peakCandidatesMin(sm, true);
   for (let i=1;i<n-1;i++){
     if (!(sm[i]>sm[i-1] && sm[i]>=sm[i+1])) continue;
-    let lmin=sm[i], j=i-1; while (j>=0 && sm[j]<=sm[i]){ if(sm[j]<lmin) lmin=sm[j]; j--; }
-    let rmin=sm[i]; j=i+1; while (j<n && sm[j]<=sm[i]){ if(sm[j]<rmin) rmin=sm[j]; j++; }
-    out.push({i, prom: sm[i]-Math.max(lmin,rmin)});
+    out.push({i, prom: sm[i]-Math.max(L[i],R[i])});
   }
   return out;
 }
@@ -2767,11 +2802,31 @@ function fmtTick(v, dec){
   return v.toFixed(dec).replace('.',sep);
 }
 /* derivata con retta dei minimi quadrati su una finestra di 2m+1 punti (funziona anche con passo non uniforme) */
+/* derivata: pendenza della retta dei minimi quadrati sui punti i−m…i+m (troncati ai bordi).
+   I5: con finestre larghe (m > DERIV_EXACT_M, cioè file da centinaia di migliaia di punti: la finestra cresce con n) il calcolo punto per
+   punto costa O(n·m), quadratico. Lì si usano somme scorrevoli centrate su un punto di ancoraggio rifatto ogni DERIV_BLOCK punti
+   (derivFast): stessa finestra e stessa formula, differenza dal calcolo punto per punto entro 1e-12 della scala della derivata
+   (test/unit/derivata-veloce.test.js). Con m ≤ DERIV_EXACT_M il calcolo resta quello di sempre, bit per bit. */
+const DERIV_EXACT_M=64, DERIV_BLOCK=128;
+function derivPoint(xs, ys, n, m, i){ const a=Math.max(0,i-m), b=Math.min(n-1,i+m); let sx=0, sy=0, c=0;
+  for (let k=a;k<=b;k++){ sx+=xs[k]; sy+=ys[k]; c++; } const mx=sx/c, my=sy/c; let sxx=0, sxy=0;
+  for (let k=a;k<=b;k++){ const dx=xs[k]-mx; sxx+=dx*dx; sxy+=dx*(ys[k]-my); } return sxx>0 ? sxy/sxx : 0; }
+function derivFast(xs, ys, n, m, out){
+  for (let i0=0;i0<n;i0+=DERIV_BLOCK){ const i1=Math.min(n, i0+DERIV_BLOCK), X0=xs[i0], Y0=ys[i0];
+    let a=Math.max(0,i0-m), b=Math.min(n-1,i0+m), c=0, Sx=0, Sy=0, Sxx=0, Sxy=0;
+    for (let k=a;k<=b;k++){ const dx=xs[k]-X0, dy=ys[k]-Y0; Sx+=dx; Sy+=dy; Sxx+=dx*dx; Sxy+=dx*dy; c++; }
+    for (let i=i0;i<i1;i++){
+      if (i>i0){ const na=Math.max(0,i-m), nb=Math.min(n-1,i+m);
+        while (b<nb){ b++; const dx=xs[b]-X0, dy=ys[b]-Y0; Sx+=dx; Sy+=dy; Sxx+=dx*dx; Sxy+=dx*dy; c++; }
+        while (a<na){ const dx=xs[a]-X0, dy=ys[a]-Y0; Sx-=dx; Sy-=dy; Sxx-=dx*dx; Sxy-=dx*dy; c--; a++; } }
+      const mx=Sx/c, my=Sy/c, sxx=Sxx-c*mx*mx, sxy=Sxy-c*mx*my;
+      // varianza delle x quasi nulla rispetto alle somme (x tutte uguali o cancellazione): quel punto si calcola come sempre
+      out[i]= sxx>1e-9*Sxx && Number.isFinite(sxy) ? sxy/sxx : derivPoint(xs, ys, n, m, i); } }
+  return out; }
 function derivLS(xs, ys, m){
   const n=ys.length, out=new Float64Array(n);
-  for (let i=0;i<n;i++){ const a=Math.max(0,i-m), b=Math.min(n-1,i+m); let sx=0, sy=0, c=0;
-    for (let k=a;k<=b;k++){ sx+=xs[k]; sy+=ys[k]; c++; } const mx=sx/c, my=sy/c; let sxx=0, sxy=0;
-    for (let k=a;k<=b;k++){ const dx=xs[k]-mx; sxx+=dx*dx; sxy+=dx*(ys[k]-my); } out[i]= sxx>0 ? sxy/sxx : 0; }
+  if (m>DERIV_EXACT_M && n>4*DERIV_BLOCK && numsOk(xs) && numsOk(ys)) return derivFast(xs, ys, n, m, out);
+  for (let i=0;i<n;i++) out[i]=derivPoint(xs, ys, n, m, i);
   return out;
 }
 /* ================= ANALISI QUANTITATIVA E QUALITATIVA =================
@@ -4603,7 +4658,9 @@ const dispTitle = f => ((f.title && f.title.trim()) || f.name)+chTag(f)+sameName
 
 /* memoria per file (nome, descrizione, picchi, intervallo…) */
 function fkey(f){ return LS_FILE + f.path + '|' + (f.n0||f.xs.length) + (f.channel!=null||f.sampleKey!=null ? '|'+(f.sampleKey||'')+'|'+(f.channel||'') : ''); }   // i canali di uno stesso file hanno ciascuno la sua memoria (I3)
-function quickHash(buf){ const u=new Uint8Array(buf); let h=0x811c9dc5; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,0x01000193); } return (h>>>0).toString(16); }
+// I5: nel desktop l'impronta la calcola già il worker durante la lettura (stesso FNV-1a, AcchRead.fnv): qui si riusa per lo stesso buffer
+const QH_MEMO=new WeakMap();
+function quickHash(buf){ if (buf && typeof buf==='object' && QH_MEMO.has(buf)) return QH_MEMO.get(buf); const u=new Uint8Array(buf); let h=0x811c9dc5; for (let i=0;i<u.length;i++){ h^=u[i]; h=Math.imul(h,0x01000193); } return (h>>>0).toString(16); }
 function fileMemory(f){
   return {hash:f.hash, size:f.size, title:f.title, desc:f.desc, xr:f.xr, labels:f.labels, removed:f.removed, added:f.added, include:f.include, instr:f.instr!==f.autoInstr?f.instr:undefined, sample:f.sample||undefined, ecal:f.ecal||undefined, inset:f.inset||undefined,
     seg: f.therm && f.seg!==f.therm.seg ? f.seg : undefined, sub:f.sub||undefined, freqU:f.freqU||undefined, lexU:f.lexU||undefined, endoU:f.endoU||undefined, userRate:f.userRate||undefined, massU:f.massU||undefined, refShow:f.refShow||undefined, nucU:f.nucU||undefined, an:f.an||undefined, fit:f.fit||undefined};
@@ -5114,23 +5171,7 @@ async function xlsxParse(buf){
 const LOADING=new Set();   // file in lettura: il controllo dei doppioni vale anche per due caricamenti contemporanei dello stesso file
 // I3: chiave della memoria di uno spettro nel progetto (percorso, poi campione e canale se il file ne ha più d'uno)
 const memKey=(path, sk, ch)=>window.AcchChannels ? AcchChannels.memKey(path, sk, ch) : path;
-/* I3: canali di un file di testo ChemStation/OpenLab con più segnali, uno per colonna o un blocco per segnale.
-   Ogni canale si rilegge con il nucleo come se fosse un file a sé (stesse regole e stessi controlli); null se il file ha un solo canale */
-function textChannels(text, p, name){ const C=window.AcchChannels; if (!C || !p || p.reject) return null;
-  const lines=text.split(/\r\n|\n|\r/), chs=[], notes=[]; let declared=0;
-  if ((p.nCols||2)>2){ const k0=lines.findIndex(l=>/^\s*"?[-+]?\d/.test(l) && (l.match(/[-+]?\d+(?:[.,]\d+)?(?:e[-+]?\d+)?/gi)||[]).length>=2), names=k0>0 ? C.headerNames(lines.slice(Math.max(0,k0-8),k0), p.nCols) : null;
-    if (names){ const cand=[]; for (let j=1;j<names.length;j++){ const info=C.parseChannel(names[j]); if (info.det || info.wl!=null) cand.push({j, info, name:names[j]}); }
-      if (cand.length>=2 && new Set(cand.map(c=>C.formatChannel(c.info))).size>=2){ declared=cand.length;
-        for (const c of cand){ const q=parseText(text,{ycol:c.j}); if (q && !q.reject && q.xs.length>=5) chs.push({info:c.info, raw:c.name, xs:q.xs, ys:q.ys, meta:q.meta, p:q, col:c.j}); }
-        const other=names.slice(1).filter((n,j)=>!cand.some(c=>c.j===j+1)); if (other.length) notes.push({code:'cols-other', list:other}); } } }
-  if (!chs.length && p.chSpans && p.chSpans.length>1){ declared=p.chSpans.length;
-    const sig=new Set(lines.filter(l=>/\bSig\s*=|^\W*(Signal|Segnale)\s*\d+\s*[:=]/i.test(l)).map(l=>C.canon(l)).filter(Boolean)); declared=Math.max(declared, sig.size);
-    p.chSpans.forEach((sp,k)=>{ const body=sp.hdr.concat(lines.slice(sp.l0, sp.l1+1)).join('\n'), q=parseText(body); if (!q || q.reject || q.xs.length<5) return;
-      let info=null; for (let h=sp.hdr.length-1;h>=0;h--){ const o=C.parseChannel(sp.hdr[h]); if (o.det || o.wl!=null){ info=o; break; } }
-      chs.push({info:info||{det:'', wl:null, bw:null, ref:null, ex:null, em:null, extracted:false}, raw:'', xs:q.xs, ys:q.ys, meta:q.meta, p:q, block:k}); }); }
-  if (chs.length<2) return null;
-  { const q=p.importIssue, tab=q && p.chSpans ? q.after-(p.afterCh||0) : 0; if (tab>0) notes.push({code:'tables', rows:tab}); }   // blocchi corti dopo i canali: tabelle riassuntive, dette e non lette
-  return C.finish({format:'text', declared, notes, samples:[{sampleKey:null, name:'', channels:chs}]}); }
+// I3: i canali dei file di testo con più segnali li divide AcchRead.textChannels (app/read-core.js, tappa I5)
 /* I3: finestra «Canali trovati». rows: [{key, label, sub, cells:Map(colKey → cella)}], cols: [{key, label, sub}]. Restituisce le celle scelte o null (annullato) */
 const CH_PREF='acch.canali.scelta';
 // un cromatogramma già estratto dallo stesso .uv (stessa λ e banda) è «già caricato», come i canali dei .ch
@@ -5191,7 +5232,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
         if (!cols.has(key)) cols.set(key,{key, label:key===c.channel?(c.label||c.channel):key, sub:key===c.channel && c.channel!==c.label ? c.channel : ''});
         const loaded=files.some(f=>f.path===src.path && f.size===src.file.size && (f.sampleKey==null?null:f.sampleKey)===(s.sampleKey==null?null:String(s.sampleKey)) && (f.channel||null)===(c.channel||null));
         // di norma si spunta tutto tranne la fluorescenza e i canali senza sigla né λ (ROADMAP I3), e ciò che l'utente ha chiesto di ricordare
-        const o=c.info||{}, def=prefOn.has(key) || (!(o.ex!=null || /^FLD/.test(o.det||'') || (!o.det && o.wl==null)) && !prefOff.has(key));
+        const o=c.info||{}, def=prefOn.has(key) || ((src.plugin || !(o.ex!=null || /^FLD/.test(o.det||'') || (!o.det && o.wl==null))) && !prefOff.has(key));   // i canali di un'estensione hanno nomi suoi: tutti spuntati
         r.cells.set(key,{src, s, c, loaded, def}); } } }
   const R=[...rows.values()], COLS=[...cols.values()].sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true}));
   R.forEach(r=>{ r.uvOn=r.uv && r.cells.size===0; });
@@ -5222,10 +5263,11 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
   return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[];   // progetti Origin: si sceglie che cosa importare in una finestra apposita
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[], pkgs=[];   // pkgs: pacchetti .acchplugin da installare (I11); progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
+  if (window.AcchEngine) AcchEngine.begin();   // I5: «Annulla» vale per questo lotto
   // uno spettro dal file letto: p come lo dà il nucleo; ch (I3) = {sampleKey, channel, label, info} se viene da un file con più canali
   const makeFile=(p, file, path, buf, pbin, det, ch)=>{
         const f = {id:++uid, name:file.name, path, size:file.size, xs:p.xs, xs0:p.xs, ys:p.ys, meta:p.meta, peY:p.peY, xrf:p.xrf||null,
@@ -5235,6 +5277,7 @@ async function addEntries(entries){
         f.n0 = p.xs.length; f.importIssue=p.importIssue||null; f.importNotes=p.importNotes||null; f.importBad=p.importBad||null; f.nCols=p.nCols||2; f.colNames=p.colNames||null; f.blockHead=p.blockHead||null; f.blockIx=p.blockIx; f.nBlocks=p.nBlocks; f.chIx=p.chIx; f.nChan=p.nChan; f.afterCh=p.afterCh; f.ycolNow=p.ycol||1; if (p.ycol>1 && !ch){ f.an=Object.assign({},f.an||{},{ycol:p.ycol}); } f.xSeconds=false; if (p.origin){ f.origin=p.origin; f.rawName=path.replace(/#origin:[^#]*$/,'').split('/').pop(); }
         // un canale di un file multicanale: la colonna Y e i blocchi non si scelgono più a mano, il canale è quello letto
         if (ch){ f.sampleKey=ch.sampleKey==null?null:String(ch.sampleKey); f.channel=ch.channel||null; f.chInfo=ch.info||null; f.chSrc=ch.src||'canali'; f.nCols=2; f.colNames=null; f.ycolNow=1; f.nBlocks=1; f.chIx=0; f.nChan=1; f.afterCh=0; f._chan=ch.label||''; if (f.importIssue && f.importIssue.channel) f.importIssue=null; }
+        if (p.plugin) f.plugin=p.plugin;   // I11: estensione (id, versione, impronta) che ha letto il file; si salva nel progetto
         if (p.iso) f.iso=p.iso;   // isoterma completa (rami, p, p₀, meta), ricostruita dai byte originali alla riapertura
         if (p.chem) f.chem=p.chem;   // chemisorbimento: impostazioni in f.an.chem
         postDetect(f, p);
@@ -5270,7 +5313,11 @@ async function addEntries(entries){
       if (IMG_RE.test(file.name)){ images.push({file, path}); continue; }
       const om=window.AcchOriginUI ? /#origin:([^#]*)$/.exec(path) : null;   // uno spettro scelto da un progetto Origin (vedi app/origin-ui.js)
       if (/\.opju?$/i.test(file.name) && window.AcchOriginUI && !om){ origins.push({file, path}); continue; }
-      if (!ACCEPT.test(file.name) && !om){ skipped.push(path); continue; }
+      if (/\.acchplugin$/i.test(file.name) && window.AcchPlugins){ pkgs.push(file); continue; }
+      let plugs=(window.AcchPlugins && !om) ? AcchPlugins.candidates(file.name, ent) : [];   // I11: estensioni che leggono questo formato
+      // I11: controllo preventivo della dimensione, prima di leggere il file; se lo legge anche l'app, ci pensa lei
+      if (plugs.length && file.size>AcchPlugins.maxBytes()){ plugs=[]; if (!ACCEPT.test(file.name)){ rejected.push(`${path}: ${AcchPlugins.tooBigText(file.size)}`); continue; } }
+      if (!ACCEPT.test(file.name) && !om && !plugs.length){ skipped.push(path); continue; }
       const lkey=path+'\u0000'+file.size, same=files.filter(f=>f.path===path && f.size===file.size);
       if ((same.length && !same.some(f=>f.chSrc)) || LOADING.has(lkey)){ dup++; continue; }
       LOADING.add(lkey);
@@ -5281,6 +5328,22 @@ async function addEntries(entries){
         // progetto della versione 1 (o spettro salvato senza canale): si rilegge come allora, un solo spettro
         const legacy=Array.isArray(ent.want) && ent.want.every(w=>w.sampleKey==null && w.channel==null);
         const C=window.AcchChannels;
+        if (plugs.length){ const r=await pluginRead(plugs, buf, file, path, ent);   // I11: lettore isolato; null = nessuna estensione lo riconosce
+          if (r && r.error){ rejected.push(`${path}: ${r.error}`); continue; }
+          if (r && r.src){ msrc.push(r.src); order.push({src:r.src}); continue; }
+          if (r && r.args){ order.push({args:r.args}); continue; }
+          if (!ACCEPT.test(file.name)){ skipped.push(path); continue; } }
+        // I5: tutti i file tranne progetti Origin e cartelle di Excel: AcchRead.read (app/read-core.js), la stessa lettura di prima;
+        // nel desktop AcchEngine (app/engine.js) la fa nel worker, con il lettore Rust se è attivo, e dà lo stesso risultato
+        if (!om && !/\.xlsx$/i.test(file.name) && window.AcchRead){
+          const R=window.AcchEngine ? await AcchEngine.read(buf, file.name, {legacy, onProgress:q=>{ const b=$('#ldBar'); if (b && b.firstElementChild) b.firstElementChild.style.width=Math.min(100,(done-1+q)/tot*100)+'%'; }}, file) : AcchRead.read(buf, file.name, {legacy});
+          if (R.kind==='cancelled'){ cancelled++; continue; }
+          if (R.kind==='uv'){ const o={kind:'uv', uv:R.uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); continue; }
+          if (R.kind==='error'){ errors.push(path); continue; }
+          if (R.kind==='mc'){ const o={kind:'mc', mc:R.mc, file, path, buf, bin:R.bin, want:ent.want}; if (R.det) o.det=R.det; msrc.push(o); order.push({src:o}); continue; }
+          const p=R.p;
+          if (R.kind==='reject'){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); if (p.chemGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.chemGuided); continue; }
+          order.push({args:[p, file, path, buf, R.pb, R.det, null]}); continue; }
         if (C && !om && /\.uv$/i.test(file.name)){ const uv=C.readUv(buf); if (!uv){ errors.push(path); continue; } { const o={kind:'uv', uv, file, path, buf, bin:true, want:ent.want}; msrc.push(o); order.push({src:o}); } continue; }
         const xl = !om && /\.xlsx$/i.test(file.name) ? await xlsxParse(buf) : null;   // cartelle di Excel: solo isoterme e chemisorbimento (Kaomi, DEDOTTO)
         let mc=(C && !xl && !om) ? C.readBinary(buf, file.name) : null, text=null, pb=null, mbin=!!mc;
@@ -5290,7 +5353,7 @@ async function addEntries(entries){
         if (p.reject){ rejected.push(`${path}: ${p.reject}`); if (p.sorpGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.sorpGuided); if (p.chemGuided && window.AcchSorp) AcchSorp.queueGuided(file, path, p.chemGuided); continue; }
         if (p.xs.length<5) { errors.push(path); continue; }
         const det = detectInstrument(p, file.name);
-        if (det.instr==='hplc' && !pb && !xl && !legacy){ const tc=textChannels(text, p, file.name); if (tc){ const o={kind:'mc', mc:tc, file, path, buf, bin:false, want:ent.want, det}; msrc.push(o); order.push({src:o}); continue; } }
+        if (det.instr==='hplc' && !pb && !xl && !legacy){ const tc=AcchRead.textChannels(text, p, file.name); if (tc){ const o={kind:'mc', mc:tc, file, path, buf, bin:false, want:ent.want, det}; msrc.push(o); order.push({src:o}); continue; } }
         order.push({args:[p, file, path, buf, !!pb || !!xl, det, null]});   // gli spettri si creano dopo la scelta dei canali, nell'ordine del lotto
       }catch(e){ console.error(e); errors.push(path); }
       finally{ LOADING.delete(lkey); }
@@ -5298,6 +5361,7 @@ async function addEntries(entries){
     const chosen=msrc.length ? await loadChannels(msrc, chMsgs, ()=>{ dup++; }, chStat) : new Map();
     for (const o of order) for (const a of (o.args ? [o.args] : chosen.get(o.src)||[])){ try{ makeFile(...a); }catch(e){ console.error(e); errors.push(a[2]); } }
   }catch(e){ console.error(e); }
+  if (window.AcchEngine) AcchEngine.end();
   // I3: quali file del lotto hanno dato almeno uno spettro (project.js conta così i file non riconosciuti)
   window.ACCH_LAST_ADD={produced:[...produced], added, chMsgs:chMsgs.slice(), missing:chStat.missing};
   const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
@@ -5326,6 +5390,7 @@ async function addEntries(entries){
   if (added && !window.ACCH_PENDING_MEM){ const said=window.ACCH_PROC_SAID=window.ACCH_PROC_SAID||new Set(), L=[]; files.forEach(f=>{ if (said.has(f.instr)) return; said.add(f.instr); const n=procNote(f,processed(f)); if (n) L.push(NOME_IT[f.instr]+': '+n); }); if (L.length) toast('⚠️ Uso ancora le elaborazioni dell\'ultima volta. '+L.join(' · ')+'.'); }
   { const g={}; files.forEach(f=>{ const k=Math.round(f.xs.length/Math.max(1,f.xs.length*0.01))+'|'+Math.round(f.xs[0]*2)/2+'|'+Math.round(f.xs[f.xs.length-1]*2)/2; (g[k]=g[k]||[]).push(f); }); const mix=Object.values(g).find(L=>L.length>1 && new Set(L.map(f=>f.instr)).size>1); if (mix) msgs.push(`⚠️ File con lo stesso asse riconosciuti come tecniche diverse (${[...new Set(mix.map(f=>NOME_IT[f.instr]))].join(', ')}): se sono una serie, correggi la tecnica per tutti con la selezione.`); }
   if (dup) msgs.push(`👯 ${dup} file ${dup===1?'era':'erano'} già caricat${dup===1?'o':'i'}.`);
+  if (cancelled) msgs.push(`Lettura annullata: ${cancelled} file non letti.`);   // I5, desktop: «Annulla» durante la lettura
   note.style.display = msgs.length?'block':'none'; note.innerHTML = msgs.join('<br>');
   if (files.length && cur<0) cur=0;
   if (added){
@@ -5338,6 +5403,8 @@ async function addEntries(entries){
     if (lost){ const why=msgs.filter(m=>/^(🙈|⛔|🤔|🔒)/.test(m)).map(m=>m.replace(/<[^>]+>/g,'').replace(/^(🙈|⛔|🤔|🔒)\s*/,'')).join(' '); setTimeout(()=>toast('⚠️ '+why), 50); }
   } else if (dup && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
+  } else if (pkgs.length && !skipped.length && !errors.length && !unreadable.length && !origins.length && !images.length && !projects.length){
+    say('#hello', 'Pacchetto di estensione ricevuto: controlla e conferma l\'installazione.');
   } else if (origins.length && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Progetto Origin ricevuto: scegli gli spettri da importare.');
   } else if (images.length && !skipped.length && !errors.length && !unreadable.length){
@@ -5348,13 +5415,31 @@ async function addEntries(entries){
     say('#hello', 'Ops, con questo non ci riesco… 😕 Guarda il messaggio qui sotto.');
   }
   if (tot){ loader(true, 'Preparo i grafici…', `${added} spettri acchiappati`, 1); await frame(); }
+  // I5: spettri grandi nel desktop: elaborazione e picchi (viewOf) preparati con i calcoli pesanti nel worker, a pezzi brevi;
+  // il disegno che segue trova tutto pronto. Stessi risultati: sono le stesse funzioni con gli stessi argomenti
+  if (window.AcchEngine && AcchEngine.prefetch) for (const f of files.slice(files.length-added)) if (f.xs && f.xs.length>=200000){ try{ await AcchEngine.prefetch(()=>{ viewOf(f); }); }catch(e){ console.error(e); } }
   try{ refreshAll(); }catch(e){ console.error(e); }
   if (added && curView===2) renderPreview();
   loader(false);
   if (images.length) askImages(images);
   if (origins.length) AcchOriginUI.ask(origins);
   if (projects.length) await AcchProject.openFile(projects[0]);
+  for (const k of pkgs) await AcchPlugins.installFile(k);   // I11: uno alla volta, ciascuno con il suo avviso
 }
+/* I11: un file letto da un'estensione (app/plugins.js). Restituisce {args} (uno spettro), {src} (più canali: finestra «Canali trovati»),
+   {error} o null se nessuna delle estensioni lo riconosce. Lo strumento è quello dichiarato dall'estensione, altrimenti si riconosce come sempre */
+async function pluginRead(ids, buf, file, path, ent){ const C=window.AcchChannels;
+  for (const id of ids){ const r=await AcchPlugins.read(id, buf, file.name, {techniques:Object.keys(INSTR)});
+    if (r.none) continue;
+    if (r.error) return {error:r.error};
+    const pl={id:r.plugin.id, version:r.plugin.version, name:r.plugin.name, sha256:r.plugin.sha256}, by=`letto dall'estensione «${pl.name}» ${pl.version}`;
+    const pOf=c=>({xs:c.xs, ys:c.ys, meta:r.meta.concat(c.meta), nCols:2, plugin:pl});
+    const p0=pOf(r.channels[0]), d0=r.technique ? {instr:r.technique, reason:by} : detectInstrument(p0, file.name), det={instr:d0.instr, reason:r.technique?by:(d0.reason?d0.reason+' · ':'')+by};
+    if (r.channels.length===1 || !C) return {args:[p0, file, path, buf, true, det, null]};
+    const mc=C.finish({format:'plugin', declared:r.channels.length, notes:[], samples:[{sampleKey:null, name:r.sample||'', channels:r.channels.map(c=>({info:C.parseChannel(c.name), raw:c.name, xs:c.xs, ys:c.ys, meta:pOf(c).meta, p:pOf(c)}))}]});
+    mc.samples[0].channels.forEach((c,i)=>{ c.channel=r.channels[i].name; c.label=r.channels[i].name; });   // nomi dell'estensione, già distinti (validateOutput)
+    return {src:{kind:'mc', mc, file, path, buf, bin:true, want:ent.want, det, plugin:pl}}; }
+  return null; }
 async function entriesFromDrop(dt, fallback){
   const roots = [...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
   if (!roots.length || roots.some(r=>!r)) return fallback;
@@ -5550,7 +5635,7 @@ function renderBatch(){
     if (b==='cmp'){ newCmp(ins[0], L); SEL.clear(); setView('cmp'); renderSummary(); toast(`Confronto creato con ${L.length} spettri.`); }
     if (b==='ref'){ const n=addRefs(L.map(f=>makeRef(dispTitle(f), f.instr, f.xs, f.ys, f.kind))); if (n) toast(`${n} spettri aggiunti ai riferimenti. 📚`); }
     if (b==='fit'){ const F=f0.fit; let ok=0; for (const g of L){ if (g===f0) continue; const P=processed(g), U=upData(P); let a=0; while (a<P.xs.length && P.xs[a]<F.range[0]) a++; let z=P.xs.length-1; while (z>=0 && P.xs[z]>F.range[1]) z--; if (z-a<12) continue;
-        const fit=fitPeaks(P.xs.subarray(a,z+1), U.y.subarray(a,z+1), F.peaks.map(q=>({x:q.c, w:q.w})), {profile:F.profile, base:F.bm}); if (!fit) continue;
+        const fit=await coreAsync('fitPeaks', P.xs.slice(a,z+1), U.y.slice(a,z+1), F.peaks.map(q=>({x:q.c, w:q.w})), {profile:F.profile, base:F.bm}); if (!fit) continue;
         g.fit={pk:procKey(g), range:F.range.slice(), profile:F.profile, bm:F.bm, auto:false, peaks:fit.peaks.map(q=>({c:q.c, w:q.w, eta:q.eta, area:q.area, h:q.h, sc:q.sc, sw:q.sw, sarea:q.sarea, sh:q.sh, seta:q.seta, pct:q.pct})), base:fit.base, xm:fit.xm, xr:fit.xr, r2:fit.r2, rmse:fit.rmse, noise:noiseSigma(U.y.subarray(a,z+1)), bic:fit.bic, n:fit.n, np:fit.p}; ok++; }
       done(`Stessa deconvoluzione applicata a ${ok} spettri.`); }
     if (b==='pca'){ const c=mvCfg(ins[0]); c.which='all'; mvSave(); const keep=files.map(f=>f.include); files.forEach(f=>f.include=SEL.has(f.id)); openTab('multi'); $('#mvInstr').value=ins[0]; renderMulti(); runPCA(ins[0]); renderPCA(ins[0]); files.forEach((f,k)=>f.include=keep[k]); reveal('#pcOut'); }
@@ -6524,7 +6609,7 @@ function included(){
 function renderSummary(){
   EXP_SCOPE=S.expScope; let inc; try{ inc=included(); } finally { EXP_SCOPE=null; }
   const ovAll=outComparisons().length, ov = S.cmpPdf!=='none' ? ovAll : 0, sel=expSel(), desk=DESK_EXP();
-  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length?pdfAnalysisPageCount():0);
+  const pages=Math.ceil(inc.length/S.perPage)+(S.summary&&inc.length?1:0)+ov+(S.outPdf&&S.outAnalysis&&inc.length&&(curView===3 || !inc.some(f=>f.xs && f.xs.length>=200000))?pdfAnalysisPageCount():0);   // I5: con spettri grandi le pagine di analisi (assess su ogni spettro) si contano solo in Esporta, dove il numero si vede: go(3) rifà il riepilogo
   const ovImg = S.cmpPng ? ovAll : 0, nm=k=>`<b data-noi18n>${esc(expName(k))}</b>`, dirNm=k=>expName(k) ? nm(k) : 'cartella principale';
   const items=[], parts=[];
   if (!inc.length) items.push('<li>Nessuno spettro spuntato: torna ai grafici e spuntane almeno uno. 🙃</li>');
@@ -7178,6 +7263,8 @@ async function runExport(){
   try{ if (sel.pdf) await ensurePdfLib(); }catch(e){ console.error(e); }
   if (!window.jspdf || !window.JSZip){ status('😵 Non riesco a caricare le librerie per PDF/ZIP: controlla la connessione e ricarica la pagina.'); return; }
   if (!Object.values(sel).some(Boolean)) return;
+  // I7: le stime XRF a parametri fondamentali che le esportazioni useranno, calcolate prima nel worker (nel desktop): niente blocchi dopo
+  if (window.AcchEngine) for (const f of files) if (f.instr==='xrf' && !f.uncal && ((f.an&&f.an.fp)||f._fpRes)) await fpRunAsync(f);
   const btns=[$('#doDl')]; btns.forEach(b=>b.disabled=true);
   setReady([]); showExpDone(null); status(''); EXP_FIXED=[];
   try{
@@ -7402,11 +7489,11 @@ function assess(f, d){
   if (it==='epr' && !(f.freq>0)) add('warn', 'Frequenza delle microonde mancante: senza, i fattori g non si calcolano. Inseriscila in «Dati dello spettro».');
   if (it==='tga' && P.mass){ const m=P.mass, xs=P.xs; let k=0; while (k<xs.length-1 && xs[k]<150) k++; const loss=m[0]-m[k];
     if (xs[0]<120 && loss>1) add('info', `Perdita di ${fmtG(loss,2)}% sotto i 150 °C: di solito acqua adsorbita o solvente. Per confrontare campioni conviene riferire le masse al secco (a 150 °C).`); }
-  if (it==='hplc'){ const U=upData(P).y, v=Array.from(U).sort((a,b)=>a-b), med=v[v.length>>1], top=v[v.length-1], n=U.length; const edge=k=>k?(U[n-1]+U[n-2]+U[n-3])/3:(U[0]+U[1]+U[2])/3, hi=e=>(e-med)>0.05*(top-med)&&(e-med)>5*(noiseSigma(U)||0); if (top>med && (hi(edge(0))||hi(edge(1)))) add('warn','Il segnale è ancora alto al bordo del cromatogramma: un picco può essere tagliato e non viene contato. Controlla l\'inizio e la fine della corsa.'); }
+  if (it==='hplc'){ const U=upData(P).y, n=U.length, med=sortedAt(U, n>>1), top=sortedAt(U, n-1); const edge=k=>k?(U[n-1]+U[n-2]+U[n-3])/3:(U[0]+U[1]+U[2])/3, hi=e=>(e-med)>0.05*(top-med)&&(e-med)>5*(noiseSigma(U)||0); if (top>med && (hi(edge(0))||hi(edge(1)))) add('warn','Il segnale è ancora alto al bordo del cromatogramma: un picco può essere tagliato e non viene contato. Controlla l\'inizio e la fine della corsa.'); }
   // polarità invertita: i picchi veri vanno in giù (rivelatore RI, segno scambiato): i «picchi» trovati sono i fianchi
-  if (it==='hplc'){ const v=Array.from(raw).sort((a,b)=>a-b), med=v[v.length>>1], up=v[v.length-1]-med, dn=med-v[0], sg=noiseSigma(raw)||0; if (dn>2*up && dn>20*sg) add('bad','Il segnale ha picchi negativi molto più grandi di quelli positivi: polarità invertita (per esempio rivelatore a indice di rifrazione)? I picchi trovati possono essere i fianchi. Inverti il segno del segnale prima di integrare.'); }
+  if (it==='hplc'){ const nr=raw.length, med=sortedAt(raw, nr>>1), up=sortedAt(raw, nr-1)-med, dn=med-sortedAt(raw, 0), sg=noiseSigma(raw)||0; if (dn>2*up && dn>20*sg) add('bad','Il segnale ha picchi negativi molto più grandi di quelli positivi: polarità invertita (per esempio rivelatore a indice di rifrazione)? I picchi trovati possono essere i fianchi. Inverti il segno del segnale prima di integrare.'); }
   // buchi nell'asse X: un picco sul bordo di un buco ha posizione e area non affidabili
-  { const xs=f.xs, n=xs.length; if (n>20){ const st=[]; for (let i=1;i<n;i++) st.push(Math.abs(xs[i]-xs[i-1])); const ms=st.slice().sort((a,b)=>a-b)[st.length>>1]; const gaps=[]; st.forEach((v,i)=>{ if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); });
+  { const xs=f.xs, n=xs.length; if (n>20){ const st=new Float64Array(n-1); for (let i=1;i<n;i++) st[i-1]=Math.abs(xs[i]-xs[i-1]); const ms=sortedAt(st, st.length>>1); const gaps=[]; st.forEach((v,i)=>{ if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); });
     if (gaps.length){ const edge=d.peaks.filter(p=>gaps.some(([a,b])=>Math.min(Math.abs(p.x-a),Math.abs(p.x-b))<=3*ms)); add(edge.length?'bad':'warn', `L'asse X ha ${gaps.length===1?'un buco':gaps.length+' buchi'} (${gaps.slice(0,3).map(([a,b])=>fmtTick(Math.min(a,b),2)+'–'+fmtTick(Math.max(a,b),2)).join(', ')}) senza dati.${edge.length?` Il picco a ${edge.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')} cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.`:' Un picco dentro il buco non si vede.'}`); } } }
   if (it==='hplc' && d.peaks.length){ const ft=flatTopPeaks(P.xs, upData(P).y, d.peaks); { const up=upData(P).y, as=d.peaks.filter(p=>peakShape(P.xs,up,p.x).asym); if (as.length) add('warn',`Picco asimmetrico a ${as.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}: coda o interferente non separato. L'area può comprendere un altro composto.`); }
     if (ft.length) add('warn', `Cima piatta in ${ft.length===1?'un picco':ft.length+' picchi'} (${ft.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.`); }
@@ -7521,7 +7608,14 @@ function hypTag(h, en){ if (!h.ev) return h.score!=null?Math.round(h.score*100)+
 function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e=>e.hit), same=(v,L)=>L.some(w=>Math.abs(w-v)<=4); list.forEach(h=>{ const a=hits(h); h.shared=list.filter(o=>o!==h && a.length && a.filter(v=>same(v,hits(o))).length*2>=a.length).map(o=>o.it.split(' (')[0]).slice(0,2); }); return list; }
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
-function peakShape(xs, y, x0){ const v=Array.from(y).sort((a,b)=>a-b), base=v[v.length>>2]; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=noiseSigma(y)||0; if (!(h>0) || h<20*sg) return {};
+/* I5: il quartile basso e il rumore dei dati non dipendono dal picco: si calcolano una volta per vettore (prima a ogni picco, con un
+   ordinamento di tutto lo spettro). Il quartile si sceglie senza ordinare (kthSmallest): stesso elemento; con NaN o uno zero si ordina come prima */
+const PS_MEMO=new WeakMap();
+function peakShapeBase(y){ let m=PS_MEMO.get(y); if (m) return m; let base=null;
+  if (y.length>=2048){ const a=Float64Array.from(y); let nan=false; for (let i=0;i<a.length;i++) if (a[i]!==a[i]){ nan=true; break; } if (!nan){ const v=kthSmallest(a, a.length>>2); if (v!==0) base=v; } }
+  if (base===null){ const v=Array.from(y).sort((a,b)=>a-b); base=v[v.length>>2]; }
+  m={base, sg:noiseSigma(y)||0}; PS_MEMO.set(y, m); return m; }
+function peakShape(xs, y, x0){ const M=peakShapeBase(y), base=M.base; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=M.sg; if (!(h>0) || h<20*sg) return {};
   const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
   // posizioni dei fianchi interpolate tra i due punti a cavallo della soglia: con picchi stretti l'arrotondamento al punto intero falsava il rapporto
   const at=(i,j,q)=>{ const t=base+q*h, d=y[j]-y[i]; return xs[i]+(d? (t-y[i])/d : 0.5)*(xs[j]-xs[i]); };
@@ -7561,6 +7655,10 @@ function renderAnHyp(f, d){
 /* --- deconvoluzione --- */
 function fitRange(f){ const P=processed(f); const a=numIn($('#fitA').value), b=numIn($('#fitB').value);
   return (a!=null && b!=null && a!==b) ? [Math.min(a,b), Math.max(a,b)] : [P.xs[0], P.xs[P.xs.length-1]]; }
+/* I7: calcoli che durano secondi (deconvoluzione, fit di più spettri, stima XRF a parametri fondamentali) nel desktop girano nel worker
+   del nucleo (AcchEngine.call: stessa funzione JS, stessi argomenti, stesso risultato), così la finestra non si blocca. Online, o se il
+   worker non risponde, si calcola nella pagina come prima. Il Rust non c'è: fit e XRF FP non raggiungono l'identità (~/build/c27/dev-rust7.md) */
+function coreAsync(fn, ...a){ return window.AcchEngine ? AcchEngine.callOrPage(fn, ...a) : Promise.resolve(window[fn](...a)); }
 async function runFitUI(fromAssist){
   const f=files[cur]; if (!f) return; const P=processed(f), U=upData(P), msg=$('#fitMsg');
   if (fromAssist){ openTab('an'); reveal('#secFit'); if (f._zoom){ $('#fitA').value=+f._zoom[0].toPrecision(6); $('#fitB').value=+f._zoom[1].toPrecision(6); } }
@@ -7576,7 +7674,9 @@ async function runFitUI(fromAssist){
   const xs=P.xs.subarray(a,b+1), ys=U.y.subarray(a,b+1), d=viewOf(f), seeds=d.peaks.map(p=>p.x).filter(x=>x>=r[0]&&x<=r[1]);
   const prof=$('#fitProf').value, bm=$('#fitBase').value, auto=$('#fitMode').value==='auto';
   if (!auto && !seeds.length) return fail('Nella zona non ci sono picchi: aggiungili col clic sul grafico, oppure scegli «automatica».');
-  const t0=performance.now(), fit=deconvolve(xs, ys, {seeds, profile:prof, base:bm, fixed:!auto});
+  const t0=performance.now(), runB=$('#fitRun'); if (runB) runB.disabled=true;
+  if (window.AcchEngine){ msg.hidden=false; msg.textContent='Deconvoluzione in corso…'; }
+  let fit; try{ fit=await coreAsync('deconvolve', xs.slice(), ys.slice(), {seeds, profile:prof, base:bm, fixed:!auto}); } finally { if (runB) runB.disabled=false; }
   if (!fit) return fail('Il fit non converge: prova una zona diversa, meno picchi o un altro profilo.');
   f.fit={pk:procKey(f), range:r, profile:prof, bm, auto, peaks:fit.peaks.map(q=>({c:q.c, w:q.w, eta:q.eta, area:q.area, h:q.h, sc:q.sc, sw:q.sw, sarea:q.sarea, sh:q.sh, seta:q.seta, pct:q.pct})),
     base:fit.base, xm:fit.xm, xr:fit.xr, r2:fit.r2, rmse:fit.rmse, noise:fit.noise, bic:fit.bic, n:fit.n, np:fit.p, ms:Math.round(performance.now()-t0)};
@@ -7602,9 +7702,9 @@ function renderFitOut(f){
   const P=processed(f), U=upData(P), rx=[], ry=[]; for (let i=0;i<P.xs.length;i++){ const x=P.xs[i]; if (x<F.range[0]||x>F.range[1]) continue; rx.push(x); ry.push(U.y[i]-fitEval(F,x)); }
   miniPlot($('#fitRes'), {lines:[{xs:rx, ys:ry, color:'#5c6b7a', w:1}], invertX:INSTR[it].invertX, zero:true, yLabel:'residuo', band: F.noise ? [-2*F.noise, 2*F.noise] : null});
   $('#fitDel').onclick=()=>{ f.fit=null; persist(f); renderPreview(); };
-  $('#fitAllSp').onclick=()=>{ const others=files.filter(g=>g!==f && g.instr===f.instr); let ok=0;
+  $('#fitAllSp').onclick=async()=>{ const others=files.filter(g=>g!==f && g.instr===f.instr); let ok=0;
     for (const g of others){ const P=processed(g), U=upData(P); let a=0; while (a<P.xs.length && P.xs[a]<F.range[0]) a++; let b=P.xs.length-1; while (b>=0 && P.xs[b]>F.range[1]) b--; if (b-a<12) continue;
-      const fit=fitPeaks(P.xs.subarray(a,b+1), U.y.subarray(a,b+1), F.peaks.map(q=>({x:q.c, w:q.w})), {profile:F.profile, base:F.bm}); if (!fit) continue;
+      const fit=await coreAsync('fitPeaks', P.xs.slice(a,b+1), U.y.slice(a,b+1), F.peaks.map(q=>({x:q.c, w:q.w})), {profile:F.profile, base:F.bm}); if (!fit) continue;
       g.fit={pk:procKey(g), range:F.range.slice(), profile:F.profile, bm:F.bm, auto:false, peaks:fit.peaks.map(q=>({c:q.c, w:q.w, eta:q.eta, area:q.area, h:q.h, sc:q.sc, sw:q.sw, sarea:q.sarea, sh:q.sh, seta:q.seta, pct:q.pct})),
         base:fit.base, xm:fit.xm, xr:fit.xr, r2:fit.r2, rmse:fit.rmse, noise:noiseSigma(U.y.subarray(a,b+1)), bic:fit.bic, n:fit.n, np:fit.p}; persist(g); ok++; }
     renderFitOut(f); say('#tip2', `Stessa deconvoluzione applicata a ${ok} altr${ok===1?'o spettro':'i spettri'}: confronta le aree nella tabella. 📑`); };
@@ -7764,13 +7864,31 @@ let anFitFor=null, anOpenFor=null;
 const QBAD=new Map();
 function badItems(f){ let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0); const c=QBAD.get(f.id); if (c && c.sig===sig) return c.bad;
   let bad=[]; try{ bad=assess(f,d).filter(o=>o.lv==='bad' && !(f.instr==='gen' && /segnale\/rumore|S\/N/.test(o.t))).map(o=>String(o.t)); }catch(e){} QBAD.set(f.id,{sig,bad}); return bad; }
+/* I5: con spettri grandi il controllo del dato (assess) si fa subito dopo il disegno del grafico, non prima: il grafico compare,
+   poi la riga ⛔ se serve. Con gli altri spettri come sempre */
+const QB_LATER=200000, afterPaint=fn=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(fn,0)));
+function badItemsSoon(f){ if (!f.xs || f.xs.length<QB_LATER) return badItems(f);
+  let d; try{ d=viewOf(f); }catch(e){ return []; } const sig=procKey(f)+'|'+f.instr+'|'+JSON.stringify(f.an||{}).length+'|'+(d.peaks?d.peaks.length:0), c=QBAD.get(f.id);
+  if (c && c.sig===sig) return c.bad;
+  if (!f._qbLater){ f._qbLater=true; afterPaint(()=>badItemsAsync(f).then(()=>{ f._qbLater=false; if (files.includes(f) && files[cur]===f) qualBanner(f); })); }   // dopo che il fotogramma con il grafico è stato mostrato
+  return []; }
+// nel desktop i calcoli pesanti del controllo vanno al worker (AcchEngine.prefetch, app/engine.js): la pagina lavora a pezzi brevi.
+// Ogni prova ricomincia da zero (QBAD tolto): conta solo l'ultima, fatta con tutti i risultati pronti e quindi identica a badItems
+function badItemsAsync(f){ if (!files.includes(f)) return Promise.resolve([]);
+  if (!(window.AcchEngine && AcchEngine.prefetch)) return Promise.resolve(badItems(f));
+  return AcchEngine.prefetch(()=>{ QBAD.delete(f.id); return badItems(f); }).catch(e=>{ console.error(e); return badItems(f); }); }
 /* un problema grave sul dato (⛔) non resta nascosto nella scheda: riga sotto il grafico e, nel desktop, nella barra di stato */
 window.qualBannerRefresh=()=>{ const b=$('#qualBanner'); if (b) b._h=null; if (files[cur]) qualBanner(files[cur]); };
-function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true;
-  (window.requestIdleCallback||((fn)=>setTimeout(fn,200)))(()=>{ let any=false; for (const f of todo) if (files.includes(f) && badItems(f).length) any=true; qbadScan.busy=false; if (any) renderList(); }, {timeout:1500}); }
+// I5: uno spettro per volta, ognuno nel suo momento libero, e mai prima che il grafico sia disegnato: con più canali grandi
+// i controlli non si sommano in un unico blocco della finestra
+function qbadScan(){ if (qbadScan.busy) return; const todo=files.filter(f=>!QBAD.has(f.id)); if (!todo.length) return; qbadScan.busy=true; let any=false;
+  const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,200));
+  const step=async ()=>{ const f=todo.shift(); if (f && files.includes(f) && !QBAD.has(f.id) && (f.xs && f.xs.length>=QB_LATER ? await badItemsAsync(f) : badItems(f)).length) any=true;
+    if (todo.length) afterPaint(()=>idle(step, {timeout:1500})); else { qbadScan.busy=false; if (any) renderList(); } };
+  afterPaint(()=>idle(step, {timeout:1500})); }
 function qualBanner(f){ const pv=$('.preview'); if (!pv) return; let b=$('#qualBanner');
   if (!b){ b=document.createElement('button'); b.type='button'; b.id='qualBanner'; b.className='qbanner'; b.hidden=true; ((window.ACCH_SHELL?null:$('.pvtools'))||$('#pvWrap')||pv).insertAdjacentElement('afterend', b); b.onclick=()=>{ openTab('an'); const s=$('#secQual'); if (s){ s.open=true; s.scrollIntoView&&s.scrollIntoView({block:'start'}); } if (window.AcchShell&&AcchShell.showRes) AcchShell.showRes('qual'); }; }
-  const bad=(!f||viewMode==='cmp') ? [] : badItems(f); b.hidden=!bad.length;
+  const bad=(!f||viewMode==='cmp') ? [] : badItemsSoon(f); b.hidden=!bad.length;
   if (bad.length){ const h=`<b>⛔ Dati da controllare:</b> <span class="qbt">${bad[0]}</span>${bad.length>1?` <span>(e altri ${bad.length-1})</span>`:''} <span class="qbgo">Controllo del dato ›</span>`; if (b._h!==h){ b._h=h; b.innerHTML=h; const cc=cur, nm=dispTitle(f); setTimeout(()=>{ b.title=b.textContent; if (window.AcchShell&&AcchShell.pushMsg && cc===cur) AcchShell.pushMsg('⛔ «'+nm+'» · '+b.textContent, cc); }, 60); } }
   else { b._h=null; if (window.AcchShell&&AcchShell.clearErr) AcchShell.clearErr(f&&viewMode!=='cmp'?dispTitle(f):''); }
   const it=document.querySelector(`#flist .fitem[data-i="${cur}"] .qbad`); if (!it && bad.length) renderList(); }
@@ -8073,22 +8191,30 @@ function fpSetupOf(f){ const x=f.xrf||{}, o=(f.an&&f.an.fp&&f.an.fp.S)||{};
   return fpSetup({anode:o.anode||x.tube||'Rh', kv:o.kv!=null?o.kv:fpNum(x.kv), psi1:o.psi1!=null?o.psi1:fpNum(x.psi1), psi2:o.psi2!=null?o.psi2:fpNum(x.psi2), d2:o.d2!=null?o.d2:fpNum(x.dist), d1:o.d1, atm:o.atm, beD:o.beD, si:o.si, beT:o.beT, filt:o.filtEl&&o.filtUm>0&&FP_FILTERS[o.filtEl]?{comp:o.filtEl, rho:FP_FILTERS[o.filtEl], um:o.filtUm}:null}); }
 const FP_FILTERS={Al:2.70, Ti:4.51, Ni:8.91, Cu:8.96, Zr:6.51, Mo:10.28, Ag:10.49};   // densità in g/cm³
 /* quanto cambia la stima con condizioni diverse da quelle presunte. Non è un'accuratezza: vale se il modello è giusto */
-function fpSensitivity(f){ const R0=fpRun(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt}, runs=[];
+async function fpSensitivity(f){ const R0=await fpRunAsync(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt}, runs=[];
   const vary=[{kv:Math.max(5,S0.kv-5)},{kv:Math.min(50,S0.kv+5)},{psi1:Math.max(10,R0.S.psi1-10)},{psi1:Math.min(90,R0.S.psi1+10)},{psi2:Math.max(10,R0.S.psi2-10)},{psi2:Math.min(90,R0.S.psi2+10)},{si:S0.si*0.6},{si:S0.si*2}];
-  for (const v of vary){ try{ const r=xrfFP(D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),{mode:c.mode,balance:fpBalance(c)}); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
+  for (const v of vary){ try{ const r=await coreAsync('xrfFP', D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),{mode:c.mode,balance:fpBalance(c)}); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
   const out={}; for (const e of Object.keys(R0.Q.res)){ const a=runs.map(q=>q[e]&&q[e].w).filter(v=>v!=null&&isFinite(v)); out[e]={w:R0.Q.res[e].w, lo:Math.min(R0.Q.res[e].w,...a), hi:Math.max(R0.Q.res[e].w,...a)}; } return {res:out, n:runs.length}; }
 /* l'elemento dell'anodo resta se le sue righe sono forti (oltre la sola diffusione del tubo): una lega d'argento misurata con un tubo ad argento */
 function fpAnodeKeep(q, S){ return !!(q && q.els.includes(S.anode) && (q.strong||[]).includes(S.anode)); }
 function fpDefaultEls(f){ let e=[], q=null; try{ q=xrfElements(f, viewOf(f)); e=q.els.concat(q.cands); }catch(err){} const S=fpSetupOf(f), keepA=fpAnodeKeep(q, S); return e.filter(x=>(x!==S.anode || keepA) && x!=='Ar' && FP.el[x] && fpLine(x,S)); }
 function fpBalance(c){ if (c.bal==='custom'){ const p=fpParseComp(c.balTxt); return p || fpMat('org').comp; } const m=fpMat(c.bal||'org'); return m ? m.comp : fpMat('org').comp; }
 function fpData(f){ return {xs:f.xs, ys:f.ys}; }   // conteggi grezzi (statistica di Poisson), con l'eventuale allineamento in energia
-function fpRun(f){
+function fpPlan(f){
   if (f.instr!=='xrf' || f.uncal) return null; const c=fpCfg(f), els=(c.els||fpDefaultEls(f)).filter(e=>FP.el[e]), S=fpSetupOf(f);
-  const key=[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', JSON.stringify(c), S.key, els.join(',')].join('|'); if (f._fpKey===key) return f._fpRes;
+  const key=[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', JSON.stringify(c), S.key, els.join(',')].join('|');
   const x=f.xrf||{}, so=c.S||{}, autoGeom = so.psi1==null && so.psi2==null && !fpNum(x.psi1) && !fpNum(x.psi2);
-  let R=null; if (els.length){ const D=fpData(f); try{ R=xrfFP(D.xs, D.ys, els, S, {mode:c.mode, balance:fpBalance(c), autoGeom}); }catch(err){ R={err:String(err)}; } }
-  f._fpKey=key; f._fpRes=R ? Object.assign(R, {els, S:R.S||S, S0:S, autoGeom, cfg:c}) : {els, S, cfg:c, empty:true}; return f._fpRes;
+  return {c, els, S, key, autoGeom, args:()=>{ const D=fpData(f); return [D.xs, D.ys, els, S, {mode:c.mode, balance:fpBalance(c), autoGeom}]; }}; }
+function fpStore(f, q, R){ f._fpKey=q.key; f._fpRes=R ? Object.assign(R, {els:q.els, S:R.S||q.S, S0:q.S, autoGeom:q.autoGeom, cfg:q.c}) : {els:q.els, S:q.S, cfg:q.c, empty:true}; return f._fpRes; }
+function fpRun(f){ const q=fpPlan(f); if (!q) return null; if (f._fpKey===q.key) return f._fpRes;
+  let R=null; if (q.els.length){ try{ R=xrfFP(...q.args()); }catch(err){ R={err:String(err)}; } }
+  return fpStore(f, q, R);
 }
+// I7: pronta in memoria (fpRun non calcola), e il calcolo nel worker del desktop; un errore nel worker si rifà nella pagina (stesso messaggio)
+function fpReady(f){ const q=fpPlan(f); return !q || f._fpKey===q.key; }
+async function fpRunAsync(f){ const q=fpPlan(f); if (!q || f._fpKey===q.key || !window.AcchEngine || !q.els.length) return fpRun(f);
+  let R; try{ R=await AcchEngine.call('xrfFP', ...q.args()); }catch(e){ return fpRun(f); }
+  const now=fpPlan(f); return now && now.key===q.key ? fpStore(f, q, R) : fpRun(f); }
 function fpSummary(f){ const R=f._fpRes; if (!R || !R.Q || !R.Q.res) return ''; return Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).slice(0,3).map(([e,o])=>`${e} ${fmtN(o.w, o.w<10?1:0)}%`).join(' · '); }
 /* avvisi della stima a parametri fondamentali: gli stessi nel pannello, nel PDF e nel CSV */
 function fpNotes(f, R){ if (!R || !R.Q || !R.Q.res) return []; const c=fpCfg(f), S=R.S, els=R.els, x=f.xrf||{}, so=c.S||{}, Q=R.Q, light=els.filter(e=>FP.el[e].Z<19), notes=[];
@@ -8122,6 +8248,7 @@ function renderCult(f){
   const sec=$('#secCult'); if (!sec) return; const show = f && f.instr==='xrf' && !f.uncal; sec.hidden=!show; if (!show) return;
   $('#sumCult').textContent = fpSummary(f) || 'composizione senza standard e spessore degli strati';
   if (!sec.open) return;
+  if (window.AcchEngine && !fpReady(f)){ $('#anCult').innerHTML='<p class="why">Calcolo della composizione in corso…</p>'; fpRunAsync(f).then(()=>{ if (files[cur]===f) renderCult(f); }); return; }   // I7: nel worker
   const c=fpCfg(f), R=fpRun(f), S=R.S, els=R.els, x=f.xrf||{}, so=c.S||{}, en=LANG==='en';
   const fromFile=(v)=>v!=null && v!=='' ? ' <small class="opt-l">dal file</small>' : '';
   const chips=[...new Set(['Cu','Zn','Sn','Pb','Ag','Au','Fe','Ca','Hg','As','Sb','Ni'].concat(els))].map(e=>`<button class="pill ${els.includes(e)?'on':''}" data-fe="${e}">${e}</button>`).join(' ');
@@ -8178,9 +8305,9 @@ function renderCult(f){
   $('#fpSdet').ontoggle=()=>{ c.openS=$('#fpSdet').open; anSet(f,'fp',c); };
   const setS=(k, el, num)=>{ el.onchange=()=>{ c.S=Object.assign({}, c.S||{}); const v=num ? fpNum(el.value) : el.value; if (v==null || v==='') delete c.S[k]; else c.S[k]=v; save(); }; };
   setS('anode', $('#fpAn')); setS('kv', $('#fpKv'), 1); setS('psi1', $('#fpP1'), 1); setS('psi2', $('#fpP2'), 1); setS('d2', $('#fpD2'), 1); setS('atm', $('#fpAtm')); setS('beD', $('#fpBeD'), 1); setS('si', $('#fpSi'), 1); if ($('#fpFiltEl')){ setS('filtEl', $('#fpFiltEl')); setS('filtUm', $('#fpFiltUm'), 1); }
-  if ($('#fpSens')) $('#fpSens').onclick=async()=>{ const box=$('#fpSensOut'); box.textContent='Sto ricalcolando…'; await new Promise(r=>setTimeout(r,20)); const q=fpSensitivity(f); if (!q){ box.textContent=''; return; } box.innerHTML=`<p class="why">Ho ripetuto la stima ${q.n} volte cambiando tensione ±5 kV, angoli ±10° e spessore del sensore. Mostra quanto contano queste ipotesi, in più del ± di conteggio. <b>Non è un'accuratezza:</b> vale solo se il modello è adatto al campione.</p><div class="areawrap"><table class="areatab"><thead><tr><th>Elemento</th><th>Stima %</th><th>da</th><th>a</th></tr></thead><tbody>${Object.entries(q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`<tr><td><b>${e}</b></td><td>${fmtN(o.w,o.w<10?2:1)}</td><td>${fmtN(o.lo,o.lo<10?2:1)}</td><td>${fmtN(o.hi,o.hi<10?2:1)}</td></tr>`).join('')}</tbody></table></div>`; };
+  if ($('#fpSens')) $('#fpSens').onclick=async()=>{ const box=$('#fpSensOut'); box.textContent='Sto ricalcolando…'; await new Promise(r=>setTimeout(r,20)); const q=await fpSensitivity(f); if (!q){ box.textContent=''; return; } box.innerHTML=`<p class="why">Ho ripetuto la stima ${q.n} volte cambiando tensione ±5 kV, angoli ±10° e spessore del sensore. Mostra quanto contano queste ipotesi, in più del ± di conteggio. <b>Non è un'accuratezza:</b> vale solo se il modello è adatto al campione.</p><div class="areawrap"><table class="areatab"><thead><tr><th>Elemento</th><th>Stima %</th><th>da</th><th>a</th></tr></thead><tbody>${Object.entries(q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`<tr><td><b>${e}</b></td><td>${fmtN(o.w,o.w<10?2:1)}</td><td>${fmtN(o.lo,o.lo<10?2:1)}</td><td>${fmtN(o.hi,o.hi<10?2:1)}</td></tr>`).join('')}</tbody></table></div>`; };
   $('#fpSall').onclick=()=>{ let n=0; files.forEach(g=>{ if (g.instr!=='xrf' || g===f) return; const cg=fpCfg(g); cg.S=Object.assign({}, c.S||{}); fpSaveCfg(g, cg); n++; }); toast(n ? `✔ Condizioni copiate su ${n} spettr${n===1?'o':'i'} XRF.` : 'Non ci sono altri spettri XRF.'); };
-  if ($('#fpCsv')) $('#fpCsv').onclick=()=>download(csvBlob(fpCsvRows([f])), `${LANG==='en'?'xrf_FP':'composizione_FP'}_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`);
+  if ($('#fpCsv')) $('#fpCsv').onclick=async()=>{ await fpRunAsync(f); download(csvBlob(fpCsvRows([f])), `${LANG==='en'?'xrf_FP':'composizione_FP'}_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`); };
   bindLayer(f, R);
 }
 /* atmosfera nella lingua dell'esportazione (nel CSV e nel PDF italiani «air» restava in inglese) */
@@ -8289,9 +8416,15 @@ function renderMix(f){
     <div class="opt-l">${K?`Fattori di risposta da ${K.nStd} miscel${K.nStd===1?'a nota':'e note'}${K.nStd<3?' (con 3 o più l\'incertezza è più affidabile)':''}. Su miscele simulate con risposte 1 : 3,2 : 0,45 l'errore scende da ±21 a ±0,6% in peso.`:'Nessuna miscela nota ancora: scrivi le % in peso di almeno uno spettro di riferimento misurato con lo stesso strumento.'}</div>`:''}`;
   $$('#mixOut .mixw').forEach(el=>el.onchange=()=>{ const w=Object.assign({}, (f.an&&f.an.mixW)||{}), v=numIn(el.value); if (v==null || v<0) delete w[el.dataset.id]; else w[el.dataset.id]=v; anSet(f,'mixW', Object.keys(w).length?w:null); renderMix(f); });
 }
+const xqfKey=(f, S, els)=>[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', S.key, els.join(',')].join('|');
+// I7: le stime FP della taratura XRF nel worker del desktop, prima di disegnare il pannello (stessi argomenti e stessa memoria di xqModelFP)
+function xqfReady(list, els){ return list.every(f=>f._xqfKey===xqfKey(f, fpSetupOf(f), els)); }
+async function xqfPrefetch(list, els){ for (const f of list){ const S=fpSetupOf(f), key=xqfKey(f, S, els); if (f._xqfKey===key) continue; const D=fpData(f);
+    let R=null; if (!f.uncal){ try{ R=await AcchEngine.call('xrfFP', D.xs, D.ys, els, S, {mode:'norm'}); }catch(e){ try{ R=xrfFP(D.xs, D.ys, els, S, {mode:'norm'}); }catch(e2){ R=null; } } }
+    if (xqfKey(f, fpSetupOf(f), els)===key){ f._xqf=R; f._xqfKey=key; } } }
 function xqModelFP(c, list, els){   // parametri fondamentali: funziona senza standard; con 1 o più standard corregge la sensibilità di ogni elemento
   const mode=c.q100!==false?'norm':'abs';
-  const rows=list.map(f=>{ const S=fpSetupOf(f), key=[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', S.key, els.join(',')].join('|');
+  const rows=list.map(f=>{ const S=fpSetupOf(f), key=xqfKey(f, S, els);
     if (f._xqfKey!==key){ const D=fpData(f); try{ f._xqf=f.uncal ? null : xrfFP(D.xs, D.ys, els, S, {mode:'norm'}); }catch(e){ f._xqf=null; } f._xqfKey=key; }
     const R=f._xqf, I={}; els.forEach(e=>I[e]=R&&R.meas[e]?R.meas[e].I:null); return {f, S, meas:R?R.meas:null, I, C:(f.an&&f.an.std)||{}}; });
   const stds=rows.filter(r=>r.meas && els.some(e=>r.C[e]!=null)), calOf=set=>set.length ? fpCalibrate(set.map(r=>({meas:r.meas, comp:r.C, S:r.S})), set[0].S) : null;
@@ -8319,6 +8452,7 @@ function renderXrfQuant(instr){
   const c=mvCfg(instr), list=mvFiles(instr,c);
   if (!c.qEls){ const found=new Set(); list.forEach(f=>{ try{ xrfElements(f, viewOf(f)).els.forEach(e=>found.add(e)); }catch(e){} }); c.qEls=[...found].filter(e=>!['Ar','Rh','Ca','K','Si','Al','S','Cl','P'].includes(e)).slice(0,8); if (!c.qEls.length) c.qEls=['Cu','Zn','Sn','Pb']; mvSave(); }
   if (typeof XQ_DEFAULT!=='undefined' && Array.isArray(c.qEls)){ const o=XQ_DEFAULT; c.qEls.sort((a,b)=>{ const ia=o.indexOf(a), ib=o.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); }); }
+  if (window.AcchEngine && c.qModel==='fp' && (c.qEls||[]).length && !xqfReady(list, c.qEls)){ box.innerHTML='<p class="why">Calcolo della composizione in corso…</p>'; xqfPrefetch(list, c.qEls.slice()).then(()=>renderXrfQuant(instr)); return; }   // I7: nel worker
   const M=xqModel(instr), els=c.qEls, u='%';
   const chips=[...new Set(XQ_DEFAULT.concat(els))].map(e=>`<button class="pill ${els.includes(e)?'on':''}" data-qe="${esc(e)}">${esc(e)}</button>`).join(' ');
   let html=`<h4 class="anh">🧪 Taratura con standard di composizione nota (XRF) ${glBtn('xrfq')}</h4>
@@ -8818,6 +8952,7 @@ const NOVITA=[
     ['📦','Esporta solo quello che vuoi','Scegli tu i file da esportare (PDF, immagini, picchi, dati, tabelle, progetto, anche la copia identica del file originale), il loro nome e dove salvarli. Lo ZIP lo fai solo se lo chiedi.',null],
     ['📁','Progetti nel formato 2','I progetti salvati ora sono più compatti e pronti per canali, librerie, serie e mappe. I tuoi vecchi progetti si aprono senza perdere nulla.',null],
     ['✉️','Segnala un problema','Da Aiuto → Segnala un problema prepari una mail per lo sviluppatore, con i dati tecnici e uno screenshot che puoi oscurare. Non parte nulla senza di te.',null],
+    ['🧩','Estensioni per nuovi formati','Se un formato non lo leggo ancora, puoi aggiungere un\'estensione: gira isolata, senza rete né accesso ai tuoi dati, e prima di installarla ti mostro chi l\'ha scritta e che cosa può fare.',null],
     ['⏱️','Serie, MCR-ALS e cinetiche','Metti in fila spettri presi nel tempo, con la dose o con la temperatura: MCR-ALS separa i componenti e il fit globale delle cinetiche ti dà le costanti con il loro errore.',null],
     ['📚','La libreria del tuo strumento e del tuo tipo di campione','Crea una libreria per ogni strumento e tipo di campione. Per l\'HPLC salvi le pendenze dopo la taratura e poi calcolo le concentrazioni senza rifare la retta, dicendoti da dove viene ogni numero.',null],
     ['🔀','Tutti i canali HPLC','Se un file ha più canali (DAD a più λ, VWD, FLD…) li leggo tutti e ti mostro «Canali trovati»: scegli tu quali caricare. Nel desktop apri i file dello strumento con un doppio clic.',null],
@@ -9236,11 +9371,14 @@ window.ACCH_AXSYNC=bindAxisFields();
 applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalysis(); bindMulti(); bindImages(); $('#secMulti').addEventListener('toggle', ()=>{ if ($('#secMulti').open) renderMulti(); }); applyExpert(); applyTxtZoom(); bindSizePresets(); bindRename(); bindWelcome(); syncControls(); renderPresets(); renderLib(); setView('one'); refreshAll();
 </script>
 <script src="app/origin-ui.js"></script>
+<script src="app/plugins-base.js"></script>
+<script src="app/plugins.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
 <script src="app/chemo-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
+<script src="app/engine.js"></script>
 <script src="app/desktop.js"></script>
 <script src="app/segnala.js"></script>
 <script src="app/library-ui.js"></script>

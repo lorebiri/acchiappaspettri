@@ -1,0 +1,21 @@
+[package]
+name = "acch-core"
+version = "3.0.0-rc.3"
+description = "Acchiappaspettri: lettura veloce dei file (stessi numeri del nucleo JS di riferimento)"
+authors = ["Lorenzo Birindelli"]
+edition = "2021"
+rust-version = "1.77"
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+name = "acch_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "acch-core-cli"
+path = "src/bin/acch-core-cli.rs"
+
+[dependencies]
+# I7: compressione DEFLATE dei progetti (già nel Cargo.lock dell'app, via tauri)
+miniz_oxide = "0.8"

@@ -3,9 +3,17 @@
 version = 3
 
 [[package]]
+name = "acch-core"
+version = "3.0.0-rc.3"
+dependencies = [
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
 name = "acchiappaspettri"
 version = "3.0.0-rc.5"
 dependencies = [
+ "acch-core",
  "serde",
  "serde_json",
  "sha2",

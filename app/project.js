@@ -37,12 +37,12 @@
   async function build(){
     files.forEach(persist);
     // formato 2: canale (sampleKey, channel) e dati propri dello spettro (series, cube, iso) se il modulo che lo ha letto li ha messi su f
-    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, origin:f.origin||undefined, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
+    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, origin:f.origin||undefined, plugin:f.plugin||undefined, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
     // spettri del progetto aperto che questa versione non sa ricostruire (per esempio solo series/cube/iso): si riscrivono come erano
     for (const r of kept) spectra.push(r);
     let results=[]; try{ results=analysisFiles().map(([n,t])=>({name:n, text:t})); }catch(e){ console.warn(e); }
     { const have=new Set(results.map(r=>r.name)); for (const r of prevResults){ const nm=r.name.startsWith('precedenti/')?r.name:'precedenti/'+r.name; if (!have.has(r.name) && !have.has(nm)){ have.add(nm); results.push({name:nm,text:r.text}); } } }   // calcolati in una sessione precedente e non rifatti: non si perdono
-    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip);
+    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip, win.AcchEngine && win.AcchEngine.zipper);   // desktop: ZIP in Rust (I7), altrimenti JSZip
     return {bytes, count:spectra.length, missing:missing.length};
   }
   /* dopo aver scritto, rilegge ciò che ha prodotto: un salvataggio non verificato non conta come salvato */
@@ -112,16 +112,23 @@
       const mk=(p,k,c)=>win.AcchChannels ? win.AcchChannels.memKey(p,k,c) : p;
       win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>{ if (!s.bytes) return; const M=win.ACCH_PENDING_MEM; M.set(mk(s.path, s.sampleKey, s.channel), s.memory||null); if (s.sampleKey!=null && !M.has(s.path+'\u0000'+s.sampleKey)) M.set(s.path+'\u0000'+s.sampleKey, s.memory||null); if (!M.has(s.path)) M.set(s.path, s.memory||null); });
       // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso; «want» dice quali canali c'erano
-      const seen=new Map(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; const k=(s.source||'')+'\u0000'+s.path; let e=seen.get(k); if (!e){ e={file:new File([s.bytes], s.name), path:s.path, want:[]}; seen.set(k,e); ents.push(e); } e.want.push({sampleKey:s.sampleKey==null?null:s.sampleKey, channel:s.channel==null?null:s.channel}); }
+      // I11: un file letto da un'estensione si rilegge solo con quella; se manca o è disattivata non passa dal lettore dell'app
+      // (darebbe altri numeri) e i suoi byte restano nel progetto così come sono (plMissing → kept)
+      const PL=win.AcchPlugins, plMissing=[], plEnts=new Map();
+      const seen=new Map(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; if (s.plugin && !(PL && PL.available(s.plugin.id))){ plMissing.push(s); continue; } const k=(s.source||'')+'\u0000'+s.path; let e=seen.get(k); if (!e){ e={file:new File([s.bytes], s.name), path:s.path, want:[]}; if (s.plugin) e.plugin=s.plugin.id; seen.set(k,e); ents.push(e); } e.want.push({sampleKey:s.sampleKey==null?null:s.sampleKey, channel:s.channel==null?null:s.channel}); if (s.plugin){ if (!plEnts.has(e)) plEnts.set(e,[]); plEnts.get(e).push(s); } }
+      const keepRec=s=>({name:s.name, path:s.path, bytes:s.bytes||null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, origin:s.origin||undefined, plugin:s.plugin||undefined, series:s.series, cube:s.cube, iso:s.iso});
       // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
-      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(s=>({name:s.name, path:s.path, bytes:null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, origin:s.origin||undefined, series:s.series, cube:s.cube, iso:s.iso}));
+      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(keepRec).concat(plMissing.map(keepRec));
       api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
+      // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
+      const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced);
+      // I11: un file di un'estensione che non si rilegge più (estensione cambiata o che dà errore) non si perde: torna nel progetto com'era
+      const plLost=[]; for (const [e,L] of plEnts) if (!got.has(e.path)) for (const s of L){ kept.push(keepRec(s)); plLost.push(s); }
       // contenitore valido (impronte verificate) ma nessuno spettro leggibile: non è un file danneggiato, e il messaggio lo dice
       if (ents.length && !files.length && !kept.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
-      // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
-      const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced), lost=ents.filter(e=>!got.has(e.path)).length, lostCh=last.missing||0;
+      const lost=ents.filter(e=>!got.has(e.path) && !plEnts.has(e)).length, lostCh=last.missing||0;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));
       syncControls(); resetCaches(); refreshAll(); if (files.length) go(2);
@@ -131,6 +138,7 @@
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
       if (lost>0) toast(`⚠️ ${lost} file del progetto non sono stati riconosciuti.`);
       if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
+      pluginNotes(plMissing, plLost, new Map([...plEnts].map(([e,L])=>[e.path, L[0].plugin.version])));
       if (P.warnings.includes('newer-format-compatible')) toast('⚠️ Progetto salvato con una versione più recente: alcune informazioni potrebbero non essere mostrate. Aggiorna l\'applicazione.');
       if (legacy) toast('Progetto nel vecchio formato: con «Salva» diventerà un file .acchspettri; l\'originale resta intatto.');
       if (api.host.remember && path) api.host.remember(path, name);
@@ -138,6 +146,14 @@
     }catch(e){ console.error(e); win.ACCH_PENDING_MEM=null; try{ restore(before); }catch(e2){ console.error(e2); } showErr(e); return false; }
     finally{ win.ACCH_PENDING_MEM=null; busy=false; loader(false); notify(); }
   }
+  /* I11: spettri di estensioni mancanti o che non rileggono il file: avviso con nome e versione; i byte restano nel progetto */
+  function pluginNotes(missing, failed, savedVer){ const who=s=>'«'+(s.plugin.name||s.plugin.id)+'» '+s.plugin.version+' ('+s.plugin.id+')';
+    const names=L=>[...new Set(L.map(who))].join(', ');
+    api.pluginMissing=missing.map(s=>({path:s.path, plugin:s.plugin})); api.pluginFailed=failed.map(s=>({path:s.path, plugin:s.plugin}));
+    if (missing.length) win.toast(`⚠️ Spettri letti da un'estensione non installata o disattivata: ${missing.length} (${names(missing)}). Non si vedono, ma i file originali restano nel progetto e si salvano con lui. Installa o attiva l'estensione e riapri il progetto.`);
+    if (failed.length) win.toast(`⚠️ L'estensione ${names(failed)} non ha riletto ${failed.length} spettri salvati: i file originali restano nel progetto.`);
+    const changed=files.filter(f=>f.plugin && savedVer.has(f.path) && savedVer.get(f.path)!==f.plugin.version); changed.forEach(f=>{ f._plSaved=savedVer.get(f.path); });
+    if (changed.length) win.toast(`⚠️ File riletti con un'altra versione dell'estensione «${changed[0].plugin.name}»: ${changed.length} (salvati con la ${changed[0]._plSaved}, ora la ${changed[0].plugin.version}). Controlla i dati.`); }
   function init(){
     if (win.indexedDB && !win.ACCH_TEST){ let lastPut=null, nextAt=0; win.setInterval(()=>{ if (busy || !files.length || !isDirty() || Date.now()<nextAt) return; const q=sig(); if (q===lastPut) return; lastPut=q; const t0=Date.now(); autosave.put().catch(e=>console.error(e)).finally(()=>{ nextAt=Date.now()+20*(Date.now()-t0); }); },30000); win.setTimeout(()=>{ offerRecovery().catch(e=>console.error(e)); },800); }
     const hook=n=>{ const o=win[n]; if (typeof o==='function') win[n]=function(){ const r=o.apply(this,arguments); touch(); return r; }; };
