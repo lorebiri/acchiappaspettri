@@ -4257,7 +4257,9 @@ function drawPlot(ctx, W, H, k, d, S, layers){   // layers (I6, solo a schermo n
     G={lo,hi,lo2,hi2,yt,yt2,fy,px0,py0,pw,ph,X,Y,Y2,ylabW2};
 
     // inviluppo della curva per colonne: dove la traccia occupa spazio
-    const nc=Math.max(60, Math.min(2400, Math.round(pw*Math.min(k,8)))), eT=new Float64Array(nc).fill(Infinity), eB=new Float64Array(nc).fill(-Infinity);
+    // I6 (G1): a schermo nel desktop l'inviluppo usa le stesse colonne della traccia, così i gruppi min/max si calcolano una volta sola
+    // (sugli schermi ad alta densità prima erano due passate); nelle esportazioni resta com'era
+    const nc=layers ? Math.max(50, Math.round(pw*k)) : Math.max(60, Math.min(2400, Math.round(pw*Math.min(k,8)))), eT=new Float64Array(nc).fill(Infinity), eB=new Float64Array(nc).fill(-Infinity);
     const colOf = x => Math.min(nc-1, Math.max(0, Math.floor((x-px0)/pw*nc)));
     const addEnv = (xs, ys, YY) => { let pc=-1, pyv=0;
       const R=PI && X.lin && YY.lin && PI.ready(xs, ys); if (R){ PI.envelope(R, xs, ys, X, YY, px0, pw, py0, ph, colOf, eT, eB, !!d.invertX, nc); return; }
