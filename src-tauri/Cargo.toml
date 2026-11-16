@@ -41,3 +41,8 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+# I7: il motore di calcolo si ottimizza per la velocità (il resto dell'app resta compatto). Nessun effetto sui numeri:
+# Rust non riordina né fonde le operazioni in virgola mobile a nessun livello di ottimizzazione.
+[profile.release.package.acch-core]
+opt-level = 3
