@@ -1,0 +1,15 @@
+{
+ "id": "org.acchiappaspettri.esempio.binario-wasm",
+ "name": "Binario AWB1 (esempio WebAssembly)",
+ "version": "1.0.0",
+ "author": "Lorenzo Birindelli",
+ "license": "GPL-3.0-or-later",
+ "extensions": ["awb"],
+ "minAppVersion": "3.0.0",
+ "permissions": ["read-file"],
+ "description": {
+  "it": "Esempio dimostrativo di lettore WebAssembly: file binari AWB1 con n punti x e y in float32.",
+  "en": "Demonstration WebAssembly reader: AWB1 binary files with n float32 x and y points."
+ },
+ "homepage": "https://github.com/lorebiri/acchiappaspettri/blob/main/docs/ESTENSIONI.md"
+}

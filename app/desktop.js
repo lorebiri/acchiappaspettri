@@ -80,7 +80,7 @@
   const IMG_EXT=['jpg','jpeg','png','tif','tiff','webp','bmp','heic','heif'];
   function acceptExt(input){ const out=[]; for (const a of String(input.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean)){ if (a[0]==='.') out.push(a.slice(1)); else if (a==='image/*') out.push(...IMG_EXT); else if (a==='application/json') out.push('json'); else if (a==='application/zip') out.push('zip'); else return []; } return [...new Set(out)]; }
   // file di una cartella che la pagina scarta comunque per nome: non si leggono (restano nell'elenco dei saltati, come online)
-  const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri)$/i.test(name); }catch(e){ return true; } };
+  const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri|acchplugin)$/i.test(name) || !!(win.AcchPlugins && win.AcchPlugins.handlesName(name)); }catch(e){ return true; } };   // I11: anche i pacchetti e i formati delle estensioni
   /* I5: file trascinati o aperti dal sistema: per gli spettri un oggetto leggero al posto di File, con i byte ricevuti dal lato nativo
      (nessuna copia in un Blob e nessuna seconda copia con arrayBuffer) e il percorso concesso, da cui il lettore Rust rilegge senza
      passare i byte dalla pagina. Foto e progetti restano File veri: le foto vanno in un <img>, i progetti hanno i loro lettori */

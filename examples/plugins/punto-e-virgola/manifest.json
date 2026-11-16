@@ -1,0 +1,15 @@
+{
+ "id": "org.acchiappaspettri.esempio.punto-e-virgola",
+ "name": "Esportazione con punto e virgola (esempio dichiarativo)",
+ "version": "1.0.0",
+ "author": "Lorenzo Birindelli",
+ "license": "GPL-3.0-or-later",
+ "extensions": ["sxp"],
+ "minAppVersion": "3.0.0",
+ "permissions": ["read-file"],
+ "description": {
+  "it": "Esempio dimostrativo di lettore dichiarativo, senza codice: testo con intestazione, punto e virgola e virgola decimale.",
+  "en": "Demonstration declarative reader, with no code: text with a header, semicolons and decimal commas."
+ },
+ "homepage": "https://github.com/lorebiri/acchiappaspettri/blob/main/docs/ESTENSIONI.md"
+}
