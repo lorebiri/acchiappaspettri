@@ -97,9 +97,9 @@ function I6_SETUP(){
   async function g12(N, n){ const L=await I6.load(20, 1e6); await new Promise(r=>setTimeout(r,500));
     let drawn=0; const od=window.drawPlot, DP=[]; window.drawPlot=function(){ const q=performance.now(); const x=od.apply(this,arguments); const e=performance.now(); if (pvView && pvView.series && pvView.series.length===20){ if (!drawn) drawn=e; DP.push(e-q); } return x; };
     const a=performance.now(); I6.compare(L); for (let i=0;i<600 && !drawn;i++) await new Promise(r=>setTimeout(r,10)); const g2=drawn-a;
-    await I6.frames(); const g0=AcchPlot.info().groups; const DP0=DP.length; const an=await I6.animate(40); const groups=(AcchPlot.info().groups-g0)/(DP.length-DP0);
+    await I6.frames(); const g0=AcchPlot.info().groups, s0=AcchPlot.scrStats ? AcchPlot.scrStats() : {hit:0, miss:0}; const DP0=DP.length; const an=await I6.animate(40); const groups=(AcchPlot.info().groups-g0)/(DP.length-DP0), s1=AcchPlot.scrStats ? AcchPlot.scrStats() : {hit:0, miss:0}, scrMiss=(s1.miss-s0.miss)/(DP.length-DP0), scrHit=(s1.hit-s0.hit)/(DP.length-DP0);
     window.drawPlot=od; const med=x=>x.slice().sort((p,q)=>p-q)[Math.floor(x.length/2)];
-    return {g2, groups, cols:Math.round(pv.width), gl:!!(PV_GL && PV_GL.available), draw:med(DP.slice(DP0)), drawMax:Math.max(...DP.slice(DP0)), drawP95:DP.slice(DP0).sort((a,b)=>a-b)[Math.floor(0.95*(DP.length-DP0))], fps:1000/med(an.frames)}; }
+    return {g2, groups, scrMiss, scrHit, cols:Math.round(pv.width), gl:!!(PV_GL && PV_GL.available), draw:med(DP.slice(DP0)), drawMax:Math.max(...DP.slice(DP0)), drawP95:DP.slice(DP0).sort((a,b)=>a-b)[Math.floor(0.95*(DP.length-DP0))], fps:1000/med(an.frames)}; }
   window.I6={spectrum, spectrumFor, load, g3, g12, compare, frames, animate};
 }
 module.exports={I6_SETUP};

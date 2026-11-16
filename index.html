@@ -4253,7 +4253,7 @@ function drawPlot(ctx, W, H, k, d, S, layers){   // layers (I6, solo a schermo n
                    : (x => d.invertX ? px0 + (xmax-x)/(xmax-xmin)*pw : px0 + (x-xmin)/(xmax-xmin)*pw);
     const Y = y => py0 + (hi-U(y))/((hi-lo)||1)*ph;
     const Y2 = y => py0 + (hi2-y)/((hi2-lo2)||1)*ph;
-    X.lin=!logX; Y.lin=!logY; Y2.lin=true; if (!logX){ X.key=[px0,pw,xmin,xmax,d.invertX?1:0].join('|'); X.par={o:px0, lo:xmin, hi:xmax, den:xmax-xmin, w:pw, inv:!!d.invertX}; }   // mappe lineari: monotone anche in virgola mobile, il percorso veloce dà lo stesso risultato
+    X.lin=!logX; Y.lin=!logY; Y2.lin=true; if (!logX){ X.key=[px0,pw,xmin,xmax,d.invertX?1:0].join('|'); X.par={o:px0, lo:xmin, hi:xmax, den:xmax-xmin, w:pw, inv:!!d.invertX}; X.scr=!!layers; }   // scr: a schermo (I6, griglia riusata)   // mappe lineari: monotone anche in virgola mobile, il percorso veloce dà lo stesso risultato
     G={lo,hi,lo2,hi2,yt,yt2,fy,px0,py0,pw,ph,X,Y,Y2,ylabW2};
 
     // inviluppo della curva per colonne: dove la traccia occupa spazio
@@ -4540,7 +4540,7 @@ function traceLine(ctx, s, X, Y, px0, pw, cols, invertX, lineW){   // traccia de
     // I6: con X lineare e crescente gli stessi gruppi si trovano con l'indice min/max (app/plot-index.js): stessi comandi, O(colonne·log n)
     const PI=window.AcchPlot, R=PI && X.lin && PI.ready(xs, ys);
     if (R){ const par=X.par && X.par.o===px0 && X.par.w===pw && X.par.inv===!!invertX ? X.par : null;
-      const G=PI.groupsArr(R, ys, par ? PI.linCol(xs, 0, par, cols) : (i=>Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)))), invertX, X.key==null ? null : X.key+'|'+cols+'|x'+R.gx.I.id+'@'+R.gx.off);
+      const G=(X.scr && par && PI.screenGroups && PI.screenGroups(R, xs, ys, par, cols, !!invertX)) || PI.groupsArr(R, ys, par ? PI.linCol(xs, 0, par, cols) : (i=>Math.min(cols-1, Math.max(0, Math.floor((X(xs[i])-px0)/pw*cols)))), invertX, X.key==null ? null : X.key+'|'+cols+'|x'+R.gx.I.id+'@'+R.gx.off);
       for (let j=0;j<G.m;j++){ cfirst=G.f[j]; cmin=G.mn[j]; cmax=G.mx[j]; clast=G.l[j]; flush(G.c[j]); }
       ctx.stroke(); return; }
     for (let t=0;t<n;t++){

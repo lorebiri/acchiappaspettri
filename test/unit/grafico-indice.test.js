@@ -122,3 +122,24 @@ test('linCol: la colonna calcolata dal modulo è identica a quella della funzion
       for (let j=0;j<G.m;j++){ const x=m.px0+(G.c[j]+0.5)/cols*m.pw; L.push([st?'L':'M',x,m.Y(G.f[j])]); st=true; L.push(['L',x,m.Y(G.mn[j])],['L',x,m.Y(G.mx[j])],['L',x,m.Y(G.l[j])]); }
       assert.ok(same(L, refTrace(xs, ys, m.X, m.Y, m.px0, m.pw, cols, inv)), `n=${n} inv=${inv} cols=${cols}`); } }
 });
+
+test('griglia a schermo (screenGroups): estremi di ogni pixel entro una colonna, colonne riusate spostando e ingrandendo', ()=>{
+  const n=1e6, xs=new Float64Array(n), ys=new Float64Array(n); const r=rnd(77); for (let i=0;i<n;i++){ xs[i]=400+i*3600/(n-1); ys[i]=Math.sin(i/7000)+0.1*r(); }
+  [1234, 400000, 777777].forEach((k,j)=>{ ys[k]= j===1 ? -9 : 9; });
+  for (const inv of [false,true]) for (const cols of [700, 2400]){
+    let z=[1000, 3000];
+    for (let step=0; step<12; step++){
+      const lo=Math.max(0, Math.ceil((z[0]-400)/3600*(n-1))), hi=Math.min(n-1, Math.floor((z[1]-400)/3600*(n-1)));
+      const vx=xs.subarray(lo, hi+1), vy=ys.subarray(lo, hi+1), R=P.ready(vx, vy), x0=vx[0], x1=vx[vx.length-1];
+      const par={o:5, lo:x0, hi:x1, den:x1-x0, w:150, inv}, s0=P.scrStats(), G=P.screenGroups(R, vx, vy, par, cols, inv), s1=P.scrStats();
+      assert.ok(G && G.m>cols*0.9, 'colonne: '+(G&&G.m));
+      const col=i=>Math.min(cols-1, Math.max(0, Math.floor(((par.o+(inv ? (x1-vx[i]) : (vx[i]-x0))/par.den*par.w)-par.o)/par.w*cols)));
+      const ref=new Map(); for (let i=0;i<vx.length;i++){ const c=col(i), e=ref.get(c)||[Infinity,-Infinity]; e[0]=Math.min(e[0],vy[i]); e[1]=Math.max(e[1],vy[i]); ref.set(c,e); }
+      const got=new Map(); for (let j=0;j<G.m;j++) got.set(G.c[j], [G.mn[j], G.mx[j]]);
+      const near=(c,f,k)=>{ let v=f===Math.min?Infinity:-Infinity; for (let d=-1;d<=1;d++){ const e=got.get(c+d); if (e) v=f(v,e[k]); } return v; };
+      for (const [c,e] of ref){ assert.ok(near(c,Math.min,0)<=e[0] && near(c,Math.max,1)>=e[1], `pixel ${c}: estremi persi (inv=${inv}, cols=${cols}, passo ${step})`); }
+      for (const [c,e] of got){ const rr=[Infinity,-Infinity]; for (let d=-1;d<=1;d++){ const q=ref.get(c+d); if (q){ rr[0]=Math.min(rr[0],q[0]); rr[1]=Math.max(rr[1],q[1]); } } assert.ok(e[0]>=rr[0] && e[1]<=rr[1], 'estremi inventati al pixel '+c); }
+      // dal secondo passo: spostamento del 3% o zoom del 6%, quasi tutte le colonne vengono dalla griglia
+      if (step>0 && step%4!==0) assert.ok((s1.hit-s0.hit) > 4*(s1.miss-s0.miss), `riuso: ${s1.hit-s0.hit} contro ${s1.miss-s0.miss} (passo ${step})`);
+      const w=z[1]-z[0]; z = step<6 ? [z[0]+0.03*w, z[1]+0.03*w] : [z[0]+0.03*w, z[1]-0.03*w]; } }
+});

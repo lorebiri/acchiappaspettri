@@ -43,16 +43,17 @@ test('G3: a schermo (WebGL e Canvas 2D) le cime di ogni colonna sono quelle del 
   assert.deepEqual(o.errors, []); await o.ctx.close();
 });
 
-test('G1/G2 nel browser: 20 spettri da 1M punti; primo disegno del confronto ≤ 3 s; ridisegni proporzionali alle colonne; tempi se il Mac lo permette', async t=>{
+test('G1/G2 nel browser: 20 spettri da 1M punti; primo disegno del confronto ≤ 3 s; ridisegni proporzionali alle colonne, colonne riusate', async()=>{
   const o=await desk();
   const r=await o.p.evaluate(()=>I6.g12(20, 1e6));
   console.log('I6 G1/G2 (browser): '+JSON.stringify(r)+' carico '+os.loadavg()[0].toFixed(1));
   assert.ok(r.g2<=3000, 'G2: primo disegno del confronto 20×1M in '+Math.round(r.g2)+' ms');
-  // per ridisegno: al più 2 passate per spettro (inviluppo e traccia), ciascuna con al più una colonna per pixel
-  assert.ok(r.groups<=20*2*r.cols*1.05, 'gruppi per ridisegno '+Math.round(r.groups)+' con '+r.cols+' colonne');
+  // costo contato, non cronometrato: per ridisegno al più una passata per spettro sulle colonne (per la griglia a schermo: colonne nuove
+  // al più due per pixel, e durante lo spostamento e lo zoom quasi tutte riusate). Il tempo (G1 ≥ 50 fps) non si misura qui ma con
+  // scripts/misura-grafico.js (Chrome) e scripts/misura-motore.js --grafico-g (app vera): il tempo d'orologio dipende dal carico del Mac
+  assert.ok(r.groups+r.scrMiss<=20*2*r.cols*1.05, 'colonne calcolate per ridisegno '+Math.round(r.groups+r.scrMiss)+' con '+r.cols+' pixel');
+  assert.ok(r.scrHit>r.scrMiss*4, 'colonne riusate per ridisegno: '+Math.round(r.scrHit)+' contro '+Math.round(r.scrMiss)+' nuove');
   assert.ok(r.gl, 'tracce con WebGL nel desktop');
-  if (os.loadavg()[0] > os.cpus().length){ t.diagnostic('NON VERIFICATO a tempo: Mac carico ('+os.loadavg()[0].toFixed(0)+')'); }
-  else { assert.ok(r.fps>=50, 'G1: '+r.fps.toFixed(0)+' fps'); assert.ok(r.drawP95<=50, '95° percentile dei ridisegni '+Math.round(r.drawP95)+' ms (il massimo, '+Math.round(r.drawMax)+' ms, può contenere una pausa del raccoglitore della memoria: il criterio si misura nell\'app, misura-motore --grafico-g)'); }
   assert.deepEqual(o.errors, []); await o.ctx.close();
 });
 

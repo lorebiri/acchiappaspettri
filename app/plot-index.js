@@ -124,8 +124,49 @@
     const grow=()=>{ cap*=2; const g=(A,T)=>{ const B=new T(cap); B.set(A); return B; }; c=g(c,Int32Array); f=g(f,Float64Array); mn=g(mn,Float64Array); mx=g(mx,Float64Array); l=g(l,Float64Array); ia=g(ia,Int32Array); ib=g(ib,Int32Array); };
     groups(R, ys, col, invert, (cc,ff,a,b,ll,i1,i2)=>{ if (m===cap) grow(); c[m]=cc; f[m]=ff; mn[m]=a; mx[m]=b; l[m]=ll; ia[m]=i1; ib[m]=i2; m++; });
     const e={m, c, f, mn, mx, l, ia, ib};
-    if (k!=null){ if (!M){ M=new Map(); GMEMO.set(vy, M); } M.set(k, e); if (M.size>8) M.delete(M.keys().next().value); }
+    if (k!=null){ if (!M){ M=new Map(); GMEMO.set(vy, M); } M.set(k, e); if (M.size>4) M.delete(M.keys().next().value); }
     return e; }
+
+  /* I6 (G1), solo a schermo: colonne su una griglia fissa in X. La larghezza della colonna di griglia è una potenza di 2 (in unità di X)
+     tra metà e tutta la larghezza di un pixel: ogni livello è una «piramide» di minimi e massimi per intervalli fissi di X, che non
+     dipendono dalla vista. Così spostando il grafico le colonne già calcolate si riusano (si calcolano solo quelle nuove ai bordi) e,
+     nello zoom, finché si resta nello stesso livello (un fattore 2) si riusano tutte. Ogni pixel prende le 1–2 colonne di griglia che
+     cadono in lui: il minimo e il massimo di ogni pixel sono quelli dei dati, con lo scarto di al più una colonna (G3, ≤ 1 px).
+     Le esportazioni non passano di qui: usano groupsArr, identico al ciclo su tutti i punti. */
+  const SCR=new WeakMap(); const scrStats={hit:0, miss:0};
+  const lowerB=(xs, a, b, v)=>{ while (a<b){ const m=(a+b)>>1; if (xs[m]<v) a=m+1; else b=m; } return a; };
+  function screenGroups(R, xs, ys, par, cols, invert){ const n=R.n; if (n<2 || !(cols>0)) return null;
+    const span=par.den, cwPix=span/cols; if (!(cwPix>0) || !isFinite(cwPix)) return null;
+    const L=Math.floor(Math.log2(cwPix)), cw=Math.pow(2, L); if (!(cw>0) || !isFinite(cw)) return null;
+    const I=R.gy.I, o=R.gy.off; let M=SCR.get(I); if (!M){ M=new Map(); SCR.set(I, M); }
+    const key=R.gx.I.id+':'+(R.gx.off-R.gy.off)+':'+L; let C=M.get(key);
+    // livello: finestra di CAP colonne di griglia in vettori (f, min, max, ultimo), ricentrata se la vista va oltre
+    const CAP=65536; if (!C){ C={base:0, V:new Float64Array(4*CAP), ok:new Uint8Array(CAP), last:null, lastKey:''}; M.set(key, C); if (M.size>4) M.delete(M.keys().next().value); }
+    const x0=xs[0], x1=xs[n-1], ga=Math.floor(x0/cw), gb=Math.floor(x1/cw), out=[0,0];
+    if (gb-ga>8*cols+16 || gb-ga>=CAP/2) return null;   // vista molto più larga del previsto: calcolo normale
+    // stessa vista nello stesso fotogramma (inviluppo e traccia): stesso risultato
+    const fk=x0+'|'+x1+'|'+n+'|'+o+'|'+par.o+'|'+par.lo+'|'+par.hi+'|'+par.w+'|'+(par.inv?1:0)+'|'+cols+'|'+(invert?1:0);
+    if (C.lastKey===fk) return C.last;
+    if (ga<C.base || gb>=C.base+CAP){ C.base=ga-((CAP-(gb-ga))>>1); C.ok.fill(0); }
+    const V=C.V, ok=C.ok, base=C.base, m0=cols+4;
+    const G={m:0, c:new Int32Array(m0), f:new Float64Array(m0), mn:new Float64Array(m0), mx:new Float64Array(m0), l:new Float64Array(m0)};
+    const k0=par.inv ? par.hi : par.lo, sg=par.inv ? -1 : 1, kx=cols/par.den;   // pixel della colonna di griglia: floor((x−lo)/den·cols), con il verso
+    let p0=-1, f=0, mn=0, mx=0, l=0, hit=0, miss=0;
+    const step=invert ? -1 : 1, g0=invert ? gb : ga, g1=invert ? ga : gb;
+    for (let g=g0;; g+=step){ const k=g-base, edge=(g===ga || g===gb); let has=false;
+      if (!edge && ok[k]) { has=true; hit++; }
+      else { miss++; const a=lowerB(xs, 0, n, g*cw), b=lowerB(xs, a, n, (g+1)*cw)-1;
+        if (a<=b){ mm(I, o+a, o+b, out); V[4*k]=ys[a]; V[4*k+1]=out[0]; V[4*k+2]=out[1]; V[4*k+3]=ys[b]; has=true; if (!edge) ok[k]=1; }
+        else if (!edge){ ok[k]=1; V[4*k+1]=NaN; } }
+      if (has && V[4*k+1]===V[4*k+1]){ let xg=(g+0.5)*cw; if (xg<x0) xg=x0; if (xg>x1) xg=x1;
+        let p=Math.floor(sg*(xg-k0)*kx); if (p<0) p=0; if (p>cols-1) p=cols-1;
+        const vf=invert ? V[4*k+3] : V[4*k], vl=invert ? V[4*k] : V[4*k+3], a1=V[4*k+1], a2=V[4*k+2];
+        if (p!==p0){ if (p0>=0){ const j=G.m++; G.c[j]=p0; G.f[j]=f; G.mn[j]=mn; G.mx[j]=mx; G.l[j]=l; } p0=p; f=vf; mn=a1; mx=a2; l=vl; }
+        else { if (a1<mn) mn=a1; if (a2>mx) mx=a2; l=vl; } }
+      if (g===g1) break; }
+    if (p0>=0){ const j=G.m++; G.c[j]=p0; G.f[j]=f; G.mn[j]=mn; G.mx[j]=mx; G.l[j]=l; }
+    scrStats.hit+=hit; scrStats.miss+=miss; C.last=G; C.lastKey=fk;
+    return G; }
 
   /* inviluppo di drawPlot (addEnv): stesso risultato del ciclo su tutti i punti. X e YY lineari; colOf(x) la colonna di un X già mappato */
   function envelope(R, xs, ys, X, YY, px0, pw, py0, ph, colOf, eT, eB, invert, nc){ const n=R.n;
@@ -143,7 +184,7 @@
     const key = iA===0 && iB===n-1 && X.key!=null && nc ? X.key+'|'+nc : null;
     const all=iA===0 && iB===n-1, ysub=all ? ys : (ys.subarray ? ys.subarray(iA, iB+1) : ys.slice(iA, iB+1));
     const par=X.par && X.par.o===px0 && X.par.w===pw ? X.par : null;
-    const G=groupsArr(all ? R : sub, ysub, par ? linCol(xs, iA, par, nc) : (k=>colOf(X(xs[iA+k]))), invert, key==null ? null : key+'|x'+R.gx.I.id+'@'+R.gx.off);
+    const G=(X.scr && par && all && screenGroups(R, xs, ys, par, nc, invert)) || groupsArr(all ? R : sub, ysub, par ? linCol(xs, iA, par, nc) : (k=>colOf(X(xs[iA+k]))), invert, key==null ? null : key+'|x'+R.gx.I.id+'@'+R.gx.off);
     for (let j=0;j<G.m;j++){ const c=G.c[j];
       const yf=clampY(G.f[j]), yl=clampY(G.l[j]), y1=clampY(G.mn[j]), y2=clampY(G.mx[j]);
       if (pc>=0){ const a=Math.min(c,pc), b=Math.max(c,pc); put(a, b, Math.min(yf,pyv), Math.max(yf,pyv)); }
@@ -169,5 +210,5 @@
       if (++k<24) setTimeout(step, 4); };
     setTimeout(step, 0); }
 
-  return { get, has, ready, warmup, linCol, sortedX, span, groups, groupsArr, envelope, stats, mm, info:()=>Object.assign({}, stats0), MIN_N };
+  return { get, has, ready, warmup, linCol, screenGroups, scrStats:()=>Object.assign({}, scrStats), sortedX, span, groups, groupsArr, envelope, stats, mm, info:()=>Object.assign({}, stats0), MIN_N };
 });
