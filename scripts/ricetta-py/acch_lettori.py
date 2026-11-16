@@ -1290,7 +1290,7 @@ def parse_text0(text, opt=None):
     if ts:
         return ts
     if sorp_may_match(text):
-        raise NonTrascritto('lettore delle isoterme e del chemisorbimento (sorpParse, app/sorption-core.js) non trascritto: il file potrebbe esserlo')
+        raise NonTrascritto(tt('lettore delle isoterme e del chemisorbimento (sorpParse, app/sorption-core.js) non trascritto: il file potrebbe esserlo', 'reader of isotherms and chemisorption (sorpParse, app/sorption-core.js) not transcribed: the file may be one'))
     nc = parse_named_columns(text)
     if nc:
         th = parse_thermal(nc)
@@ -1701,12 +1701,12 @@ def parse_opus(buf):
         P = params(pb)
         np_, fx, lx = P.get('NPT'), P.get('FXV'), P.get('LXV')
         if any(isinstance(v, str) for v in (np_, fx, lx, P.get('CSF'))):
-            raise NonTrascritto('OPUS con NPT, FXV, LXV o CSF scritti come testo: JavaScript li convertirebbe in modo non trascritto')
+            raise NonTrascritto(tt('OPUS con NPT, FXV, LXV o CSF scritti come testo: JavaScript li convertirebbe in modo non trascritto', 'OPUS with NPT, FXV, LXV or CSF written as text: JavaScript would convert them in a way not transcribed'))
         csf = 1 if P.get('CSF') is None else js_or1(P['CSF'])
         if not (np_ is not None and np_ > 10) or not fin_n(fx) or not fin_n(lx) or d['off'] + 4 * np_ > n:
             continue
         if np_ != int(np_):
-            raise NonTrascritto('OPUS con NPT non intero non trascritto')
+            raise NonTrascritto(tt('OPUS con NPT non intero non trascritto', 'OPUS with non-integer NPT not transcribed'))
         np_ = int(np_)
         xs, ys = [0.0] * np_, [0.0] * np_
         for i in range(np_):
@@ -1739,9 +1739,9 @@ def parse_bytes(raw, nome, opt=None):
     raw: bytes del file; nome: nome del file (serve l'estensione). Restituisce il dict dell'app."""
     raw = bytes(raw)
     if jt(r'\.xlsx$', nome, 'i'):
-        raise NonTrascritto('cartelle di Excel (.xlsx): l\'app le legge con xlsxParse e SorpCore (solo isoterme e chemisorbimento), non trascritto')
+        raise NonTrascritto(tt('cartelle di Excel (.xlsx): l\'app le legge con xlsxParse e SorpCore (solo isoterme e chemisorbimento), non trascritto', 'Excel workbooks (.xlsx): the app reads them with xlsxParse and SorpCore (isotherms and chemisorption only), not transcribed'))
     if jt(r'\.opju?$', nome, 'i'):
-        raise NonTrascritto('progetti Origin (.opj, .opju): l\'app li legge con app/origin-core.js, non trascritto')
+        raise NonTrascritto(tt('progetti Origin (.opj, .opju): l\'app li legge con app/origin-core.js, non trascritto', 'Origin projects (.opj, .opju): the app reads them with app/origin-core.js, not transcribed'))
     p = parse_binary(raw, nome)
     if p is None:
         p = parse_text(decode_buffer(raw), opt)

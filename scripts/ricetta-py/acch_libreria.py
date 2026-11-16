@@ -34,7 +34,7 @@ def js_isfinite(v):
         return True
     if isinstance(v, (int, float)):
         return math.isfinite(v)
-    raise NonTrascritto('isFinite non trascritto: valore di tipo ' + type(v).__name__)
+    raise NonTrascritto(tt('isFinite non trascritto: valore di tipo ', 'isFinite not transcribed: value of type ') + type(v).__name__)
 
 
 def js_num0(v):
@@ -50,7 +50,7 @@ def js_gt0(v):
         return v
     if isinstance(v, (int, float)):
         return v > 0
-    raise NonTrascritto('confronto > 0 non trascritto: valore di tipo ' + type(v).__name__)
+    raise NonTrascritto(tt('confronto > 0 non trascritto: valore di tipo ', 'comparison > 0 not transcribed: value of type ') + type(v).__name__)
 
 
 def js_sqrt(v):
@@ -127,7 +127,7 @@ def js_json(v):
         return '[' + ','.join(js_json(x) for x in v) + ']'
     if isinstance(v, dict):
         return '{' + ','.join(json.dumps(k, ensure_ascii=False) + ':' + js_json(x) for k, x in v.items()) + '}'
-    raise NonTrascritto('JSON.stringify non trascritto per ' + type(v).__name__)
+    raise NonTrascritto(tt('JSON.stringify non trascritto per ', 'JSON.stringify not transcribed for ') + type(v).__name__)
 
 
 def js_sum(vals):
@@ -169,7 +169,7 @@ def js_date_parse_day(s):
         return NAN
     m = RE_ISO_DAY.fullmatch(s)
     if not m:
-        raise NonTrascritto('Date.parse non trascritto per «' + s + '»: solo le date aaaa-mm-gg')
+        raise NonTrascritto(tt('Date.parse non trascritto per «', 'Date.parse not transcribed for «') + s + tt('»: solo le date aaaa-mm-gg', '»: only yyyy-mm-dd dates'))
     y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
     if not (1 <= mo <= 12) or not (1 <= d <= 31):
         return NAN
@@ -358,7 +358,7 @@ def sc_quantify(o):
     thr.update(lib.get('thresholds') or {})
     today = o.get('today')
     if not js_truthy(today):
-        raise NonTrascritto('quantify senza «today»: la data di oggi va passata')
+        raise NonTrascritto(tt('quantify senza «today»: la data di oggi va passata', 'quantify without «today»: today\'s date must be given'))
     age = sc_days(cal.get('date'), today) if (js_truthy(cal) and js_truthy(cal.get('date'))) else None
     rem = js_or(lib.get('reminderDays'), 180.0)
     prov = {'library': js_or(lib.get('name'), ''), 'libraryId': js_or(lib.get('id'), ''), 'revision': js_or(lib.get('revision'), None),
@@ -855,7 +855,7 @@ def parse_channel(c, tab):
         c = ' '.join(x for x in parts if x)
     t = js_String(c)
     if t not in tab:
-        raise NonTrascritto('parseChannel non trascritto: il testo del canale «' + t + '» non è nella tabella input["channels"] (lookbehind variabili di channels-core.js)')
+        raise NonTrascritto(tt('parseChannel non trascritto: il testo del canale «', 'parseChannel not transcribed: the channel text «') + t + tt('» non è nella tabella input["channels"] (lookbehind variabili di channels-core.js)', '» is not in the input["channels"] table (variable lookbehinds of channels-core.js)'))
     return tab[t]
 
 
@@ -875,7 +875,7 @@ def to_js_number(v):
         except ValueError:
             pass
         return NAN
-    raise NonTrascritto('conversione in numero non trascritta per ' + type(v).__name__)
+    raise NonTrascritto(tt('conversione in numero non trascritta per ', 'conversion to number not transcribed for ') + type(v).__name__)
 
 
 def channel_text(c, tab):
@@ -1046,7 +1046,7 @@ def app_area_unit(f):
         return f['area_unit_app']
     P = f.get('proc')
     if not P:
-        raise NonTrascritto('appAreaUnit: mancano proc.kind o area_unit_app per «' + js_String(f.get('name')) + '»')
+        raise NonTrascritto(tt('appAreaUnit: mancano proc.kind o area_unit_app per «', 'appAreaUnit: proc.kind or area_unit_app missing for «') + js_String(f.get('name')) + '»')
     yu = {'A': 'A', 'mAU': 'mAU', 'I': 'counts'}.get(P.get('kind')) or 'u'
     xu = X_PDF.get(f.get('instr')) or 'x'
     return yu + '·' + xu
@@ -1073,13 +1073,13 @@ def response_of(g, e, at):
     if P is None:
         R = g.get('responses')
         if R is None or e['id'] not in R:
-            raise NonTrascritto('responseOf: mancano proc o responses[' + js_String(e.get('id')) + '] per «' + js_String(g.get('name')) + '»')
+            raise NonTrascritto(tt('responseOf: mancano proc o responses[', 'responseOf: proc or responses[') + js_String(e.get('id')) + tt('] per «', '] missing for «') + js_String(g.get('name')) + '»')
         return R[e['id']]
     xs, ys = P.get('xs'), P.get('ys')
     if not xs or len(xs) < 9:
         return None
     if any(v is None for v in xs) or any(v is None for v in ys):
-        raise NonTrascritto('responseOf: dati elaborati con valori non finiti (null nel JSON)')
+        raise NonTrascritto(tt('responseOf: dati elaborati con valori non finiti (null nel JSON)', 'responseOf: processed data with non-finite values (null in the JSON)'))
     cal = e.get('cal')
     meas_h = js_truthy(cal) and cal.get('measure') == 'height'
     integ = e.get('integration')
@@ -1099,7 +1099,7 @@ def response_of(g, e, at):
 def day_compare(ctx, f, e, fac):
     # library-ui.js dayCompare: retta del giorno di «Più campioni» sulla stessa banda contro la pendenza salvata
     if f.get('instr') not in ctx.day_line:
-        raise NonTrascritto('dayCompare: manca input["day_line"]["' + js_String(f.get('instr')) + '"] (mvCfg e mvCalib dell\'app)')
+        raise NonTrascritto(tt('dayCompare: manca input["day_line"]["', 'dayCompare: input["day_line"]["') + js_String(f.get('instr')) + tt('"] (mvCfg e mvCalib dell\'app)', '"] missing (mvCfg and mvCalib of the app)'))
     dl = ctx.day_line[f['instr']]
     if not dl:
         return {'none': True}
@@ -1136,7 +1136,7 @@ def quant_rows(ctx, f):
     if not js_truthy(lid):
         return {'rows': []}
     if lid not in ctx.libs:
-        raise NonTrascritto('quantRows: la libreria «' + js_String(lid) + '» non è in input["libraries"]')
+        raise NonTrascritto(tt('quantRows: la libreria «', 'quantRows: the library «') + js_String(lid) + tt('» non è in input["libraries"]', '» is not in input["libraries"]'))
     lib = ctx.libs[lid]
     rec = f.get('rec') or {}
     ins_f = clean_instrument(f.get('instrument'))
@@ -1245,7 +1245,7 @@ def csv_rows(ctx, R):
         cal = e['cal']
         ok = bool(r.get('ok'))
         if 'title' not in f:
-            raise NonTrascritto('csvRows: manca «title» (dispTitle) per «' + js_String(f.get('name')) + '»')
+            raise NonTrascritto(tt('csvRows: manca «title» (dispTitle) per «', 'csvRows: «title» (dispTitle) missing for «') + js_String(f.get('name')) + '»')
         if cal.get('source') == 'letteratura':
             src = e.get('source')
             fonte = js_or(js_or(src.get('doi'), src.get('citation')) if js_truthy(src) else None, ctx.TD('letteratura', 'literature'))

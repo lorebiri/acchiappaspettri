@@ -293,7 +293,7 @@ def apply_xform(xs, ys, ops):
             c = o['k']
             xs = [v * c for v in xs]
         else:
-            raise NonTrascritto('trasformazione dell\'asse sconosciuta: ' + k)
+            raise NonTrascritto(tt('trasformazione dell\'asse sconosciuta: ', 'unknown axis transformation: ') + k)
     return xs, ys
 
 
@@ -305,10 +305,10 @@ def read_text_lines(raw, lettura):
     for a, cnt in lettura['righe']:
         for i in range(a, a + cnt):
             if i >= len(lines):
-                raise LetturaDiversa('il file ha meno righe di quello del progetto')
+                raise LetturaDiversa(tt('il file ha meno righe di quello del progetto', 'the file has fewer lines than the one of the project'))
             p = parse_line(js_trim(lines[i]), yc)
             if p is None:
-                raise LetturaDiversa('riga %d non leggibile come nel progetto' % (i + 1))
+                raise LetturaDiversa(tt('riga %d non leggibile come nel progetto', 'line %d cannot be read as in the project') % (i + 1))
             xs.append(p[0])
             ys.append(p[1])
     xs, ys = sort_pairs(xs, ys)

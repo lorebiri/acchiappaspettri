@@ -323,7 +323,7 @@ def _rem_pio2(x, F):
         y0 = z + pio2_2t
         return -1, y0, (z - y0) + pio2_2t
     if ix > 0x413921fb:
-        raise NonTrascritto('seno e coseno di argomenti oltre 2^19·π/2 non trascritti')
+        raise NonTrascritto(tt('seno e coseno di argomenti oltre 2^19·π/2 non trascritti', 'sine and cosine of arguments beyond 2^19·π/2 not transcribed'))
     t = abs(x)
     n = int(F(t, 6.36619772367581382433e-01, 0.5))
     fn = float(n)
@@ -610,7 +610,7 @@ def _m_libm_hypot(a, b):
             lm.hypot.argtypes = [ctypes.c_double, ctypes.c_double]
             _M_LIBM[0] = lm.hypot
         except Exception:
-            raise NonTrascritto('Math.hypot di JavaScriptCore non trascritto: la hypot della libm non si carica')
+            raise NonTrascritto(tt('Math.hypot di JavaScriptCore non trascritto: la hypot della libm non si carica', 'Math.hypot of JavaScriptCore not transcribed: the libm hypot cannot be loaded'))
     return _M_LIBM[0](a, b)
 
 
@@ -620,7 +620,7 @@ def m_hypot(*a):
     if MOTORE[0] == 'jsc':
         if len(a) == 2:
             return _m_libm_hypot(a[0], a[1])
-        raise NonTrascritto('Math.hypot di JavaScriptCore con %d argomenti non trascritto' % len(a))
+        raise NonTrascritto(tt('Math.hypot di JavaScriptCore con %d argomenti non trascritto', 'Math.hypot of JavaScriptCore with %d arguments not transcribed') % len(a))
     if not a:
         return 0.0
     vals = []
@@ -689,7 +689,7 @@ def imposta_motore(sonda):
     val = sonda.get('valori') if isinstance(sonda, dict) else sonda
     X = sonda_x()
     if not isinstance(val, list) or len(val) != len(X):
-        raise NonTrascritto('sonda del motore JavaScript mancante o di formato sconosciuto')
+        raise NonTrascritto(tt('sonda del motore JavaScript mancante o di formato sconosciuto', 'probe of the JavaScript engine missing or of unknown format'))
     vecchio = MOTORE[0]
     for nome in ('v8-fma', 'v8', 'jsc', 'v8-llvm'):
         MOTORE[0] = nome
@@ -699,5 +699,7 @@ def imposta_motore(sonda):
         except NonTrascritto:
             pass
     MOTORE[0] = vecchio
-    raise NonTrascritto('Math.exp/log/sin/cos/pow/hypot del motore JavaScript che ha esportato non coincidono con nessuno dei '
-                        'motori trascritti (V8 con e senza FMA, JavaScriptCore con la libm di questa macchina)')
+    raise NonTrascritto(tt('Math.exp/log/sin/cos/pow/hypot del motore JavaScript che ha esportato non coincidono con nessuno dei '
+                           'motori trascritti (V8 con e senza FMA, V8 con la libc di LLVM, JavaScriptCore con la libm di questa macchina)',
+                           'Math.exp/log/sin/cos/pow/hypot of the JavaScript engine that exported do not match any of the transcribed '
+                           'engines (V8 with and without FMA, V8 with the LLVM libc, JavaScriptCore with the libm of this machine)'))

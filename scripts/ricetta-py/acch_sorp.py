@@ -1211,7 +1211,7 @@ def ch_tpx(o):
     e = int(e)
     ix = list(range(e)) + [n - 1 - k for k in range(e)]
     if max(ix) >= n or min(ix) < 0:
-        raise NonTrascritto('TPx con finestre più lunghe della curva non trascritto: in JS gli indici fuori dànno undefined')
+        raise NonTrascritto(tt('TPx con finestre più lunghe della curva non trascritto: in JS gli indici fuori dànno undefined', 'TPx with windows longer than the curve not transcribed: in JS out-of-range indices give undefined'))
     xv = t if t else T
     L = sp_linfit([xv[i] for i in ix], [s[i] for i in ix])
 

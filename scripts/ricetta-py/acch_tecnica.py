@@ -1344,7 +1344,7 @@ def carica_costanti(c):
 
 def _cst(k):
     if k not in COSTANTI_XRF:
-        raise NonTrascritto('tabella %s non fornita: serve il JSON delle costanti dell\'app (COSTANTI_XRF)' % k)
+        raise NonTrascritto(tt('tabella %s non fornita: serve il JSON delle costanti dell\'app (COSTANTI_XRF)', 'table %s not given: the JSON of the app constants is needed (COSTANTI_XRF)') % k)
     return COSTANTI_XRF[k]
 
 
@@ -1951,7 +1951,7 @@ def xrf_quant_fit(stds, els, model):
             c = solve_lin(A, v)
             return {'c': c, 'kind': kind} if c else None
         if not S:
-            raise NonTrascritto('xrfQuantFit con nessuno standard utile per %s: nell\'app X[0] è indefinito e il calcolo si ferma con un errore' % el)
+            raise NonTrascritto(tt('xrfQuantFit con nessuno standard utile per %s: nell\'app X[0] è indefinito e il calcolo si ferma con un errore', 'xrfQuantFit with no usable standard for %s: in the app X[0] is undefined and the calculation stops with an error') % el)
         kind = want
         F = fit_with(S, kind)
         if not F and kind == 'ltp':
@@ -1993,7 +1993,7 @@ def xq_model(cfg, lista):
     if not els:
         return None
     if cfg.get('qModel') == 'fp':
-        raise NonTrascritto('composizione XRF con i parametri fondamentali non trascritta: xqModelFP usa xrfFP, fpQuant e fpCalibrate (index.html), vedi composizione_xrf_parametri_fondamentali')
+        raise NonTrascritto(tt('composizione XRF con i parametri fondamentali non trascritta: xqModelFP usa xrfFP, fpQuant e fpCalibrate (index.html), vedi composizione_xrf_parametri_fondamentali', 'XRF composition with fundamental parameters not transcribed: xqModelFP uses xrfFP, fpQuant and fpCalibrate (index.html), see xrf_fundamental_parameters'))
     rows = []
     for v in lista:
         P = v['P']
@@ -2051,8 +2051,8 @@ def composizione_xrf_csv(cfg, lista, ctx):
 # el: A, ed, t, sc, ln, fam), FP_MATS, XRF_LINES, XRF_TUBES, XRF_LN_GR. Il calcolo usa Math.exp/Math.log su ogni sezione d'urto e un fit
 # non lineare delle righe (xrfFitLines): come per arPLS l'ultima cifra di Math.exp di V8 non coincide con la libm di Python.
 def composizione_fp_csv(lista, ctx):
-    raise NonTrascritto('composizione_xrf_parametri_fondamentali.csv non trascritta: fpCsvRows/fpRun/xrfFP/fpQuant/fpCalibrate (index.html, circa 580 righe e 71 KB) restano da trascrivere')
+    raise NonTrascritto(tt('composizione_xrf_parametri_fondamentali.csv non trascritta: fpCsvRows/fpRun/xrfFP/fpQuant/fpCalibrate (index.html, circa 580 righe e 71 KB) restano da trascrivere', 'xrf_fundamental_parameters.csv not transcribed: fpCsvRows/fpRun/xrfFP/fpQuant/fpCalibrate (index.html, about 580 lines and 71 KB) remain to be transcribed'))
 
 
 def spessore_strati_csv(lista, ctx):
-    raise NonTrascritto('spessore_strati_xrf.csv non trascritta: fpLayerCfg/fpLayerPairs/fpLayerRun/fpLayerSolve (index.html) dipendono dai parametri fondamentali non trascritti')
+    raise NonTrascritto(tt('spessore_strati_xrf.csv non trascritta: fpLayerCfg/fpLayerPairs/fpLayerRun/fpLayerSolve (index.html) dipendono dai parametri fondamentali non trascritti', 'xrf_layer_thickness.csv not transcribed: fpLayerCfg/fpLayerPairs/fpLayerRun/fpLayerSolve (index.html) depend on the fundamental parameters, not transcribed'))

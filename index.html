@@ -1135,7 +1135,7 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
       <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="orig" spellcheck="false" autocomplete="off"></div><small class="opt-l" id="origNote" hidden></small></div>
     </div>
     <div class="outcard" data-out="outPy">
-      <label class="ohead"><input type="checkbox" data-k="outPy"><span class="oico">🐍</span><span><b>Script Python della ricetta</b><small>un file .py che rifà lettura, elaborazioni, picchi, aree e tarature con gli stessi numeri dell'app, con i file che legge; licenza GPL-3.0-or-later</small></span></label>
+      <label class="ohead"><input type="checkbox" data-k="outPy"><span class="oico">🐍</span><span><b>Script Python della ricetta</b><small>un file .py che rifà lettura, elaborazioni, picchi, aree, tarature e tabelle di analisi con gli stessi numeri dell'app, con i file che legge; licenza GPL-3.0-or-later</small></span></label>
       <div class="obody"><div class="field oname"><label>Cartella</label><input type="text" data-nm="py" spellcheck="false" autocomplete="off"></div><small class="opt-l">Si esegue con <code data-noi18n>python3 ricetta.py</code> (Python 3.10 o successivo, nessuna libreria da installare) e dice se i risultati sono identici a quelli dell'app.</small>
         <details class="pyprev" id="pyPrev"><summary>Anteprima commentata dello script</summary><div id="pyPrevBody"></div></details></div>
     </div>
@@ -7318,10 +7318,12 @@ async function renderPyPreview(){
   for (const sp of r.spettri){ const st=[], e=sp.elab;
     if (e.spike) st.push('raggi cosmici'); if (PY_STEP.conv[e.conv]) st.push(PY_STEP.conv[e.conv]); if (e.sub_rif!=null) st.push('sottrazione di un riferimento'); if (e.xr) st.push('zona stampata');
     if (e.smooth) st.push(`Savitzky–Golay a ${e.smooth} punti`); if (PY_STEP.base[e.base]) st.push(PY_STEP.base[e.base]); if (e.deriv) st.push(e.deriv===2?'derivata seconda':'derivata prima');
-    li.push(`<li><b data-noi18n>${esc(sp.nome)}</b> · <span>${sp.lettura.modo==='testo'?'riletto dal file di testo':'letto dal CSV dei dati letti'}</span>${st.length?' · <span>'+st.join(', ')+'</span>':' · <span>nessuna elaborazione</span>'}${sp.incluso?'':' · <span>serve solo come riferimento o per la taratura</span>'}</li>`); }
+    li.push(`<li><b data-noi18n>${esc(sp.nome)}</b> · <span>${sp.lettura.modo==='testo'?'riletto dal file di testo':sp.lettura.modo==='byte'?'letto dal file originale con il lettore dell\'app':sp.lettura.estensione?'letto dal CSV dei dati letti (estensione)':'letto dal CSV dei dati letti'}</span>${st.length?' · <span>'+st.join(', ')+'</span>':' · <span>nessuna elaborazione</span>'}${sp.incluso?'':' · <span>serve solo come riferimento o per la taratura</span>'}</li>`); }
   const out=[`<p class="why"><b>Che cosa legge e che cosa rifà</b></p><ul class="pyprev-l">${li.join('')}</ul>`];
-  const tabs=[r.filePicchi].concat(r.spettri.filter(s=>s.fileDati).map(s=>s.fileDati), (r.tarature||[]).map(t=>t.file), (r.fisisorbimento||[]).map(t=>t.uscita), Object.keys(r.attesi||{}).filter(p=>!/^(dati|data|processed)/.test(p)));
+  const tabs=[r.filePicchi].concat(r.spettri.filter(s=>s.fileDati).map(s=>s.fileDati), (r.tarature||[]).map(t=>t.file), Object.keys(r.attesi||{}));
   out.push(`<p class="why"><b>File che scrive</b> <span>(${new Set(tabs).size}), confrontati con quelli dell'app</span></p>`);
+  { const dir=(r.analisi&&r.analisi.dir)||'', an=Object.keys(r.attesi||{}).filter(p=>dir && p.startsWith(dir)).map(p=>p.slice(dir.length));
+    if (an.length) out.push(`<p class="why"><b>Tabelle di analisi rifatte</b> <span>(dati elaborati, picchi e controlli ricalcolati dallo script)</span></p><ul class="pyprev-l">${an.map(x=>`<li data-noi18n>${esc(x)}</li>`).join('')}</ul>`); }
   if (r.nonTrascritte.length) out.push(`<p class="why"><b>Non trascritte</b>: <span>lo script le segnala con un errore, senza approssimarle</span></p><ul class="pyprev-l">${r.nonTrascritte.map(x=>`<li data-noi18n>${esc(x)}</li>`).join('')}</ul>`);
   out.push(`<p class="why"><b>Intestazione dello script</b></p><pre class="pyprev-t" data-noi18n>${esc(R.script.split('\n# Parametri della ricetta')[0])}</pre>`);
   box.innerHTML=out.join('');

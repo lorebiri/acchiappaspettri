@@ -947,7 +947,7 @@ def mc_als(D, opt):
     if nc > min(m, n):
         raise ErrApp('troppe componenti per le dimensioni dei dati')
     if o['pymcr']:
-        raise NonTrascritto('MCR-ALS con pymcr non trascritto: l\'app non lo usa nelle esportazioni')
+        raise NonTrascritto(tt('MCR-ALS con pymcr non trascritto: l\'app non lo usa nelle esportazioni', 'MCR-ALS with pymcr not transcribed: the app does not use it in exports'))
     known = {}
     kn_in = (opt or {}).get('known') or {}
     for kk in sorted(kn_in.keys(), key=lambda s: int(s)):
@@ -957,7 +957,7 @@ def mc_als(D, opt):
             known[c] = [float(x) for x in v]
     nKnown = len(known)
     if (opt or {}).get('S0') is not None or (opt or {}).get('C0') is not None:
-        raise NonTrascritto('MCR-ALS con partenza data (S0/C0) non trascritto: l\'app non la salva nel progetto')
+        raise NonTrascritto(tt('MCR-ALS con partenza data (S0/C0) non trascritto: l\'app non la salva nel progetto', 'MCR-ALS with a given start (S0/C0) not transcribed: the app does not save it in the project'))
     S = None
     C = None
     sv = None

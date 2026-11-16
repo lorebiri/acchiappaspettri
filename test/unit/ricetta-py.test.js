@@ -37,7 +37,7 @@ test('intestazione: GPL-3.0-or-later, titolare, versione, data, impronte; letter
   const s=R.script(ric), head=s.split('RICETTA =')[0];
   assert.match(head, /^#!\/usr\/bin\/env python3\n/); assert.match(head, /SPDX-License-Identifier: GPL-3\.0-or-later/); assert.match(head, /Copyright \(C\) 2026 Lorenzo Birindelli/);
   assert.match(head, /Acchiappaspettri 3\.0\.0, il 2026-11-14/); assert.match(head, /a\.csv  (ab){32}  \(rilettura del file di testo\)/); assert.match(head, /c\.spa  (cd){32}  \(CSV dei dati letti/);
-  assert.match(head, /Parti del progetto non trascritte[^\n]*\n#   - deconvoluzione\.csv/); assert.match(head, /formati binari/);
+  assert.match(head, /Parti del progetto non trascritte[^\n]*\n#   - deconvoluzione\.csv/); assert.match(head, /lettore trascritto non ricostruisce identici/);
   assert.ok(!s.includes("r'''\n{") || !JSON.stringify(ric).includes("'''"), 'con apici tripli serve la stringa JSON');
   const en=R.script(Object.assign({}, ric, {lingua:'en'})); assert.match(en, /Recipe exported from Acchiappaspettri 3\.0\.0, on 2026-11-14/); assert.match(en, /check: identical/);
   if (!PY) return console.log('# python3 ≥ 3.10 non trovato: rilettura del letterale SALTATA');

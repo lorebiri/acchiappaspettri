@@ -1200,7 +1200,7 @@ def ref_matches(s, refs, cache=None):
         sd = ref_score_deriv(xs, ys, kk, r)
         out.append({'r': r0, 's': sc, 'sd': sd, 'c': (sc + sd) / 2 if sd is not None else sc})
     if any(o['c'] != o['c'] for o in out):
-        raise NonTrascritto('ordinamento dei riferimenti con un punteggio NaN non trascritto')
+        raise NonTrascritto(tt('ordinamento dei riferimenti con un punteggio NaN non trascritto', 'sorting of the references with a NaN score not transcribed'))
     return sorted(out, key=lambda o: -o['c'])
 
 
@@ -1370,7 +1370,7 @@ def chemometria_files(ch, ric, spettri, loaded, results, raw=None):
 
     def need(k):
         if results[k] is None:
-            raise NonTrascritto('%s: spettro non elaborato' % spettri[k]['nome'])
+            raise NonTrascritto(tt('%s: spettro non elaborato', '%s: spectrum not processed') % spettri[k]['nome'])
         return results[k]
 
     def mv_list(ids):
@@ -1395,12 +1395,12 @@ def chemometria_files(ch, ric, spettri, loaded, results, raw=None):
             src = cfg['copiaDa']
             F = fit_rifai(need(src['i']), seeds_of(src['i'], dict(src['fit'])))
             if not F:
-                raise NonTrascritto('%s: il fit di partenza della deconvoluzione non converge nello script' % spettri[src['i']]['nome'])
+                raise NonTrascritto(tt('%s: il fit di partenza della deconvoluzione non converge nello script', '%s: the starting deconvolution fit does not converge in the script') % spettri[src['i']]['nome'])
             cfg['semiFissi'] = [{'x': q['c'], 'w': q['w']} for q in F['peaks']]
             cfg['range'] = F['range']
         fit = fit_rifai(need(k), seeds_of(k, cfg))
         if not fit:
-            raise NonTrascritto('%s: il fit della deconvoluzione non converge nello script' % spettri[k]['nome'])
+            raise NonTrascritto(tt('%s: il fit della deconvoluzione non converge nello script', '%s: the deconvolution fit does not converge in the script') % spettri[k]['nome'])
         items.append({'nome': spettri[k]['nome'], 'titolo': spettri[k]['titolo'], 'nomeTecnica': d['nomeTecnica'], 'fit': fit})
         raw.setdefault('fit', []).append(fit)
     fr = fit_csv_rows(items, dec)

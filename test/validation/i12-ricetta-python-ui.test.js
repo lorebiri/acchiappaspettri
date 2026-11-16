@@ -181,19 +181,41 @@ describe('R15 · ricetta Python: stessi CSV dell\'app', {timeout:40*60*1000}, ()
     fs.writeFileSync(p, Buffer.concat([b, Buffer.from('\n')]));
     try{ const r=runPy(dir); assert.strictEqual(r.code, 2, r.out); assert.match(r.out, /non è quello del progetto/); } finally { fs.writeFileSync(p, b); }
   });
-  it('file nuovi con --file: impostazioni per tecnica applicate, CSV scritti solo nella cartella di uscita', {skip:!PY}, async ()=>{
+  it('file nuovi con --file (lettore completo): testo e .ch di Agilent, impostazioni per tecnica applicate, CSV scritti solo nella cartella di uscita', {skip:!PY}, async ()=>{
     const dir=path.join(TMP,'ftir'), nuovo=path.join(TMP,'nuovo.csv'), out=path.join(TMP,'uscita_nuovi'); fs.writeFileSync(nuovo, ftirA(30));
     const r=runPy(dir, ['--file', nuovo, '--tecnica', 'ftir', '--uscita', out]); assert.strictEqual(r.code, 0, r.out);
     const w=[]; (function walk(d){ for (const n of fs.readdirSync(d)){ const q=path.join(d,n); if (fs.statSync(q).isDirectory()) walk(q); else w.push(path.relative(out,q)); } })(out);
     assert.deepStrictEqual(w.sort(), ['dati_elaborati/nuovo.csv', 'elenco_picchi.csv']); assert.match(fs.readFileSync(path.join(out,'elenco_picchi.csv'),'utf8'), /nuovo\.csv;nuovo\.csv;FTIR/);
+    const ch=path.join(B.ROOT,'test','fixtures','canali','STD2.D','DAD1A.ch'), out2=path.join(TMP,'uscita_ch'), r2=runPy(path.join(TMP,'hplc'), ['--file', ch, '--tecnica', 'hplc', '--uscita', out2]);
+    assert.strictEqual(r2.code, 0, r2.out); assert.ok(fs.existsSync(path.join(out2,'dati_elaborati','DAD1A.csv')), r2.out); assert.match(fs.readFileSync(path.join(out2,'elenco_picchi.csv'),'utf8'), /DAD1A\.ch;DAD1A\.ch;HPLC/);
+    assert.ok(!/read_simple_text/.test(fs.readFileSync(path.join(pyDir(dir),'ricetta.py'),'utf8')), 'niente lettore semplificato');
   });
-  it('tabelle non trascritte (fisisorbimento, MCR-ALS, cinetiche, deconvoluzione…): dichiarate nello script, esito 3 con errore esplicito', {skip:!PY}, async ()=>{
-    const o=await B.openPage(br, server); const E=await exportIn(o.p, PROJECTS.ftir.files, {}, `cur=0; await runFitUI();`);
-    const iso=JSON.parse(await o.p.evaluate(()=>JSON.stringify(analysisFiles().map(([n])=>n)))); await o.ctx.close();
-    const dir=path.join(TMP,'nontr'); writeOut(dir, E); const src=fs.readFileSync(path.join(dir,'ricetta_python','ricetta.py'),'utf8');
-    const nt=/"nonTrascritte": \[([^\]]*)\]/.exec(src); assert.ok(nt, 'campo nonTrascritte'); const list=JSON.parse('['+nt[1]+']');
-    for (const n of iso) if (!/^(misure_bande|controllo_qualita|ipotesi_qualitative|metodi_e_bibliografia)/.test(n)) assert.ok(list.includes(n), 'non dichiarata: '+n);
-    const r=runPy(dir); if (list.length){ assert.strictEqual(r.code, 3, r.out); assert.match(r.out, /ERRORE, non trascritta in modo identico/); } else assert.strictEqual(r.code, 0, r.out);
+  it('tabella non rifatta in modo identico (fit salvato con altri picchi): dichiarata nello script, esito 3 con errore esplicito, il resto identico', {skip:!PY}, async ()=>{
+    const o=await B.openPage(br, server); const E=await exportIn(o.p, PROJECTS.ftir.files, {}, `$('#fitA').value='1650'; $('#fitB').value='1800'; $('#fitMode').value='auto'; cur=0; await runFitUI(); files[0].added=[1700.5]; resetCaches();`);
+    const an=JSON.parse(await o.p.evaluate(()=>JSON.stringify(analysisFiles().map(([n])=>n)))); await o.ctx.close();
+    assert.ok(an.includes('deconvoluzione.csv'), 'l\'app scrive la deconvoluzione');
+    const dir=path.join(TMP,'nontr'); writeOut(dir, E); const ric=recipeOf(dir), list=ric.nonTrascritte;
+    assert.ok(list.some(x=>/^deconvoluzione\.csv \(il fit salvato di «ftA_1\.csv»/.test(x)), JSON.stringify(list)); assert.ok(!('analisi/deconvoluzione.csv' in ric.attesi));
+    for (const n of an) if (!/^(ipotesi_qualitative|metodi_e_bibliografia)/.test(n)) assert.ok(('analisi/'+n) in ric.attesi || list.some(x=>x.startsWith(n)), 'né rifatta né dichiarata: '+n);
+    const r=runPy(dir); assert.strictEqual(r.code, 3, r.out); assert.match(r.out, /ERRORE, non trascritta in modo identico: deconvoluzione\.csv/); assert.match(r.out, /verifica: identico/);
+  });
+  it('libreria HPLC: concentrazioni dalla taratura salvata, senza controllo del giorno e con un controllo; lo script rifà concentrazioni_da_libreria.csv', {skip:!PY}, async ()=>{
+    const BOZZA=path.join(B.ROOT,'examples','librerie','saliva-hplc-dad220.bozza.json'), LIBNAME='Agilent 1260 Infinity · DAD — saliva';
+    const TRUE={Creatinine:[3.561, 9876, 0.0227], 'Uric acid':[5.358, 12773, 0.15], Tyrosine:[7.476, 16717, 0.05]};
+    const sal=o=>D4.chrom(Object.assign({sample:'SAL_03', method:'C:\\Chem32\\1\\METHODS\\ICCOM-SAL-RP220.M', peaks:Object.values(TRUE).map(([t,b,c])=>({t, area:b*c}))}, o||{}));
+    const o=await B.openPage(br, server);
+    await o.p.evaluate(()=>AcchLibUi.openManager()); await o.p.waitForSelector('#lmImport'); await o.p.setInputFiles('#lmFile', BOZZA);
+    await o.p.waitForFunction(n=>AcchLibUi.items.some(it=>it.lib && it.lib.name===n), LIBNAME); await o.p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
+    const load=async (name, text)=>{ await o.p.evaluate(async ([n,t])=>{ await addEntries([{file:new File([t],n), path:n}]); await new Promise(r=>setTimeout(r,250)); }, [name, text]);
+      await o.p.fill('#lpSt', 'saliva'); await o.p.dispatchEvent('#lpSt', 'input'); await o.p.click('#lpOk');
+      await o.p.waitForFunction(n=>{ const f=files.find(g=>g.name===n); return f && f.an && f.an.lib && f.an.lib.insOk; }, name); };
+    await load('SAL_03.csv', sal()); await load('SAL_04.csv', sal({sample:'SAL_04', seed:9}));
+    const run=async (tag, work)=>{ const E=await exportIn(o.p, [], {showArea:true}, work); const r=checkCase('libreria_'+tag, E, ','); const t=E.find(e=>/concentrazioni_da_libreria\.csv$/.test(e[1])); assert.ok(t && r.want.includes(t[1]), tag+': tabella della libreria rifatta'); return t[2]; };
+    const t1=await run('senza_controllo', ''); assert.match(t1, /senza controllo del giorno/);
+    await load('SAL_QC.csv', sal({sample:'SAL_QC', seed:11}));
+    const t2=await run('controllo', `const f=files.find(g=>g.name==='SAL_QC.csv'), L=AcchLibUi.items.find(x=>x.lib && x.lib.name===${JSON.stringify(LIBNAME)}).lib, T=${JSON.stringify(TRUE)}, c={};
+      for (const e of L.entries) if (T[e.name]) c[e.id]=T[e.name][2]; anSet(f,'role','qc'); anSet(f,'libCtrl',c); files.forEach(g=>g._libRes=null);`);
+    assert.notStrictEqual(t2, t1); assert.deepStrictEqual(o.errors, []); await o.ctx.close();
   });
   it('intestazione: licenza GPL-3.0-or-later e titolare, versione, data, impronte dei file; niente rete, niente scrittura fuori dalla cartella di uscita', async ()=>{
     const src=fs.readFileSync(path.join(TMP,'ftir','ricetta_python','ricetta.py'),'utf8'), head=src.split('RICETTA =')[0];
@@ -216,6 +238,21 @@ describe('R15 · ricetta Python: stessi CSV dell\'app', {timeout:40*60*1000}, ()
       assert.strictEqual(r.nm, 'ricetta_python'); assert.match(r.sum, /Script Python della ricetta/);
       if (desk){ assert.ok(r.disk.includes('/out/r/ricetta_python/ricetta.py') && r.disk.some(k=>/\/ricetta_python\/dati\/uv\.csv$/.test(k)), r.disk.join(', ')); assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(r.title+r.sum), 'emoji nel desktop: '+r.sum); }
     }
+  });
+  for (const name of ['serie','chemisorbimento','xrf']) it('lingua inglese, tabelle di analisi: «'+name+'»', {skip:!PY}, async ()=>{
+    const o=await B.openPage(br, server, {lang:'en'}); const P=PROJECTS[name]; const E=await exportIn(o.p, P.files, P.set, P.work, 'en'); assert.deepStrictEqual(o.errors, []); await o.ctx.close();
+    const r=checkCase(name+'_en', E, '.'); assert.match(r.out, /check: identical/); assert.ok(r.want.some(p=>/^analysis\//.test(p)), 'tabelle di analisi in inglese: '+r.want.join(', '));
+    assert.ok(!/ERRORE|verifica/.test(r.out), 'messaggi dello script in inglese: '+r.out);
+  });
+  it('anteprima commentata nella finestra Esporta: letture, tabelle rifatte, non trascritte, intestazione', async ()=>{
+    const o=await B.openPage(br, server); const P=PROJECTS.chemisorbimento;
+    const t=await o.p.evaluate(async ([L, NONE, work])=>{ await addEntries(L.map(([n,t])=>({file:new File([t],n), path:n}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+      Object.assign(S, NONE, {outPy:true, expScope:'all'}); saveS(); await (new Function('return (async()=>{'+work+'\n})()'))(); resetCaches(); syncControls(); go(3); renderSummary();
+      const d=$('#pyPrev'); d.open=true; d.dispatchEvent(new Event('toggle')); for (let i=0;i<200 && !/Intestazione/.test($('#pyPrevBody').textContent);i++) await new Promise(r=>setTimeout(r,50));
+      return $('#pyPrevBody').innerText; }, [P.files, NONE, P.work]);
+    assert.deepStrictEqual(o.errors, []); await o.ctx.close();
+    assert.match(t, /Che cosa legge e che cosa rifà/); assert.match(t, /tpr-sintetico\.txt/); assert.match(t, /letto dal CSV dei dati letti|riletto dal file di testo|letto dal file originale/);
+    assert.match(t, /Tabelle di analisi rifatte/); assert.match(t, /chemisorbimento_tpr-sintetico\.csv/); assert.match(t, /controllo_qualita\.csv/); assert.match(t, /Intestazione dello script/); assert.match(t, /SPDX-License-Identifier: GPL-3\.0-or-later/);
   });
   it('LRE dichiarato', ()=>{ for (const [n,l,c,f] of LRE_MIN) console.log(`# LRE minimo ${n}: ${l.toFixed(1)} su ${c} numeri in ${f} CSV`); assert.ok(!PY || LRE_MIN.length>=15, 'casi confrontati: '+LRE_MIN.length); assert.ok(LRE_MIN.every(x=>x[1]>=9)); });
 });
