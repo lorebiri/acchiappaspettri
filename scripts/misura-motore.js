@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // I5, misure del motore nell'app vera (Windows, macOS, Linux). Serve l'app di collaudo:
 //   ACCH_E2E_PAGE=1 npx tauri build --features e2e --no-bundle        (release: i tempi del Rust in debug non valgono)
-//   node scripts/misura-motore.js src-tauri/target/release/acchiappaspettri[.exe] [--runs 3] [--grafico] [--solo rust|js] [--file grande-1M.txt] [--out misure.json]
+//   node scripts/misura-motore.js src-tauri/target/release/acchiappaspettri[.exe] [--runs 3] [--grafico] [--grafico-g] [--solo rust|js] [--file grande-1M.txt] [--out misure.json]
+// I6, --grafico-g: criteri del grafico G1 (≥ 50 fps in zoom e spostamento con 20 spettri da 1M), G2 (primo disegno del confronto ≤ 3 s)
+// e G3 (cime al pixel come il disegno pieno, ≤ 1 px, a quattro risoluzioni), con le prove di test/validation/grafico-dati.js; finestra in primo piano.
 // Per ogni file grande (1M punti, DAD .uv da 50 MB, Shimadzu da 50 MB) e per ogni motore (Rust, worker JS con ACCH_RUST=0) avvia l'app
 // una volta per misura e scrive: tempo di lettura, blocco più lungo della finestra, memoria di picco (app + WebView), e con --grafico
 // anche clic → grafico disegnato. Dati sintetici (test/unit/motore-dati.js), mai dati di laboratorio.
@@ -13,7 +15,7 @@
 const {spawn, execFileSync}=require('child_process'), fs=require('fs'), os=require('os'), path=require('path');
 const D=require('../test/unit/motore-dati.js');
 const args=process.argv.slice(2), exe=args[0]; if (!exe || !fs.existsSync(exe)){ console.error('uso: node scripts/misura-motore.js <eseguibile e2e> [--runs 3] [--grafico] [--solo rust|js] [--out file]'); process.exit(2); }
-const opt=k=>{ const i=args.indexOf(k); return i>=0 ? args[i+1] : null; }, RUNS=+(opt('--runs')||3), GRAFICO=args.includes('--grafico'), SOLO=opt('--solo'), OUT=opt('--out');
+const opt=k=>{ const i=args.indexOf(k); return i>=0 ? args[i+1] : null; }, RUNS=+(opt('--runs')||3), GRAFICO=args.includes('--grafico'), GG=args.includes('--grafico-g'), SOLO=opt('--solo'), OUT=opt('--out');
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'acch-misura-')), home=path.join(base,'home'), dir=path.join(base,'dati'); fs.mkdirSync(home); fs.mkdirSync(dir);
 if (process.platform==='win32') console.log('ATTENZIONE (Windows): l\'app di collaudo usa la cartella dei dati dell\'utente corrente. Usa un utente di prova.');
 const files=D.files(); for (const [n,b] of Object.entries(files)) if (!/decrescente/.test(n)) fs.writeFileSync(path.join(dir,n), b);
@@ -31,6 +33,15 @@ function treeKb(L, root, before){ const kids=new Map(); for (const p of L){ if (
   for (const p of L) if (!seen.has(p.pid) && p.pid!==root && !before.has(p.pid) && /WebKit|WebContent|msedgewebview2/i.test(p.name)) kb+=p.kb;   // WebView nate durante la misura
   return kb; }
 
+// I6: una prova G1–G3 (nessun file: gli spettri sintetici si creano nella pagina)
+function onceG(){ return new Promise(res=>{ const env=Object.assign({}, process.env, {HOME:home, CFFIXED_USER_HOME:home, XDG_DATA_HOME:path.join(home,'.local','share'), XDG_CONFIG_HOME:path.join(home,'.config'),
+    ACCH_E2E_DIR:dir, ACCH_E2E_SCENARIO:'misura', ACCH_E2E_UPDATE_URL:'g123'});
+  fs.rmSync(path.join(dir,'e2e-report.json'),{force:true}); const before=new Set(procs().map(p=>p.pid));
+  const c=spawn(exe,[],{env, stdio:'ignore'}); let peak=0; const iv=setInterval(()=>{ peak=Math.max(peak, treeKb(procs(), c.pid, before)); }, process.platform==='win32'?1500:300);
+  const to=setTimeout(()=>c.kill(), 900000);
+  c.on('exit', ()=>{ clearInterval(iv); clearTimeout(to); let r=null; try{ r=JSON.parse(fs.readFileSync(path.join(dir,'e2e-report.json'),'utf8')); }catch(e){}
+    res(r && r.grafico ? Object.assign(r.grafico, {peakMB:Math.round(peak/1024), os:r.os}) : {error:r ? (r.exception||JSON.stringify(r.checks)) : 'nessun rapporto'}); }); }); }
+
 function once(name, engine){ return new Promise(res=>{ const run=fs.mkdtempSync(path.join(base,'run-')), before=new Set(procs().map(p=>p.pid));
   const env=Object.assign({}, process.env, {HOME:home, CFFIXED_USER_HOME:home, XDG_DATA_HOME:path.join(home,'.local','share'), XDG_CONFIG_HOME:path.join(home,'.config'),
     ACCH_E2E_DIR:dir, ACCH_E2E_SCENARIO:'misura', ACCH_E2E_UPDATE_URL:name+(GRAFICO?',grafico':''), ACCH_RUST:engine==='js'?'0':'1'});
@@ -41,6 +52,16 @@ function once(name, engine){ return new Promise(res=>{ const run=fs.mkdtempSync(
     fs.rmSync(run,{recursive:true,force:true}); const m=r && r.misure && r.misure[0]; res(m ? Object.assign(m, {peakMB:Math.round(peak/1024), asked:engine, os:r.os}) : {file:name, asked:engine, error:r ? (r.exception||JSON.stringify(r.checks)) : 'nessun rapporto'}); }); }); }
 
 (async()=>{ const out=[];
+  if (GG){ const G=[]; for (let k=0;k<RUNS;k++){ const m=await onceG(); m.run=k+1; G.push(m); console.log(JSON.stringify(m)); }
+    const med=a=>{ const s=a.filter(Number.isFinite).sort((x,y)=>x-y); return s.length ? s[Math.floor(s.length/2)] : null; }, L=G.filter(m=>!m.error);
+    console.log('\ncriteri del grafico (mediane di '+L.length+' prove su '+RUNS+') — '+os.platform()+' '+os.arch()+', '+Math.round(os.totalmem()/2**30)+' GB');
+    if (L.length){ const fps=med(L.map(m=>m.g1Fps)), dmax=med(L.map(m=>m.g1DrawMaxMs)), g2=med(L.map(m=>m.g2CmpMs)), g3=Math.max(...L.map(m=>m.g3WorstPx)), lt=L[0].longTaskMaxMs==null?null:med(L.map(m=>m.longTaskMaxMs));
+      console.log(`G1 ≥ 50 fps (20×1M, zoom e spostamento): ${fps>=50?'OK':'NO'} (${fps} fps; ridisegno più lungo ${dmax} ms; WebGL ${L.every(m=>m.gl)?'sì':'no '+(L[0].glReason||'')})`);
+      console.log(`G2 primo disegno del confronto 20×1M ≤ 3 s: ${g2<=3000?'OK':'NO'} (${g2} ms)`);
+      console.log(`G3 cime al pixel (≤ 1 px, 4 risoluzioni, WebGL e Canvas 2D): ${g3<=1 && L.every(m=>!m.g3Miss)?'OK':'NO'} (scarto massimo ${g3} px; controllo ingenuo scoperto: ${L.every(m=>m.g3Naive>3)?'sì':'NO'})`);
+      console.log(`blocco lungo ≤ 50 ms durante G1–G3: ${lt==null?'n.d. (WebView senza API, es. macOS)':(lt<=50?'OK':'NO')+' ('+lt+' ms)'}; picco RAM ${med(L.map(m=>m.peakMB))} MB`); }
+    if (OUT) fs.writeFileSync(OUT, JSON.stringify(G,null,1));
+    if (!names.length || !args.includes('--grafico')){ fs.rmSync(base,{recursive:true,force:true}); return; } }
   for (const engine of ['rust','js'].filter(e=>!SOLO || e===SOLO)) for (const n of names) for (let k=0;k<RUNS;k++){ const m=await once(n, engine); m.run=k+1; out.push(m); console.log(JSON.stringify(m)); }
   const med=a=>{ const s=a.filter(Number.isFinite).sort((x,y)=>x-y); return s.length ? s[Math.floor(s.length/2)] : null; };
   console.log('\nmediane ('+RUNS+' prove) — '+os.platform()+' '+os.arch()+', '+Math.round(os.totalmem()/2**30)+' GB, '+os.cpus()[0].model);

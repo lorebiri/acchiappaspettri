@@ -26,7 +26,8 @@ function main(out){
   fs.writeFileSync(path.join(out,'plot.js'), extractPlot(fs.readFileSync(path.join(root,'index.html'))));
   fs.copyFileSync(path.join(root,'app','vista.html'), path.join(out,'vista.html'));
   fs.mkdirSync(path.join(out,'i18n')); fs.copyFileSync(path.join(root,'i18n/en.js'), path.join(out,'i18n/en.js'));
-  if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h); }
+  if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/e2e-grafico.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h);
+    fs.writeFileSync(path.join(out,'app','e2e-grafico.js'), '/* generato da scripts/prepare-desktop.js (test/validation/grafico-dati.js): dati SINTETICI per le misure G1–G3 */\n('+require('../test/validation/grafico-dati.js').I6_SETUP.toString()+')();\n'); }
   console.log('dist-desktop pronto');
 }
 if (require.main===module) main();

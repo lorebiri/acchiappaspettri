@@ -26,7 +26,7 @@ window.AcchE2E=async function(info){
     // lettore Rust o worker JS secondo ACCH_RUST). Per ogni file: lettura (AcchEngine), clic → grafico disegnato, blocco più lungo della finestra.
     // elenco dei file in ACCH_E2E_UPDATE_URL (il campo libero di e2e_config), con «grafico» per misurare anche clic → grafico
     if (cfg.scenario==='misura'){ res.misure=[]; res.engine=await AcchEngine.config(); const full=/(^|,)grafico(,|$)/.test(cfg.updateUrl||'');
-      for (const n of (cfg.updateUrl||'').split(',').filter(x=>x && x!=='grafico')){ const pth=dir+sep+n; await inv('e2e_grant',{path:pth});
+      for (const n of (cfg.updateUrl||'').split(',').filter(x=>x && x!=='grafico' && x!=='g123')){ const pth=dir+sep+n; await inv('e2e_grant',{path:pth});
         // blocchi: un timer ogni 10 ms; il ritardo più lungo è il blocco più lungo della finestra (WKWebView non ha «longtask»)
         let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10);
         // dove c'è (WebView2, Chromium) anche l'API dei blocchi lunghi: non dipende dal rallentamento dei timer delle finestre in secondo piano (App Nap su macOS)
@@ -40,7 +40,14 @@ window.AcchE2E=async function(info){
           const t1=performance.now(); T.event.emit('acch-dropped',[{path:pth, name:n, rel:n}]); await until(()=>drawn && files.length, 600000); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
           m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); m.readInGraph=Object.assign({}, AcchEngine.stats.last); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
         res.misure.push(m); }
-      check('misure eseguite', res.misure.length>0); }
+      // I6: criteri G1–G3 (scripts/misura-motore.js --grafico-g), con le stesse prove del browser (test/validation/grafico-dati.js)
+      if (/(^|,)g123(,|$)/.test(cfg.updateUrl||'') && window.I6){ const LT=[]; let ob=null; try{ if ((PerformanceObserver.supportedEntryTypes||[]).includes('longtask')){ ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(e.duration))); ob.observe({type:'longtask'}); } }catch(e){ ob=null; }
+        const g3=I6.g3(), g3ok=g3.filter(x=>x.gl!=='ingenua' && !x.skip); await sleep(200);
+        const g12=await I6.g12(20, 1e6); if (ob) ob.disconnect();
+        res.grafico={g1Fps:Math.round(g12.fps*10)/10, g1DrawMedMs:Math.round(g12.draw), g1DrawMaxMs:Math.round(g12.drawMax), g2CmpMs:Math.round(g12.g2), gl:g12.gl, glReason:(typeof PV_GL!=='undefined' && PV_GL ? PV_GL.reason||'' : 'nessun WebGL'),
+          g3WorstPx:Math.max(...g3ok.map(x=>Math.max(x.worst, x.spk))), g3Miss:g3ok.reduce((a,x)=>a+x.miss,0), g3Gl:g3ok.some(x=>x.gl===true), g3Naive:(g3.find(x=>x.gl==='ingenua')||{}).spk, longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null};
+        check('G1–G3 misurati', true); }
+      check('misure eseguite', res.misure.length>0 || !!res.grafico); }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
       try{ const r=await inv('e2e_check_update',{url:cfg.updateUrl, install:cfg.scenario==='update-good'}); res.update=r;
