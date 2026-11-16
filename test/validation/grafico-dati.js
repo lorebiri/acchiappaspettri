@@ -43,7 +43,7 @@ function I6_SETUP(){
     for (let s=0;s<steps;s++){ await new Promise(r=>requestAnimationFrame(r)); const now=performance.now(); dt.push(now-last); last=now;
       const a=performance.now();
       if (s<steps/2){ const k=0.94; zoomBy(k, fa+(fb-fa)*0.37); }   // zoom verso un punto
-      else { const z=t.o._zoom||[fa,fb], w=z[1]-z[0], sh=w*0.03*(s%20<10?1:-1); t.o._zoom=[Math.max(fa,z[0]+sh), Math.min(fb,z[1]+sh)]; renderPreview(); }   // spostamento
+      else { const z=t.o._zoom||[fa,fb], w=z[1]-z[0], sh=w*0.03*(s%20<10?1:-1); t.o._zoom=[Math.max(fa,z[0]+sh), Math.min(fb,z[1]+sh)]; (window.renderPlotOnly||renderPreview)(); }   // come il trascinamento   // spostamento
       L.push(performance.now()-a); }
     await new Promise(r=>requestAnimationFrame(r)); dt.push(performance.now()-last);
     return {work:L, frames:dt.slice(1)}; }

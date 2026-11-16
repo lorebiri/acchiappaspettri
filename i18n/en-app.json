@@ -1311,5 +1311,9 @@
 "Impostazioni su file": "Settings in a file",
 "Le impostazioni si salvano da sole in un file nella cartella dell'applicazione. Puoi copiarle in un file tuo, per esempio per usarle su un altro computer, e ricaricarle da lì.": "Settings are saved automatically to a file in the application folder. You can copy them to a file of your own, for example to use them on another computer, and load them from there.",
 "Salva le impostazioni in un file…": "Save the settings to a file…",
-"Carica le impostazioni da un file…": "Load the settings from a file…"
+"Carica le impostazioni da un file…": "Load the settings from a file…",
+"Spettro XRF molto grande": "Very large XRF spectrum",
+"△ {0} canali: il limite di Currie richiede circa {1} min di calcolo, in un processo separato. Gli spettri XRF degli strumenti hanno di solito al più qualche decina di migliaia di canali.": "△ {0} channels: the Currie limit needs about {1} min of computation, in a separate process. XRF spectra from instruments usually have at most a few tens of thousands of channels.",
+"Annulla il calcolo": "Cancel the computation",
+"Limite di rivelabilità di Currie non calcolato: il calcolo è stato annullato. Le righe deboli possono essere rumore; ricarica lo spettro e lascia finire il calcolo per controllarle.": "Currie detection limit not computed: the computation was cancelled. Weak lines may be noise; reload the spectrum and let the computation finish to check them."
 }

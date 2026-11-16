@@ -149,17 +149,22 @@
      I risultati restano in memoria (al massimo MAXE, controllati elemento per elemento), così chi chiede di nuovo lo stesso calcolo lo trova.
      Al massimo 40 giri; se il worker non risponde si calcola nella pagina come prima */
   let chain=Promise.resolve();
+  // I6: un calcolo lungo (XRF con più di 200 000 canali) si può annullare: il lavoro in corso finisce con 'cancelled', il worker si ferma
+  // e non si ripiega sul calcolo nella pagina (bloccherebbe la finestra per minuti)
+  let abortGen=0;
+  AcchEngine.abortPrefetch=function(){ abortGen++; kill(new Error('cancelled')); };
   AcchEngine.prefetch=function(run){ const job=chain.then(async ()=>{
+      const g=abortGen, stop=()=>{ if (abortGen!==g) throw new Error('cancelled'); };
       await pause();   // I6: ogni lavoro parte in un compito suo; prima il secondo partiva subito dopo il primo e i due giri facevano un blocco solo
-      for (let k=0;k<40;k++){ needs=[]; probe=true; let out, err=null;
+      for (let k=0;k<40;k++){ stop(); needs=[]; probe=true; let out, err=null;
         try{ out=run(); }catch(e){ err=e; } finally{ probe=false; }
         const got=needs; needs=[];
         if (!got.length){ if (err) throw err; return out; }   // nessuna chiamata mancante: è il risultato vero, identico a quello sincrono
         for (const n of got){ if (lookup(n.fn, n.args)) continue;
-          let r; try{ r=await heavy(n.fn, n.args); }catch(e){ r=win[n.fn].apply(null, n.args); }   // Rust (I7) o worker; se nessuno dei due risponde, nella pagina
-          store(n.fn, n.args, r); }
+          let r; try{ r=await heavy(n.fn, n.args); }catch(e){ stop(); r=win[n.fn].apply(null, n.args); }   // Rust (I7) o worker; se nessuno dei due risponde, nella pagina
+          stop(); store(n.fn, n.args, r); }
         await pause(); }
-      return run(); });
+      stop(); return run(); });
     chain=job.catch(()=>{}); return job; };
   AcchEngine.heavyCache=()=>cache.map(e=>e.fn);
   win.AcchEngine=AcchEngine;

@@ -95,7 +95,7 @@
         // come setZoom della pagina: almeno 1/300 dell'intervallo, dentro i dati; quasi tutto = niente zoom
         const minW=(fb-fa)/300; if (b-a<minW){ const c=(a+b)/2; a=c-minW/2; b=c+minW/2; }
         if (b-a>=(fb-fa)*0.995){ t.o._zoom=null; t.o._yzoom=null; } else { if (a<fa){ b+=fa-a; a=fa; } if (b>fb){ a-=b-fb; b=fb; } t.o._zoom=[Math.max(fa,a), Math.min(fb,b)]; } }
-      if (!t.own && typeof renderPreview==='function'){ renderPreview(); return; }   // grafico staccato: zoom condiviso, ridisegnano tutte e due
+      if (!t.own && typeof renderPreview==='function'){ (win.renderPlotOnly||renderPreview)(); return; }   // grafico staccato: zoom condiviso, ridisegnano tutte e due
     }
     schedule(q.label); }
 

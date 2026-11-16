@@ -79,6 +79,23 @@ test('controllo del dato di XRF, NMR ed EPR con spettri grandi, letti come dall\
     assert.deepEqual(o.errors, []); await o.ctx.close(); }
 });
 
+test('XRF con più di 200 000 canali: avviso △ con il tempo stimato, calcolo nel worker, «Annulla il calcolo» senza bloccare la finestra', async()=>{
+  const o=await desk();
+  const r=await o.p.evaluate(async()=>{ const n=400000, {xs, ys}=I6.spectrumFor('xrf', n, 0), L=new Array(n); for (let i=0;i<n;i++) L[i]=xs[i].toFixed(6)+'\t'+ys[i];
+    const file=new File(['Energy (keV)\tCounts\n'+L.join('\n')+'\n'], 'xrf-grande.txt');
+    const orig=window.loader; const seen=[]; window.loader=function(show, t, sub){ if (show && sub && /△/.test(sub)) seen.push(sub); return orig.apply(this, arguments); };
+    const LT=[]; const ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(Math.round(e.duration)))); ob.observe({type:'longtask'});
+    const p=addEntries([{file, path:'xrf-grande.txt'}]); let btn=null;
+    for (let i=0;i<1200 && !(btn=document.getElementById('ldCurrie')) ;i++) await new Promise(r=>setTimeout(r,25));
+    const shown=!!btn && !btn.hidden, label=btn?btn.textContent:''; await new Promise(r=>setTimeout(r,300)); const t0=performance.now(); if (btn) btn.click(); await p; const ms=performance.now()-t0;
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); ob.disconnect(); window.loader=orig; const f=files[0];
+    return {seen:seen[0]||'', shown, label, ms, skip:!!f._currieSkip, instr:f.instr, warn:assess(f, viewOf(f)).some(x=>/Currie non calcolato/.test(x.t)), drawn:!!geo, long:LT}; });
+  assert.match(r.seen, /△ 400000 canali: il limite di Currie richiede circa \d+ min/); assert.ok(r.shown); assert.equal(r.label, 'Annulla il calcolo');
+  assert.equal(r.instr, 'xrf'); assert.ok(r.skip && r.warn, 'annullato e detto nel controllo del dato'); assert.ok(r.drawn, 'grafico disegnato');
+  assert.ok(r.ms<5000, 'dopo «Annulla» il grafico arriva subito: '+Math.round(r.ms)+' ms');
+  assert.deepEqual(o.errors, []); await o.ctx.close();
+});
+
 test('online: niente livelli WebGL, il grafico resta su un solo canvas e si disegna come prima', async()=>{
   const o=await B.openPage(br, server); await o.p.evaluate(I6_SETUP);
   const r=await o.p.evaluate(async()=>{ await I6.load(1, 200000); await I6.frames(); return {layers:document.querySelectorAll('.pvlayer').length, gl:typeof PV_GL==='undefined' ? 'x' : PV_GL, plot:!!window.AcchPlot}; });
