@@ -223,5 +223,13 @@
 "Chemisorption: pulse uptake from Σ(A_sat − Aᵢ)/A_sat·V_loop, static chemisorption by extrapolation to p = 0 of the combined and repeat isotherms (ASTM D3908), metal dispersion, area and diameter following Bergeret and Gallezot (2008); TPR/TPO/TPD on the measured temperature with a linear baseline, activation energy by Kissinger (1957) and Redhead (1962) with a stated ν; TPR conditions checked with the Monti and Baiker (1983) parameter.",
 "Kaomi",
 "PA",
-"TCD"
+"TCD",
+"CmdOrCtrl+-",
+"CmdOrCtrl+0",
+"CmdOrCtrl+=",
+"CmdOrCtrl+Shift+G",
+"CmdOrCtrl+Shift+M",
+"Delete",
+"JSON",
+"[grafico] disegno con Canvas 2D:"
 ]
