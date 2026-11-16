@@ -12,6 +12,10 @@ from decimal import Decimal, ROUND_HALF_UP
 NAN = float('nan')
 INF = float('inf')
 
+# Math.* di JavaScript: qui valgono quelle di math; acch_math.py (concatenato subito dopo) le ridefinisce come nel
+# motore JavaScript che ha esportato (V8 con o senza FMA, JavaScriptCore). Le funzioni numeriche usano solo m_*.
+m_exp, m_log, m_log10, m_expm1, m_sin, m_cos, m_pow, m_hypot = math.exp, math.log, math.log10, math.expm1, math.sin, math.cos, math.pow, math.hypot
+
 
 class NonTrascritto(Exception):
     """Parte della ricetta che lo script non sa rifare in modo identico all'app."""
@@ -382,9 +386,9 @@ def transform_y(ys, kind, conv):
     # index.html transformY
     n = len(ys)
     if conv == 'A' and kind == 'T':
-        return [2 - math.log10(max(v, 1e-4)) for v in ys], 'A'
+        return [2 - m_log10(max(v, 1e-4)) for v in ys], 'A'
     if conv == 'T' and kind == 'A':
-        return [100 * math.pow(10, -v) for v in ys], 'T'
+        return [100 * m_pow(10, -v) for v in ys], 'T'
     if conv == 'norm':
         mn, mx = INF, -INF
         for v in ys:
@@ -777,7 +781,7 @@ def baseline_arpls(xs, ys, stiff=None):
     n = len(y)
     if n < 8:
         return list(ys)
-    lam = math.pow(n / (2 * math.pi * (stiff or 8)), 4)
+    lam = m_pow(n / (2 * math.pi * (stiff or 8)), 4)
     w = [1.0] * n
     z = y
     for it in range(60):
@@ -803,7 +807,7 @@ def baseline_arpls(xs, ys, stiff=None):
         for i in range(n):
             d = y[i] - z[i]
             e = min(60, 2 * (d - (2 * s - m)) / s)
-            wn[i] = 1 / (1 + math.exp(e))
+            wn[i] = 1 / (1 + m_exp(e))
             num += (w[i] - wn[i]) * (w[i] - wn[i])
             den += w[i] * w[i]
         w = wn
@@ -838,7 +842,7 @@ def baseline_snip(ys, m=0, counts=False):
             mn = v
     sh = 0 if counts else -mn
     if counts:
-        v = [math.log(math.log(math.sqrt(max(q, 0) + 1) + 1) + 1) for q in ys]
+        v = [m_log(m_log(math.sqrt(max(q, 0) + 1) + 1) + 1) for q in ys]
     else:
         v = [q + sh for q in ys]
     t = [0.0] * n
@@ -851,7 +855,7 @@ def baseline_snip(ys, m=0, counts=False):
             t[i] = a if a < v[i] else v[i]
         v = list(t)
     if counts:
-        return [math.pow(math.exp(math.exp(q) - 1) - 1, 2) - 1 for q in v]
+        return [m_pow(m_exp(m_exp(q) - 1) - 1, 2) - 1 for q in v]
     return [q - sh for q in v]
 
 
@@ -1155,7 +1159,7 @@ def view_peaks(sp, P, xs_file, ys_file, ric):
                 areas.append(a[0] if a else None)
         else:
             if P['kind'] == 'T':
-                yA = [2 - math.log10(max(v, 1e-4)) for v in P['ys']]
+                yA = [2 - m_log10(max(v, 1e-4)) for v in P['ys']]
             elif P['dir'] < 0:
                 yA = [-v for v in P['ys']]
             else:
@@ -1246,7 +1250,7 @@ def band_measure(xs, ys, a, b):
 def up_data(P):
     # index.html upData: picchi in su (%T → assorbanza)
     if P['kind'] == 'T':
-        return [2 - math.log10(max(v, 1e-4)) for v in P['ys']]
+        return [2 - m_log10(max(v, 1e-4)) for v in P['ys']]
     if P['dir'] < 0:
         return [-v for v in P['ys']]
     return P['ys']
@@ -1271,12 +1275,12 @@ def ln_gamma(x):
     c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]
     y = x
     t = x + 5.5
-    t -= (x + 0.5) * math.log(t)
+    t -= (x + 0.5) * m_log(t)
     s = 1.000000000190015
     for q in c:
         y += 1
         s += q / y
-    return -t + math.log(2.5066282746310005 * s / x)
+    return -t + m_log(2.5066282746310005 * s / x)
 
 
 def betacf(a, b, x):
@@ -1319,7 +1323,7 @@ def betai(a, b, x):
         return 0.0
     if x >= 1:
         return 1.0
-    bt = math.exp(ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b) + a * math.log(x) + b * math.log(1 - x))
+    bt = m_exp(ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b) + a * m_log(x) + b * m_log(1 - x))
     return bt * betacf(a, b, x) / a if x < (a + 1) / (a + b + 2) else 1 - bt * betacf(b, a, 1 - x) / b
 
 
@@ -1460,7 +1464,7 @@ def calibrate_w(pts, kind):
     low = min(pos)
 
     def raw_w(v):
-        return 1 / math.pow(v if v > 0 else low, k)
+        return 1 / m_pow(v if v > 0 else low, k)
 
     w0 = [raw_w(v) for v in x]
     s0 = 0.0
@@ -1783,17 +1787,17 @@ def hysteresis_close(iso):
 
 
 THICK = {
-    'harkins-jura': lambda x: math.sqrt(13.99 / (0.034 - math.log10(x))),
-    'de-boer': lambda x: math.sqrt(13.99 / (0.034 - math.log10(x))),
-    'halsey': lambda x: 3.54 * math.pow(5 / math.log(1 / x), 1 / 3),
+    'harkins-jura': lambda x: math.sqrt(13.99 / (0.034 - m_log10(x))),
+    'de-boer': lambda x: math.sqrt(13.99 / (0.034 - m_log10(x))),
+    'halsey': lambda x: 3.54 * m_pow(5 / m_log(1 / x), 1 / 3),
     'carbon-black': lambda x: 0.88 * x * x + 6.45 * x + 2.98,
-    'kjs': lambda x: math.pow(60.65 / (0.03071 - math.log10(x)), 0.3968),
+    'kjs': lambda x: m_pow(60.65 / (0.03071 - m_log10(x)), 0.3968),
 }
 
 
 def kelvin_r(x, P):
     # sorption-core.js kelvinR: raggio di Kelvin in Å, menisco emisferico
-    k = 2 * P['gamma'] * 1e-3 * P['Vm'] * 1e-6 * math.cos((P.get('theta') or 0) * math.pi / 180) / (SORP_R * P['T'] * math.log(1 / x))
+    k = 2 * P['gamma'] * 1e-3 * P['Vm'] * 1e-6 * m_cos((P.get('theta') or 0) * math.pi / 180) / (SORP_R * P['T'] * m_log(1 / x))
     return k * 1e10
 
 
