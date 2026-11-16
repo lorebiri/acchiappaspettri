@@ -1,7 +1,7 @@
 
 # =============================================================================================
 # Modulo acch_tecnica: parametri per tecnica (techMetrics), controllo di qualità (assess) e
-# XRF (composizione, parametri fondamentali, spessori). Si concatena DOPO acch_ricetta.py e ne
+# XRF (composizione con standard; parametri fondamentali e spessori in acch_xrf.py). Si concatena DOPO acch_ricetta.py e ne
 # usa gli helper con la semantica di JavaScript (js_round, js_fixed, jdiv, median, ...).
 # Stesse operazioni nello stesso ordine di index.html. Ciò che non è identico: NonTrascritto.
 #
@@ -1988,12 +1988,12 @@ def xrf_quant_fit(stds, els, model):
 
 
 def xq_model(cfg, lista):
-    # index.html xqModel (modello empirico; i parametri fondamentali non sono trascritti)
+    # index.html xqModel (modello empirico; i parametri fondamentali sono in acch_xrf.py)
     els = cfg.get('qEls') or []
     if not els:
         return None
     if cfg.get('qModel') == 'fp':
-        raise NonTrascritto(tt('composizione XRF con i parametri fondamentali non trascritta: xqModelFP usa xrfFP, fpQuant e fpCalibrate (index.html), vedi composizione_xrf_parametri_fondamentali', 'XRF composition with fundamental parameters not transcribed: xqModelFP uses xrfFP, fpQuant and fpCalibrate (index.html), see xrf_fundamental_parameters'))
+        return xq_model_fp(cfg, lista, els)   # acch_xrf.py
     rows = []
     for v in lista:
         P = v['P']
@@ -2042,17 +2042,3 @@ def composizione_xrf_csv(cfg, lista, ctx):
     if len(out) <= 1:
         return None
     return ('xrf_composition.csv' if _en() else 'composizione_xrf.csv', analysis_csv(out, _csep(), _dec()))
-
-
-# ============================== XRF: parametri fondamentali e spessori (NON trascritti) ==============================
-# Le funzioni dell'app sono, nel nucleo di index.html: fpSetup, fpIntensities, fpQuant, fpCalibrate, xrfFitLines, xrfFP, fpLayerSolve
-# (con fpTau, fpMu, fpCompton, fpLine, fpLineE, fpMat, fpParseComp): 360 righe, 33 KB; fuori dal nucleo: fpSetupOf, fpRun, fpCsvRows,
-# fpLayerCfg, fpLayerPairs, fpLayerRun, xqModelFP: 220 righe, 38 KB. Costanti da ricevere in JSON (non ricopiate): FP_DATA (grid, sgrid,
-# el: A, ed, t, sc, ln, fam), FP_MATS, XRF_LINES, XRF_TUBES, XRF_LN_GR. Il calcolo usa Math.exp/Math.log su ogni sezione d'urto e un fit
-# non lineare delle righe (xrfFitLines): come per arPLS l'ultima cifra di Math.exp di V8 non coincide con la libm di Python.
-def composizione_fp_csv(lista, ctx):
-    raise NonTrascritto(tt('composizione_xrf_parametri_fondamentali.csv non trascritta: fpCsvRows/fpRun/xrfFP/fpQuant/fpCalibrate (index.html, circa 580 righe e 71 KB) restano da trascrivere', 'xrf_fundamental_parameters.csv not transcribed: fpCsvRows/fpRun/xrfFP/fpQuant/fpCalibrate (index.html, about 580 lines and 71 KB) remain to be transcribed'))
-
-
-def spessore_strati_csv(lista, ctx):
-    raise NonTrascritto(tt('spessore_strati_xrf.csv non trascritta: fpLayerCfg/fpLayerPairs/fpLayerRun/fpLayerSolve (index.html) dipendono dai parametri fondamentali non trascritti', 'xrf_layer_thickness.csv not transcribed: fpLayerCfg/fpLayerPairs/fpLayerRun/fpLayerSolve (index.html) depend on the fundamental parameters, not transcribed'))

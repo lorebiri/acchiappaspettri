@@ -6,8 +6,8 @@
 'use strict';
 const fs=require('fs'), path=require('path');
 const ROOT=path.join(__dirname,'..'), DIR=path.join(ROOT,'scripts','ricetta-py'), OUT=path.join(ROOT,'app','ricetta-py-modello.js');
-// acch_math subito dopo acch_ricetta (ridefinisce le m_*); acch_tecnica dopo acch_chemometria (ne usa il fit)
-const MODULI=['acch_ricetta','acch_math','acch_lettori','acch_chemometria','acch_tecnica','acch_sorp','acch_chemo','acch_libreria'];
+// acch_math subito dopo acch_ricetta (ridefinisce le m_*); acch_tecnica dopo acch_chemometria (ne usa il fit); acch_xrf dopo acch_tecnica
+const MODULI=['acch_ricetta','acch_math','acch_lettori','acch_chemometria','acch_tecnica','acch_xrf','acch_sorp','acch_chemo','acch_libreria'];
 const SRC=path.join(DIR,'acch_ricetta.py');
 const read=m=>fs.readFileSync(path.join(DIR,m+'.py'),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'');
 // nomi definiti al primo livello: def, class e assegnazioni (anche a più nomi: «a, b = …»); il testo dentro le stringhe a tre apici non conta

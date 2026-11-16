@@ -7169,6 +7169,9 @@ function pyByteReading(f){
     if (!p || p.reject || p.iso || p.chem) return null;
     const ops=pyReading(f, p); return ops ? {opt, trasf:ops} : null;
   }catch(e){ console.warn(e); return null; } }
+/* XRF: per ogni picco i primi tre suggerimenti della banca dati (id, coerente), quanti sono, se vengono da suggAll e l'etichetta grezza:
+   ciò che xrfElements legge da viewOf (lo script rifà la scelta degli elementi per la stima FP) */
+function pyXrfSugg(f, d){ const o={}; d.peaks.forEach(p=>{ const SG=p.suggAll||p.sugg||[]; o[String(p.x)]={sg:SG.slice(0,3).map(g=>({id:g.id, coherent:!!g.coherent})), n:SG.length, all:!!p.suggAll, lab:p.custom ? String(f.labels[lblKey(p.x)]||'') : ''}; }); return o; }
 /* spettri che le tabelle di analisi leggono senza essere inclusi: si aggiungono alla ricetta (come i riferimenti da sottrarre) */
 function pyAnalysisNeeds(list, need){
   const has=i=>list.some(f=>f.instr===i), add=f=>{ if (f && f.xs) need(f); };
@@ -7180,6 +7183,7 @@ function pyAnalysisNeeds(list, need){
   for (const R of Object.values(MVpls)) if (R && !R.err && R.list) R.list.forEach(add);
   if (list.some(f=>['raman','ftir'].includes(f.instr))) files.filter(g=>['raman','ftir'].includes(g.instr) && g.an && g.an.mixW).forEach(add);
   if (MV.xrf && files.some(f=>f.instr==='xrf')) try{ mvFiles('xrf', mvCfg('xrf')).forEach(add); }catch(e){}
+  for (const f of list){ const L=f.instr==='xrf' && f.an && f.an.fp && f.an.fp.layer; if (L && L.ref!=null && L.ref!=='') add(files.find(g=>String(g.id)===String(L.ref))); }   // spessore: zona senza strato
   if (window.AcchLibUi) try{ if (AcchLibUi.csvRows(list)) files.filter(f=>['hplc','ftir','raman','xrf','uv'].includes(f.instr) && !f.uncal && AcchLibUi.chooseFor(f).pick).forEach(add); }catch(e){ console.warn(e); }
 }
 // zona e dati della deconvoluzione di uno spettro, come in runFitUI e nel pulsante «Stessa deconvoluzione su tutti gli spettri»
@@ -7201,12 +7205,22 @@ function pyAnalysis(list, all, idx, out, dname, Lx, en){
     return {fkey:fkey(f), nomeIt:NOME_IT[f.instr], an:f.an||{}, uncal:!!f.uncal, ecal:!!f.ecal, freq:f.freq, eprConv:f.eprConv, nuc:f.nuc, sample:f.sample||S.sample, smooth:pSmooth(f), base:pBase(f),
       removed:f.removed.slice(), importNotes:f.importNotes, importBad:f.importBad, reason:f.reason, autoInstr:f.autoInstr, importIssue:f.importIssue, afterCh:f.afterCh, nCols:f.nCols, chIx:f.chIx, blockIx:f.blockIx,
       nChan:f.nChan, nBlocks:f.nBlocks, isXrf:!!f.xrf, chanLabel:chanOf(f), chanWarn:chanWarn(f), suspectT:!!suspectT(f), tube:f.tube, userRate:f.userRate, therm:f.therm, ts:ar(f.ts),
-      endo:f.instr==='dsc' ? dscEndoSide(f) : null, dHu:H && H.unit ? H.unit : null, sugg}; };
+      endo:f.instr==='dsc' ? dscEndoSide(f) : null, dHu:H && H.unit ? H.unit : null, sugg, xrf:f.xrf||null, xsug:f.instr==='xrf' ? pyXrfSugg(f, d) : null}; };
   const T={statiche:{}, ordine:files.filter(f=>idx(f)>=0).map(idx), inclusi:list.map(idx)};
   all.forEach(f=>{ try{ T.statiche[idx(f)]=voce(f); }catch(e){ console.warn(e); } });
   A.tecnica=T; attese.add(en?'quality_check.csv':'controllo_qualita.csv'); attese.add(en?'technique_parameters.csv':'parametri_per_tecnica.csv');
   if (all.some(f=>f.instr==='xrf') && typeof FP!=='undefined') A.costanti={XRF_COMMON, XRF_LINES, XRF_LN_GR, XRF_TUBES, FP:{el:Object.fromEntries(Object.entries(FP.el).map(([k,v])=>[k,{fam:v.fam}]))}};
   if (MV.xrf && files.some(f=>f.instr==='xrf')){ try{ const c=mvCfg('xrf'); A.xrf={cfg:JSON.parse(JSON.stringify(c)), lista:mvFiles('xrf', c).map(idx)}; attese.add(en?'xrf_composition.csv':'composizione_xrf.csv'); }catch(e){ console.warn(e); } }
+  // XRF a parametri fondamentali e spessori degli strati (acch_xrf): gli stessi spettri di analysisFiles; le costanti FP in JSON con l'impronta
+  { const xf=list.filter(f=>f.instr==='xrf' && !f.uncal && ((f.an && f.an.fp) || (f._fpRes && f._fpRes.Q)));
+    if ((xf.length || (A.xrf && A.xrf.cfg.qModel==='fp')) && typeof FP!=='undefined'){
+      const txt=pyJson({FP_DATA, FP_MATS, FP_OXIDE, FP_ANODES, FP_FILTERS, FP_MODES, FP_SUB_DEF, FP_AIR, FP_AIR_RHO, FP_ENH}), nm=dname('costanti_xrf_fp.json');
+      out.files.push({path:nm, data:txt}); A.costantiFP={file:nm.slice(5), sha256:AcchFormat.sha256(new TextEncoder().encode(txt))}; }
+    if (xf.length){ const rif={}, tr={};
+      xf.forEach(f=>{ const L=f.an&&f.an.fp&&f.an.fp.layer; if (!L || L.ref==null || L.ref==='') return; const g=files.find(q=>String(q.id)===String(L.ref)); if (g && idx(g)>=0) rif[String(L.ref)]=idx(g); });
+      // in inglese fpCsvRows traduce le note parte per parte (AcchI18n.tr): si registrano le coppie, come per csvCell
+      if (LANG==='en' && window.AcchI18n){ const o=AcchI18n.tr; AcchI18n.tr=function(t){ const r=o.apply(this, arguments); if (typeof t==='string' && r!==t) tr[t]=r; return r; }; try{ fpCsvRows(xf); }catch(e){ console.warn(e); } finally{ AcchI18n.tr=o; } }
+      A.fp={lista:xf.map(idx), rif, tr}; attese.add(en?'xrf_fundamental_parameters.csv':'composizione_xrf_parametri_fondamentali.csv'); attese.add(en?'xrf_layer_thickness.csv':'spessore_strati_xrf.csv'); } }
   // fisisorbimento e chemisorbimento: dati letti in JSON (come prima), tabella completa ricalcolata dallo script
   A.fisisorbimento=[]; A.chemisorbimento=[];
   if (window.AcchSorp) list.filter(f=>f.iso).forEach(f=>{ const o=(f.an&&f.an.sorp)||{}; let rif=null;
@@ -7248,8 +7262,6 @@ function pyAnalysis(list, all, idx, out, dname, Lx, en){
       const d=new Date(), today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       A.libreria={lang:LANG==='en'?'en':'it', ui_lang:(window.AcchI18n&&AcchI18n.lang)==='en'?'en':'it', today, libraries:libs, channels:tab, day_line, files:lf, inc:list.map(f=>files.indexOf(f))};
       attese.add(en?'concentrations_from_library.csv':'concentrazioni_da_libreria.csv'); } }catch(e){ console.warn(e); }
-  // XRF a parametri fondamentali e spessori degli strati: non trascritti (lo script li dichiara)
-  try{ analysisFiles().forEach(([nm])=>{ if (/^(composizione_xrf_parametri_fondamentali|xrf_fundamental_parameters|spessore_strati_xrf|xrf_layer_thickness)\.csv$/.test(nm)) nonTr.push(nm); }); }catch(e){ console.warn(e); }
   return {analisi:A, attese, nonTr};
 }
 function pyRecipe(inc){

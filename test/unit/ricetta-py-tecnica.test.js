@@ -159,8 +159,7 @@ _xf=[_v for _v in _I['voci'] if _v['instr']=='xrf' and not _v['uncal']][0]
 _al=xrf_align_fit([{'x':q['x'],'w':q.get('prom') or 1} for q in _xf['auto']], _xf['tube'])
 _V['align']=[_al['a'], _al['b']]+[q['name'] for q in _al['pairs']]
 _NT=[]
-for _f in (lambda: composizione_fp_csv([], {}), lambda: spessore_strati_csv([], {}), lambda: xq_model({'qEls':['Cu'],'qModel':'fp'}, []),
-           ):   # fisisorbimento e chemisorbimento: da acch_sorp (sorp_tech_rows, sorp_assess, chem_…), provati nel test R15 con l'app
+for _f in ():   # XRF a parametri fondamentali: acch_xrf.py (test ricetta-py-xrf); fisisorbimento e chemisorbimento: acch_sorp, provati nel test R15 con l'app
     try:
         _f(); _NT.append(None)
     except NonTrascritto as _e:

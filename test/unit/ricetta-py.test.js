@@ -10,7 +10,7 @@ const PY=(()=>{ for (const c of [process.env.PYTHON, 'python3'].filter(Boolean))
 
 test('app/ricetta-py-modello.js è generato dalla versione attuale dei moduli scripts/ricetta-py/*.py, concatenati nell\'ordine', ()=>{
   const B=require('../../scripts/ricetta-py-build.js'); assert.strictEqual(fs.readFileSync(B.OUT,'utf8'), B.build(), 'eseguire node scripts/ricetta-py-build.js');
-  assert.deepStrictEqual(B.MODULI, ['acch_ricetta','acch_math','acch_lettori','acch_chemometria','acch_tecnica','acch_sorp','acch_chemo','acch_libreria']);
+  assert.deepStrictEqual(B.MODULI, ['acch_ricetta','acch_math','acch_lettori','acch_chemometria','acch_tecnica','acch_xrf','acch_sorp','acch_chemo','acch_libreria']);
   const M=require('../../app/ricetta-py-modello.js'); let at=-1;
   for (const m of B.MODULI){ const src=fs.readFileSync(path.join(B.DIR, m+'.py'),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,''), k=M.indexOf(src); assert.ok(k>at, m+' nel modello, nell\'ordine'); at=k; }
   assert.ok(!/^\s*(import|from)\s+acch_/m.test(M), 'niente import fra i moduli: sono concatenati');

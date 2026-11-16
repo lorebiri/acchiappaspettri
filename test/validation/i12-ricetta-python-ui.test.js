@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // R15, tappa I12: la ricetta esportata come script Python rifà gli stessi CSV dell'app: elenco dei picchi, dati elaborati, misure di banda e tarature,
 // e (seconda parte) tutte le tabelle di analisi: controllo di qualità, parametri per tecnica, fisisorbimento e chemisorbimento completi, MCR-ALS e
-// cinetica, deconvoluzione, PCA, PLS, miscele, composizione XRF con standard, concentrazioni dalla libreria; lettura dei file originali dai byte.
+// cinetica, deconvoluzione, PCA, PLS, miscele, composizione XRF con standard e a parametri fondamentali, spessore degli strati, concentrazioni dalla
+// libreria; lettura dei file originali dai byte.
 // I test girano in Chrome (V8, motore «v8-libm» della sonda); JavaScriptCore del desktop è provato dai test unitari dei moduli con osascript.
 // Per progetti SINTETICI e per il corpus test/corpus: ogni numero del CSV scritto dallo script coincide con quello dell'app entro 1e-9 relativo;
 // si dichiara il LRE minimo (−log10 dell'errore relativo, 15 se identico). Lo script deve dire «verifica: identico».
@@ -93,6 +94,15 @@ const PROJECTS={
   xrf:{files:XRF.map((c,j)=>['bronzo_'+(j+1)+'.mca', XR.spectrum({Cu:c[0], Sn:c[1], As:c[2]}, 3000, 20+j)]), set:{showArea:true}, attese:[/^analisi\/composizione_xrf\.csv$/, /^analisi\/controllo_qualita\.csv$/],
     work:`const c=mvCfg('xrf'); Object.assign(c,{qEls:['Cu','Sn','As'], qModel:'auto'}); mvSave(); const C=${JSON.stringify(XRF)};
       files.filter(f=>f.instr==='xrf').forEach((f,j)=>{ if (j<4) anSet(f,'std',{Cu:C[j][0]*100, Sn:C[j][1]*100, As:C[j][2]*100}); });`},
+  // XRF a parametri fondamentali (acch_xrf): rame nudo con gli elementi trovati dai suggerimenti, doratura con lo spessore (riferimento senza strato),
+  // strato pittorico con la scala dal Compton, composizione «parametri fondamentali» di Più campioni con due standard
+  xrfFP:{files:[['rame.mca',{Cu:1.0},41],['dorato.mca',{Cu:0.75, Au:0.25},42],['pittura.mca',{Pb:0.25, Ca:0.15, Fe:0.03, C:0.37, O:0.2},43],['std_1.mca',{Cu:0.88, Sn:0.10, As:0.02},44],['std_2.mca',{Cu:0.92, Sn:0.06, As:0.02},45],['camp.mca',{Cu:0.90, Sn:0.08, As:0.02},46]].map(([n,c,s])=>[n, XR.spectrum(c, 3000, s)]), set:{showArea:true},
+    attese:[/^analisi\/composizione_xrf_parametri_fondamentali\.csv$/, /^analisi\/spessore_strati_xrf\.csv$/, /^analisi\/composizione_xrf\.csv$/],
+    work:`const F=n=>files.find(q=>q.name===n), c=mvCfg('xrf'); Object.assign(c,{qEls:['Cu','Sn','As'], qModel:'fp'}); mvSave();
+      anSet(F('std_1.mca'),'std',{Cu:88, Sn:10, As:2}); anSet(F('std_2.mca'),'std',{Cu:92, Sn:6, As:2});
+      anSet(F('rame.mca'),'fp',{mode:'norm'});
+      anSet(F('dorato.mca'),'fp',{mode:'norm', els:['Cu','Au'], layer:{on:true, el:'Cu', cover:'oro', sub:'rame', ref:F('rame.mca').id}});
+      anSet(F('pittura.mca'),'fp',{mode:'compton', bal:'calcite', els:['Pb','Ca','Fe']});`},
   canali:{files:[['DAD1A.ch', Array.from(fs.readFileSync(path.join(B.ROOT,'test','fixtures','canali','STD1.D','DAD1A.ch'))), 'STD1.D/DAD1A.ch'], ['DAD1B.ch', Array.from(fs.readFileSync(path.join(B.ROOT,'test','fixtures','canali','STD1.D','DAD1B.ch'))), 'STD1.D/DAD1B.ch'],
       ['waters-2canali.arw', fs.readFileSync(path.join(B.ROOT,'test','fixtures','canali','waters-2canali.arw'),'utf8')], ['shimadzu-2canali.txt', fs.readFileSync(path.join(B.ROOT,'test','fixtures','canali','shimadzu-2canali.txt'),'utf8')],
       ['DAD1.uv', Array.from(G.writeUv({sample:'UV1', times:Array.from({length:120},(_,i)=>i*0.05), spectra:Array.from({length:120},(_,i)=>Array.from({length:101},(_,j)=>Math.exp(-(((j-40)/12)**2))*(1+Math.exp(-(((i*0.05-3)/0.3)**2)))*50+(i%7)*0.01)), a:200, b:400, s:2}))]],
@@ -156,6 +166,9 @@ describe('R15 · ricetta Python: stessi CSV dell\'app', {timeout:40*60*1000}, ()
     for (const n of P.byte||[]){ const sp=ric.spettri.filter(q=>q.nome===n); assert.ok(sp.length, n+' nella ricetta'); for (const q of sp) assert.strictEqual(q.lettura.modo, 'byte', n+': '+q.lettura.modo); }
     if (P.byte) assert.ok(ric.spettri.filter(q=>q.lettura.canale).length>=6, 'canali letti dai byte: '+ric.spettri.map(q=>q.nome+' '+q.lettura.modo).join(', '));
     if (name==='serie'){ const se=ric.analisi.serie; assert.ok(se.some(q=>q.mcr_bands) && se.some(q=>q.kin_cmp) && se.some(q=>q.mcr_svd_visto), 'stato a schermo: MCR-BANDS, confronto, valori singolari'); }
+    if (name==='xrfFP'){ const t=fs.readFileSync(path.join(pyDir(r.dir),'risultati','analisi','composizione_xrf_parametri_fondamentali.csv'),'utf8');
+      for (const n of ['rame.mca','dorato.mca','pittura.mca']) assert.ok(t.includes(n+';'), 'stima FP di '+n+': '+t);
+      assert.ok(ric.analisi.costantiFP && ric.analisi.fp.rif && Object.keys(ric.analisi.fp.rif).length===1, 'costanti FP con impronta e spettro di riferimento dello strato'); }
     if (name==='deconvoluzione') assert.ok(ric.analisi.chemometria.deconvoluzione.some(d=>d.fit.copiaDa), 'fit copiato da un altro spettro');
   });
   it('lingua inglese (separatore «,» e punto decimale)', {skip:!PY}, async ()=>{
@@ -239,10 +252,11 @@ describe('R15 · ricetta Python: stessi CSV dell\'app', {timeout:40*60*1000}, ()
       if (desk){ assert.ok(r.disk.includes('/out/r/ricetta_python/ricetta.py') && r.disk.some(k=>/\/ricetta_python\/dati\/uv\.csv$/.test(k)), r.disk.join(', ')); assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(r.title+r.sum), 'emoji nel desktop: '+r.sum); }
     }
   });
-  for (const name of ['serie','chemisorbimento','xrf']) it('lingua inglese, tabelle di analisi: «'+name+'»', {skip:!PY}, async ()=>{
+  for (const name of ['serie','chemisorbimento','xrf','xrfFP']) it('lingua inglese, tabelle di analisi: «'+name+'»', {skip:!PY}, async ()=>{
     const o=await B.openPage(br, server, {lang:'en'}); const P=PROJECTS[name]; const E=await exportIn(o.p, P.files, P.set, P.work, 'en'); assert.deepStrictEqual(o.errors, []); await o.ctx.close();
     const r=checkCase(name+'_en', E, '.'); assert.match(r.out, /check: identical/); assert.ok(r.want.some(p=>/^analysis\//.test(p)), 'tabelle di analisi in inglese: '+r.want.join(', '));
     assert.ok(!/ERRORE|verifica/.test(r.out), 'messaggi dello script in inglese: '+r.out);
+    if (name==='xrfFP') assert.ok(['xrf_fundamental_parameters','xrf_layer_thickness','xrf_composition'].every(t=>r.want.includes('analysis/'+t+'.csv')), 'tabelle FP in inglese: '+r.want.join(', '));
   });
   for (const name of ['chemisorbimento','deconvoluzione']) it('desktop (anteprima con worker e testi del desktop): «'+name+'», stessi CSV', {skip:!PY}, async ()=>{
     const o=await openDesk(B, br, server); await o.p.waitForFunction(()=>window.__mock && window.__mock.menu); const P=PROJECTS[name];

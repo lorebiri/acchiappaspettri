@@ -2315,14 +2315,36 @@ def analisi_progetto(ric, dati, spettri, loaded, results, peaks_of, out, errori,
             if r:
                 out.write(d + r[0], r[1])
         parte(npt, [npt], f_par)
+        def carica_fp():
+            # costanti FP dell'app (FP_DATA, FP_MATS, ...): JSON in dati/ con l'impronta, caricato una volta
+            if A.get('costantiFP') and 'FP_DATA' not in COSTANTI_XRF:
+                COSTANTI_XRF.update(load_json_verified(dati, A['costantiFP']['file'], A['costantiFP']['sha256']))
         if A.get('xrf'):
             nx = tt('composizione_xrf.csv', 'xrf_composition.csv')
 
             def f_xrf():
+                carica_fp()
                 r = composizione_xrf_csv(A['xrf']['cfg'], [voce(k) for k in A['xrf']['lista']], ctx)
                 if r:
                     out.write(d + r[0], r[1])
             parte(nx, [nx], f_xrf)
+        # XRF a parametri fondamentali e spessori degli strati (acch_xrf): la stima di ogni spettro si fa una volta (voce['fpRes'])
+        F = A.get('fp')
+        if F:
+            rif = F.get('rif') or {}
+
+            def ref_of(i):
+                key = js_str(i) if isinstance(i, (int, float)) and not isinstance(i, bool) else str(i)
+                return voce(rif[key]) if key in rif else None
+            ctxf = dict(ctx, fpTr=F.get('tr') or {}, rif=ref_of)
+            for nome, fn in ((tt('composizione_xrf_parametri_fondamentali.csv', 'xrf_fundamental_parameters.csv'), composizione_fp_csv),
+                             (tt('spessore_strati_xrf.csv', 'xrf_layer_thickness.csv'), spessore_strati_csv)):
+                def f_fp(fn=fn):
+                    carica_fp()
+                    r = fn([voce(k) for k in F['lista']], ctxf)
+                    if r:
+                        out.write(d + r[0], r[1])
+                parte(nome, [nome], f_fp)
     # concentrazioni dalla taratura salvata in libreria (acch_libreria): dati elaborati e picchi dello script
     L = A.get('libreria')
     if L:
