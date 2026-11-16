@@ -88,7 +88,11 @@
   function fp(a){ if (!ArrayBuffer.isView(a)) return JSON.stringify(a); if (a._acchFp!==undefined) return a._acchFp; let h=a.length>>>0; const st=Math.max(1, Math.floor(a.length/256)), f=new Float64Array(1), u=new Uint32Array(f.buffer);
     for (let i=0;i<a.length;i+=st){ f[0]=a[i]; h=Math.imul(h^u[0], 16777619)>>>0; h=Math.imul(h^u[1], 16777619)>>>0; } return a.constructor.name+a.length+':'+h; }
   function sameArr(a, b){ if (a===b) return true; if (!b || a.length!==b.length || a.constructor!==b.constructor) return false; for (let i=0;i<a.length;i++){ const x=a[i], y=b[i]; if (x!==y && !(x!==x && y!==y) ) return false; if (x===0 && !Object.is(x,y)) return false; } return true; }
-  const plainArgs=A=>A.every(a=>a==null || ['number','string','boolean'].includes(typeof a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>v==null || ['number','string','boolean'].includes(typeof v))));
+  // argomenti che si possono copiare al worker e confrontare: numeri, testi, vettori tipizzati, piccoli elenchi di valori o di oggetti semplici
+  // (per esempio i picchi {x, xa, xb} di chromMetrics), confrontati per contenuto
+  const prim=v=>v==null || ['number','string','boolean'].includes(typeof v);
+  const plainObj=v=>v && typeof v==='object' && !Array.isArray(v) && Object.getPrototypeOf(v)===Object.prototype && Object.values(v).every(prim);
+  const plainArgs=A=>A.every(a=>prim(a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>prim(v) || plainObj(v))));
   const copy=r=>ArrayBuffer.isView(r) ? r.slice() : (r && typeof r==='object') ? structuredClone(r) : r;   // chi riceve può modificare il risultato
   function lookup(fn, A){ const F=A.map(fp);
     for (let k=cache.length-1;k>=0;k--){ const e=cache[k]; if (e.fn!==fn || e.args.length!==A.length || e.fps.some((x,i)=>x!==F[i])) continue;
@@ -155,7 +159,7 @@
           store(n.fn, n.args, r); }
         await pause(); }
       return run(); });
-    chain=job.catch(()=>{}); return job; };
+    chain=job.catch(()=>{}).then(pause); return job; };   // fra due controlli la finestra respira
   AcchEngine.heavyCache=()=>cache.map(e=>e.fn);
   win.AcchEngine=AcchEngine;
 })(window);

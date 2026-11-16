@@ -7386,7 +7386,7 @@ function assess(f, d){
   // polarità invertita: i picchi veri vanno in giù (rivelatore RI, segno scambiato): i «picchi» trovati sono i fianchi
   if (it==='hplc'){ const nr=raw.length, med=sortedAt(raw, nr>>1), up=sortedAt(raw, nr-1)-med, dn=med-sortedAt(raw, 0), sg=noiseSigma(raw)||0; if (dn>2*up && dn>20*sg) add('bad','Il segnale ha picchi negativi molto più grandi di quelli positivi: polarità invertita (per esempio rivelatore a indice di rifrazione)? I picchi trovati possono essere i fianchi. Inverti il segno del segnale prima di integrare.'); }
   // buchi nell'asse X: un picco sul bordo di un buco ha posizione e area non affidabili
-  { const xs=f.xs, n=xs.length; if (n>20){ const st=new Float64Array(n-1); for (let i=1;i<n;i++) st[i-1]=Math.abs(xs[i]-xs[i-1]); const ms=sortedAt(st, st.length>>1); const gaps=[]; st.forEach((v,i)=>{ if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); });
+  { const xs=f.xs, n=xs.length; if (n>20){ const {gaps, ms}=xGaps(xs);
     if (gaps.length){ const edge=d.peaks.filter(p=>gaps.some(([a,b])=>Math.min(Math.abs(p.x-a),Math.abs(p.x-b))<=3*ms)); add(edge.length?'bad':'warn', `L'asse X ha ${gaps.length===1?'un buco':gaps.length+' buchi'} (${gaps.slice(0,3).map(([a,b])=>fmtTick(Math.min(a,b),2)+'–'+fmtTick(Math.max(a,b),2)).join(', ')}) senza dati.${edge.length?` Il picco a ${edge.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')} cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.`:' Un picco dentro il buco non si vede.'}`); } } }
   if (it==='hplc' && d.peaks.length){ const ft=flatTopPeaks(P.xs, upData(P).y, d.peaks); { const up=upData(P).y, as=d.peaks.filter(p=>peakShape(P.xs,up,p.x).asym); if (as.length) add('warn',`Picco asimmetrico a ${as.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}: coda o interferente non separato. L'area può comprendere un altro composto.`); }
     if (ft.length) add('warn', `Cima piatta in ${ft.length===1?'un picco':ft.length+' picchi'} (${ft.slice(0,4).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto.`); }
@@ -7502,13 +7502,21 @@ function markShared(list){ const hits=h=>(h.ev||[]).filter(e=>e.hit!=null).map(e
 function hypBar(h){ return Math.round((h.ev&&hypGot(h)<=1 ? Math.min(h.score,0.25) : h.score)*100); }
 /* forma di un picco. Larghezza al 10% su quella a metà: gaussiana 1,82, sotto 1,55 la cima è piatta. Rapporto fra i due lati al 10%: lontano da 1 c'è coda o un interferente */
 /* I5: il quartile basso e il rumore dei dati non dipendono dal picco: si calcolano una volta per vettore (prima a ogni picco, con un
-   ordinamento di tutto lo spettro). Il quartile si sceglie senza ordinare (kthSmallest): stesso elemento; con NaN o uno zero si ordina come prima */
+   ordinamento di tutto lo spettro). Il quartile si sceglie senza ordinare (sortedAt, nel nucleo): stesso elemento */
+/* buchi nell'asse X: passi oltre 10 volte il passo mediano. I5: calcolati una volta per asse (con 1M punti l'elenco dei passi costava
+   decine di ms a ogni controllo); stesso calcolo di prima */
+const XGAPS=new WeakMap();
+function xGaps(xs){ const c=XGAPS.get(xs); if (c) return {gaps:c.gaps.slice(), ms:c.ms}; const n=xs.length, st=new Float64Array(n-1); for (let i=1;i<n;i++) st[i-1]=Math.abs(xs[i]-xs[i-1]);
+  const ms=sortedAt(st, st.length>>1), gaps=[]; for (let i=0;i<st.length;i++){ const v=st[i]; if (ms>0 && v>10*ms) gaps.push([xs[i],xs[i+1]]); }
+  if (typeof xs==='object') XGAPS.set(xs, {gaps:gaps.slice(), ms}); return {gaps, ms}; }
+// indice del punto più vicino a x0 (il primo a parità di distanza), ricordato per asse e posizione
+const NEAR_IX=new WeakMap();
+function nearestIx(xs, x0){ let m=NEAR_IX.get(xs); if (m && m.has(x0)) return m.get(x0); let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } }
+  if (typeof xs==='object'){ if (!m){ m=new Map(); NEAR_IX.set(xs, m); } if (m.size>256) m.clear(); m.set(x0, k); } return k; }
 const PS_MEMO=new WeakMap();
-function peakShapeBase(y){ let m=PS_MEMO.get(y); if (m) return m; let base=null;
-  if (y.length>=2048){ const a=Float64Array.from(y); let nan=false; for (let i=0;i<a.length;i++) if (a[i]!==a[i]){ nan=true; break; } if (!nan){ const v=kthSmallest(a, a.length>>2); if (v!==0) base=v; } }
-  if (base===null){ const v=Array.from(y).sort((a,b)=>a-b); base=v[v.length>>2]; }
-  m={base, sg:noiseSigma(y)||0}; PS_MEMO.set(y, m); return m; }
-function peakShape(xs, y, x0){ const M=peakShapeBase(y), base=M.base; let k=0, best=Infinity; for (let i=0;i<xs.length;i++){ const dx=Math.abs(xs[i]-x0); if (dx<best){ best=dx; k=i; } } const h=y[k]-base, sg=M.sg; if (!(h>0) || h<20*sg) return {};
+function peakShapeBase(y){ let m=PS_MEMO.get(y); if (m) return m;
+  m={base:sortedAt(y, y.length>>2), sg:noiseSigma(y)||0}; PS_MEMO.set(y, m); return m; }   // sortedAt: lo stesso elemento di Array.from(y).sort((a,b)=>a−b); nel desktop i due calcoli vanno al worker
+function peakShape(xs, y, x0){ const M=peakShapeBase(y), base=M.base, k=nearestIx(xs, x0); const h=y[k]-base, sg=M.sg; if (!(h>0) || h<20*sg) return {};
   const w=q=>{ const t=base+q*h; let l=k, r=k; while (l>0&&y[l]>t) l--; while (r<y.length-1&&y[r]>t) r++; return (l===0||r===y.length-1)?null:{l,r}; }, a=w(0.5), b=w(0.1); if (!a||!b||a.r-a.l<12) return {};
   // posizioni dei fianchi interpolate tra i due punti a cavallo della soglia: con picchi stretti l'arrotondamento al punto intero falsava il rapporto
   const at=(i,j,q)=>{ const t=base+q*h, d=y[j]-y[i]; return xs[i]+(d? (t-y[i])/d : 0.5)*(xs[j]-xs[i]); };
