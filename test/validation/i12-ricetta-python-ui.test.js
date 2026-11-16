@@ -244,6 +244,11 @@ describe('R15 · ricetta Python: stessi CSV dell\'app', {timeout:40*60*1000}, ()
     const r=checkCase(name+'_en', E, '.'); assert.match(r.out, /check: identical/); assert.ok(r.want.some(p=>/^analysis\//.test(p)), 'tabelle di analisi in inglese: '+r.want.join(', '));
     assert.ok(!/ERRORE|verifica/.test(r.out), 'messaggi dello script in inglese: '+r.out);
   });
+  for (const name of ['chemisorbimento','deconvoluzione']) it('desktop (anteprima con worker e testi del desktop): «'+name+'», stessi CSV', {skip:!PY}, async ()=>{
+    const o=await openDesk(B, br, server); await o.p.waitForFunction(()=>window.__mock && window.__mock.menu); const P=PROJECTS[name];
+    const E=await exportIn(o.p, P.files, P.set, P.work); assert.deepStrictEqual(o.errors, []); await o.ctx.close();
+    const r=checkCase(name+'_desktop', E, ','); for (const re of P.attese||[]) assert.ok(r.want.some(p=>re.test(p)), name+': '+re); assert.strictEqual(r.ric.analisi.desk, true);
+  });
   it('anteprima commentata nella finestra Esporta: letture, tabelle rifatte, non trascritte, intestazione', async ()=>{
     const o=await B.openPage(br, server); const P=PROJECTS.chemisorbimento;
     const t=await o.p.evaluate(async ([L, NONE, work])=>{ await addEntries(L.map(([n,t])=>({file:new File([t],n), path:n}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
