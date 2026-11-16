@@ -1307,6 +1307,7 @@
   "serve solo come riferimento o per la taratura": "used only as a reference or for the calibration",
   "File che scrive": "Files it writes",
   "confrontati con quelli dell'app": "compared with those of the app",
+  "({0}), confrontati con quelli dell'app": "({0}), compared with those of the app",
   "Non trascritte": "Not transcribed",
   "lo script le segnala con un errore, senza approssimarle": "the script reports them with an error, without approximating them",
   "Intestazione dello script": "Script header",

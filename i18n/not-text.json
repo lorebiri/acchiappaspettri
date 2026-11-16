@@ -224,6 +224,7 @@
 "Kaomi",
 "PA",
 "TCD",
-"(only the BET, BJH and DH rows and the branch data are transcribed, in a separate .bet_bjh.csv file; Langmuir, t-plot, pore volume, DR/DA, DFT, IUPAC type and warnings are not)",
-"python3 ricetta.py"
+"python3 ricetta.py",
+"(il fit salvato di «{0}» è stato fatto con altri picchi o altri valori di partenza: rifai la deconvoluzione)",
+"(the saved fit of «{0}» was made with other peaks or starting values: run the deconvolution again)"
 ]
