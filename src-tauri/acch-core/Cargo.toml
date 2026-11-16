@@ -17,3 +17,5 @@ name = "acch-core-cli"
 path = "src/bin/acch-core-cli.rs"
 
 [dependencies]
+# I7: compressione DEFLATE dei progetti (già nel Cargo.lock dell'app, via tauri)
+miniz_oxide = "0.8"

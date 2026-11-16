@@ -15,7 +15,7 @@
   // mandarli attraverso l'IPC e risulta più lento (misure I5: 50 MB, 0,6 s in JS contro 2,2 s). Il lettore Rust del .uv resta nei test incrociati.
   const JS_FASTER=/\.uv$/i;
   let cfg=null, worker=null, wid=0, job=0, stopBatch=false, current=null;
-  const pending=new Map(), stats={rust:0, js:0, fallback:0, rustErrors:0, dualSame:0, dualDiff:0, worker:0, main:0, last:null};
+  const pending=new Map(), stats={rust:0, js:0, fallback:0, rustErrors:0, dualSame:0, dualDiff:0, worker:0, main:0, calcRust:0, calcJs:0, zipRust:0, last:null};
   function warn(msg){ console.warn('[motore] '+msg); }   // console.warn entra nel registro di «Segnala un problema» (app/segnala-core.js)
   async function config(){ if (cfg) return cfg;
     try{ const c=await inv('engine_config'); cfg={rust:!!(c && c.rust), dual:!!(c && c.dual)}; }catch(e){ cfg={rust:false, dual:false}; }   // app senza il comando (o anteprima nel browser): solo il worker JS
@@ -106,6 +106,45 @@
       if (probe){ needs.push({fn, args:A}); throw NEED; }
       return orig.apply(this, A); }; }
   const pause=()=>new Promise(r=>setTimeout(r,0));
+  /* ---------- I7: calcoli pesanti e ZIP in Rust (src-tauri/acch-core: calc.rs, zip.rs) ----------
+     Il JS resta il riferimento: il Rust rifà le stesse operazioni nello stesso ordine ed è identico bit per bit sul corpus
+     (test/unit/dual-calc.test.js). Si usa il Rust solo dove porta un guadagno misurato nell'app, IPC compreso (RUST_CALC, vedi
+     ~/build/c27/dev-rust7.md); altrimenti, o se il Rust risponde «decline» o dà errore, calcola il worker JS come nella I5.
+     Con ACCH_DUAL=1 si calcola anche nel worker e, se i risultati non coincidono, vale il JS con un avviso nel registro. */
+  const RUST_CALC=new Set(['findPeaks']);
+  const toU8=b=>b instanceof ArrayBuffer ? b : new Uint8Array(b).buffer;
+  async function calcRust(fn, args){ const req=win.AcchCalc && win.AcchCalc.encode(fn, args); if (!req) return null;
+    const R=win.AcchCalc.decode(toU8(await inv('acch_calc', req))); return R.decline ? null : R; }
+  async function heavy(fn, args){ const c=await config();
+    if (c.rust && RUST_CALC.has(fn)){ try{ const R=await calcRust(fn, args);
+        if (R){ stats.calcRust++;
+          if (c.dual){ const js=await AcchEngine.call(fn, ...args), d=win.AcchCalc.same(R.r, js, 1e-12);
+            if (d){ stats.dualDiff++; warn('ACCH_DUAL: '+fn+' in Rust diverso dal JS ('+d.slice(0,200)+'): uso il JS'); return js; } stats.dualSame++; }
+          return R.r; } }
+      catch(e){ stats.rustErrors++; warn('calcolo Rust non riuscito ('+fn+': '+String(e).slice(0,120)+'): uso il JS'); } }
+    stats.calcJs++; return AcchEngine.call(fn, ...args); }
+  AcchEngine.heavy=heavy; AcchEngine.calcRust=calcRust;
+  // I7: una funzione del nucleo nel worker; se il worker non risponde, nella pagina (stesso risultato), con un avviso nel registro
+  AcchEngine.callOrPage=(fn, ...a)=>AcchEngine.call(fn, ...a).catch(e=>{ warn(fn+' nel worker non riuscito ('+String(e).slice(0,120)+'): calcolo nella pagina'); return win[fn](...a); });
+  /* zipper(zip, opzioni): l'archivio dell'oggetto JSZip scritto dal Rust, con le stesse voci, nomi, ordine, date e metodo
+     (DEFLATE: equivalente, test/unit/dual-zip.test.js); null → JSZip. Solo per i progetti (DEFLATE): per lo ZIP di Esporta (STORE)
+     il Rust non porta guadagno nell'app (misura I7) e scrive JSZip. Richiesta e risposta passano a pezzi da 8 MB, con una pausa fra
+     un pezzo e l'altro, perché un solo trasferimento da decine di MB bloccherebbe la finestra oltre 50 ms. */
+  const ZCH=8<<20;
+  AcchEngine.zipper=async function(zip, gen){ const c=await config(); if (!c.rust || !win.AcchCalc || String(gen.compression).toUpperCase()!=='DEFLATE') return null;
+    const id=++job;
+    try{ const parts=await win.AcchCalc.zipRequest(zip, Object.assign({}, gen, {parts:true})); if (!parts) return null;
+      let first=true; for (const p of parts) for (let o=0;o<p.length;o+=ZCH){ await inv('acch_zip_put', p.subarray(o, o+ZCH), {headers:{'x-acch-job':String(id), 'x-acch-first':first?'1':'0'}}); first=false; await pause(); }
+      const n=await inv('acch_zip_make', {job:id}), u=new Uint8Array(n);
+      for (let o=0;o<n;o+=ZCH){ u.set(new Uint8Array(toU8(await inv('acch_zip_take', {job:id, offset:o, len:ZCH}))), o); await pause(); }
+      if (c.dual){ const d=await zipDiff(zip, gen, u); if (d){ stats.dualDiff++; warn('ACCH_DUAL: ZIP del Rust diverso da JSZip ('+d+'): uso JSZip'); return null; } stats.dualSame++; }
+      stats.zipRust++; return gen.type==='blob' ? new Blob([u], {type:gen.mimeType||'application/zip'}) : u; }
+    catch(e){ stats.rustErrors++; warn('ZIP in Rust non riuscito ('+String(e).slice(0,120)+'): uso JSZip'); try{ await inv('acch_zip_take', {job:id, offset:0, len:0}); }catch(x){} return null; } };
+  async function zipDiff(zip, gen, u){
+    if (String(gen.compression).toUpperCase()==='STORE'){ const j=await zip.generateAsync(Object.assign({}, gen, {type:'uint8array'})); if (j.length!==u.length) return 'lunghezza'; for (let i=0;i<j.length;i++) if (j[i]!==u[i]) return 'byte '+i; return null; }
+    const back=await win.JSZip.loadAsync(u), a=[], b=[]; zip.forEach(p=>a.push(p)); back.forEach(p=>b.push(p)); if (a.join('\n')!==b.join('\n')) return 'voci';
+    for (const p of a){ if (zip.files[p].dir) continue; const x=await zip.files[p].async('uint8array'), y=await back.files[p].async('uint8array'); if (x.length!==y.length || x.some((v,i)=>v!==y[i])) return p; }
+    return null; }
   /* run: funzione sincrona della pagina. Restituisce il suo risultato, calcolato con i risultati pesanti già pronti dal worker.
      I risultati restano in memoria (al massimo MAXE, controllati elemento per elemento), così chi chiede di nuovo lo stesso calcolo lo trova.
      Al massimo 40 giri; se il worker non risponde si calcola nella pagina come prima */
@@ -117,7 +156,7 @@
         const got=needs; needs=[];
         if (!got.length){ if (err) throw err; return out; }   // nessuna chiamata mancante: è il risultato vero, identico a quello sincrono
         for (const n of got){ if (lookup(n.fn, n.args)) continue;
-          let r; try{ r=await AcchEngine.call(n.fn, ...n.args); }catch(e){ r=win[n.fn].apply(null, n.args); }   // worker non disponibile: nella pagina
+          let r; try{ r=await heavy(n.fn, n.args); }catch(e){ r=win[n.fn].apply(null, n.args); }   // Rust (I7) o worker; se nessuno dei due risponde, nella pagina
           store(n.fn, n.args, r); }
         await pause(); }
       return run(); });

@@ -1284,6 +1284,8 @@
 "letto dall'estensione «{0}» {1}": "read by the extension «{0}» {1}",
   "Estensioni per nuovi formati": "Extensions for new formats",
   "Se un formato non lo leggo ancora, puoi aggiungere un'estensione: gira isolata, senza rete né accesso ai tuoi dati, e prima di installarla ti mostro chi l'ha scritta e che cosa può fare.": "If I cannot read a format yet, you can add an extension: it runs isolated, with no network or access to your data, and before installing it I show you who wrote it and what it can do.",
+"Deconvoluzione in corso…": "Deconvolution in progress…",
+"Calcolo della composizione in corso…": "Computing the composition…",
 "Preparazione del grafico…": "Preparing the graph…",
 "Ingrandisci il grafico": "Zoom in on the graph",
 "Riduci il grafico": "Zoom out of the graph",

@@ -597,7 +597,7 @@ mod e2e {
     pub fn e2e_config(app: tauri::AppHandle) -> serde_json::Value {
         // misure (scenario «misura»): finestra in primo piano, come quando la usa una persona; una finestra coperta o in secondo piano
         // ha i timer e i fotogrammi rallentati dal sistema (App Nap su macOS) e falserebbe i tempi
-        if std::env::var("ACCH_E2E_SCENARIO").as_deref() == Ok("misura") {
+        if matches!(std::env::var("ACCH_E2E_SCENARIO").as_deref(), Ok("misura") | Ok("calcolo")) {
             use tauri::Manager;
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.show();
@@ -740,6 +740,7 @@ pub fn run() {
         .manage(Dirs::default())
         .manage(Store::default())
         .manage(engine::Jobs::default())
+        .manage(engine::Zips::default())
         .manage(LibDirState::default())
         .manage(viste::Viste::default())
         .setup(|app| {
@@ -797,7 +798,7 @@ pub fn run() {
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
-        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         viste::view_open, viste::view_put, viste::view_take
     ]);
@@ -805,7 +806,7 @@ pub fn run() {
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
-        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read,
+        engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         viste::view_open, viste::view_put, viste::view_take,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
