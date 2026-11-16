@@ -4,12 +4,15 @@
 # m_log10, m_expm1, m_sin, m_cos, m_pow, m_hypot, che in acch_ricetta.py valgono quelle di math.
 # Math.exp, log, log10, expm1, sin, cos, pow e hypot cambiano nell'ultima cifra da un motore all'altro,
 # e nei fit (LM, arPLS, sezione aurea) quella cifra cresce fino a 1e-9 e oltre. Motori:
-#   'v8-fma': V8 compilato con la contrazione a·b+c in FMA (Node e Chrome su arm64, per esempio i Mac M):
+#   'v8-fma': V8 compilato con la contrazione a·b+c in FMA (Node su arm64, per esempio i Mac M):
 #             fdlibm di src/base/ieee754.cc con le moltiplicazioni-somme fuse;
 #   'v8':     V8 su x86-64: la stessa fdlibm senza FMA (NON VERIFICATO: qui non c'è una macchina x86);
 #   'jsc':    JavaScriptCore (WKWebView del desktop Tauri su macOS, Safari): la libm del sistema, cioè
 #             math.* di Python sulla stessa macchina; hypot a due argomenti dalla libm (ctypes), pow con
 #             esponente intero ≥ 0 per quadrati successivi.
+#   'v8-llvm': V8 recente (Chrome): exp, expm1, log, log10, sin e cos dalla libc di LLVM, arrotondate correttamente
+#             (verificato su 6000 argomenti per funzione in Chrome); qui con decimal, più lente ma uguali bit per bit;
+#             pow della libm e hypot di V8 come gli altri V8.
 # Il motore si sceglie con imposta_motore(sonda): la sonda la registra l'app all'esportazione (SONDA_JS).
 # Math.sqrt è corretta in ogni motore: resta math.sqrt.
 # ---------------------------------------------------------------------------------------------
@@ -402,36 +405,155 @@ def _libm1(fn, x):
 def m_exp(x):
     # Math.exp
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('exp', x)
     return _libm1(math.exp, x) if MOTORE[0] == 'jsc' else _fd_exp(x, _m_F())
 
 
 def m_expm1(x):
     # Math.expm1
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('expm1', x)
     return _libm1(math.expm1, x) if MOTORE[0] == 'jsc' else _fd_expm1(x, _m_F())
 
 
 def m_log(x):
     # Math.log
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('log', x)
     return _libm1(math.log, x) if MOTORE[0] == 'jsc' else _fd_log(x, _m_F())
 
 
 def m_log10(x):
     # Math.log10
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('log10', x)
     return _libm1(math.log10, x) if MOTORE[0] == 'jsc' else _fd_log10(x, _m_F())
+
+
+import decimal as _mdec
+
+_M_PI = [None, 0]
+
+
+def _cr_pi(prec):
+    # π con prec cifre (formula di Machin), per la riduzione dell'argomento di sin e cos
+    if _M_PI[1] >= prec:
+        return _M_PI[0]
+    with _mdec.localcontext() as c:
+        c.prec = prec + 10
+        D = _mdec.Decimal
+
+        def atan_inv(n):
+            x = D(1) / n
+            x2, s, t, k, eps = x * x, x, x, 1, D(10) ** (-(prec + 8))
+            while True:
+                t *= -x2
+                k += 2
+                term = t / k
+                if abs(term) < eps:
+                    break
+                s += term
+            return s
+        p = 16 * atan_inv(5) - 4 * atan_inv(239)
+    _M_PI[0], _M_PI[1] = p, prec
+    return p
+
+
+def _cr(fn, x):
+    """Math.* di V8 con la libc di LLVM (Chrome): exp, expm1, log, log10, sin e cos ARROTONDATE CORRETTAMENTE, cioè il double più
+    vicino al valore esatto. Qui il valore si calcola con decimal a 40 cifre o più (ln, exp e log10 di decimal sono arrotondati
+    correttamente alla precisione scelta) e float() sceglie il double più vicino: lo stesso numero di qualunque libreria corretta."""
+    D = _mdec.Decimal
+    if x != x:
+        return NAN
+    if fn in ('log', 'log10'):
+        if x < 0:
+            return NAN
+        if x == 0:
+            return -INF
+        if x == INF:
+            return INF
+        with _mdec.localcontext() as c:
+            c.prec = 40
+            return float(D(x).ln() if fn == 'log' else D(x).log10())
+    if fn == 'exp':
+        if x == INF:
+            return INF
+        if x == -INF:
+            return 0.0
+        if x > 710:
+            return INF
+        if x < -746:
+            return 0.0
+        with _mdec.localcontext() as c:
+            c.prec = 40
+            return float(D(x).exp())
+    if fn == 'expm1':
+        if x == 0 or x == INF:
+            return x
+        if x == -INF:
+            return -1.0
+        if x > 710:
+            return INF
+        if x < -40:
+            return -1.0 if x < -40 else NAN
+        with _mdec.localcontext() as c:
+            c.prec = 50
+            X = D(x)
+            if abs(x) < 1e-3:   # serie: niente cancellazione con exp(x) − 1
+                t, s, k = X, X, 1
+                while True:
+                    k += 1
+                    t = t * X / k
+                    if abs(t) < abs(s) * D(10) ** -48:
+                        break
+                    s += t
+                return float(s)
+            return float(X.exp() - 1)
+    # sin e cos
+    if x == INF or x == -INF:
+        return NAN
+    if x == 0:
+        return x if fn == 'sin' else 1.0
+    prec = 60 + int(max(0, math.frexp(x)[1]) * 0.302)
+    with _mdec.localcontext() as c:
+        c.prec = prec
+        X = D(x)
+        h = _cr_pi(prec) / 2
+        k = (X / h).to_integral_value(rounding=_mdec.ROUND_HALF_EVEN)
+        r = X - k * h
+        q = (int(k) + (1 if fn == 'cos' else 0)) % 4
+        r2, eps = r * r, D(10) ** (-prec)
+        if q % 2 == 0:   # seno di r
+            t, sm, n = r, r, 1
+        else:            # coseno di r
+            t, sm, n = D(1), D(1), 0
+        while True:
+            t = -t * r2 / ((n + 1) * (n + 2))
+            n += 2
+            if t == 0 or abs(t) < eps * abs(sm):
+                break
+            sm += t
+        return float(sm if q < 2 else -sm)
 
 
 def m_sin(x):
     # Math.sin
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('sin', x)
     return _libm1(math.sin, x) if MOTORE[0] == 'jsc' else _fd_sin(x, _m_F())
 
 
 def m_cos(x):
     # Math.cos
     x = float(x)
+    if MOTORE[0] == 'v8-llvm':
+        return _cr('cos', x)
     return _libm1(math.cos, x) if MOTORE[0] == 'jsc' else _fd_cos(x, _m_F())
 
 
@@ -555,8 +677,8 @@ def _m_uguale(a, r):
 
 def usa_motore(nome):
     # sceglie il motore per nome: 'v8-fma', 'v8' o 'jsc'
-    if nome not in ('v8-fma', 'v8', 'jsc'):
-        raise ValueError('motore: v8-fma, v8 o jsc')
+    if nome not in ('v8-fma', 'v8', 'jsc', 'v8-llvm'):
+        raise ValueError('motore: v8-fma, v8, jsc o v8-llvm')
     MOTORE[0] = nome
     return nome
 
@@ -569,7 +691,7 @@ def imposta_motore(sonda):
     if not isinstance(val, list) or len(val) != len(X):
         raise NonTrascritto('sonda del motore JavaScript mancante o di formato sconosciuto')
     vecchio = MOTORE[0]
-    for nome in ('v8-fma', 'v8', 'jsc'):
+    for nome in ('v8-fma', 'v8', 'jsc', 'v8-llvm'):
         MOTORE[0] = nome
         try:
             if all(len(r) == 9 and all(_m_uguale(a, b) for a, b in zip(_m_vals(x), r)) for x, r in zip(X, val)):

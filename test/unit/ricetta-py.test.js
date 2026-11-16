@@ -99,3 +99,11 @@ print(_j.dumps(_out))
     got.forEach((G,i)=>{ for (const k of ['sg','dv','ns','pc','pk']){ const a=JSON.stringify(want[i][k]), b=JSON.stringify(G[k]); nn+=a.length; if (a!==b) bad.push(`caso ${i} ${k}: ${b.slice(0,160)} invece di ${a.slice(0,160)}`); } });
     console.log(`# nucleo I5 in Python: ${cases.length} spettri, finestre fino a m = 200, ${bad.length} diversi`); assert.deepStrictEqual(bad, []); } finally { fs.rmSync(d,{recursive:true,force:true}); }
 });
+
+// la sonda del motore JavaScript che la pagina esegue all'esportazione è la stessa funzione scritta in acch_math.py (SONDA_JS)
+test('sonda del motore: acchSondaMath di index.html identica a SONDA_JS di acch_math.py', ()=>{
+  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8'), py=fs.readFileSync(path.join(ROOT,'scripts','ricetta-py','acch_math.py'),'utf8');
+  const sonda=/SONDA_JS = r'''([\s\S]*?)'''/.exec(py)[1], k=html.indexOf('\nfunction acchSondaMath(');
+  assert.ok(k>0, 'acchSondaMath non trovata in index.html'); assert.strictEqual(html.slice(k+1, k+1+sonda.length), sonda);
+  const v=new Function(sonda+'\nreturn acchSondaMath();')(); assert.strictEqual(v.versione, 1); assert.strictEqual(v.valori.length, 128); assert.ok(v.valori.every(r=>r.length===9));
+});

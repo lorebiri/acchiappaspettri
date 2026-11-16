@@ -20,22 +20,24 @@
   const T={
     it:{titolo:'ricetta come script Python', esportata:'Ricetta esportata da Acchiappaspettri', il:'il',
       gpl:'Lo script contiene codice derivato da Acchiappaspettri ed è distribuito con la stessa licenza, GPL-3.0-or-later.',
-      req:'Requisiti: Python >= 3.10 e la sola libreria standard (re, json, math, struct, hashlib, decimal, argparse).',
+      req:'Requisiti: Python >= 3.10 e la sola libreria standard (re, json, math, struct, hashlib, decimal, argparse, functools, unicodedata; fractions e ctypes solo dove servono).',
       noNp:'numpy (>= 1.26) e scipy (>= 1.11) non servono: le funzioni sono trascritte operazione per operazione, perché i filtri di numpy e scipy hanno bordi e ordine delle somme diversi e cambierebbero i numeri.',
       uso:'Uso: python3 ricetta.py [--dati CARTELLA] [--uscita CARTELLA]   (file nuovi: --file A.csv B.csv --tecnica ftir)',
       rete:'Nessun accesso alla rete. Lo script legge solo la cartella dei dati e scrive solo nella cartella di uscita.',
-      fonti:'File sorgente (SHA-256 dei byte, modo di lettura):', testo:'rilettura del file di testo', csv:'CSV dei dati letti scritto dall\'app',
-      noteCsv:'Nota: per i formati binari (e per i pochi file di testo che il lettore semplice non ricostruisce) lo script legge il CSV dei dati letti dall\'app, nella cartella dati.',
+      fonti:'File sorgente (SHA-256 dei byte, modo di lettura):', testo:'rilettura del file di testo', byte:'lettura del file originale con il lettore dell\'app trascritto', csv:'CSV dei dati letti scritto dall\'app',
+      estensione:'letto dall\'estensione', noteEst:'Nota: gli spettri letti da un\'estensione (lettore aggiunto all\'app) si rileggono dal CSV dei dati letti: il lettore dell\'estensione non fa parte dello script.',
+      noteCsv:'Nota: per i file che il lettore trascritto non ricostruisce identici (estensioni, Excel, progetti Origin, serie e i rari casi in cui i numeri non coincidono) lo script legge il CSV dei dati letti dall\'app, nella cartella dati.',
       nonTr:'Parti del progetto non trascritte (lo script le segnala con un errore, senza approssimarle):',
       esito:'Esito: 0 identico all\'app; 1 numeri diversi; 2 file mancanti o diversi; 3 identico, ma con parti non trascritte.'},
     en:{titolo:'recipe as a Python script', esportata:'Recipe exported from Acchiappaspettri', il:'on',
       gpl:'The script contains code derived from Acchiappaspettri and is distributed under the same licence, GPL-3.0-or-later.',
-      req:'Requirements: Python >= 3.10 and the standard library only (re, json, math, struct, hashlib, decimal, argparse).',
+      req:'Requirements: Python >= 3.10 and the standard library only (re, json, math, struct, hashlib, decimal, argparse, functools, unicodedata; fractions and ctypes only where needed).',
       noNp:'numpy (>= 1.26) and scipy (>= 1.11) are not needed: the functions are transcribed operation by operation, because the numpy and scipy filters handle edges and summation order differently and would change the numbers.',
       uso:'Usage: python3 ricetta.py [--dati FOLDER] [--uscita FOLDER]   (new files: --file A.csv B.csv --tecnica ftir)',
       rete:'No network access. The script reads only the data folder and writes only to the output folder.',
-      fonti:'Source files (SHA-256 of the bytes, reading mode):', testo:'re-reading of the text file', csv:'CSV of the data as read, written by the app',
-      noteCsv:'Note: for binary formats (and the few text files the simple reader cannot rebuild) the script reads the CSV of the data as read by the app, in the data folder.',
+      fonti:'Source files (SHA-256 of the bytes, reading mode):', testo:'re-reading of the text file', byte:'reading of the original file with the transcribed reader of the app', csv:'CSV of the data as read, written by the app',
+      estensione:'read by the extension', noteEst:'Note: spectra read by an extension (a reader added to the app) are re-read from the CSV of the data as read: the reader of the extension is not part of the script.',
+      noteCsv:'Note: for files that the transcribed reader does not rebuild identically (extensions, Excel, Origin projects, series and the rare cases where the numbers do not match) the script reads the CSV of the data as read by the app, in the data folder.',
       nonTr:'Parts of the project that are not transcribed (the script reports them with an error, without approximating them):',
       esito:'Exit code: 0 identical to the app; 1 different numbers; 2 missing or different files; 3 identical, but with parts not transcribed.'}
   };
@@ -62,8 +64,9 @@
     L.push('# '+t.esportata+' '+r.versione+', '+t.il+' '+r.data+'.', '# Copyright (C) '+(r.anno||'2026')+' '+r.titolare+'.', '# '+t.gpl, '#');
     GPL_EN.forEach(l=>L.push('# '+l));
     L.push('#', '# '+t.req, '# '+t.noNp, '# '+t.uso, '# '+t.rete, '# '+t.esito, '#', '# '+t.fonti);
-    (r.spettri||[]).forEach(s=>{ const le=s.lettura||{}; L.push('#   '+oneLine(le.origine||s.nome)+'  '+(le.sha256||le.impronta||'')+'  ('+(le.modo==='testo'?t.testo:t.csv)+')'); });
+    (r.spettri||[]).forEach(s=>{ const le=s.lettura||{}; L.push('#   '+oneLine(le.origine||s.nome)+'  '+(le.sha256||le.impronta||'')+'  ('+(le.modo==='testo'?t.testo:le.modo==='byte'?t.byte:t.csv)+(le.estensione?', '+t.estensione+' '+oneLine(le.estensione):'')+')'); });
     if ((r.spettri||[]).some(s=>s.lettura && s.lettura.modo==='csv')) L.push('# '+t.noteCsv);
+    if ((r.spettri||[]).some(s=>s.lettura && s.lettura.estensione)) L.push('# '+t.noteEst);
     if ((r.nonTrascritte||[]).length){ L.push('#', '# '+t.nonTr); r.nonTrascritte.forEach(x=>L.push('#   - '+oneLine(x))); }
     L.push('', 'import sys', 'if sys.version_info < (3, 10):', "    sys.exit('Python >= 3.10')", 'import json', '');
     return L.join('\n');

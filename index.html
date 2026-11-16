@@ -7141,12 +7141,123 @@ function pyReading(f, P){
   for (const sw of [[],[{op:'swap'}]]) for (const mp of maps){ const ops=sw.concat(mp, sc), [X,Y]=pyXform(X0, Y0, ops); if (same(X, f.xs0) && same(Y, f.ys)) return ops; }
   return null;
 }
+/* I12, seconda parte. Sonda del motore JavaScript: la stessa funzione di SONDA_JS in scripts/ricetta-py/acch_math.py (un test controlla che
+   il testo coincida). Lo script sceglie con questi valori le Math.exp, log, sin… del motore che ha calcolato (V8 con o senza FMA, JavaScriptCore) */
+function acchSondaMath(){ // punti e valori come acch_math.sonda_x / imposta_motore (ricetta Python)
+  const X=Array.from({length:64},(_,i)=>0.0371+i*0.1373).concat(Array.from({length:64},(_,i)=>-(0.0213+i*0.4111)));
+  return {versione:1, valori:X.map(x=>[Math.exp(x), Math.log(x), Math.log10(x), Math.expm1(x), Math.sin(x), Math.cos(x), Math.pow(x,3), Math.pow(Math.abs(x),0.37), Math.hypot(x,0.7)])}; }
+// JSON dei dati letti (isoterme, chemisorbimento, serie): i vettori tipizzati come liste, NaN come null (come JSON.stringify)
+const pyJson=o=>JSON.stringify(o, (k,v)=>ArrayBuffer.isView(v) ? Array.from(v) : v);
+/* canali di un file come li legge l'app all'apertura (AcchRead.read e la finestra «Canali trovati»): è ciò che fa read_channels in acch_lettori */
+function pyJsChannels(buf, name, opt){ const C=window.AcchChannels; opt=opt||{}; if (!C || /\.(xlsx|opju?)$/i.test(name)) return null;
+  if (/\.uv$/i.test(name)){ const uv=C.readUv(buf); if (!uv) return null; return C.readUvChannels(uv, opt.uvWl||C.uvSuggest(uv), opt.uvBw!=null?opt.uvBw:4); }
+  let mc=C.readBinary(buf, name); if (mc) return mc; if (parseBinary(buf, name)) return null; const text=decodeBuffer(buf); mc=C.readText(text, name); if (mc) return mc;
+  const p=parseText(text); if (p.reject || p.xs.length<5) return null; return window.AcchRead ? AcchRead.textChannels(text, p, name) : null; }
+/* lettura dai byte del file originale (formati binari, JCAMP, file multicanale…): vale solo se il lettore dell'app, rifatto adesso, dà
+   esattamente i numeri in uso (f.xs0, f.ys) con le stesse conversioni dell'asse. null: lo script legge il CSV dei dati letti */
+function pyByteReading(f){
+  if (!f.raw || f.plugin || f.origin || f.iso || f.chem || f.series) return null;   // estensioni, Origin, isoterme, chemisorbimento, serie: CSV o JSON dei dati letti
+  const name=f.name; if (/\.(xlsx|opju?)$/i.test(name)) return null;
+  const buf=f.raw.slice ? f.raw.slice(0) : f.raw;
+  try{
+    if (f.channel!=null || f.sampleKey!=null){ const info=f.chInfo||{}, opt=/\.uv$/i.test(name) ? {uvWl:[info.wl], uvBw:info.bw!=null?info.bw:0} : null;
+      const mc=pyJsChannels(buf, name, opt); if (!mc) return null;
+      for (const s of mc.samples){ if ((s.sampleKey==null?null:String(s.sampleKey))!==(f.sampleKey==null?null:String(f.sampleKey))) continue;
+        for (const c of s.channels) if ((c.channel||null)===(f.channel||null)){ const ops=pyReading(f, {xs:c.xs, ys:c.ys, meta:c.meta}); return ops ? {opt, canale:{sampleKey:f.sampleKey==null?null:String(f.sampleKey), channel:f.channel||null}, trasf:ops} : null; } }
+      return null; }
+    const yc=f.ycolNow||(f.an&&f.an.ycol)||1, opt=yc>1?{ycol:yc}:null, p=parseBinary(buf, name) || parseText(decodeBuffer(buf), opt||undefined);
+    if (!p || p.reject || p.iso || p.chem) return null;
+    const ops=pyReading(f, p); return ops ? {opt, trasf:ops} : null;
+  }catch(e){ console.warn(e); return null; } }
+/* spettri che le tabelle di analisi leggono senza essere inclusi: si aggiungono alla ricetta (come i riferimenti da sottrarre) */
+function pyAnalysisNeeds(list, need){
+  const has=i=>list.some(f=>f.instr===i), add=f=>{ if (f && f.xs) need(f); };
+  if (has('epr')) files.filter(f=>f.instr==='epr').forEach(add);   // doppio integrale relativo: tutti gli EPR del progetto
+  if (has('fluo')) files.filter(f=>f.instr==='fluo').forEach(add);   // resa quantica: il riferimento è un altro spettro
+  for (const f of list) if (f.series && f.an && f.an.mcr && f.an.mcr.known) for (const p of Object.values(f.an.mcr.known)) add(files.find(q=>(q.path||q.name)===p && !q.series));
+  for (const g of files) if (fitValid(g) && !('ms' in g.fit) && list.includes(g)) add(pyFitSource(g));
+  for (const R of Object.values(MVres)) if (R && !R.err && R.list) R.list.forEach(add);
+  for (const R of Object.values(MVpls)) if (R && !R.err && R.list) R.list.forEach(add);
+  if (list.some(f=>['raman','ftir'].includes(f.instr))) files.filter(g=>['raman','ftir'].includes(g.instr) && g.an && g.an.mixW).forEach(add);
+  if (MV.xrf && files.some(f=>f.instr==='xrf')) try{ mvFiles('xrf', mvCfg('xrf')).forEach(add); }catch(e){}
+  if (window.AcchLibUi) try{ if (AcchLibUi.csvRows(list)) files.filter(f=>['hplc','ftir','raman','xrf','uv'].includes(f.instr) && !f.uncal && AcchLibUi.chooseFor(f).pick).forEach(add); }catch(e){ console.warn(e); }
+}
+// zona e dati della deconvoluzione di uno spettro, come in runFitUI e nel pulsante «Stessa deconvoluzione su tutti gli spettri»
+function pyFitZone(g, range){ const P=processed(g), U=upData(P); let a=0; while (a<P.xs.length && P.xs[a]<range[0]) a++; let b=P.xs.length-1; while (b>=0 && P.xs[b]>range[1]) b--; return {P, U, a, b}; }
+const pyFitSame=(A, B)=>!!A && !!B && Object.is(A.r2, B.r2) && A.peaks.length===B.peaks.length && A.peaks.every((q,j)=>Object.is(q.c, B.peaks[j].c) && Object.is(q.w, B.peaks[j].w) && Object.is(q.area, B.peaks[j].area));
+// fit fatto da «Stessa deconvoluzione su tutti gli spettri» (senza f.fit.ms): lo spettro di partenza è quello il cui fit, usato come semi, ridà il fit salvato
+function pyFitSource(g){ const F=g.fit;
+  for (const f of files){ if (f===g || f.instr!==g.instr || !fitValid(f) || !('ms' in f.fit) || f.fit.profile!==F.profile || f.fit.bm!==F.bm || f.fit.peaks.length!==F.peaks.length || f.fit.range[0]!==F.range[0] || f.fit.range[1]!==F.range[1]) continue;
+    try{ const z=pyFitZone(g, f.fit.range), r=fitPeaks(z.P.xs.slice(z.a,z.b+1), z.U.y.slice(z.a,z.b+1), f.fit.peaks.map(q=>({x:q.c, w:q.w})), {profile:f.fit.profile, base:f.fit.bm}); if (pyFitSame(r, F)) return f; }catch(e){} }
+  return null; }
+/* ingressi delle tabelle di analisi per i moduli dello script. idx(f): posizione dello spettro nella ricetta. Restituisce {analisi, attese,
+   nonTr}: attese = nomi dei file di analisi che lo script scrive (risultati attesi), nonTr = tabelle dichiarate non trascritte */
+function pyAnalysis(list, all, idx, out, dname, Lx, en){
+  const dir=expDir('analysis'), A={dir, desk:!!window.ACCH_SHELL, S:{showArea:!!S.showArea, showPeaks:!!S.showPeaks, spike:Object.assign({}, S.spike), sample:S.sample}}, attese=new Set(), nonTr=[];
+  const jsonFile=(f, kind, obj)=>{ const txt=pyJson(obj), nm=dname(safeName(f.name)+'.'+kind+'.json'); out.files.push({path:nm, data:txt}); return {file:nm.slice(5), sha256:AcchFormat.sha256(new TextEncoder().encode(txt))}; };
+  // parametri per tecnica e controllo di qualità: dati statici dello spettro; dati elaborati, picchi e controlli li ricalcola lo script
+  const voce=f=>{ const d=viewOf(f), H=f.instr==='dsc' ? dscEnthalpy(f, processed(f), []) : null, sugg={}; d.peaks.forEach(p=>{ sugg[String(p.x)]=(p.sugg||[]).map(s=>({it:s.it})); });
+    const ar=a=>a==null?null:Array.from(a);
+    return {fkey:fkey(f), nomeIt:NOME_IT[f.instr], an:f.an||{}, uncal:!!f.uncal, ecal:!!f.ecal, freq:f.freq, eprConv:f.eprConv, nuc:f.nuc, sample:f.sample||S.sample, smooth:pSmooth(f), base:pBase(f),
+      removed:f.removed.slice(), importNotes:f.importNotes, importBad:f.importBad, reason:f.reason, autoInstr:f.autoInstr, importIssue:f.importIssue, afterCh:f.afterCh, nCols:f.nCols, chIx:f.chIx, blockIx:f.blockIx,
+      nChan:f.nChan, nBlocks:f.nBlocks, isXrf:!!f.xrf, chanLabel:chanOf(f), chanWarn:chanWarn(f), suspectT:!!suspectT(f), tube:f.tube, userRate:f.userRate, therm:f.therm, ts:ar(f.ts),
+      endo:f.instr==='dsc' ? dscEndoSide(f) : null, dHu:H && H.unit ? H.unit : null, sugg}; };
+  const T={statiche:{}, ordine:files.filter(f=>idx(f)>=0).map(idx), inclusi:list.map(idx)};
+  all.forEach(f=>{ try{ T.statiche[idx(f)]=voce(f); }catch(e){ console.warn(e); } });
+  A.tecnica=T; attese.add(en?'quality_check.csv':'controllo_qualita.csv'); attese.add(en?'technique_parameters.csv':'parametri_per_tecnica.csv');
+  if (all.some(f=>f.instr==='xrf') && typeof FP!=='undefined') A.costanti={XRF_COMMON, XRF_LINES, XRF_LN_GR, XRF_TUBES, FP:{el:Object.fromEntries(Object.entries(FP.el).map(([k,v])=>[k,{fam:v.fam}]))}};
+  if (MV.xrf && files.some(f=>f.instr==='xrf')){ try{ const c=mvCfg('xrf'); A.xrf={cfg:JSON.parse(JSON.stringify(c)), lista:mvFiles('xrf', c).map(idx)}; attese.add(en?'xrf_composition.csv':'composizione_xrf.csv'); }catch(e){ console.warn(e); } }
+  // fisisorbimento e chemisorbimento: dati letti in JSON (come prima), tabella completa ricalcolata dallo script
+  A.fisisorbimento=[]; A.chemisorbimento=[];
+  if (window.AcchSorp) list.filter(f=>f.iso).forEach(f=>{ const o=(f.an&&f.an.sorp)||{}; let rif=null;
+    if (o.alphaRefKey){ const r=files.find(q=>(q.path||q.name)===o.alphaRefKey && q.iso); if (r) rif=r.iso; }
+    const j=jsonFile(f, 'isoterma', {iso:f.iso, rif}); A.fisisorbimento.push(Object.assign(j, {i:idx(f), uscita:AcchSorp.csvName(f), opt:o})); attese.add(AcchSorp.csvName(f)); });
+  if (window.AcchChem) list.filter(f=>f.chem).forEach(f=>{ const j=jsonFile(f, 'chemisorbimento', {chem:f.chem}); A.chemisorbimento.push(Object.assign(j, {i:idx(f), uscita:AcchChem.csvName(f), opt:(f.an&&f.an.chem)||null})); attese.add(AcchChem.csvName(f)); });
+  // serie: MCR-ALS e cinetica globale, con lo stato a schermo che entra nelle tabelle (valori singolari visti, MCR-BANDS, confronto dei modelli)
+  A.serie=[];
+  if (window.AcchChemo && window.McrCore) list.filter(f=>f.series && McrCore.validSeries(f.series)).forEach(f=>{ const m=AcchChemo.resultFor(f,'mcr'), k=AcchChemo.resultFor(f,'kin'); if (!m && !k) return;
+    const r=f._chemo||{}, se=f.series, j=jsonFile(f, 'serie', {t:{values:se.t.values, quantity:se.t.quantity, unit:se.t.unit}, x:{values:se.x.values}, shape:se.shape, data:se.data}), known={};
+    if (m && f.an && f.an.mcr && f.an.mcr.known) for (const [c,p] of Object.entries(f.an.mcr.known)){ const g=files.find(q=>(q.path||q.name)===p && !q.series); if (g && idx(g)>=0) known[c]=idx(g); }
+    A.serie.push(Object.assign(j, {name:f.name, title:f.title, instr:f.instr, mcr:m ? Object.assign({}, (f.an&&f.an.mcr)||{}) : null, mcr_svd_visto:!!r.svd, known, mcr_bands:!!(m && r.bands && r.mcr && r.bands.key===r.mcr.key),
+      kin:k ? Object.assign({model:'ord1'}, (f.an&&f.an.kin)||{}) : null, kin_cmp:!!(k && r.cmp && r.cmp.key===(f.path||f.name)), uscite:AcchChemo.analysisFiles([f]).map(x=>x[0])}));
+    A.serie[A.serie.length-1].uscite.forEach(nm=>attese.add(nm)); });
+  // deconvoluzione, PCA, PLS e miscele (acch_chemometria): i semi del fit li ricalcola lo script dai picchi; il fit salvato si verifica qui
+  const ch={};
+  { const fitted=list.filter(fitValid), dec=[]; let bad=null;
+    for (const f of fitted){ const F=f.fit, it={i:idx(f), nomeTecnica:NOME_IT[f.instr], fit:{range:F.range.slice(), profile:F.profile, bm:F.bm, auto:!!F.auto}};
+      if (!('ms' in F)){ const s=pyFitSource(f); if (!s || idx(s)<0){ bad=f; break; } it.fit.auto=false; it.fit.copiaDa={i:idx(s), fit:{range:s.fit.range.slice(), profile:s.fit.profile, bm:s.fit.bm, auto:!!s.fit.auto}}; }
+      else { try{ const z=pyFitZone(f, F.range), r=F.range, seeds=viewOf(f).peaks.map(p=>p.x).filter(x=>x>=r[0]&&x<=r[1]), q=deconvolve(z.P.xs.slice(z.a,z.b+1), z.U.y.slice(z.a,z.b+1), {seeds, profile:F.profile, base:F.bm, fixed:!F.auto}); if (!pyFitSame(q, F)){ bad=f; break; } }catch(e){ bad=f; break; } }
+      dec.push(it); }
+    if (fitted.length){ const nm=en?'deconvolution.csv':'deconvoluzione.csv';
+      if (bad) nonTr.push(nm+(en?` (the saved fit of «${bad.name}» was made with other peaks or starting values: run the deconvolution again)`:` (il fit salvato di «${bad.name}» è stato fatto con altri picchi o altri valori di partenza: rifai la deconvoluzione)`));
+      else { ch.deconvoluzione=dec; attese.add(nm); } } }
+  ch.pca=[]; for (const [instr,R] of Object.entries(MVres)){ if (!R || R.err) continue; ch.pca.push({tecnica:instr, cfg:JSON.parse(JSON.stringify(mvCfg(instr))), spettri:R.list.map(idx)}); attese.add(`pca_${instr}.csv`); }
+  ch.pls=[]; for (const [instr,R] of Object.entries(MVpls)){ if (!R || R.err || mvCfg(instr).model!=='pls') continue; ch.pls.push({tecnica:instr, cfg:JSON.parse(JSON.stringify(mvCfg(instr))), spettri:R.list.map(idx), conc:R.list.map(f=>f.an&&f.an.conc!=null?f.an.conc:null)}); attese.add(`pls_${instr}.csv`); }
+  if (list.some(f=>['raman','ftir'].includes(f.instr)) && REFS.length){ const tutti=files.filter(g=>['raman','ftir'].includes(g.instr) && g.an && g.an.mixW).map(g=>[idx(g), g.an.mixW]);
+    ch.miscele={riferimenti:JSON.parse(JSON.stringify(REFS)), tutti, inclusi:list.filter(f=>['raman','ftir'].includes(f.instr)).map(idx)}; attese.add(en?'mixture_weight_percent.csv':'miscele_percentuali_in_peso.csv'); }
+  A.chemometria=ch;
+  // concentrazioni dalla taratura salvata in libreria: lo stesso ingresso del test della libreria; dati elaborati e picchi li ricalcola lo script
+  if (window.AcchLibUi && window.AcchLib) try{ if (AcchLibUi.csvRows(list)){ const U=AcchLibUi, Lb=AcchLib, libs={}, tab={}, day_line={};
+      const addCh=s=>{ if (s==null || s==='') return; s=String(s); if (s in tab) return; const p=Lb.parseChannel(s); tab[s]=p?JSON.parse(JSON.stringify(p)):null; if (p){ const t=Lb.channelText(p); if (!(t in tab)) tab[t]=JSON.parse(JSON.stringify(Lb.parseChannel(t))); } };
+      const lf=files.map(f=>{ const sup=['hplc','ftir','raman','xrf','uv'].includes(f.instr) && !f.uncal, ch=sup ? U.chooseFor(f) : {}, lib=ch.pick?ch.pick.lib:null; if (lib && !libs[lib.id]){ libs[lib.id]=JSON.parse(JSON.stringify(lib)); for (const e of lib.entries) addCh(e.channel); }
+        const r=sup ? U.recognize(f) : {}; let co=''; try{ co=chanOf(f); }catch(e){ co=''; } addCh(f.channel); addCh(co); addCh(r.channel);
+        if (sup && !(f.instr in day_line)){ try{ const c=mvCfg(f.instr); let cal=null; try{ const k=mvCalib(mvTable(f.instr)); cal=k?{b:k.b, few:!!k.few}:null; }catch(e){ cal=null; } day_line[f.instr]={cfg:{model:c.model, a:c.a, b:c.b, c:c.c, d:c.d}, cal}; }catch(e){ day_line[f.instr]=null; } }
+        const an=f.an||{};
+        return {k:sup && lib && idx(f)>=0 ? idx(f) : null, name:f.name, title:dispTitle(f), instr:f.instr, uncal:!!f.uncal, lib_id:lib?lib.id:null, an:{role:an.role||null, libCtrl:an.libCtrl||null, libPos:an.libPos||null},
+          normConv:!!(S.conv && S.conv[f.instr]==='norm'), instrument:sup?U.instrumentOf(f):null, rec:{method:r.method, column:r.column, channel:r.channel}, channel_src:{channel:f.channel||null, chan_of:co}}; });
+      const d=new Date(), today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      A.libreria={lang:LANG==='en'?'en':'it', ui_lang:(window.AcchI18n&&AcchI18n.lang)==='en'?'en':'it', today, libraries:libs, channels:tab, day_line, files:lf, inc:list.map(f=>files.indexOf(f))};
+      attese.add(en?'concentrations_from_library.csv':'concentrazioni_da_libreria.csv'); } }catch(e){ console.warn(e); }
+  // XRF a parametri fondamentali e spessori degli strati: non trascritti (lo script li dichiara)
+  try{ analysisFiles().forEach(([nm])=>{ if (/^(composizione_xrf_parametri_fondamentali|xrf_fundamental_parameters|spessore_strati_xrf|xrf_layer_thickness)\.csv$/.test(nm)) nonTr.push(nm); }); }catch(e){ console.warn(e); }
+  return {analisi:A, attese, nonTr};
+}
 function pyRecipe(inc){
   const Lx=T_(), en=LANG==='en', csep=en?',':';', dec=Lx.dec, list=inc.slice(), extra=[], out={files:[]};
   // spettri che servono senza essere inclusi: riferimenti da sottrarre e spettri delle tarature con «tutti i file»
   const mvTabs=Object.keys(MV).filter(instr=>{ const c=MV[instr]; return c && c.a!=null && c.b!=null && files.some(f=>f.instr===instr); });
   const need=f=>{ if (f && !list.includes(f) && !extra.includes(f)) extra.push(f); };
-  list.forEach(f=>need(subRef(f))); mvTabs.forEach(instr=>(mvTable(instr)||[]).forEach(o=>need(o.f))); extra.forEach(f=>need(subRef(f)));
+  list.forEach(f=>need(subRef(f))); mvTabs.forEach(instr=>(mvTable(instr)||[]).forEach(o=>need(o.f))); pyAnalysisNeeds(list, need); extra.forEach(f=>need(subRef(f)));
   const all=list.concat(extra), usedD=new Set(), dname=(nm)=>{ const m=/^(.*?)((?:\.[^.\/]{1,12})?)$/.exec(winSeg(nm||'file')); let s=m[1]+m[2], k=2; while (usedD.has(s.toLowerCase())) s=m[1]+'_'+(k++)+m[2]; usedD.add(s.toLowerCase()); return 'dati/'+s; }, rawDone=new Map();
   // i CSV che l'app scrive con le stesse voci: sono i risultati attesi, e i loro percorsi sono quelli dello script
   // in inglese csvCell traduce le celle di testo (i18n.js): si registrano le coppie usate nelle tabelle dell'app, perché lo script scriva gli stessi testi
@@ -7165,8 +7276,10 @@ function pyRecipe(inc){
       if (f.raw && !f.rawBin && f.channel==null && f.sampleKey==null && !f.origin){ try{ const yc=f.ycolNow||(f.an&&f.an.ycol)||1, Q=parseText0(decodeBuffer(f.raw), {ycol:yc, keepLines:true});
         if (Q && !Q.reject && Q.lines && Q.lines.length===Q.xs.length){ const ops=pyReading(f, Q); if (ops){ let nm=rawDone.get(f.raw); if (!nm){ nm=dname(f.rawName||f.name); rawDone.set(f.raw, nm); out.files.push({path:nm, data:new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)}); }
           lettura={modo:'testo', file:nm.slice(5), origine:f.path||f.name, sha256:AcchFormat.sha256(new Uint8Array(f.raw)), ycol:yc, righe:pyRuns(Q.lines), trasf:ops}; } } }catch(e){ console.warn(e); } }
+      if (!lettura){ const B=pyByteReading(f); if (B){ let nm=rawDone.get(f.raw); if (!nm){ nm=dname(f.rawName||f.name); rawDone.set(f.raw, nm); out.files.push({path:nm, data:new Uint8Array(f.raw.slice ? f.raw.slice(0) : f.raw)}); }
+          lettura={modo:'byte', file:nm.slice(5), nome:f.name, origine:f.path||f.name, sha256:AcchFormat.sha256(new Uint8Array(f.raw)), opt:B.opt, canale:B.canale||null, trasf:B.trasf}; } }
       if (!lettura){ const nm=dname(safeName(f.name)+'.letto.csv'), xs0=f.xs0||f.xs, L=['x,y']; for (let q=0;q<xs0.length;q++) L.push(String(xs0[q])+','+String(f.ys[q]));
-        out.files.push({path:nm, data:L.join('\n')+'\n'}); lettura={modo:'csv', file:nm.slice(5), origine:f.path||f.name}; }
+        out.files.push({path:nm, data:L.join('\n')+'\n'}); lettura={modo:'csv', file:nm.slice(5), origine:f.path||f.name}; if (f.plugin) lettura.estensione=f.plugin.name+' '+f.plugin.version; }
       lettura.impronta=pyFp(f.xs0||f.xs, f.ys);
       const r=subRef(f);
       return {nome:f.name, titolo:dispTitle(f), tecnica:i, kind:f.kind, uncal:!!f.uncal, incluso:list.includes(f), nomeTecnica:Lx.nome[i], unitaX:f.uncal?(en?'channel':'canale'):xUnit(f), unitaArea:d.areaUnit||'',
@@ -7179,26 +7292,17 @@ function pyRecipe(inc){
       return {file:expDir('analysis')+`${en?'band_measurements':'misure_bande'}_${instr}.csv`, cfg:{a:c.a, b:c.b, c:c.c!=null?c.c:null, d:c.d!=null?c.d:null, meas:c.meas, unit:c.unit||'', weight:c.weight||null, model:c.model},
         righe:T.map(o=>({i:all.indexOf(o.f), nome:o.f.name, titolo:dispTitle(o.f), conc:o.conc, ruolo:o.role, flag:o.flag||'', yNullo:!!suspectT(o.f)})), testa:head, nomeTecnica:NOME_IT[instr], nomeMisura:MEAS_NAME[c.meas],
         normalizzato:S.conv[instr]==='norm', ruoli:{blank:L(MV_ROLE.blank,'blank'), qc:L(MV_ROLE.qc,'control')}, avvisoPerfetto:L(MV_PERFECT[0],MV_PERFECT[1]), canale:mvChans(instr,c).length?c.chan:null}; });
-    // fisisorbimento: isoterma come letta dall'app (dati/….isoterma.json) e parametri di riduzione; lo script rifà BET e BJH/DH
-    const fisisorbimento=[], sorpSub={}; if (window.AcchSorp && typeof SorpCore!=='undefined') list.filter(f=>f.iso).forEach(f=>{ try{ const A=AcchSorp.run(f), P=A.P, o=(f.an&&f.an.sorp)||{}, iso=f.iso, nm=dname(safeName(f.name)+'.isoterma.json');
-      const txt=JSON.stringify({p:iso.p, p0:iso.p0, n:iso.n, branches:iso.branches, unit:iso.unit}); out.files.push({path:nm, data:txt});
-      const name=AcchSorp.csvName(f), outp=expDir('analysis')+name.replace(/\.csv$/,'')+'.bet_bjh.csv';
-      fisisorbimento.push({file:nm.slice(5), sha256:AcchFormat.sha256(new TextEncoder().encode(txt)), uscita:outp, instrBET:iso.meta&&iso.meta.instrBET||null,
-        P:{sigma:P.sigma, vmol:P.vmol, gamma:P.gamma, T:P.T, theta:P.theta, Vm:P.Vm, liqPerStp:P.liqPerStp, thick:P.thick, gas:P.gas}, opt:{betRange:o.betRange||null, bjhBranch:o.bjhBranch||null, bjhThick:o.bjhThick||null}});
-      // risultato atteso: le stesse righe del CSV dell'app (intestazione, BET, BJH, DH e dati dei rami)
-      const Ls=AcchSorp.csvText(f).split('\r\n'), b=Ls.indexOf(''); sorpSub[outp]=[Ls[0]].concat(Ls.slice(1,b).filter(l=>/^(BET|BJH|DH)[;,]/.test(l)), Ls.slice(b)).join('\r\n'); sorpSub['@'+name]=1; }catch(e){ console.warn(e); } });
-    // tabelle dell'app che lo script non rifà: dichiarate (lo script le segnala con un errore, senza approssimarle)
-    const nonTr=[]; try{ const textual=/^(controllo_qualita|quality_check|ipotesi_qualitative|qualitative_hypotheses|metodi_e_bibliografia|methods_and_references)\./; analysisFiles().forEach(([nm])=>{ if (/^(misure_bande|band_measurements)_/.test(nm) || textual.test(nm)) return; nonTr.push(sorpSub['@'+nm] ? nm+(en?' (only the BET, BJH and DH rows and the branch data are transcribed, in a separate .bet_bjh.csv file; Langmuir, t-plot, pore volume, DR/DA, DFT, IUPAC type and warnings are not)':' (trascritte solo le righe BET, BJH e DH e i dati dei rami, in un file .bet_bjh.csv a parte; Langmuir, t-plot, volume dei pori, DR/DA, DFT, tipo IUPAC e avvisi no)') : nm); }); }catch(e){ console.warn(e); }
-    if (inc.some(f=>fitValid(f))) { if (!nonTr.some(n=>/deconvol/.test(n))) nonTr.push(en?'deconvolution.csv':'deconvoluzione.csv'); }
+    // tabelle di analisi rifatte dai moduli dello script (I12, seconda parte); quelle che restano fuori si dichiarano
+    const AN=pyAnalysis(list, all, f=>all.indexOf(f), out, dname, Lx, en), nonTr=AN.nonTr.slice(), anFiles=analysisFiles(), textual=/^(ipotesi_qualitative|qualitative_hypotheses|metodi_e_bibliografia|methods_and_references)\./;
+    anFiles.forEach(([nm])=>{ if (/^(misure_bande|band_measurements)_/.test(nm) || textual.test(nm) || AN.attese.has(nm) || nonTr.some(x=>x===nm || x.startsWith(nm+' '))) return; nonTr.push(nm); });   // rete di sicurezza: ogni altra tabella è dichiarata
     const attesi={}, sample=t=>{ const ls=t.replace(/^﻿/,'').split('\r\n'), o={}, st=Math.max(1, Math.floor(ls.length/12)); for (let q=0;q<ls.length;q+=st) o[q]=ls[q]; o[ls.length-1]=ls[ls.length-1]; return o; };
     const expect=(p,t)=>{ attesi[p]={sha256:AcchFormat.sha256(new TextEncoder().encode(t)), righe:sample(t)}; };
     ents.forEach(e=>{ if (typeof e.data==='string') expect(e.path, e.data); });
-    for (const [p,t] of Object.entries(sorpSub)) if (p[0]!=='@') expect(p, t);
-    try{ analysisFiles().forEach(([nm,txt])=>{ const p=expDir('analysis')+nm; if (tarature.some(t=>t.file===p)) expect(p, txt); }); }catch(e){ console.warn(e); }
+    anFiles.forEach(([nm,txt])=>{ const p=expDir('analysis')+nm; if (tarature.some(t=>t.file===p) || (AN.attese.has(nm) && !nonTr.some(x=>x===nm || x.startsWith(nm+' ')))) expect(p, txt); });
     const pe=E.find(e=>e.key==='peaks');
     const now=new Date(), z2=v=>String(v).padStart(2,'0'), ric={versione:APP_VERSION_FULL(), data:`${now.getFullYear()}-${z2(now.getMonth()+1)}-${z2(now.getDate())}`, anno:'2026', titolare:'Lorenzo Birindelli', lingua:en?'en':'it', dec, csep,
       showPeaks:!!S.showPeaks, showArea:!!S.showArea, sens:S.sens, maxPeaks:S.maxPeaks, filePicchi:pe?pe.path:expName('peaks'), testaPicchi:(S.showArea ? Lx.csv.concat(Lx.csvArea) : Lx.csv.slice()).concat([Lx.csvNote]),
-      testi:{auto:Lx.auto, man:Lx.man, sat:Lx.satNote, dtg:Lx.y.DTG}, spettri, tarature, fisisorbimento, nonTrascritte:nonTr, attesi};
+      testi:{auto:Lx.auto, man:Lx.man, sat:Lx.satNote, dtg:Lx.y.DTG}, spettri, tarature, analisi:AN.analisi, sonda:acchSondaMath(), nonTrascritte:nonTr, attesi};
     unwrap(); ric.traduzioni=trad; out.ricetta=ric; out.script=AcchRicettaPy.script(ric); out.nonTr=nonTr; return out; }).finally(unwrap);
 }
 

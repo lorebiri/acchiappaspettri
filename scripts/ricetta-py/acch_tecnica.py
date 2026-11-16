@@ -920,11 +920,17 @@ def tech_metrics(v, ctx):
         return t_fmt_n(x, 1)
     if it == 'chem':
         if v.get('chem') is not None:
-            raise NonTrascritto('parametri per tecnica del chemisorbimento non trascritti: vengono da AcchChem.techRows (chemTechRows in app/sorption-ui.js)')
+            # AcchChem.techRows: acch_sorp.chem_tech_rows sui dati letti (v['chem']) con le opzioni f.an.chem
+            o['title'] = '🧮 Chemisorbimento'
+            o['head'] = ['Grandezza', 'Valore', 'Unità', 'Nota']
+            o['rows'] = chem_tech_rows(v['chem'], v.get('chemOpt'), _en())
         return o
     if it == 'sorp':
         if v.get('iso') is not None:
-            raise NonTrascritto('parametri per tecnica del fisisorbimento non trascritti: vengono da AcchSorp.techRows (Langmuir, t-plot, DR/DA, DFT in app/sorption-ui.js)')
+            # AcchSorp.techRows: acch_sorp.sorp_tech_rows sull'isoterma letta, con le opzioni f.an.sorp e il riferimento αs
+            o['title'] = '🧮 Fisisorbimento'
+            o['head'] = ['Grandezza', 'Valore', 'Unità', 'Nota']
+            o['rows'] = sorp_tech_rows(v['iso'], v.get('sorpOpt'), v.get('sorpRif'), _en())
         return o
     if an.get('calc') and it in ('uv', 'ftir', 'raman'):
         o['title'] = 'Dato calcolato'
@@ -1485,9 +1491,9 @@ def assess(v, ctx):
     in inglese li traduce csvCell con TRAD, come nell'app)."""
     it = v['instr']
     if it == 'sorp' and v.get('iso') is not None:
-        raise NonTrascritto('controllo di qualità del fisisorbimento non trascritto: viene da AcchSorp.assess (app/sorption-ui.js)')
+        return sorp_assess(v['iso'], v.get('sorpOpt'), v.get('sorpRif'), v.get('importNotes'), _en(), bool(ctx.get('desk')))   # AcchSorp.assess
     if it == 'chem' and v.get('chem') is not None:
-        raise NonTrascritto('controllo di qualità del chemisorbimento non trascritto: viene da AcchChem.assess (chemAssess in app/sorption-ui.js)')
+        return chem_assess(v['chem'], v.get('chemOpt'), _en(), bool(ctx.get('desk')))   # AcchChem.assess
     P = v['P']
     S = ctx.get('S') or {}
     an = v.get('an') or {}

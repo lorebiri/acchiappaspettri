@@ -1411,3 +1411,91 @@ def chem_csv_text(chem, opzioni=None, en=False):
 def chem_csv_name(title_or_name, en=False):
     # sorption-ui.js chemCsvName
     return ('chemisorption_' if en else 'chemisorbimento_') + _sp_safe_name(str(title_or_name)) + '.csv'
+
+
+# ============================== righe per «parametri per tecnica» e controllo di qualità (sorption-ui.js) ==============================
+def _ui_g(v, d=None, en=False):
+    # sorption-ui.js g: '—' se manca; esponenziale fuori da [1e-3, 1e5); separatore decimale della lingua (primo punto)
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return '—'
+    if v is None or not fin(x):
+        return '—'
+    d = d or 4
+    dec = '.' if en else ','
+    if abs(x) >= 1e5 or (abs(x) < 1e-3 and x != 0):
+        return js_expo(x, d - 1).replace('.', dec, 1)
+    return num_prec(x, d).replace('.', dec, 1)
+
+
+def _ui_sig(lv, desk):
+    # sorption-ui.js SIG: segni del desktop al posto delle emoji
+    if lv == 'stop':
+        return '⊘' if desk else '⛔'
+    return '△' if desk else '⚠️'
+
+
+def sorp_tech_rows(iso, opt=None, alpha_ref=None, en=False):
+    # sorption-ui.js techRows (AcchSorp.techRows)
+    so = opt or {}
+    A = sorp_analyze(iso, so.get('over') or {}, so, alpha_ref, None)
+    T = lambda it, e: e if en else it
+    g = lambda v, d=None: _ui_g(v, d, en)
+    B = (A.get('bet') or {}).get('used') if A.get('bet') else None
+    r = []
+    if B:
+        r.append([T('Area BET', 'BET area'), g(B['area'], 5), 'm²/g', 'p/p₀ %s–%s, C %s, r %s' % (g(B['x0'], 3), g(B['x1'], 3), g(B['C'], 4), g(B['r'], 6))])
+    L = A.get('langmuir')
+    if L and not L.get('err'):
+        r.append([T('Area di Langmuir', 'Langmuir area'), g(L['nl']['area'], 5), 'm²/g', T('solo indice su tipo II/IV', 'index only on type II/IV')])
+    V = A.get('tpv')
+    if V and not V.get('err'):
+        r.append([T('Volume totale dei pori', 'Total pore volume'), g(V['V'], 5), 'cm³/g', 'p/p₀ ' + g(V['x'], 5)])
+    if V and sp_truthy(V.get('dAvg')):
+        r.append([T('Diametro medio 4V/S', 'Average diameter 4V/S'), g(V['dAvg'] / 10, 4), 'nm', ''])
+    t = A.get('tplot')
+    if t and not t.get('err'):
+        r.append([T('Area esterna (t-plot)', 'External area (t-plot)'), g(t['Sext'], 5), 'm²/g', t['modelName']])
+        r.append([T('Volume dei micropori (t-plot)', 'Micropore volume (t-plot)'), g(t['Vmicro'], 4), 'cm³/g', ''])
+    b = A.get('bjh')
+    if b and not b.get('err'):
+        r.append(['BJH', g(b['Vtot'], 5), 'cm³/g', T('moda ', 'mode ') + g(b['mode'] / 10, 4) + ' nm, ' + T('ramo ', 'branch ') + str(b['branch'])])
+    dr = A.get('dr')
+    if dr and not dr.get('err'):
+        r.append(['DR W₀', g(dr['W0'], 4), 'cm³/g', 'E ' + g(dr['E'], 4) + ' kJ/mol'])
+    return r
+
+
+def sorp_assess(iso, opt=None, alpha_ref=None, import_notes=None, en=False, desk=False):
+    # sorption-ui.js assess (AcchSorp.assess): note di lettura che non sono già avvisi, poi gli avvisi dell'analisi
+    so = opt or {}
+    A = sorp_analyze(iso, so.get('over') or {}, so, alpha_ref, None)
+    W = A.get('warnings') or []
+    out = [{'lv': 'warn', 't': t + '.'} for t in (import_notes or []) if not any(w['t'] == t for w in W)]
+    for w in W:
+        out.append({'lv': 'bad' if w['lv'] == 'stop' else 'warn', 't': _ui_sig(w['lv'], desk) + ' ' + w['t'] + '.'})
+    if not out:
+        out.append({'lv': 'ok', 't': 'Isotherm read: no warnings.' if en else 'Isoterma letta: nessun avviso.'})
+    return out
+
+
+def chem_tech_rows(chem, opzioni=None, en=False):
+    # sorption-ui.js chemTechRows (AcchChem.techRows)
+    c, A = chem_analyze(chem, opzioni)
+    avv = 'Warnings' if en else 'Avvisi'
+    out = []
+    for r in ch_csv_rows(c, A, en)[2:]:
+        if r[0] == avv:
+            continue
+        out.append([str(r[0]) + ' · ' + str(r[1]), '—' if r[2] == '' else _ui_g(r[2], 5, en), r[3], r[4]])
+    return out
+
+
+def chem_assess(chem, opzioni=None, en=False, desk=False):
+    # sorption-ui.js chemAssess (AcchChem.assess)
+    c, A = chem_analyze(chem, opzioni)
+    out = [{'lv': 'bad' if w['lv'] == 'stop' else 'warn', 't': _ui_sig(w['lv'], desk) + ' ' + w['t'] + '.'} for w in (A.get('warn') or [])]
+    if not out:
+        out.append({'lv': 'ok', 't': 'Measurement read: no warnings.' if en else 'Misura letta: nessun avviso.'})
+    return out

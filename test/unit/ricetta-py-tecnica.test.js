@@ -160,7 +160,7 @@ _al=xrf_align_fit([{'x':q['x'],'w':q.get('prom') or 1} for q in _xf['auto']], _x
 _V['align']=[_al['a'], _al['b']]+[q['name'] for q in _al['pairs']]
 _NT=[]
 for _f in (lambda: composizione_fp_csv([], {}), lambda: spessore_strati_csv([], {}), lambda: xq_model({'qEls':['Cu'],'qModel':'fp'}, []),
-           lambda: tech_metrics({'instr':'sorp','iso':{},'P':{'xs':[0],'ys':[0],'kind':'I','dir':1}}, {}), lambda: assess({'instr':'chem','chem':{},'P':{}}, {})):
+           ):   # fisisorbimento e chemisorbimento: da acch_sorp (sorp_tech_rows, sorp_assess, chem_…), provati nel test R15 con l'app
     try:
         _f(); _NT.append(None)
     except NonTrascritto as _e:

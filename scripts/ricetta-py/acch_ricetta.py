@@ -315,31 +315,6 @@ def read_text_lines(raw, lettura):
     return apply_xform(xs, ys, lettura.get('trasf') or [])
 
 
-def read_simple_text(raw, ycol=1):
-    """Lettura semplificata per file nuovi (opzione --file): righe con almeno due numeri, il blocco più lungo, riordinato per x.
-    Non è il lettore completo dell'app (parseText0): l'identità con l'app vale solo per i file del progetto."""
-    lines = re.split(r'\r\n|\n|\r', decode_buffer(raw))
-    blocks, cur = [], ([], [])
-    for l in lines:
-        l = js_trim(l)
-        if not l:
-            continue
-        p = parse_line(l, ycol)
-        if p is None:
-            if len(cur[0]) >= 3:
-                blocks.append(cur)
-            cur = ([], [])
-            continue
-        cur[0].append(p[0])
-        cur[1].append(p[1])
-    if len(cur[0]) >= 3:
-        blocks.append(cur)
-    if not blocks:
-        raise LetturaDiversa('nessun blocco di numeri a due colonne')
-    best = max(blocks, key=lambda b: len(b[0]))
-    return sort_pairs(best[0], best[1])
-
-
 def read_csv_xy(path):
     """CSV scritto dall'app accanto allo script (dati/…csv): x,y a piena precisione, separatore «,» e punto decimale."""
     with open(path, 'r', encoding='utf-8-sig', newline='') as fh:
@@ -1181,8 +1156,10 @@ def auto_peaks(sp, P, xs_file, ys_file, sens, max_peaks):
         N = js_round(n * 1.7)
         cnt = not sp.get('uncal') and is_counts(ys_file)
         pk = find_peaks(P['xs'], yA, 1, sens, 4 * N if cnt else N)
+        sp['_currieOut'] = 0   # f._currieOut: massimi sotto il limite di Currie, per il controllo di qualità
         if cnt and pk:
             det = xrf_currie(xs_file, ys_file, [q['x'] for q in pk])
+            sp['_currieOut'] = len([d for d in det if not d])
             pk = [q for q, d in zip(pk, det) if d]
             if len(pk) > N:
                 pk = sorted(sorted(pk, key=lambda q: q['prom'], reverse=True)[:N], key=lambda q: q['x'])
@@ -1948,55 +1925,6 @@ def bjh(iso, P, which, method, thick):
     return {'branch': which, 'Vtot': cv, 'Atot': ca, 'mode': mode['d']}
 
 
-def sorp_rows(iso, so, en):
-    """sorption-core.js csvRows, solo le righe BET e BJH/DH e i dati dei rami (le altre sezioni non sono trascritte)."""
-    def T(it, e):
-        return e if en else it
-
-    def g(v):
-        return '' if v is None or not fin(v) else float(js_prec(v, 8))
-
-    P = so['P']
-    rows = [[T('Sezione', 'Section'), T('Grandezza', 'Quantity'), T('Valore', 'Value'), T('Unità', 'Unit'), T('Fonte o nota', 'Source or note')]]
-    au = bet_auto(iso)
-    if au:
-        au['area'] = bet_area(au['nm'], P)
-    rng = so['opt'].get('betRange')
-    user = bet_at(iso, rng[0], rng[1], P) if rng else None
-    ib = so.get('instrBET')
-    instr = bet_at(iso, ib['x0'], ib['x1'], P) if (ib and fin(ib.get('x0')) and fin(ib.get('x1'))) else None
-    B = user or au
-    diff = 100 * (B['area'] - instr['area']) / instr['area'] if (B and instr and instr['area'] > 0) else None
-
-    def s(v):
-        return js_str(v) if isinstance(v, float) else v
-
-    if B:
-        crit = B['crit']
-        rows += [['BET', T('Area specifica', 'Specific surface area'), g(B['area']), 'm²/g', 'p/p₀ %s–%s, %d %s' % (s(g(B['x0'])), s(g(B['x1'])), B['npts'], T('punti', 'points'))],
-                 ['BET', 'C', g(B['C']), '', ''], ['BET', 'nₘ', g(B['nm']), 'cm³ STP/g', ''], ['BET', T('Pendenza', 'Slope'), g(B['slope']), '', ''],
-                 ['BET', T('Intercetta', 'Intercept'), g(B['icpt']), '', ''],
-                 ['BET', 'r', g(B['r']), '', T('criteri di Rouquerol', 'Rouquerol criteria') + ': ' + ' '.join(k + ('✓' if crit.get(k) else '✗') for k in 'abcd')]]
-    if instr:
-        rows.append(['BET', T('Area con l\'intervallo dello strumento', 'Area with the instrument range'), g(instr['area']), 'm²/g',
-                     'p/p₀ %s–%s; %s %s %%' % (s(g(instr['x0'])), s(g(instr['x1'])), T('differenza', 'difference'), s(g(diff)))])
-    close = hysteresis_close(iso)
-    dx, _ = sorp_branch(iso, 'des')
-    which = so['opt'].get('bjhBranch') or ('ads' if (P.get('gas') == 'N2' and fin(close) and 0.40 <= close <= 0.50) else ('des' if len(dx) >= 3 else 'ads'))
-    for k, lab in (('bjh', 'BJH'), ('dh', 'DH')):
-        b = bjh(iso, P, which, k, so['opt'].get('bjhThick'))
-        if b:
-            rows += [[lab, T('Volume cumulato', 'Cumulative volume'), g(b['Vtot']), 'cm³/g', T('ramo', 'branch') + ' ' + b['branch']],
-                     [lab, T('Area cumulata', 'Cumulative area'), g(b['Atot']), 'm²/g', ''], [lab, T('Moda dV(d)', 'Mode dV(d)'), g(b['mode']), 'Å', '']]
-    rows.append([])
-    rows.append([T('Ramo', 'Branch'), 'p/p₀', T('Quantità', 'Amount'), 'cm³ STP/g', 'mmol/g'])
-    for br in ('ads', 'des'):
-        bx, bn = sorp_branch(iso, br)
-        for i, x in enumerate(bx):
-            rows.append([br, g(x), g(bn[i]), g(bn[i]), g(bn[i] / VMOL_STP * 1000)])
-    return rows
-
-
 def sorp_csv(rows, en):
     # sorption-ui.js csvText: i numeri con la virgola decimale in italiano
     sep, d = (',', '.') if en else (';', ',')
@@ -2197,43 +2125,241 @@ def analysis_csv(rows, sep, dec):
 
 
 # ============================== esecuzione della ricetta ==============================
+def _channel_of(mc, canale):
+    # il canale dello spettro fra quelli letti dal file (campione e canale, come f.sampleKey e f.channel)
+    sk, chn = canale.get('sampleKey'), canale.get('channel')
+    for smp in (mc or {}).get('samples') or []:
+        k = smp.get('sampleKey')
+        if (None if k is None else (k if isinstance(k, str) else js_str(k))) != sk:
+            continue
+        for c in smp.get('channels') or []:
+            if (c.get('channel') or None) == chn:
+                return c
+    return None
+
+
 def load_spectrum(sp, dati):
-    """Lettura di uno spettro: dal file originale (testo) o dal CSV scritto dall'app (formati binari e casi non ricostruibili)."""
+    """Lettura di uno spettro: dal file originale (righe del testo o lettore completo sui byte) o dal CSV dei dati letti scritto dall'app."""
     le = sp['lettura']
-    if le['modo'] == 'testo':
+    if le['modo'] in ('testo', 'byte'):
         path = os.path.join(dati, le['file'])
         if not os.path.isfile(path):
-            raise LetturaDiversa('file originale non trovato: ' + path)
+            raise LetturaDiversa(tt('file originale non trovato: ', 'original file not found: ') + path)
         h = sha256_file(path)
         if h != le['sha256']:
-            raise LetturaDiversa('il file %s non è quello del progetto (SHA-256 %s invece di %s)' % (le['file'], h, le['sha256']))
+            raise LetturaDiversa(tt('il file %s non è quello del progetto (SHA-256 %s invece di %s)', 'the file %s is not the one of the project (SHA-256 %s instead of %s)') % (le['file'], h, le['sha256']))
         with open(path, 'rb') as fh:
-            xs0, ys = read_text_lines(fh.read(), le)
+            raw = fh.read()
+        if le['modo'] == 'testo':
+            xs0, ys = read_text_lines(raw, le)
+        else:
+            # acch_lettori: lo stesso lettore dell'app (parseBinary, parseText, canali), poi le stesse conversioni dell'asse
+            if le.get('canale'):
+                c = _channel_of(read_channels(raw, le['nome'], le.get('opt')), le['canale'])
+                if c is None:
+                    raise LetturaDiversa(tt('canale non trovato nel file %s', 'channel not found in the file %s') % le['file'])
+                xs1, ys1 = list(c['xs']), list(c['ys'])
+            else:
+                p = parse_bytes(raw, le['nome'], le.get('opt'))
+                if not p or p.get('reject'):
+                    raise LetturaDiversa(tt('il file %s non si legge come nel progetto', 'the file %s is not read as in the project') % le['file'])
+                xs1, ys1 = list(p['xs']), list(p['ys'])
+            xs0, ys = apply_xform(xs1, ys1, le.get('trasf') or [])
     elif le['modo'] == 'csv':
         path = os.path.join(dati, le['file'])
         if not os.path.isfile(path):
-            raise LetturaDiversa('CSV dei dati letti non trovato: ' + path)
+            raise LetturaDiversa(tt('CSV dei dati letti non trovato: ', 'CSV of the data as read not found: ') + path)
         xs0, ys = read_csv_xy(path)
     else:
-        raise NonTrascritto('modo di lettura sconosciuto: ' + str(le['modo']))
+        raise NonTrascritto(tt('modo di lettura sconosciuto: ', 'unknown reading mode: ') + str(le['modo']))
     fp = fingerprint(xs0, ys)
     if fp != le['impronta']:
-        raise LetturaDiversa('i numeri letti da %s non coincidono con quelli del progetto (impronta %s invece di %s)' % (le['file'], fp[:12], le['impronta'][:12]))
+        raise LetturaDiversa(tt('i numeri letti da %s non coincidono con quelli del progetto (impronta %s invece di %s)', 'the numbers read from %s do not match those of the project (fingerprint %s instead of %s)') % (le['file'], fp[:12], le['impronta'][:12]))
     ec = sp.get('ecal')
     xs = [ec['a'] + ec['b'] * x for x in xs0] if ec else xs0   # index.html setEcal: x nuovo = a + b·x del file
     return xs, ys
 
 
+LINGUA = ['it']   # lingua dei messaggi dello script: RICETTA['lingua'], impostata da main
+
+
+def tt(it, en):
+    # testo del messaggio nella lingua della ricetta
+    return en if LINGUA[0] == 'en' else it
+
+
+def load_json_verified(dati, rel, sha):
+    # dati letti dall'app in JSON (isoterme, chemisorbimento, serie), con l'impronta dei byte
+    path = os.path.join(dati, rel)
+    if not os.path.isfile(path):
+        raise LetturaDiversa(tt('dati letti non trovati: ', 'data as read not found: ') + path)
+    with open(path, 'rb') as fh:
+        b = fh.read()
+    if hashlib.sha256(b).hexdigest() != sha:
+        raise LetturaDiversa(tt('il file %s non è quello del progetto', 'the file %s is not the one of the project') % rel)
+    return json.loads(b.decode('utf-8'))
+
+
+def analisi_progetto(ric, dati, spettri, loaded, results, peaks_of, out, errori, nt, saltati):
+    """Tabelle della cartella di analisi rifatte dai moduli (acch_tecnica, acch_sorp, acch_chemo, acch_chemometria, acch_libreria).
+    Ogni parte che non si può rifare in modo identico (NonTrascritto) dà un errore esplicito e il suo file resta non scritto."""
+    A = ric.get('analisi')
+    if not A:
+        return
+    en = ric['lingua'] == 'en'
+    d = A['dir']
+
+    def parte(nome, uscite, fn):
+        try:
+            fn()
+        except NonTrascritto as e:
+            nt.append('%s: %s' % (nome, e))
+            saltati.update(d + u for u in uscite)
+        except (LetturaDiversa, OSError, ValueError, KeyError) as e:
+            errori.append('%s: %s' % (nome, e))
+            saltati.update(d + u for u in uscite)
+
+    def ok(k):
+        if results[k] is None:
+            raise LetturaDiversa(tt('spettro non letto: ', 'spectrum not read: ') + spettri[k]['nome'])
+        return results[k]
+    # fisisorbimento e chemisorbimento (acch_sorp): dati letti in JSON, tabella completa
+    extra = {}
+    for so in A.get('fisisorbimento') or []:
+        def f_sorp(so=so):
+            D = load_json_verified(dati, so['file'], so['sha256'])
+            o = so.get('opt') or {}
+            rif = {'iso': D['rif'], 'S': o.get('alphaS')} if D.get('rif') else None
+            extra.setdefault(so['i'], {}).update({'iso': D['iso'], 'sorpOpt': o, 'sorpRif': rif})
+            out.write(d + so['uscita'], sorp_csv_text(D['iso'], o.get('over') or {}, o, rif, None, en))
+        parte(so['uscita'], [so['uscita']], f_sorp)
+    for so in A.get('chemisorbimento') or []:
+        def f_chem(so=so):
+            D = load_json_verified(dati, so['file'], so['sha256'])
+            extra.setdefault(so['i'], {}).update({'chem': D['chem'], 'chemOpt': so.get('opt')})
+            out.write(d + so['uscita'], chem_csv_text(D['chem'], so.get('opt'), en))
+        parte(so['uscita'], [so['uscita']], f_chem)
+    # serie: MCR-ALS e cinetica globale (acch_chemo)
+    for se in A.get('serie') or []:
+        def f_serie(se=se):
+            D = load_json_verified(dati, se['file'], se['sha256'])
+            kn = {}
+            for c, k in (se.get('known') or {}).items():
+                P = ok(int(k))
+                kn[c] = {'xs': P['xs'], 'ys': P['ys']}
+            f = {'name': se['name'], 'title': se['title'], 'instr': se['instr'], 'series': D, 'mcr': se['mcr'], 'mcr_svd_visto': se['mcr_svd_visto'],
+                 'mcr_known_xy': kn, 'mcr_bands': se['mcr_bands'], 'kin': se['kin'], 'kin_cmp': se['kin_cmp']}
+            for nome, testo in chemo_tables(f, ric['lingua']):
+                out.write(d + nome, testo)
+        parte(se['name'], se.get('uscite') or [], f_serie)
+    # deconvoluzione, miscele, PLS e PCA (acch_chemometria), una tabella alla volta
+    ch = A.get('chemometria') or {}
+    for key, nome in (('deconvoluzione', tt('deconvoluzione.csv', 'deconvolution.csv')), ('miscele', tt('miscele_percentuali_in_peso.csv', 'mixture_weight_percent.csv'))):
+        if ch.get(key):
+            def f_ch(key=key):
+                for nm, testo in chemometria_files({key: ch[key]}, ric, spettri, loaded, results):
+                    out.write(d + nm, testo)
+            parte(nome, [nome], f_ch)
+    for key in ('pls', 'pca'):
+        for item in ch.get(key) or []:
+            nome = '%s_%s.csv' % (key, item['tecnica'])
+
+            def f_mv(key=key, item=item):
+                for nm, testo in chemometria_files({key: [item]}, ric, spettri, loaded, results):
+                    out.write(d + nm, testo)
+            parte(nome, [nome], f_mv)
+    # controllo di qualità, parametri per tecnica e composizione XRF (acch_tecnica): dati elaborati e picchi dello script
+    T = A.get('tecnica')
+    if T:
+        if A.get('costanti'):
+            carica_costanti(A['costanti'])
+        voci = {}
+
+        def voce(k):
+            if k not in voci:
+                st = T['statiche'][str(k)]
+                sp, P = spettri[k], ok(k)
+                pk = []
+                for p in peaks_of(k):
+                    q = {'x': p['x'], 'y': p['y'], 'prom': p.get('prom'), 'xa': p.get('xa'), 'xb': p.get('xb'), 'side': p.get('side'), 'custom': p.get('custom'),
+                         'name': p.get('name'), 'area': p.get('area')}
+                    if sp['tecnica'] == 'dsc' and p.get('side'):
+                        q['sign'] = 'endo' if p['side'] == st.get('endo') else 'exo'   # viewOf0: p.sign da dscEndoSide
+                    if sp['tecnica'] == 'dsc' and st.get('dHu') and p.get('area') is not None:
+                        q['dH'], q['dHu'] = p['area'], st['dHu']   # dscEnthalpy: l'area è già ΔH (view_peaks)
+                    q['sugg'] = (st.get('sugg') or {}).get(js_str(p['x']), [])   # suggerimenti del database delle bande: registrati dall'app
+                    pk.append(q)
+                auto = auto_peaks(sp, P, loaded[k][0], loaded[k][1], ric['sens'], ric['maxPeaks'])
+                v = dict(st)
+                v.update({'id': k, 'nome': sp['nome'], 'titolo': sp['titolo'], 'instr': sp['tecnica'], 'kind': sp['kind'], 'xs': loaded[k][0], 'ys': loaded[k][1],
+                          'P': P, 'peaks': pk, 'auto': [{'x': q['x'], 'y': q.get('y'), 'prom': q.get('prom')} for q in auto], 'currieOut': sp.get('_currieOut')})
+                v.update(extra.get(k) or {})
+                voci[k] = v
+            return voci[k]
+        tutti = []
+        for k in T['ordine']:
+            try:
+                tutti.append(voce(k))
+            except LetturaDiversa:
+                pass
+        ctx = {'lang': ric['lingua'], 'S': A['S'], 'files': tutti, 'desk': bool(A.get('desk'))}
+        nq, npt = tt('controllo_qualita.csv', 'quality_check.csv'), tt('parametri_per_tecnica.csv', 'technique_parameters.csv')
+
+        def f_qc():
+            nm, testo = controllo_qualita_csv([voce(k) for k in T['inclusi']], ctx)
+            out.write(d + nm, testo)
+        parte(nq, [nq], f_qc)
+
+        def f_par():
+            r = parametri_per_tecnica_csv([voce(k) for k in T['inclusi']], ctx)
+            if r:
+                out.write(d + r[0], r[1])
+        parte(npt, [npt], f_par)
+        if A.get('xrf'):
+            nx = tt('composizione_xrf.csv', 'xrf_composition.csv')
+
+            def f_xrf():
+                r = composizione_xrf_csv(A['xrf']['cfg'], [voce(k) for k in A['xrf']['lista']], ctx)
+                if r:
+                    out.write(d + r[0], r[1])
+            parte(nx, [nx], f_xrf)
+    # concentrazioni dalla taratura salvata in libreria (acch_libreria): dati elaborati e picchi dello script
+    L = A.get('libreria')
+    if L:
+        nl = tt('concentrazioni_da_libreria.csv', 'concentrations_from_library.csv')
+
+        def f_lib():
+            inp = json.loads(json.dumps(L))
+            for f in inp['files']:
+                k = f.pop('k', None)
+                norm = f.pop('normConv', False)
+                if k is not None:
+                    P = ok(int(k))
+                    f['proc'] = {'xs': P['xs'], 'ys': P['ys'], 'kind': P['kind'], 'dir': P['dir']}
+                    f['peaks'] = [p['x'] for p in peaks_of(int(k))]
+                    f['normalized'] = bool(norm or P['deriv'])
+                else:
+                    f['peaks'] = []
+                    f['normalized'] = bool(norm)
+            r = library_rows(inp)
+            if r['text'] is not None:
+                out.write(d + r['name'], r['text'])
+        parte(nl, [nl], f_lib)
+
+
 def run_project(ric, dati, out, log):
-    """Rifà lettura, elaborazioni, picchi, aree e tarature dello spettro come nell'app; scrive i CSV con gli stessi nomi."""
+    """Rifà lettura, elaborazioni, picchi, aree, tarature e tabelle di analisi come nell'app; scrive i CSV con gli stessi nomi.
+    Restituisce (errori, non trascritte, file saltati)."""
     spettri = ric['spettri']
     loaded = [None] * len(spettri)
     results = [None] * len(spettri)
-    errori = []
+    errori, nt, saltati = [], [], set()
     for k, sp in enumerate(spettri):
         try:
             loaded[k] = load_spectrum(sp, dati)
-        except (LetturaDiversa, NonTrascritto, OSError, ValueError) as e:
+        except NonTrascritto as e:
+            nt.append('%s: %s' % (sp['nome'], e))
+        except (LetturaDiversa, OSError, ValueError) as e:
             errori.append('%s: %s' % (sp['nome'], e))
     for k, sp in enumerate(spettri):
         if loaded[k] is None:
@@ -2242,50 +2368,73 @@ def run_project(ric, dati, out, log):
         r = sp['elab'].get('sub_rif')
         if r is not None:
             if loaded[r] is None:
-                errori.append('%s: manca lo spettro di riferimento da sottrarre' % sp['nome'])
+                errori.append(tt('%s: manca lo spettro di riferimento da sottrarre', '%s: the reference spectrum to subtract is missing') % sp['nome'])
                 continue
             ref = (loaded[r][0], loaded[r][1], spettri[r]['kind'])
         results[k] = processed(sp, loaded[k][0], loaded[k][1], ref)
+    cache = {}
+
+    def peaks_of(k):
+        # viewOf(f).peaks: una volta per spettro
+        if k not in cache:
+            cache[k] = view_peaks(spettri[k], results[k], loaded[k][0], loaded[k][1], ric)
+        return cache[k]
     rows = [list(ric['testaPicchi'])]
     for k, sp in enumerate(spettri):
         if not sp.get('incluso') or results[k] is None:
             continue
         P = results[k]
-        peaks = view_peaks(sp, P, loaded[k][0], loaded[k][1], ric)
+        peaks = peaks_of(k)
         rows += peaks_rows(sp, P, peaks, ric)
         out.write(sp['fileDati'], data_csv(sp, P, ric))
-        log('  %-40s %6d punti, %d picchi' % (sp['nome'][:40], len(P['xs']), len(peaks)))
+        log(tt('  %-40s %6d punti, %d picchi', '  %-40s %6d points, %d peaks') % (sp['nome'][:40], len(P['xs']), len(peaks)))
     out.write(ric['filePicchi'], csv_text(rows, ric['csep']))
-    for so in ric.get('fisisorbimento') or []:
-        try:
-            path = os.path.join(dati, so['file'])
-            with open(path, 'rb') as fh:
-                b = fh.read()
-            if hashlib.sha256(b).hexdigest() != so['sha256']:
-                raise LetturaDiversa('isoterma diversa da quella del progetto: ' + so['file'])
-            iso = json.loads(b.decode('utf-8'))
-            out.write(so['uscita'], sorp_csv(sorp_rows(iso, so, ric['lingua'] == 'en'), ric['lingua'] == 'en'))
-        except (LetturaDiversa, OSError, ValueError) as e:
-            errori.append('%s: %s' % (so['file'], e))
     for tab in ric.get('tarature') or []:
         if any(results[r['i']] is None for r in tab['righe']):
-            errori.append('%s: manca uno spettro della taratura' % tab['file'])
+            errori.append(tt('%s: manca uno spettro della taratura', '%s: a spectrum of the calibration is missing') % tab['file'])
+            saltati.add(tab['file'])
             continue
         out.write(tab['file'], analysis_csv(mv_rows(tab, results, ric), ric['csep'], ric['dec']))
-    return errori
+    analisi_progetto(ric, dati, spettri, loaded, results, peaks_of, out, errori, nt, saltati)
+    return errori, nt, saltati
+
+
+def read_new_file(path, ycol=1):
+    """File nuovo (--file): il lettore completo dell'app trascritto in acch_lettori (parseBinary, parseText e canali). Le conversioni
+    dell'asse che l'app decide dalla tecnica riconosciuta (postDetect: eV, spostamento Raman, campo EPR) non si applicano: la tecnica
+    la dice --tecnica. Un file con più canali dà un errore: lo si esporta canale per canale dall'app."""
+    with open(path, 'rb') as fh:
+        raw = fh.read()
+    nome = os.path.basename(path)
+    mc = read_channels(raw, nome)
+    if mc and len([c for smp in mc['samples'] for c in smp['channels']]) > 1:
+        raise NonTrascritto(tt('%s ha più canali: per i file nuovi lo script legge un solo spettro', '%s has several channels: for new files the script reads one spectrum only') % nome)
+    if mc:
+        c = mc['samples'][0]['channels'][0]
+        return list(c['xs']), list(c['ys'])
+    p = parse_bytes(raw, nome, {'ycol': ycol} if ycol and ycol > 1 else None)
+    if not p or p.get('reject') or len(p['xs']) < 5:
+        raise LetturaDiversa(tt('%s non si legge come spettro (%s)', '%s cannot be read as a spectrum (%s)') % (nome, (p or {}).get('reject') or tt('troppo pochi punti', 'too few points')))
+    if p.get('iso') or p.get('chem'):
+        raise NonTrascritto(tt('%s è un\'isoterma o una misura di chemisorbimento: va letta dall\'app', '%s is an isotherm or a chemisorption measurement: read it with the app') % nome)
+    return list(p['xs']), list(p['ys'])
 
 
 def run_new_files(ric, files, tecnica, out, log):
-    """Applica le impostazioni per tecnica della ricetta a file nuovi (lettura semplificata, solo picchi automatici)."""
+    """Applica le impostazioni per tecnica della ricetta a file nuovi (lettore completo, solo picchi automatici)."""
     modello = next((sp for sp in ric['spettri'] if sp['tecnica'] == tecnica), None)
     if modello is None:
-        raise NonTrascritto('nessuno spettro della ricetta ha la tecnica ' + tecnica)
+        raise NonTrascritto(tt('nessuno spettro della ricetta ha la tecnica ', 'no spectrum of the recipe has the technique ') + tecnica)
     rows = [list(ric['testaPicchi'])]
+    errori = []
     for path in files:
-        with open(path, 'rb') as fh:
-            xs, ys = read_simple_text(fh.read(), modello['lettura'].get('ycol', 1))
-        sp = dict(modello)
         nome = os.path.basename(path)
+        try:
+            xs, ys = read_new_file(path, modello['lettura'].get('ycol', 1))
+        except (NonTrascritto, LetturaDiversa, OSError) as e:
+            errori.append('%s: %s' % (nome, e))
+            continue
+        sp = dict(modello)
         sp.update({'nome': nome, 'titolo': nome, 'uncal': False, 'ecal': None,
                    'picchi': {'tolti': [], 'aggiunti': [], 'nomi': {}, 'piatto': False}})
         sp['elab'] = dict(modello['elab'], xr=None, sub_rif=None)
@@ -2294,24 +2443,20 @@ def run_new_files(ric, files, tecnica, out, log):
         rows += peaks_rows(sp, P, peaks, ric)
         base = re.sub(r'\.[^.]{1,4}$', '', nome)
         out.write(os.path.join(os.path.dirname(ric['spettri'][0]['fileDati']), base + '.csv'), data_csv(sp, P, ric))
-        log('  %-40s %6d punti, %d picchi' % (nome[:40], len(P['xs']), len(peaks)))
+        log(tt('  %-40s %6d punti, %d picchi', '  %-40s %6d points, %d peaks') % (nome[:40], len(P['xs']), len(peaks)))
     out.write(ric['filePicchi'], csv_text(rows, ric['csep']))
+    return errori
 
 
-def _num_cells(text):
-    rows = []
-    for line in text.lstrip('\ufeff').split('\r\n'):
-        rows.append(line)
-    return rows
-
-
-def compare_expected(ric, out, log):
-    """Confronta i CSV scritti con i risultati attesi dell'app (impronte e campioni di valori)."""
+def compare_expected(ric, out, log, saltati=()):
+    """Confronta i CSV scritti con i risultati attesi dell'app (impronte e campioni di valori). I file di parti non rifatte (saltati) non si confrontano."""
     diffs = []
     for rel, att in sorted((ric.get('attesi') or {}).items()):
+        if rel in saltati:
+            continue
         p = out.path(rel)
         if not os.path.isfile(p):
-            diffs.append('%s: non scritto' % rel)
+            diffs.append(tt('%s: non scritto', '%s: not written') % rel)
             continue
         with open(p, 'rb') as fh:
             b = fh.read()
@@ -2323,20 +2468,21 @@ def compare_expected(ric, out, log):
         shown = 0
         for k, line in sorted(exp.items(), key=lambda q: int(q[0])):
             k = int(k)
-            g = got[k] if k < len(got) else '(manca)'
+            g = got[k] if k < len(got) else tt('(manca)', '(missing)')
             if g != line:
-                diffs.append('%s, riga %d: «%s» invece di «%s»' % (rel, k + 1, g, line))
+                diffs.append(tt('%s, riga %d: «%s» invece di «%s»', '%s, line %d: «%s» instead of «%s»') % (rel, k + 1, g, line))
                 shown += 1
                 if shown >= 5:
                     break
         if not shown:
-            diffs.append('%s: contenuto diverso da quello dell\'app (SHA-256 %s)' % (rel, h[:12]))
+            diffs.append(tt('%s: contenuto diverso da quello dell\'app (SHA-256 %s)', '%s: content different from the app (SHA-256 %s)') % (rel, h[:12]))
     return diffs
 
 
 def main(argv=None):
     ric = RICETTA
     T = ric['testi']
+    LINGUA[0] = 'en' if ric.get('lingua') == 'en' else 'it'
     TRAD.update(ric.get('traduzioni') or {})
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=T['descrizione'])
@@ -2348,20 +2494,34 @@ def main(argv=None):
     out = Uscita(a.uscita)
     log = print
     log('Acchiappaspettri %s · %s' % (ric['versione'], T['titolo']))
+    # funzioni Math.* del motore JavaScript che ha calcolato i numeri dell'app (acch_math): la sonda registrata all'esportazione
+    # se nessun motore trascritto coincide, lo script prosegue con quello predefinito: lo dice, e il confronto con l'app decide
+    nt_motore = []
+    try:
+        if ric.get('sonda') is not None:
+            log(tt('motore JavaScript: ', 'JavaScript engine: ') + imposta_motore(ric['sonda']))
+    except NonTrascritto as e:
+        nt_motore.append(tt('motore JavaScript: ', 'JavaScript engine: ') + str(e))
     if a.file:
         tec = a.tecnica or ric['spettri'][0]['tecnica']
-        run_new_files(ric, a.file, tec, out, log)
+        try:
+            err = run_new_files(ric, a.file, tec, out, log)
+        except NonTrascritto as e:
+            log(tt('ERRORE: ', 'ERROR: ') + str(e))
+            return 3
         log(T['nuoviFile'])
-        return 0
-    errori = run_project(ric, a.dati, out, log)
-    nt = ric.get('nonTrascritte') or []
+        for e in err:
+            log(tt('ERRORE: ', 'ERROR: ') + e)
+        return 2 if err else 0
+    errori, nt_run, saltati = run_project(ric, a.dati, out, log)
+    nt = nt_motore + (ric.get('nonTrascritte') or []) + nt_run
     for e in errori:
-        log('ERRORE: ' + e)
+        log(tt('ERRORE: ', 'ERROR: ') + e)
     for e in nt:
         log(T['nonTrascritta'] + ': ' + e)
     if errori:
         return 2
-    diffs = compare_expected(ric, out, log)
+    diffs = compare_expected(ric, out, log, saltati)
     if diffs:
         log(T['verificaDiversa'])
         for d in diffs:
