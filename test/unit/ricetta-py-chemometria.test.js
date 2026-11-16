@@ -26,9 +26,10 @@ const UI=['const PROF_NAME=','function fitCsvRows(','function mvCfg(','function 
 const runFit=grab('async function runFitUI('), allSp=/\$\('#fitAllSp'\)\.onclick=[\s\S]*?renderFitOut\(f\);/.exec(html)[0];
 // le righe dell'app che fanno il fit e salvano f.fit: si eseguono così come sono scritte
 const FIT_STMT=/const xs=P\.xs\.subarray\(a,b\+1\), ys=U\.y\.subarray\(a,b\+1\), d=viewOf\(f\), seeds=[^;]*;/.exec(runFit)[0];
-const FIT_CALL=/const t0=performance\.now\(\), fit=deconvolve\([^;]*;/.exec(runFit)[0];
+// dalla tappa I5 il fit gira nel worker (coreAsync): stessa funzione del nucleo con gli stessi argomenti, qui chiamata direttamente
+const FIT_CALL='const t0=performance.now(), fit=deconvolve('+/fit=await coreAsync\('deconvolve', ([^;]*)\);/.exec(runFit)[1]+');';
 const FIT_SAVE=/f\.fit=\{pk:procKey\(f\)[\s\S]*?\};/.exec(runFit)[0];
-const ALL_FIT=/const fit=fitPeaks\(P\.xs\.subarray[^;]*;/.exec(allSp)[0], ALL_SAVE=/g\.fit=\{pk:procKey\(g\)[\s\S]*?\};/.exec(allSp)[0];
+const ALL_FIT='const fit=fitPeaks('+/const fit=await coreAsync\('fitPeaks', ([^;]*)\);/.exec(allSp)[1]+');', ALL_SAVE=/g\.fit=\{pk:procKey\(g\)[\s\S]*?\};/.exec(allSp)[0];
 
 const STUBS=`
 let files=[], INC=[], REFS=[], MV={}, MVres={}, MVpls={};
@@ -152,7 +153,7 @@ test('il modulo Python della chemometria esiste e si concatena a acch_ricetta.py
   for (const fn of ['cm_fit_peaks','deconvolve','fit_eval','cm_pv_at','cm_hidden_bands','fit_csv_rows','preprocess_rows','msc_rows','pca_nipals','hotelling_ellipse','hca_ward','cut_tree','suggest_k','pca_csv_rows','pls_fit','pls_cv','nnls','mixture_of','mix_response','mix_weights','chemometria_files'])
     assert.match(src, new RegExp('\\ndef '+fn+'\\('), fn);
   // le righe dell'app che il test esegue: se cambiano, la trascrizione va rivista
-  assert.match(FIT_CALL, /deconvolve\(xs, ys, \{seeds, profile:prof, base:bm, fixed:!auto\}\)/);
+  assert.match(FIT_CALL, /deconvolve\(xs\.slice\(\), ys\.slice\(\), \{seeds, profile:prof, base:bm, fixed:!auto\}\)/);   // I5: copie per il worker, stessi valori
   assert.match(ALL_FIT, /\{profile:F\.profile, base:F\.bm\}/);
 });
 

@@ -16,7 +16,7 @@ const core=html.slice(html.indexOf('/*CORE-START*/'), html.indexOf('/*CORE-END*/
 // una funzione (o costante) di primo livello: dalla sua riga fino alla prossima dichiarazione di primo livello
 function extract(name){ const re=new RegExp('^(function '+name+'\\(|const '+name+'\\s*=)'); const i=lines.findIndex(l=>re.test(l)); if (i<0) throw new Error('non trovata in index.html: '+name);
   let j=i+1; while (j<lines.length && !/^(function |const |let |var |async function |\/\*|\/\/|window\.|\}\)|[A-Za-z_$][\w$]*\s*=)/.test(lines[j])) j++; return lines.slice(i,j).join('\n'); }
-const NAMES=['techMetrics','assess','analysisFiles','fmtN','fmtG','fmtSN','upData','hullBaseAt','eprZonesOf','eprZonesTxt','sticksLike','peakShape','flatTopPeaks','peakFwhmPts','pSmooth','baseAllowed','pBase','dscRate','esc','uiEn','CSV_NUM','csvCell','TECH_REF','XQ_DEFAULT','xqIntens','xqModel','xqCsvRows'];
+const NAMES=['techMetrics','assess','analysisFiles','fmtN','fmtG','fmtSN','upData','hullBaseAt','eprZonesOf','eprZonesTxt','sticksLike','peakShape','flatTopPeaks','peakFwhmPts','pSmooth','baseAllowed','pBase','dscRate','esc','uiEn','PS_MEMO','peakShapeBase','CSV_NUM','csvCell','TECH_REF','XQ_DEFAULT','xqIntens','xqModel','xqCsvRows'];
 function makeApp(){
   const ctx={console, Float64Array, Uint8Array, Math, TextDecoder, DataView, ArrayBuffer}; ctx.window=ctx; vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT,'app','sorption-core.js'),'utf8'), ctx);

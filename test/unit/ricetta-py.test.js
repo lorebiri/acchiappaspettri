@@ -46,3 +46,38 @@ test('parseText0 con keepLines: le righe lette, nell\'ordine prima del riordino;
   assert.deepStrictEqual(Array.from(b.xs), Array.from(a.xs)); assert.deepStrictEqual(Array.from(b.ys), Array.from(a.ys)); assert.strictEqual(a.lines, undefined);
   assert.strictEqual(b.lines.length, 30); assert.deepStrictEqual(Array.from(b.lines.slice(0,3)), [2,3,4]);
 });
+
+// I5 (motore desktop): il nucleo condiviso calcola Savitzky–Golay e derivata con somme scorrevoli quando la finestra è larga
+// (m > 64, sgFast e derivFast), i candidati dei picchi con una pila (peakCandidatesMin) e la mediana del rumore senza ordinare tutto
+// (kthSmallest). Sono numeri del web e del desktop: lo script deve rifarli identici bit per bit, anche nei casi limite.
+test('nucleo dopo la tappa I5: sgFast, derivFast, peakCandidates a pila e noiseSigma in Python identici bit per bit', {skip:!PY && 'python3 ≥ 3.10 non trovato: SALTATO', timeout:600000}, ()=>{
+  const C=require('../validation/core.js'), vm=require('vm'), ctx={console, Float64Array, Math, TextDecoder, Uint8Array, DataView, ArrayBuffer}; vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT,'app','sorption-core.js'),'utf8'), ctx); vm.runInContext(C.src, ctx);
+  for (const n of ['sgFast','derivFast','peakCandidatesMin','kthSmallest']) assert.strictEqual(typeof ctx[n], 'function', 'nel nucleo manca '+n);
+  let s=11; const r=()=>{ s=(s*16807)%2147483647; return s/2147483647; }, g=(x,c,w)=>Math.exp(-0.5*((x-c)/w)**2);
+  const cases=[];
+  for (const [n, noise, step] of [[3000, 0.01, 1], [5000, 0.2, 0.37], [700, 0, 2], [2600, 1e-6, -0.5], [1500, 3, 1]]){
+    const xs=Array.from({length:n},(_,i)=>1000+step*i+(i%7===3?0.01*step:0)), ys=xs.map((x,i)=>40*g(i,0.3*n,0.02*n)+15*g(i,0.62*n,0.005*n)+5*g(i,0.8*n,0.1*n)+noise*(r()-0.5)+(i%400===0?8:0));
+    cases.push({xs, ys, sg:[5, 2*65+1, 2*90+1, 2*200+1], dv:[3, 65, 80, 150], pk:[[1,2,20],[-1,1,12],[1,0.5,200]]}); }
+  cases.push({xs:Array.from({length:600},(_,i)=>i), ys:Array.from({length:600},(_,i)=>i%2?1:0), sg:[2*70+1], dv:[70], pk:[[1,2,20]]});   // gradini e valori uguali
+  cases.push({xs:Array.from({length:900},()=>5), ys:Array.from({length:900},(_,i)=>i), sg:[2*66+1], dv:[66, 100], pk:[]});   // x tutte uguali: derivPoint
+  const enc=v=>Object.is(v,-0)?'-0':Number.isFinite(v)?v:String(v);
+  const want=cases.map(c=>{ const X=Float64Array.from(c.xs), Y=Float64Array.from(c.ys);
+    return {sg:c.sg.map(w=>Array.from(ctx.sgSmooth(Y, w), enc)), dv:c.dv.map(m=>Array.from(ctx.derivLS(X, Y, m), enc)), ns:enc(ctx.noiseSigma(Y)), pc:ctx.peakCandidates(Y).map(o=>[o.i, enc(o.prom)]),
+      pk:c.pk.map(([d,se,mx])=>ctx.findPeaks(X, Y, d, se, mx).map(p=>[enc(p.x), enc(p.y), enc(p.prom)]))}; });
+  const d=fs.mkdtempSync(path.join(os.tmpdir(),'acch-py-i5-')); try{ fs.writeFileSync(path.join(d,'c.json'), JSON.stringify(cases));
+    const prog=fs.readFileSync(path.join(ROOT,'scripts','ricetta-py','acch_ricetta.py'),'utf8')+`
+import json as _j
+_E = lambda v: '-0' if (v == 0 and math.copysign(1, v) < 0) else (v if math.isfinite(v) else js_str(v))
+_out = []
+for c in _j.load(open(${JSON.stringify(path.join(d,'c.json'))})):
+    X, Y = [float(v) for v in c['xs']], [float(v) for v in c['ys']]
+    _out.append({'sg': [[_E(v) for v in sg_smooth(Y, w)] for w in c['sg']], 'dv': [[_E(v) for v in deriv_ls(X, Y, m)] for m in c['dv']], 'ns': _E(noise_sigma(Y)),
+                 'pc': [[i, _E(p)] for i, p in peak_candidates(Y)], 'pk': [[[_E(p['x']), _E(p['y']), _E(p['prom'])] for p in find_peaks(X, Y, d, se, mx)] for d, se, mx in c['pk']]})
+print(_j.dumps(_out))
+`;
+    fs.writeFileSync(path.join(d,'p.py'), prog); const p=spawnSync(PY, ['-I', path.join(d,'p.py')], {encoding:'utf8', maxBuffer:1<<28}); assert.strictEqual(p.status, 0, p.stderr);
+    const got=JSON.parse(p.stdout), bad=[]; let nn=0;
+    got.forEach((G,i)=>{ for (const k of ['sg','dv','ns','pc','pk']){ const a=JSON.stringify(want[i][k]), b=JSON.stringify(G[k]); nn+=a.length; if (a!==b) bad.push(`caso ${i} ${k}: ${b.slice(0,160)} invece di ${a.slice(0,160)}`); } });
+    console.log(`# nucleo I5 in Python: ${cases.length} spettri, finestre fino a m = 200, ${bad.length} diversi`); assert.deepStrictEqual(bad, []); } finally { fs.rmSync(d,{recursive:true,force:true}); }
+});

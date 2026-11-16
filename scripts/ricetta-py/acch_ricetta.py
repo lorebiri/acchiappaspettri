@@ -408,6 +408,8 @@ def sg_smooth(ys, win):
         return ys
     m = (win - 1) >> 1
     den = (2 * m + 3) * (2 * m + 1) * (2 * m - 1)
+    if m > DERIV_EXACT_M and n > 4 * DERIV_BLOCK and nums_ok(ys):
+        return sg_fast(ys, n, m, den)
     c = [float(3 * (3 * m * m + 3 * m - 1 - 5 * i * i)) / den for i in range(-m, m + 1)]
     out = list(ys)
     for i in range(m, n - m):
@@ -415,6 +417,36 @@ def sg_smooth(ys, win):
         for j in range(-m, m + 1):
             s += c[j + m] * ys[i + j]
         out[i] = s
+    return out
+
+
+DERIV_EXACT_M, DERIV_BLOCK = 64, 128   # index.html, tappa I5: oltre m = 64 somme scorrevoli (sgFast, derivFast)
+
+
+def sg_fast(ys, n, m, den):
+    # index.html sgFast (I5): Savitzky–Golay con finestre larghe, somme scorrevoli S0, S1, S2 rifatte ogni DERIV_BLOCK punti
+    out = list(ys)
+    A = 3 * (3 * m * m + 3 * m - 1)
+    m1 = m + 1
+    for i0 in range(m, n - m, DERIV_BLOCK):
+        i1 = min(n - m, i0 + DERIV_BLOCK)
+        Y0 = ys[i0]
+        S0 = S1 = S2 = 0.0
+        for j in range(-m, m + 1):
+            v = ys[i0 + j] - Y0
+            S0 += v
+            S1 += j * v
+            S2 += j * j * v
+        for i in range(i0, i1):
+            if i > i0:
+                vo = ys[i - 1 - m] - Y0
+                vi = ys[i + m] - Y0
+                s0 = S0 - vo + vi
+                t1 = S1 + m * vo + m1 * vi
+                S2 = S2 - m * m * vo + m1 * m1 * vi - 2 * t1 + s0
+                S1 = t1 - s0
+                S0 = s0
+            out[i] = Y0 + (A * S0 - 15 * S2) / den
     return out
 
 
@@ -484,7 +516,8 @@ def noise_sigma(ys):
     n = len(ys)
     if n < 4:
         return 0.0
-    a = sorted(abs(ys[i + 1] - 2 * ys[i] + ys[i - 1]) for i in range(1, n - 1))
+    # Float64Array.sort: i NaN in fondo (dalla I5 kthSmallest senza NaN: stesso elemento)
+    a = sorted((abs(ys[i + 1] - 2 * ys[i] + ys[i - 1]) for i in range(1, n - 1)), key=lambda v: (v != v, v))
     return a[len(a) >> 1] / 0.6745 / math.sqrt(6)
 
 
@@ -497,26 +530,39 @@ def median(a):
     return s[n >> 1] if n % 2 else 0.5 * (s[n // 2 - 1] + s[n // 2])
 
 
+def peak_candidates_min(sm, rev):
+    # index.html peakCandidatesMin (I5): per ogni punto il minimo fino al primo valore più alto, con una pila (O(n))
+    n = len(sm)
+    out = [0.0] * n
+    st = []
+    sv = []
+    for t in range(n):
+        i = n - 1 - t if rev else t
+        v = sm[i]
+        run = v
+        while st and sm[st[-1]] <= v:
+            mm = sv.pop()
+            st.pop()
+            if mm < run:
+                run = mm
+        out[i] = run
+        st.append(i)
+        sv.append(run)
+    return out
+
+
 def peak_candidates(sm):
-    # index.html peakCandidates
+    # index.html peakCandidates: massimi locali con la prominenza
     n = len(sm)
     out = []
+    if n < 3:
+        return out
+    L = peak_candidates_min(sm, False)
+    R = peak_candidates_min(sm, True)
     for i in range(1, n - 1):
         if not (sm[i] > sm[i - 1] and sm[i] >= sm[i + 1]):
             continue
-        lmin = sm[i]
-        j = i - 1
-        while j >= 0 and sm[j] <= sm[i]:
-            if sm[j] < lmin:
-                lmin = sm[j]
-            j -= 1
-        rmin = sm[i]
-        j = i + 1
-        while j < n and sm[j] <= sm[i]:
-            if sm[j] < rmin:
-                rmin = sm[j]
-            j += 1
-        out.append((i, sm[i] - max(lmin, rmin)))
+        out.append((i, sm[i] - js_max(L[i], R[i])))
     return out
 
 
@@ -710,25 +756,72 @@ def peak_areas(xs, ys, pks):
     return out
 
 
+def deriv_point(xs, ys, n, m, i):
+    # index.html derivPoint: pendenza della retta dei minimi quadrati su ±m punti (troncati ai bordi)
+    a, b = max(0, i - m), min(n - 1, i + m)
+    sx = sy = 0.0
+    c = 0
+    for k in range(a, b + 1):
+        sx += xs[k]
+        sy += ys[k]
+        c += 1
+    mx, my = sx / c, sy / c
+    sxx = sxy = 0.0
+    for k in range(a, b + 1):
+        dx = xs[k] - mx
+        sxx += dx * dx
+        sxy += dx * (ys[k] - my)
+    return sxy / sxx if sxx > 0 else 0.0
+
+
+def deriv_fast(xs, ys, n, m, out):
+    # index.html derivFast (I5): somme scorrevoli centrate su un ancoraggio rifatto ogni DERIV_BLOCK punti
+    for i0 in range(0, n, DERIV_BLOCK):
+        i1 = min(n, i0 + DERIV_BLOCK)
+        X0, Y0 = xs[i0], ys[i0]
+        a, b = max(0, i0 - m), min(n - 1, i0 + m)
+        c = 0
+        Sx = Sy = Sxx = Sxy = 0.0
+        for k in range(a, b + 1):
+            dx, dy = xs[k] - X0, ys[k] - Y0
+            Sx += dx
+            Sy += dy
+            Sxx += dx * dx
+            Sxy += dx * dy
+            c += 1
+        for i in range(i0, i1):
+            if i > i0:
+                na, nb = max(0, i - m), min(n - 1, i + m)
+                while b < nb:
+                    b += 1
+                    dx, dy = xs[b] - X0, ys[b] - Y0
+                    Sx += dx
+                    Sy += dy
+                    Sxx += dx * dx
+                    Sxy += dx * dy
+                    c += 1
+                while a < na:
+                    dx, dy = xs[a] - X0, ys[a] - Y0
+                    Sx -= dx
+                    Sy -= dy
+                    Sxx -= dx * dx
+                    Sxy -= dx * dy
+                    c -= 1
+                    a += 1
+            mx, my = Sx / c, Sy / c
+            sxx, sxy = Sxx - c * mx * mx, Sxy - c * mx * my
+            out[i] = sxy / sxx if (sxx > 1e-9 * Sxx and math.isfinite(sxy)) else deriv_point(xs, ys, n, m, i)
+    return out
+
+
 def deriv_ls(xs, ys, m):
-    # index.html derivLS: pendenza della retta dei minimi quadrati su ±m punti
+    # index.html derivLS: punto per punto con m ≤ DERIV_EXACT_M, somme scorrevoli (derivFast) oltre
     n = len(ys)
     out = [0.0] * n
+    if m > DERIV_EXACT_M and n > 4 * DERIV_BLOCK and nums_ok(xs) and nums_ok(ys):
+        return deriv_fast(xs, ys, n, m, out)
     for i in range(n):
-        a, b = max(0, i - m), min(n - 1, i + m)
-        sx = sy = 0.0
-        c = 0
-        for k in range(a, b + 1):
-            sx += xs[k]
-            sy += ys[k]
-            c += 1
-        mx, my = sx / c, sy / c
-        sxx = sxy = 0.0
-        for k in range(a, b + 1):
-            dx = xs[k] - mx
-            sxx += dx * dx
-            sxy += dx * (ys[k] - my)
-        out[i] = sxy / sxx if sxx > 0 else 0.0
+        out[i] = deriv_point(xs, ys, n, m, i)
     return out
 
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // I12, ricetta come script Python, parte «lettori»: scripts/ricetta-py/acch_lettori.py (concatenato dopo acch_ricetta.py) deve leggere
 // i file come l'app. parse_bytes = parseBinary || parseText(decodeBuffer) di index.html; read_channels = i lettori di app/channels-core.js
-// (.ch, .uv, .arw, Shimadzu) e textChannels di index.html. Confronto di TUTTI i campi del risultato (xs, ys bit per bit, meta, reject,
+// (.ch, .uv, .arw, Shimadzu) e textChannels (app/read-core.js dalla tappa I5, prima in index.html). Confronto di TUTTI i campi del risultato (xs, ys bit per bit, meta, reject,
 // importIssue, ycol, nCols, colNames, blocchi e canali, thermal, epr, xrf…), su test/corpus/**, test/fixtures/** e file SINTETICI.
 // Isoterme e chemisorbimento non sono trascritti: Python deve fermarsi con NonTrascritto ogni volta che l'app li riconosce.
 // Si salta (e lo si dice) se python3 ≥ 3.10 manca; fallisce se il modulo Python manca.
@@ -16,11 +16,12 @@ const G=require('../fixtures/gen-canali.js'), CH=require('../../app/channels-cor
 // nucleo di index.html in un contesto vm (come test/validation/core.js), con il fisisorbimento e textChannels (fuori dal blocco CORE)
 function loadCore(){
   const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8'), a=html.indexOf('/*CORE-START*/'), b=html.indexOf('/*CORE-END*/');
-  const t0=html.indexOf('function textChannels('), t1=html.indexOf('\n/* I3: finestra', t0);
-  if (a<0 || b<0 || t0<0 || t1<0) throw new Error('index.html: nucleo o textChannels non trovati');
+  if (a<0 || b<0) throw new Error('index.html: nucleo non trovato');
   const ctx={console, Float64Array, Math, TextDecoder, Uint8Array, DataView, ArrayBuffer}; vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT,'app','sorption-core.js'),'utf8'), ctx);
-  vm.runInContext(html.slice(a,b), ctx); ctx.window={AcchChannels:CH}; vm.runInContext(html.slice(t0,t1), ctx);
+  vm.runInContext(html.slice(a,b), ctx);
+  // textChannels dalla tappa I5 è in app/read-core.js (AcchRead), con gli stessi nomi globali del nucleo
+  ctx.AcchChannels=CH; vm.runInContext(fs.readFileSync(path.join(ROOT,'app','read-core.js'),'utf8'), ctx); ctx.textChannels=ctx.AcchRead.textChannels;
   for (const n of ['parseText','parseBinary','decodeBuffer','sorpParse','textChannels']) if (typeof ctx[n]!=='function') throw new Error('manca '+n);
   return ctx;
 }
