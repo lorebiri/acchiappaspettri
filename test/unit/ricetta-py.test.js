@@ -8,9 +8,27 @@ const test=require('node:test'), assert=require('node:assert'), fs=require('fs')
 const ROOT=path.join(__dirname,'..','..');
 const PY=(()=>{ for (const c of [process.env.PYTHON, 'python3'].filter(Boolean)){ const r=spawnSync(c, ['-c','import sys; print(sys.version_info>=(3,10))'], {encoding:'utf8'}); if (r.status===0 && /True/.test(r.stdout)) return c; } return null; })();
 
-test('app/ricetta-py-modello.js è generato dalla versione attuale di scripts/ricetta-py/acch_ricetta.py', ()=>{
+test('app/ricetta-py-modello.js è generato dalla versione attuale dei moduli scripts/ricetta-py/*.py, concatenati nell\'ordine', ()=>{
   const B=require('../../scripts/ricetta-py-build.js'); assert.strictEqual(fs.readFileSync(B.OUT,'utf8'), B.build(), 'eseguire node scripts/ricetta-py-build.js');
-  assert.strictEqual(require('../../app/ricetta-py-modello.js'), fs.readFileSync(B.SRC,'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,''));
+  assert.deepStrictEqual(B.MODULI, ['acch_ricetta','acch_math','acch_lettori','acch_chemometria','acch_tecnica','acch_sorp','acch_chemo','acch_libreria']);
+  const M=require('../../app/ricetta-py-modello.js'); let at=-1;
+  for (const m of B.MODULI){ const src=fs.readFileSync(path.join(B.DIR, m+'.py'),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,''), k=M.indexOf(src); assert.ok(k>at, m+' nel modello, nell\'ordine'); at=k; }
+  assert.ok(!/^\s*(import|from)\s+acch_/m.test(M), 'niente import fra i moduli: sono concatenati');
+  assert.deepStrictEqual(B.duplicates(), []);
+  const r=spawnSync(process.execPath, [path.join(ROOT,'scripts','ricetta-py-build.js'), '--check'], {encoding:'utf8'}); assert.strictEqual(r.status, 0, r.stderr);
+});
+
+test('costruzione: un nome di primo livello definito in due moduli ferma la generazione (tranne le m_* ridefinite da acch_math)', ()=>{
+  const B=require('../../scripts/ricetta-py-build.js');
+  assert.deepStrictEqual(B.topNames("def a(x):\n    b = 1\nC = 2\nd, e = 1, 2\nT: int = 3\nS = r'''\nf = 1\n'''\nclass K:\n    pass\nx == 1\n"), ['a','C','d','e','T','S','K']);
+  const d=fs.mkdtempSync(path.join(os.tmpdir(),'acch-build-')); try{
+    for (const m of B.MODULI) fs.copyFileSync(path.join(B.DIR, m+'.py'), path.join(d, m+'.py'));
+    fs.appendFileSync(path.join(d,'acch_chemo.py'), '\n\ndef sorp_csv_text(*a):\n    return None\n');
+    const prog=`const fs=require('fs'), path=require('path'); const src=fs.readFileSync(${JSON.stringify(path.join(ROOT,'scripts','ricetta-py-build.js'))},'utf8').replace("path.join(ROOT,'scripts','ricetta-py')", ${JSON.stringify(JSON.stringify(d))});
+      const m={exports:{}}; new Function('require','module','__dirname',src)(require, m, ${JSON.stringify(path.join(ROOT,'scripts'))}); try{ m.exports.python(); console.log('nessun errore'); }catch(e){ console.log(e.message); }`;
+    const r=spawnSync(process.execPath, ['-e', prog], {encoding:'utf8'}); assert.match(r.stdout, /sorp_csv_text: acch_sorp e acch_chemo/);
+    assert.match(fs.readFileSync(path.join(B.DIR,'acch_math.py'),'utf8'), /^def m_exp\(/m);   // ridefinita: ammessa
+  } finally { fs.rmSync(d,{recursive:true,force:true}); }
 });
 
 test('intestazione: GPL-3.0-or-later, titolare, versione, data, impronte; letterale della ricetta sicuro anche con apici tripli e barre', ()=>{
