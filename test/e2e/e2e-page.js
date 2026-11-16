@@ -45,7 +45,7 @@ window.AcchE2E=async function(info){
         const g3=I6.g3(), g3ok=g3.filter(x=>x.gl!=='ingenua' && !x.skip); await sleep(200);
         const g12=await I6.g12(20, 1e6); if (ob) ob.disconnect();
         res.grafico={g1Fps:Math.round(g12.fps*10)/10, g1DrawMedMs:Math.round(g12.draw), g1DrawMaxMs:Math.round(g12.drawMax), g1DrawP95Ms:Math.round(g12.drawP95), colonneNuove:Math.round(g12.scrMiss), colonneRiusate:Math.round(g12.scrHit), g2CmpMs:Math.round(g12.g2), gl:g12.gl, glReason:(typeof PV_GL!=='undefined' && PV_GL ? PV_GL.reason||'' : 'nessun WebGL'),
-          g3WorstPx:Math.max(...g3ok.map(x=>Math.max(x.worst, x.spk))), g3Miss:g3ok.reduce((a,x)=>a+x.miss,0), g3Gl:g3ok.some(x=>x.gl===true), g3Naive:(g3.find(x=>x.gl==='ingenua')||{}).spk, longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null};
+          g3WorstPx:Math.max(...g3ok.map(x=>Math.max(x.worst, x.spk))), g3Miss:g3ok.reduce((a,x)=>a+x.miss,0), g3Gl:g3ok.some(x=>x.gl===true), g3Naive:(g3.find(x=>x.gl==='ingenua')||{}).spk, g3Det:g3ok.map(x=>[x.cw,x.dpr,x.gl?'gl':'2d',x.worst,x.spk].join(':')), longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null};
         check('G1–G3 misurati', true); }
       check('misure eseguite', res.misure.length>0 || !!res.grafico); }
     // I7, misure dei calcoli e dello ZIP (scripts/misura-calc.js --app): Rust (IPC compreso) contro il worker JS e contro JSZip, 3 prove

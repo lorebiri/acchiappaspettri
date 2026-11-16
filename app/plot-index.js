@@ -128,7 +128,7 @@
     return e; }
 
   /* I6 (G1), solo a schermo: colonne su una griglia fissa in X. La larghezza della colonna di griglia è una potenza di 2 (in unità di X)
-     tra metà e tutta la larghezza di un pixel: ogni livello è una «piramide» di minimi e massimi per intervalli fissi di X, che non
+     tra un quarto e metà della larghezza di un pixel: ogni livello è una «piramide» di minimi e massimi per intervalli fissi di X, che non
      dipendono dalla vista. Così spostando il grafico le colonne già calcolate si riusano (si calcolano solo quelle nuove ai bordi) e,
      nello zoom, finché si resta nello stesso livello (un fattore 2) si riusano tutte. Ogni pixel prende le 1–2 colonne di griglia che
      cadono in lui: il minimo e il massimo di ogni pixel sono quelli dei dati, con lo scarto di al più una colonna (G3, ≤ 1 px).
@@ -137,13 +137,14 @@
   const lowerB=(xs, a, b, v)=>{ while (a<b){ const m=(a+b)>>1; if (xs[m]<v) a=m+1; else b=m; } return a; };
   function screenGroups(R, xs, ys, par, cols, invert){ const n=R.n; if (n<2 || !(cols>0)) return null;
     const span=par.den, cwPix=span/cols; if (!(cwPix>0) || !isFinite(cwPix)) return null;
-    const L=Math.floor(Math.log2(cwPix)), cw=Math.pow(2, L); if (!(cw>0) || !isFinite(cw)) return null;
+    // 2–4 colonne di griglia per pixel: una colonna a cavallo di due pixel sposta un estremo al più di mezzo pixel
+    const L=Math.floor(Math.log2(cwPix))-1, cw=Math.pow(2, L); if (!(cw>0) || !isFinite(cw)) return null;
     const I=R.gy.I, o=R.gy.off; let M=SCR.get(I); if (!M){ M=new Map(); SCR.set(I, M); }
     const key=R.gx.I.id+':'+(R.gx.off-R.gy.off)+':'+L; let C=M.get(key);
     // livello: finestra di CAP colonne di griglia in vettori (f, min, max, ultimo), ricentrata se la vista va oltre
     const CAP=65536; if (!C){ C={base:0, V:new Float64Array(4*CAP), ok:new Uint8Array(CAP), last:null, lastKey:''}; M.set(key, C); if (M.size>4) M.delete(M.keys().next().value); }
     const x0=xs[0], x1=xs[n-1], ga=Math.floor(x0/cw), gb=Math.floor(x1/cw), out=[0,0];
-    if (gb-ga>8*cols+16 || gb-ga>=CAP/2) return null;   // vista molto più larga del previsto: calcolo normale
+    if (gb-ga>16*cols+16 || gb-ga>=CAP/2) return null;   // vista molto più larga del previsto: calcolo normale
     // stessa vista nello stesso fotogramma (inviluppo e traccia): stesso risultato
     const fk=x0+'|'+x1+'|'+n+'|'+o+'|'+par.o+'|'+par.lo+'|'+par.hi+'|'+par.w+'|'+(par.inv?1:0)+'|'+cols+'|'+(invert?1:0);
     if (C.lastKey===fk) return C.last;
