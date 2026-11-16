@@ -99,7 +99,7 @@ function I6_SETUP(){
     const a=performance.now(); I6.compare(L); for (let i=0;i<600 && !drawn;i++) await new Promise(r=>setTimeout(r,10)); const g2=drawn-a;
     await I6.frames(); const g0=AcchPlot.info().groups; const DP0=DP.length; const an=await I6.animate(40); const groups=(AcchPlot.info().groups-g0)/(DP.length-DP0);
     window.drawPlot=od; const med=x=>x.slice().sort((p,q)=>p-q)[Math.floor(x.length/2)];
-    return {g2, groups, cols:Math.round(pv.width), gl:!!(PV_GL && PV_GL.available), draw:med(DP.slice(DP0)), drawMax:Math.max(...DP.slice(DP0)), fps:1000/med(an.frames)}; }
+    return {g2, groups, cols:Math.round(pv.width), gl:!!(PV_GL && PV_GL.available), draw:med(DP.slice(DP0)), drawMax:Math.max(...DP.slice(DP0)), drawP95:DP.slice(DP0).sort((a,b)=>a-b)[Math.floor(0.95*(DP.length-DP0))], fps:1000/med(an.frames)}; }
   window.I6={spectrum, spectrumFor, load, g3, g12, compare, frames, animate};
 }
 module.exports={I6_SETUP};
