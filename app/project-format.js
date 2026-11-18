@@ -9,7 +9,9 @@
 })(typeof self!=='undefined' ? self : this, function(){
   'use strict';
   const FORMAT='acchspettri', FORMAT_VERSION=2, MIN_READER=2, MIME='application/vnd.acchiappaspettri.project+zip';
-  const LIMITS={archiveBytes:2*1024*1024*1024, entries:20000, totalBytes:4*1024*1024*1024, jsonBytes:512*1024*1024, spectra:10000};
+  // totalBytes: byte decompressi contati davvero durante la lettura (le dimensioni scritte nello ZIP possono mentire); ratio: rapporto massimo
+  // decompresso/compresso di una voce oltre 64 MB (DEFLATE arriva a ~1000:1 solo con dati costruiti apposta); manifestBytes: manifest.json
+  const LIMITS={archiveBytes:2*1024*1024*1024, entries:20000, totalBytes:1024*1024*1024, jsonBytes:512*1024*1024, manifestBytes:16*1024*1024, ratio:500, spectra:10000};
   class ProjectError extends Error{ constructor(code, detail){ super(code+(detail?': '+detail:'')); this.name='ProjectError'; this.code=code; this.detail=detail||''; } }
 
   /* SHA-256 (FIPS 180-4), sincrono e senza dipendenze: serve anche dove crypto.subtle non c'è */
@@ -172,9 +174,22 @@
     const names=Object.keys(zip.files); if (names.length>LIMITS.entries) throw new ProjectError('too-large','entries');
     let declared=0; for (const n of names){ if (!isSafeEntry(n.replace(/\/$/,''))) throw new ProjectError('unsafe-path', n); const d=zip.files[n]._data; if (d && d.uncompressedSize) declared+=d.uncompressedSize; }
     if (declared>LIMITS.totalBytes) throw new ProjectError('too-large','content');
-    const read=async p=>{ const e=zip.files[p]; if (!e || e.dir) throw new ProjectError('missing-entry', p); try{ return await e.async('uint8array'); }catch(err){ throw new ProjectError('corrupted', p); } };
+    /* lettura di una voce con il conto dei byte mentre si decomprime: ci si ferma appena si supera max (la dimensione dichiarata nel manifest),
+       il totale del progetto o il rapporto di compressione massimo. Prima si decomprimeva tutto e si controllava dopo: un progetto di 3 MB
+       portava la pagina a 7 GB di memoria per due minuti (bomba ZIP, debug della conclusione). */
+    let used=0;
+    const read=(p,max)=>new Promise((res,rej)=>{ const e=zip.files[p]; if (!e || e.dir) return rej(new ProjectError('missing-entry', p));
+      const comp=(e._data && e._data.compressedSize)||0, parts=[]; let n=0, done=false, st;
+      const fail=err=>{ if (done) return; done=true; try{ st && st.pause(); }catch(x){} rej(err); };
+      try{ st=e.internalStream('uint8array'); }catch(err){ return rej(new ProjectError('corrupted', p)); }
+      st.on('data', c=>{ if (done) return; n+=c.length; used+=c.length;
+          if (n>max || used>LIMITS.totalBytes || (n>64*1024*1024 && comp>0 && n/comp>LIMITS.ratio)) return fail(new ProjectError('too-large', p));
+          parts.push(c); })
+        .on('error', ()=>fail(new ProjectError('corrupted', p)))
+        .on('end', ()=>{ if (done) return; done=true; const out=new Uint8Array(n); let o=0; for (const c of parts){ out.set(c,o); o+=c.length; } res(out); })
+        .resume(); });
     if (!zip.files['manifest.json']) throw new ProjectError('not-a-project');
-    const manifest=safeParse(unutf8(await read('manifest.json')),'manifest.json');
+    const manifest=safeParse(unutf8(await read('manifest.json', LIMITS.manifestBytes)),'manifest.json');
     if (!isObj(manifest) || manifest.format!==FORMAT || !isObj(manifest.entries)) throw new ProjectError('not-a-project');
     if (!Number.isInteger(manifest.formatVersion) || manifest.formatVersion<1) throw new ProjectError('invalid-schema','formatVersion');
     const warnings=[];
@@ -185,7 +200,7 @@
     for (const p of Object.keys(manifest.entries)) if (!isSafeEntry(p)) throw new ProjectError('unsafe-path', p);
     const known=new Set(['mimetype','manifest.json',...Object.keys(manifest.entries)]);
     if (names.some(n=>!zip.files[n].dir && !known.has(n))) warnings.push('unknown-entries');   // ignorati: non vengono né letti né eseguiti
-    const checked=async p=>{ const info=manifest.entries[p]; if (!isObj(info)) throw new ProjectError('missing-entry', p); if (!(info.size>=0) || (/\.json$/.test(p) && info.size>LIMITS.jsonBytes)) throw new ProjectError('too-large',p); const b=await read(p); if (b.length!==info.size || sha256(b)!==info.sha256) throw new ProjectError('integrity', p); return b; };
+    const checked=async p=>{ const info=manifest.entries[p]; if (!isObj(info)) throw new ProjectError('missing-entry', p); if (!(info.size>=0) || (/\.json$/.test(p) && info.size>LIMITS.jsonBytes)) throw new ProjectError('too-large',p); const b=await read(p, info.size); if (b.length!==info.size || sha256(b)!==info.sha256) throw new ProjectError('integrity', p); return b; };
     const json=async (p,where)=>safeParse(unutf8(await checked(p)),where);
     const state=await json('project/state.json','state'); if (!isObj(state)) throw new ProjectError('invalid-schema','state');
     const v=Math.min(manifest.formatVersion, FORMAT_VERSION);
