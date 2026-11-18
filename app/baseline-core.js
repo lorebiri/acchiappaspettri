@@ -12,7 +12,7 @@
      rball     «rolling ball» (Kneen & Annegarn 1996): apertura morfologica (minimo poi massimo su una finestra) e media mobile
      anchor    punti di ancoraggio scelti a mano, uniti da un'interpolazione monotona a tratti (PCHIP, Fritsch & Carlson 1980) o da rette
    Tutte le funzioni ricevono y già orientato con i picchi verso l'alto e restituiscono un Float64Array della stessa lunghezza.
-   Costo: O(n) per passo per Whittaker, SNIP e rolling ball; O(n·g) per i polinomi di grado g. Oltre MAXN punti ALS e arPLS
+   Costo: O(n) per passo per Whittaker e rolling ball, O(n·finestra) per SNIP (oltre 3·10⁸ operazioni lavora a blocchi); O(n·g) per i polinomi di grado g. Oltre MAXN punti ALS e arPLS
    lavorano su una griglia a blocchi con λ riscalato (la penalità sulle differenze seconde scala come k⁴) e interpolano il risultato. */
 (function(root, factory){
   if (typeof module==='object' && module.exports) module.exports=factory();
@@ -128,9 +128,15 @@
   }
 
   /* ---- SNIP: finestra decrescente; lls=true per conteggi (trasformazione log-log-radice) ---- */
+  const SNIP_OPS=3e8;   // costo massimo n × finestra: oltre, medie a blocchi di k punti (finestra/k) e interpolazione, come per ALS e arPLS
   function snip(y, o){
     o=o||{}; const n=y.length; if (n<8) return Float64Array.from(y);
     const m=Math.round(clamp(isNum(o.hw)?o.hw:Math.max(10, Math.round(n/40)), 1, Math.floor(n/2)));
+    if (n*m>SNIP_OPS && !o._inner){ const k=Math.ceil(Math.sqrt(n*m/SNIP_OPS)), nb=Math.ceil(n/k), b=new Float64Array(nb), c=new Float64Array(nb);
+      for (let j=0;j<nb;j++){ let s=0, q=0; for (let i=j*k;i<Math.min(n,(j+1)*k);i++){ s+=y[i]; q++; } b[j]=s/q; c[j]=j*k+(q-1)/2; }
+      const z=snip(b, Object.assign({}, o, {hw:Math.max(1,Math.round(m/k)), pre:o.pre>=1?Math.max(1,Math.round(o.pre/k)):0, _inner:true})), out=new Float64Array(n);
+      let j=0; for (let i=0;i<n;i++){ while (j<nb-2 && c[j+1]<i) j++; const t=(i-c[j])/((c[j+1]-c[j])||1); out[i]=z[j]+(z[j+1]-z[j])*Math.max(0,Math.min(1,t)); }
+      return out; }
     let mn=Infinity; for (let i=0;i<n;i++) if (y[i]<mn) mn=y[i];
     if (isNum(o.pre) && o.pre>=1) y=movMean(y, Math.round(o.pre));   // lisciatura preliminare: il clipping non scende sui minimi del rumore
     const lls=!!o.lls, sh=lls ? 0 : -mn;

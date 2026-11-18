@@ -69,5 +69,7 @@ test('fondo: prestazioni — 200 000 punti in pochi decimi di secondo, 2 milioni
   const s=big(200000), t={};
   for (const m of ['als','arpls','modpoly','imodpoly','snip','rball']){ const t0=process.hrtime.bigint(); const b=B.compute(m, s.x, s.y, m==='snip'||m==='rball'?{hw:60}:{}); t[m]=Number(process.hrtime.bigint()-t0)/1e6; assert.equal(b.length, s.y.length); }
   for (const [m,ms] of Object.entries(t)) assert.ok(ms<4000, `${m}: ${ms.toFixed(0)} ms`);
+  // SNIP costa n × finestra: con un milione di punti e una finestra larga prima servivano circa 29 s, ora lavora a blocchi
+  { const M=big(1000000), t1=Date.now(), z=B.snip(M.y, {hw:6667, pre:5}); assert.ok(Date.now()-t1<6000, 'SNIP 10⁶ punti, finestra 6667: '+(Date.now()-t1)+' ms'); assert.ok(z.every(Number.isFinite)); }
   const L=big(2000000), t0=Date.now(), b=B.als(L.y, {}); assert.equal(b.length, 2000000); assert.ok(b.every(Number.isFinite)); assert.ok(Date.now()-t0<10000, 'ALS su 2·10⁶ punti: '+(Date.now()-t0)+' ms');
 });
