@@ -386,6 +386,14 @@ body.busy, body.busy *{cursor:progress !important}
 .cgroup{margin-bottom:18px}
 .cgroup>b{display:block;font-size:14.5px;margin-bottom:2px}
 .cgroup>.why{margin-bottom:8px}
+.basebox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--soft,#f7f9fc)}
+.basebox .bord{border-left:3px solid #e69a1d;padding-left:8px}
+.basebox .bpars{margin:6px 0 8px}
+.basebox .bpf{min-width:220px;flex:1 1 220px}
+.basebox .bpf input[type=range]{min-width:0;width:100%;padding:0;border:0;background:transparent}
+.basebox .bpf output{font-weight:700;color:var(--ink)}
+.basebox textarea{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;font-weight:400;color:var(--ink);background:#fff;resize:vertical}
+.basebox .bacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .choice{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 12px 9px;cursor:pointer;text-align:left;min-width:132px;max-width:190px}
 .choice svg{display:block;width:100%;height:38px;margin-bottom:5px}
 .choice b{display:block;font-size:13.5px}
@@ -867,8 +875,10 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
         <div class="phead"><b>Ritocca lo spettro</b><span class="scope s-instr" id="procScope">tutti gli spettri FTIR</span></div>
         <p class="why">Cambia come vengono disegnati i dati, per tutti gli spettri dello stesso strumento. I file originali non vengono mai modificati.</p>
         <div id="procBox"></div>
+        <div id="baseBox" class="cgroup basebox"></div>
+        <div id="procBox2"></div>
         <div class="phead" style="margin-top:14px"><b>Solo per questo spettro</b><span class="scope s-one">solo questo spettro</span></div>
-        <div class="ibfields"><label class="ibf"><span>Smoothing</span><select id="pSmSel"><option value="">come gli altri</option><option value="0">nessuno</option><option value="7">leggero (7)</option><option value="15">medio (15)</option><option value="31">forte (31)</option></select></label><label class="ibf"><span>Linea di base</span><select id="pBmSel"><option value="">come gli altri</option><option value="none">nessuna</option><option value="linear">lineare</option><option value="rubber">automatica (inviluppo)</option><option value="arpls">arPLS</option><option value="snip">SNIP</option></select></label></div>
+        <div class="ibfields"><label class="ibf"><span>Smoothing</span><select id="pSmSel"><option value="">come gli altri</option><option value="0">nessuno</option><option value="7">leggero (7)</option><option value="15">medio (15)</option><option value="31">forte (31)</option></select></label><label class="ibf"><span>Linea di base</span><select id="pBmSel"><option value="">come gli altri</option><option value="none">nessuna</option><option value="linear">lineare</option><option value="rubber">automatica (inviluppo)</option><option value="arpls">arPLS</option><option value="als">ALS</option><option value="imodpoly">IModPoly</option><option value="modpoly">ModPoly</option><option value="snip">SNIP</option><option value="rball">rolling ball</option><option value="anchor">punti di ancoraggio</option></select></label></div>
       </div>
 
       <!-- ZONA E STRUMENTO -->
@@ -2773,6 +2783,11 @@ const ANALYSIS_REFS = {
   sorp:'ISO 9277:2022 Determination of the specific surface area of solids by gas adsorption — BET method; Rouquerol J., Llewellyn P., Rouquerol F. (2007) Is the BET equation applicable to microporous adsorbents? Stud. Surf. Sci. Catal. 160, 49–56; Barrett E.P., Joyner L.G., Halenda P.P. (1951) J. Am. Chem. Soc. 73, 373–380; Dollimore D., Heal G.R. (1964) J. Appl. Chem. 14, 109–114; Thommes M. et al. (2015) Pure Appl. Chem. 87, 1051–1069.',
   arpls:'Baek S.-J., Park A., Ahn Y.-J., Choo J. (2015) Baseline correction using asymmetrically reweighted penalized least squares smoothing. Analyst 140, 250–257.',
   whit:'Eilers P.H.C. (2003) A perfect smoother. Anal. Chem. 75, 3631–3636.',
+  als:'Eilers P.H.C., Boelens H.F.M. (2005) Baseline correction with asymmetric least squares smoothing. Leiden University Medical Centre report.',
+  modpoly:'Lieber C.A., Mahadevan-Jansen A. (2003) Automated method for subtraction of fluorescence from biological Raman spectra. Appl. Spectrosc. 57, 1363–1367.',
+  imodpoly:'Zhao J., Lui H., McLean D.I., Zeng H. (2007) Automated autofluorescence background subtraction algorithm for biomedical Raman spectroscopy. Appl. Spectrosc. 61, 1225–1232.',
+  rball:'Kneen M.A., Annegarn H.J. (1996) Algorithm for fitting XRF, SEM and PIXE X-ray spectra backgrounds. Nucl. Instrum. Methods B 109/110, 209–213.',
+  pchip:'Fritsch F.N., Carlson R.E. (1980) Monotone piecewise cubic interpolation. SIAM J. Numer. Anal. 17, 238–246.',
   snip:'Ryan C.G., Clayton E., Griffin W.L., Sie S.H., Cousens D.R. (1988) SNIP, a statistics-sensitive background treatment for the quantitative analysis of PIXE spectra. Nucl. Instrum. Methods B 34, 396–402; Morháč M., Kliman J., Matoušek V., Veselský M., Turzo I. (1997) Background elimination methods for multidimensional coincidence γ-ray spectra. Nucl. Instrum. Methods A 401, 113–132.',
   spike:'Whitaker D.A., Hayes K. (2018) A simple algorithm for despiking Raman spectra. Chemom. Intell. Lab. Syst. 179, 82–84.',
   sg:'Savitzky A., Golay M.J.E. (1964) Smoothing and differentiation of data by simplified least squares procedures. Anal. Chem. 36, 1627–1639.',
@@ -2908,7 +2923,9 @@ function baselineSNIP(ys, m, counts){
 const BASE_METHODS=['none','rubber','linear','arpls','snip','als','modpoly','imodpoly','rball','anchor'];
 const BASE_PARAM=['arpls','snip','als','modpoly','imodpoly','rball','anchor'];   // metodi con parametri regolabili
 function baseDefaults(m, xs, y, instr){
-  const n=y.length, wp=Math.max(2, peakWidthPts(y)), cnt=instr==='xrf'||instr==='libs';
+  // larghezza tipica dei picchi su uno spettro già appiattito: sul dato grezzo la «gobba» della fluorescenza sembrerebbe il picco più grande
+  const n=y.length, cnt=instr==='xrf'||instr==='libs';
+  let wp=2; if (m==='snip' || m==='rball'){ let d=y; try{ const b0=baselineArPLS(xs, y); d=Float64Array.from(y, (v,i)=>v-b0[i]); }catch(e){} wp=Math.max(2, Math.min(Math.round(n/20), peakWidthPts(d))); }
   switch (m){
     case 'als': return {lam:AcchBaseline.autoLam(n), p:0.05, iter:15};
     case 'arpls': return {lam:Math.pow(n/(2*Math.PI*8), 4), ratio:1e-3, iter:60};   // come la base arPLS automatica: al più 8 «onde» sullo spettro
@@ -2920,16 +2937,17 @@ function baseDefaults(m, xs, y, instr){
   return {};
 }
 /* fondo dello spettro y (orientato come nel file: in %T i picchi vanno in giù e si lavora sul rovescio). Restituisce null se non si può calcolare */
-function baseCurve(m, par, xs, y, instr, kind){
+function baseCurve(m, par, xs, y, instr, kind, info){
   if (!m || m==='none') return null;
   const upper=kind==='T', own=par && Object.keys(par).length ? par : null, neg=a=>Float64Array.from(a, v=>-v);
   let bl;
   if (m==='rubber' || m==='linear') bl=baselineOf(xs, y, m, upper);
   else if (m==='arpls' && !own) bl=upper ? neg(baselineArPLS(xs, neg(y))) : baselineArPLS(xs, y);   // senza parametri: identica alle versioni precedenti
-  else if (m==='snip' && !own) bl=upper ? neg(baselineSNIP(neg(y))) : baselineSNIP(y, 0, instr==='xrf' && kind==='I');
+  else if (m==='snip' && !own && (instr==='xrf' || instr==='libs')) bl=upper ? neg(baselineSNIP(neg(y))) : baselineSNIP(y, 0, instr==='xrf' && kind==='I');
   else if (m==='anchor') bl=AcchBaseline.anchor(xs, y, par||{});
   else if (BASE_PARAM.includes(m)){ const yy=upper ? neg(y) : y, o=Object.assign(baseDefaults(m, xs, yy, instr), own||{});
     if (m==='snip' && instr==='xrf' && kind==='I' && o.lls==null) o.lls=true;
+    if (info) info.par=o;
     bl=AcchBaseline.compute(m, xs, yy, o); if (bl && upper) bl=neg(bl); }
   if (!bl || bl.length!==y.length) return null;
   for (let i=0;i<bl.length;i++) if (!Number.isFinite(bl[i])) return null;
@@ -4737,11 +4755,11 @@ function processed(f){
     if (hi-lo>=4){ xs=xs.subarray(lo,hi+1); y=y.subarray(lo,hi+1); }
   }
   const sw=pSmooth(f); if (sw) y=sgSmooth(y, sw);
-  const bm=pBase(f); let base=null, pre=null;
+  const bm=pBase(f); let base=null, pre=null, bpar=null;
   if (bm!=='none' && i!=='tga'){
-    const upper = kind==='T', o=new Float64Array(y.length), bl=baseCurve(bm, pBaseP(f), xs, y, i, kind);
+    const upper = kind==='T', o=new Float64Array(y.length), t0=performance.now(), binfo={}, bl=baseCurve(bm, pBaseP(f), xs, y, i, kind, binfo); f._bms=performance.now()-t0;
     if (bl){ for (let k=0;k<y.length;k++) o[k] = upper ? y[k]/(bl[k]||1)*100 : y[k]-bl[k];
-      pre=y; base=bl; y=o; }
+      pre=y; base=bl; bpar=binfo.par||null; y=o; }
   }
   let dir = kind==='T' ? -1 : 1, mass=null, dtg=null, y2=null;
   if (i==='tga' && kind==='W'){   // DTG = −dm/dT, lisciata
@@ -4756,7 +4774,7 @@ function processed(f){
     if (dv===2) dir=-dir; else dir=1; kind = dv===2 ? 'D2' : 'D1';
   }
   if (conv==='norm'){ y=transformY(y,kind,'norm').ys; kind='N'; }
-  f._pk=key; f._pd={xs, ys:y, kind, dir, diff, mass, dtg, y2, spikes, deriv:dv && i!=='tga' && i!=='epr' ? dv : 0, base, pre, bm: base ? bm : 'none'};
+  f._pk=key; f._pd={xs, ys:y, kind, dir, diff, mass, dtg, y2, spikes, deriv:dv && i!=='tga' && i!=='epr' ? dv : 0, base, pre, bm: base ? bm : 'none', bpar};
   return f._pd;
 }
 const lblKey = x => x.toFixed(4);
@@ -5720,6 +5738,9 @@ function renderPreview(){
   if (pop && pop.f!==f) closePop();
   const big=sizeCanvas();
   const full = viewOf(f); full.fontPt = big ? 10 : 9; full.highlightManual = true;
+  { const P=processed(f); if (S.showBase && P.base && P.pre && !P.deriv && P.kind!=='N'){   // anteprima del fondo: spettro prima della correzione e fondo stimato (mai nelle esportazioni)
+      const lw=Math.max(0.12, S.lineW*0.8); full.series = full.series.concat([{xs:P.xs, ys:P.pre, color:'#9aa3ad', name:uiEn()?'before baseline removal':'prima della correzione', lineW:lw},
+        {xs:P.xs, ys:P.base, color:'#e69a1d', name:uiEn()?'estimated baseline':'fondo stimato', dash:[0.9,0.5], lineW:lw}]); full._baseShown=true; } }
   const d = zoomView(full, f, false); pvView=d;
   geo = drawPlot(pv.getContext('2d'), PV_W, PV_H, pv.width/PV_W, d, S);
   if (f._sel!=null && !d.peaks.some(q=>Math.abs(q.x-f._sel)<1e-9)) f._sel=null;
@@ -5986,6 +6007,7 @@ pv.addEventListener('click', e=>{
   if (viewMode==='cmp') return;
   const f=files[cur]; if(!f || !geo) return;
   const [mx,my]=mmPos(e);
+  if (baseAnchorPick && pBase(f)==='anchor'){ if (mx>=geo.px0 && mx<=geo.px0+geo.pw) baseAnchorClick(f, xAt(mx), mx); return; }
   const hp = pkHit(mx,my);
   if (hp){ if (e.altKey || e.shiftKey){ removePeak(f, hp.x, hp.manual); return; } openPop(f, hp.x); return; }
   if (mx<geo.px0 || mx>geo.px0+geo.pw || my<geo.py0 || my>geo.py0+geo.ph){ closePop(); return; }
@@ -5993,6 +6015,11 @@ pv.addEventListener('click', e=>{
   if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
   addPeakAt(f, xAt(mx), yAt(my));
 });
+function baseAnchorClick(f, x, mx){
+  const par=baseParOf(f), pts=(par.pts||[]).slice(), near=pts.findIndex(p=>Math.abs(gX(p)-mx)<=6);
+  baseSnap(); if (near>=0) pts.splice(near,1); else pts.push(+x.toPrecision(8)); par.pts=pts.sort((a,b)=>a-b); baseSetPar(f, par);
+  baseBoxSig=''; renderProc(); renderPreview(); renderSummary();
+  $('#readout').textContent = near>=0 ? 'Punto di ancoraggio tolto.' : `Punto di ancoraggio a ${fmtTick(x,2)} (${pts.length} in tutto). Esc per finire.`; }
 function addPeakAt(f, xv, yv){
   const P=processed(f), mxp=gX(xv), hw=Math.abs(xAt(mxp+0.7)-xAt(mxp-0.7))||((geo.xmax-geo.xmin)*0.008);
   const dirC = (f.instr==='dsc' && yv!=null) ? (yv < interpY(P.xs,P.ys,xv) ? -1 : 1) : P.dir;   // DSC: picchi in su e in giù, decide il clic
@@ -6065,6 +6092,9 @@ function drawOverlay(){
     c.strokeStyle='#2563c9'; c.lineWidth=0.3; c.setLineDash([1.2,0.8]); c.strokeRect(Math.min(x0,x1),Math.min(y0,y1),Math.abs(x1-x0),Math.abs(y1-y0)); c.setLineDash([]); return; }
   if (viewMode==='cmp' || !pvView || !pvView.peaks) return;
   const f=files[cur];
+  if (f && pBase(f)==='anchor'){ const P=processed(f), pts=(baseParOf(f).pts||[]);   // punti di ancoraggio del fondo, sul fondo se è in vista, altrimenti sullo zero
+    for (const x of pts){ const y = pvView._baseShown && P.base ? interpY(P.xs, P.base, x) : (P.kind==='T' ? 100 : 0), X=gX(x), Y=gY(y); if (!inF(X,Y)) continue;
+      c.beginPath(); c.arc(X,Y,1.3,0,Math.PI*2); c.fillStyle='#fff'; c.fill(); c.strokeStyle='#b35a0c'; c.lineWidth=0.4; c.stroke(); c.beginPath(); c.moveTo(X-0.8,Y); c.lineTo(X+0.8,Y); c.moveTo(X,Y-0.8); c.lineTo(X,Y+0.8); c.stroke(); } }
   if (f && f._sel!=null){ const p=pvView.peaks.find(q=>Math.abs(q.x-f._sel)<1e-9); if (p) ring(p, '#2563c9', 'rgba(37,99,201,.18)', 1.7); }
   if (pvHover && pvHover.peak && !(f && f._sel!=null && Math.abs(pvHover.peak.x-f._sel)<1e-9)) ring(pvHover.peak, '#d9741c', 'rgba(217,116,28,.12)', 1.4);
   if (pvHover && pvHover.ghost){ const x=gX(pvHover.ghost.x), y=gY(pvHover.ghost.y); if (inF(x,y)){
@@ -6319,6 +6349,7 @@ document.addEventListener('keydown', e=>{
   if ((e.key==='Delete'||e.key==='Backspace') && viewMode==='one'){ const f=files[cur]; if (f && f._sel!=null && pvView){ const p=pvView.peaks.find(q=>Math.abs(q.x-f._sel)<1e-9); if (p){ e.preventDefault(); removePeak(f, p.x, p.manual); return; } } }
   if (e.key==='Escape' && pop){ closePop(true); return; }
   if (e.key==='Escape' && lassoOn){ setLasso(false); return; }
+  if (e.key==='Escape' && baseAnchorPick){ baseAnchorPick=false; baseBoxSig=''; renderProc(); renderPreview(); return; }
   if (e.key==='Escape' && viewMode==='one' && files[cur] && files[cur]._sel!=null && !$('.preview').classList.contains('big')){ files[cur]._sel=null; drawOverlay(); markRow(); return; }
   if (e.key==='Escape' && $('.preview').classList.contains('big')) setBig(false);
   if (e.key==='r' || e.key==='R') setLasso(!lassoOn);
@@ -6373,8 +6404,9 @@ function renderProc(){
     : k==='dsc' ? [['orig','Come nel file','endo in giù o in su, come lo strumento'],['flip','Ribaltato','scambia endo in su ↔ endo in giù','flip'],['norm','Normalizzato 0–1','per confrontare forme']]
     : [['orig','Come nel file','intensità originali'],['norm','Normalizzato 0–1','utile per confrontare campioni']];
   const baseOpts = [{v:'none',t:'Nessuna correzione',sub:'il fondo resta inclinato o curvo',ico:ICO.none},{v:'rubber',t:'Automatica',sub:'fondo piatto, restano solo i picchi',ico:ICO.rubber},
-      {v:'arpls',t:'Automatica avanzata (arPLS)',sub:'segue anche fondi curvi, come la fluorescenza nel Raman',ico:ICO.arpls},{v:'snip',t:'SNIP',sub:'per conteggi XRF e LIBS (Ryan 1988)',ico:ICO.snip},
-      {v:'linear',t:'Lineare',sub:'tolgo solo l\'inclinazione tra gli estremi',ico:ICO.linear}]
+      {v:'arpls',t:'Automatica avanzata (arPLS)',sub:'segue anche fondi curvi, come la fluorescenza nel Raman',ico:ICO.arpls},{v:'als',t:'ALS',sub:'minimi quadrati asimmetrici (Eilers 2005)',ico:ICO.arpls},
+      {v:'imodpoly',t:'Polinomio iterativo',sub:'IModPoly e ModPoly, classici per la fluorescenza',ico:ICO.linear},{v:'snip',t:'SNIP',sub:'per conteggi XRF e LIBS, anche Raman (Ryan 1988)',ico:ICO.snip},
+      {v:'rball',t:'Rolling ball',sub:'una «palla» che rotola sotto lo spettro',ico:ICO.rubber},{v:'linear',t:'Lineare',sub:'tolgo solo l\'inclinazione tra gli estremi',ico:ICO.linear}]
     .filter(o=> baseAllowed(k, o.v));
   const groups = [
     {p:'conv', title: k==='tga' ? 'Cosa disegno' : k==='dsc' ? 'Verso dei picchi' : 'Asse Y',
@@ -6383,11 +6415,11 @@ function renderProc(){
         : k==='dsc' ? 'Gli strumenti disegnano gli eventi endotermici (fusione) in giù o in su. Puoi ribaltare il grafico; la convenzione dello strumento la imposti in «Dati dello spettro».'
         : 'Puoi riportare tutti gli spettri tra 0 e 1, così hanno la stessa altezza.',
       opts: convOpts.map(([v,t,sub,ic])=>({v, t, sub, ico: ic ? ICO[ic] : v==='orig' ? (files[cur] && processedKind(files[cur])==='T' ? ICO.T : ICO.up) : ICO[v]}))},
-    k==='tga' ? null : {p:'base', title:'Linea di base', why: k==='dsc' ? 'Toglie l\'inclinazione della linea di base tra gli estremi.' : k==='epr' ? 'Toglie solo l\'inclinazione: la correzione automatica non è adatta agli spettri in derivata.' : 'Se lo spettro sale o scende (fluorescenza nel Raman, deriva), tolgo la parte di fondo e restano solo i picchi.', opts:baseOpts},
     ['raman','fluo','gen'].includes(k) ? {p:'spike', title:'Raggi cosmici', why:'Picchi strettissimi (1–3 punti) e isolati dovuti a particelle cosmiche sul rivelatore CCD. Li riconosco con lo z-score modificato delle differenze (Whitaker & Hayes 2018) e li sostituisco con l\'interpolazione dei punti vicini; i picchi più larghi di 3 punti a metà altezza restano; una banda vera molto stretta può essere scambiata per un raggio: controlla le bande strette.'+((files[cur]&&files[cur].instr===k&&processed(files[cur]).spikes)?` Su questo spettro ne ho tolti ${processed(files[cur]).spikes}.`:''),
       opts:[{v:'off',t:'Lasciali',sub:'dati come sono',ico:ICO.spk},{v:'on',t:'Toglili',sub:'se vedi punte isolate',ico:ICO.nospk}]} : null,
     {p:'smooth', title:'Smoothing (pulizia del rumore)', why:'Riduce il rumore. Se è troppo forte allarga e abbassa i picchi stretti.',
       opts:[{v:0,t:'Nessuno',sub:'dati grezzi',ico:ICO.s0},{v:7,t:'Leggero',sub:'consigliato per Raman',ico:ICO.s7},{v:15,t:'Medio',ico:ICO.s15},{v:31,t:'Forte',sub:'solo per dati molto rumorosi',ico:ICO.s31}]},
+    k==='tga' ? null : {p:'base', title:'Linea di base', why: k==='dsc' ? 'Toglie l\'inclinazione della linea di base tra gli estremi.' : k==='epr' ? 'Toglie solo l\'inclinazione: la correzione automatica non è adatta agli spettri in derivata.' : 'Se lo spettro sale o scende (fluorescenza nel Raman, deriva), tolgo la parte di fondo e restano solo i picchi.', opts:baseOpts},
     (k==='tga'||k==='epr') ? null : {p:'deriv', title:'Derivata', why:'La derivata seconda separa le bande sovrapposte: ogni banda diventa un picco stretto (in giù se le bande vanno in su). Comoda per FTIR e UV-Vis; aumenta il rumore, quindi abbinala a un po\' di smoothing.',
       opts:[{v:0,t:'Nessuna',sub:'lo spettro com\'è',ico:ICO.d0},{v:1,t:'Derivata prima',sub:'pendenza della curva',ico:ICO.d1},{v:2,t:'Derivata seconda',sub:'separa le bande sovrapposte',ico:ICO.d2}]},
     (k==='dsc'||k==='epr') ? null : {p:'logY', title:'Scala dell\'asse Y', why: k==='xrf' ? 'Nell\'XRF i picchi vanno da poche decine a decine di migliaia di conteggi: in scala logaritmica vedi insieme elementi maggiori e tracce.' : 'La scala logaritmica fa vedere insieme picchi molto grandi e molto piccoli. Vale solo per l\'anteprima, il PDF e le immagini: i dati non cambiano.',
@@ -6396,10 +6428,146 @@ function renderProc(){
       opts:[{v:'lin',t:'Lineare',sub:'come di solito',ico:ICO.linx},{v:'log',t:'Logaritmica',sub:'decadi equidistanti',ico:ICO.logx}]}
   ].filter(Boolean);
   const isOn=(p,v)=> (p==='logY'||p==='logX') ? (!!S[p][k])===(v==='log') : p==='spike' ? (!!S.spike[k])===(v==='on') : String(S[p][k])===String(v);
-  $('#procBox').innerHTML = groups.map(g=>`<div class="cgroup${['deriv','logX'].includes(g.p)?' adv':''}"><b>${g.title}${GLOSS[g.p]?' '+glBtn(g.p):''}</b><p class="why">${g.why}</p><div class="choices">${
-      g.opts.map(o=>choiceBtn(`data-p="${g.p}" data-i="${k}" data-v="${o.v}"`, isOn(g.p,o.v), o.ico, o.t, o.sub)).join('')}</div></div>`).join('');
-  $$('#procBox [data-p]').forEach(b=>b.onclick=()=>{ const p=b.dataset.p; S[p][b.dataset.i] = (p==='smooth'||p==='deriv') ? +b.dataset.v : (p==='logY'||p==='logX') ? b.dataset.v==='log' : p==='spike' ? b.dataset.v==='on' : b.dataset.v; saveS(); renderProc(); renderPreview(); renderSummary();
+  const gHtml = g=>`<div class="cgroup${['deriv','logX'].includes(g.p)?' adv':''}"><b>${g.title}${GLOSS[g.p]?' '+glBtn(g.p):''}</b><p class="why">${g.why}</p><div class="choices">${
+      g.opts.map(o=>choiceBtn(`data-p="${g.p}" data-i="${k}" data-v="${o.v}"`, isOn(g.p,o.v), o.ico, o.t, o.sub)).join('')}</div></div>`;
+  // nell'ordine della catena di elaborazione: ciò che precede il fondo, il fondo con i suoi parametri (#baseBox, fisso), poi il resto
+  const bi=groups.findIndex(g=>g.p==='base'), cut = bi>=0 ? bi+1 : groups.length;
+  $('#procBox').innerHTML = groups.slice(0,cut).map(gHtml).join(''); $('#procBox2').innerHTML = groups.slice(cut).map(gHtml).join('');
+  $$('#procBox [data-p], #procBox2 [data-p]').forEach(b=>b.onclick=()=>{ const p=b.dataset.p; S[p][b.dataset.i] = (p==='smooth'||p==='deriv') ? +b.dataset.v : (p==='logY'||p==='logX') ? b.dataset.v==='log' : p==='spike' ? b.dataset.v==='on' : b.dataset.v; saveS(); renderProc(); renderPreview(); renderSummary();
     const n=files.filter(f=>f.instr===k).length; toast(n>1 ? `✔ Applicato a tutti i ${n} spettri ${NOME_IT[k]} (non solo a questo).` : `✔ Applicato agli spettri ${NOME_IT[k]}.`); });
+  $$('#procBox [data-p="base"]').forEach(b=>{ const on=b.onclick; b.onclick=()=>{ baseSnap(); on(); }; });   // la scelta del metodo si può annullare
+  renderBaseBox();
+}
+/* ---- Rimozione del fondo: parametri, anteprima dal vivo, punti di ancoraggio, «applica a tutti», annulla ----
+   L'ambito è quello già noto: tutti gli spettri della tecnica (impostazioni S.base e S.baseP) o solo questo spettro (f.an.pBm e f.an.pBp,
+   salvati nel progetto). Il dato originale non si tocca: il fondo è un passo della catena di elaborazione (processed), prima dei picchi. */
+const BASEM_NAME={none:'nessuna', rubber:'automatica (inviluppo)', linear:'lineare', arpls:'arPLS', snip:'SNIP', als:'ALS', modpoly:'ModPoly', imodpoly:'IModPoly', rball:'rolling ball', anchor:'punti di ancoraggio'};
+const BASE_UI={
+  als:[{k:'lam',t:'Rigidità λ',log:[1,13],sub:'più alta: fondo più liscio, che non entra nelle bande larghe'},{k:'p',t:'Asimmetria p',log:[-4,Math.log10(0.5)],sub:'peso dei punti sopra il fondo: 0,001–0,1'},{k:'iter',t:'Iterazioni',num:[1,100],adv:true}],
+  arpls:[{k:'lam',t:'Rigidità λ',log:[1,13],sub:'più alta: fondo più liscio, che non entra nelle bande larghe'},{k:'ratio',t:'Soglia di arresto',num:[1e-6,0.1],adv:true},{k:'iter',t:'Iterazioni massime',num:[1,200],adv:true}],
+  imodpoly:[{k:'deg',t:'Grado del polinomio',int:[1,15],sub:'3–7 per la fluorescenza: troppo alto entra nelle bande larghe'},{k:'iter',t:'Iterazioni massime',num:[1,1000],adv:true},{k:'tol',t:'Tolleranza',num:[1e-9,0.1],adv:true}],
+  snip:[{k:'hw',t:'Semiampiezza della finestra',pts:true,sub:'almeno la larghezza del picco più largo'},{k:'pre',t:'Lisciatura preliminare',pts:true,zero:true,sub:'evita che il fondo scenda sui minimi del rumore'},{k:'lls',t:'Trasformazione LLS (spettri di conteggi)',bool:true}],
+  rball:[{k:'hw',t:'Raggio della palla',pts:true,sub:'più largo dei picchi, più stretto delle curve del fondo'},{k:'sm',t:'Media mobile finale',pts:true,zero:true},{k:'pre',t:'Lisciatura preliminare',pts:true,zero:true}],
+  anchor:[]
+};
+BASE_UI.modpoly=BASE_UI.imodpoly;
+let baseHist=[], baseAnchorPick=false, baseBoxSig='', baseT=null;
+function baseSnap(){ baseHist.push(JSON.stringify({b:S.base, p:S.baseP, f:files.map(g=>[g.id, g.an&&g.an.pBm!=null?g.an.pBm:null, g.an&&g.an.pBp?g.an.pBp:null])})); if (baseHist.length>40) baseHist.shift(); }
+function baseUndo(){ if (!baseHist.length){ toast('Non c\'è niente da annullare nel fondo.'); return; }
+  const st=JSON.parse(baseHist.pop()); S.base=Object.assign({}, S.base, st.b); S.baseP=Object.assign({}, S.baseP, st.p); saveS();
+  for (const [id,m,par] of st.f){ const g=files.find(x=>x.id===id); if (!g) continue; anSet(g,'pBm',m); anSet(g,'pBp',par); }
+  baseRefresh(); toast('↶ Fondo come prima.'); }
+function baseRefresh(){ baseBoxSig=''; renderProc(); renderPreview(); renderSummary(); renderList(); if (window.ACCH_AXSYNC) window.ACCH_AXSYNC(); }
+const baseScope = f => f && f.an && f.an.pBm!=null ? 'one' : 'instr';
+function baseParOf(f){ const m=pBase(f); if (baseScope(f)==='one') return Object.assign({}, f.an.pBp||{}); return Object.assign({}, (S.baseP[f.instr]||{})[m]||{}); }
+function baseSetPar(f, par){ const m=pBase(f), c=AcchBaseline.cleanParams(m, par);
+  if (baseScope(f)==='one') anSet(f,'pBp',c); else { S.baseP[f.instr]=Object.assign({}, S.baseP[f.instr]||{}); if (c) S.baseP[f.instr][m]=c; else delete S.baseP[f.instr][m]; saveS(); } }
+function baseSetMethod(f, m, scope){
+  scope = m==='anchor' ? 'one' : (scope||baseScope(f));
+  if (!baseAllowed(f.instr, m)){ toast(`⚠️ ${BASEM_NAME[m]||m}: metodo non adatto agli spettri ${NOME_IT[f.instr]}.`); return false; }
+  if (scope==='one'){ const keep = m==='anchor' && f.an && f.an.pBm==='anchor' ? f.an.pBp : null; anSet(f,'pBm',m); anSet(f,'pBp',keep); }
+  else { if (f.an && f.an.pBm!=null){ anSet(f,'pBm',null); anSet(f,'pBp',null); } S.base[f.instr]=m; saveS(); }
+  return true;
+}
+function baseSetScope(f, sc){ const m=pBase(f), par=baseParOf(f);
+  if (sc==='one'){ anSet(f,'pBm',m); anSet(f,'pBp',AcchBaseline.cleanParams(m, par)); }
+  else { if (m==='anchor'){ toast('I punti di ancoraggio valgono per un solo spettro: per tutti gli spettri scegli un metodo automatico.'); return; } anSet(f,'pBm',null); anSet(f,'pBp',null); } }
+/* «applica a tutti gli spettri caricati»: lo stesso metodo e gli stessi parametri a ogni spettro (scelta per singolo spettro, salvata nel progetto) */
+function baseApplyAll(f){ const m=pBase(f), par=AcchBaseline.cleanParams(m, baseParOf(f)); let ok=0; const no=[];
+  baseSnap();
+  for (const g of files){ if (!baseAllowed(g.instr, m)){ no.push(dispTitle(g)); continue; } anSet(g,'pBm',m); anSet(g,'pBp',par?JSON.parse(JSON.stringify(par)):null); ok++; }
+  baseRefresh();
+  toast(`✔ Fondo ${BASEM_NAME[m]} applicato a ${ok} spettr${ok===1?'o':'i'}${no.length?` · non adatto e lasciato com'era: ${no.slice(0,4).join(', ')}${no.length>4?'…':''}`:''}.`); }
+/* lunghezze in punti con il valore corrispondente sull'asse */
+function basePtsTxt(f, v){ const P=processed(f), n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):0, u=(xUnit(f)||'').replace('cm-1','cm⁻¹');
+  return `${Math.round(v)} punti${dx?` ≈ ${fmtG(v*dx,3)} ${u}`:''}`; }
+const baseLamTxt = v => { const e=Math.floor(Math.log10(v)), m=v/Math.pow(10,e); return `${fmtN(m,1)}·10${String(e).replace(/./g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹⁻'['0123456789-'.indexOf(c)])}`; };
+function renderBaseBox(){
+  const box=$('#baseBox'); if (!box) return; const f=files[cur];
+  if (!f || f.instr==='tga'){ box.innerHTML=''; baseBoxSig=''; return; }
+  const m=pBase(f), sc=baseScope(f), k=f.instr, P=processed(f), n=P.xs.length;
+  const sig=[f.id, m, sc, k, n, S.expert, baseAnchorPick, uiEn()].join('|');
+  const curPar=baseParOf(f);
+  if (sig===baseBoxSig && box.contains(document.activeElement)){ baseInfo(f); return; }   // non disturbo chi sta regolando
+  baseBoxSig=sig;
+  const meths=BASE_METHODS.filter(v=>baseAllowed(k,v)), yy=P.pre ? (P.kind==='T'?Float64Array.from(P.pre,v=>-v):P.pre) : (P.kind==='T'?Float64Array.from(P.ys,v=>-v):P.ys);
+  const def = BASE_PARAM.includes(m) ? baseDefaults(m, P.xs, yy, k) : {}, eff=Object.assign({}, def, curPar);
+  const ptsMax=Math.max(20, Math.min(2000, Math.floor(n/3)));
+  const ui = m==='imodpoly'||m==='modpoly' ? BASE_UI.imodpoly : (BASE_UI[m]||[]);
+  const field=(d)=>{ const v=eff[d.k], own=curPar[d.k]!=null, cls=d.adv?' adv':'';
+    if (d.bool) return `<label class="check${cls}"><input type="checkbox" data-bp="${d.k}" ${v?'checked':''}> ${d.t}</label>`;
+    if (d.log){ const lv=Math.log10(Math.max(v, Math.pow(10,d.log[0]))); return `<label class="ibf bpf${cls}"><span>${d.t} <output data-bo="${d.k}">${d.k==='lam'?baseLamTxt(v):fmtG(v,2)}</output>${own?'':' <small>consigliato</small>'}</span><input type="range" data-bp="${d.k}" data-log="1" min="${d.log[0]}" max="${(+d.log[1]).toFixed(3)}" step="0.05" value="${lv.toFixed(3)}" aria-label="${d.t}">${d.sub?`<small>${d.sub}</small>`:''}</label>`; }
+    if (d.int) return `<label class="ibf bpf${cls}"><span>${d.t} <output data-bo="${d.k}">${v}</output>${own?'':' <small>consigliato</small>'}</span><input type="range" data-bp="${d.k}" min="${d.int[0]}" max="${d.int[1]}" step="1" value="${v}" aria-label="${d.t}">${d.sub?`<small>${d.sub}</small>`:''}</label>`;
+    if (d.pts) return `<label class="ibf bpf${cls}"><span>${d.t} <output data-bo="${d.k}" data-pts="1">${basePtsTxt(f,v||0)}</output>${own?'':' <small>consigliato</small>'}</span><input type="range" data-bp="${d.k}" min="${d.zero?0:1}" max="${ptsMax}" step="1" value="${Math.round(v||0)}" aria-label="${d.t}">${d.sub?`<small>${d.sub}</small>`:''}</label>`;
+    return `<label class="ibf bpf${cls}"><span>${d.t}</span><input type="text" inputmode="decimal" data-bp="${d.k}" data-num="${d.num[0]},${d.num[1]}" value="${numOut(v)}" style="width:110px"></label>`; };
+  const unit=(xUnit(f)||'x').replace('cm-1','cm⁻¹'), A=m==='anchor' ? (curPar.pts||[]) : [];
+  box.innerHTML = `<b>Rimozione del fondo ${glBtn('base')}</b>
+    <p class="why bord">Ordine delle operazioni: raggi cosmici → smoothing → <b>rimozione del fondo</b> → ricerca dei picchi → aree, deconvoluzione e quantificazione. Il fondo si toglie prima di cercare i picchi: picchi, aree e concentrazioni si calcolano sullo spettro corretto. Il file originale non cambia e puoi tornare indietro in ogni momento.</p>
+    <div class="ibfields"><label class="ibf"><span>Vale per</span><select id="bScope"><option value="instr" ${sc==='instr'?'selected':''}>tutti gli spettri ${esc(NOME_IT[k])}</option><option value="one" ${sc==='one'?'selected':''}>solo questo spettro</option></select></label>
+      <label class="ibf"><span>Metodo</span><select id="bMeth">${meths.map(v=>`<option value="${v}" ${v===m?'selected':''}>${BASEM_NAME[v]}</option>`).join('')}</select></label>
+      ${m==='imodpoly'||m==='modpoly'?`<label class="ibf"><span>Variante</span><select id="bVar"><option value="imodpoly" ${m==='imodpoly'?'selected':''}>IModPoly (Zhao 2007)</option><option value="modpoly" ${m==='modpoly'?'selected':''}>ModPoly (Lieber 2003)</option></select></label>`:''}</div>
+    ${m==='none'?'<p class="why">Nessun fondo tolto: scegli un metodo. Per il Raman con fluorescenza consiglio arPLS o il polinomio iterativo.</p>':''}
+    ${ui.length?`<div class="ibfields bpars">${ui.map(field).join('')}</div>`:''}
+    ${m==='anchor'?`<div class="ibfields bpars"><label class="ibf" style="flex:1 1 260px"><span>Punti di ancoraggio (${esc(unit)})</span><textarea id="bPts" rows="2" placeholder="es. 250; 800; 1900; 3100 (o uno per riga)">${esc(A.map(x=>numOut(+x.toPrecision(8))).join('; '))}</textarea></label>
+      <label class="ibf"><span>Tra i punti</span><select id="bInterp"><option value="pchip" ${curPar.interp!=='linear'?'selected':''}>curva morbida (PCHIP)</option><option value="linear" ${curPar.interp==='linear'?'selected':''}>segmenti di retta</option></select></label>
+      <label class="ibf bpf"><span>Media attorno a ogni punto <output data-bo="hw" data-pts="1">${basePtsTxt(f, eff.hw!=null?eff.hw:2)}</output></span><input type="range" data-bp="hw" min="0" max="50" step="1" value="${eff.hw!=null?eff.hw:2}" aria-label="Media attorno a ogni punto"></label>
+      <button type="button" class="btn small ${baseAnchorPick?'primary':''}" id="bPick" aria-pressed="${baseAnchorPick}">${baseAnchorPick?'✓ Fine scelta dei punti':'📍 Scegli i punti sul grafico'}</button></div>
+      <p class="why">${baseAnchorPick?'Clic sul grafico per aggiungere un punto, clic vicino a un punto per toglierlo. Metti i punti dove c\'è solo fondo, anche ai due estremi. Esc per finire.':'Il fondo passa per i punti, con il valore medio dello spettro attorno a ognuno; oltre il primo e l\'ultimo resta costante.'}</p>`:''}
+    <label class="check"><input type="checkbox" id="bShow" ${S.showBase?'checked':''}> Mostra sul grafico lo spettro prima della correzione (grigio) e il fondo stimato (arancione tratteggiato): solo anteprima, non va nelle esportazioni</label>
+    <div class="row bacts"><button type="button" class="btn small ghost" id="bDef" ${Object.keys(curPar).filter(q=>q!=='pts'&&q!=='interp').length?'':'disabled'} title="Torna ai parametri consigliati per questo spettro">Valori consigliati</button>
+      <button type="button" class="btn small" id="bAll" title="Lo stesso metodo e gli stessi parametri a ogni spettro caricato, ciascuno con la sua scelta">Applica a tutti gli spettri caricati (${files.length})</button>
+      <button type="button" class="btn small ghost" id="bUndo" ${baseHist.length?'':'disabled'} title="Annulla l'ultima modifica al fondo">↶ Annulla</button>
+      <span class="spacer"></span><button type="button" class="btn small ghost" id="bOff" ${m==='none'?'disabled':''} title="Nessun fondo tolto, lo spettro torna com'è nel file">Ripristina l'originale</button></div>
+    <p class="why" id="bInfo" aria-live="polite"></p>`;
+  baseInfo(f);
+  const live=()=>{ clearTimeout(baseT); baseT=setTimeout(()=>{ renderPreview(); baseInfo(files[cur]); renderSummary(); const u=$('#bUndo'); if (u) u.disabled=!baseHist.length; }, 90); };
+  let snapped=false; const snapOnce=()=>{ if (!snapped){ baseSnap(); snapped=true; } };
+  box.querySelectorAll('[data-bp]').forEach(el=>{ const key=el.dataset.bp;
+    const write=v=>{ const g=files[cur]; if (!g) return; const par=baseParOf(g); if (v==null) delete par[key]; else par[key]=v; baseSetPar(g, par); };
+    if (el.type==='range'){ el.addEventListener('input', ()=>{ snapOnce(); let v=+el.value; if (el.dataset.log) v=+Math.pow(10, v).toPrecision(3); write(v);
+        const o=box.querySelector(`[data-bo="${key}"]`); if (o) o.textContent = key==='lam' ? baseLamTxt(v) : o.dataset.pts ? basePtsTxt(f,v) : fmtG(v,2); live(); });
+      el.addEventListener('change', ()=>{ snapped=false; }); }
+    else if (el.type==='checkbox') el.onchange=()=>{ baseSnap(); write(el.checked||null); live(); };
+    else el.onchange=()=>numField(el, v=>{ const [lo,hi]=el.dataset.num.split(',').map(Number); if (v!=null && (v<lo||v>hi)){ toast(`⚠️ Valore fuori dai limiti (${fmtG(lo,2)}–${fmtG(hi,2)}).`); el.value=el.defaultValue; return; } baseSnap(); write(v); el.defaultValue=el.value; live(); });
+  });
+  $('#bScope').onchange=e=>{ baseSnap(); baseSetScope(f, e.target.value); baseRefresh(); };
+  $('#bMeth').onchange=e=>{ baseSnap(); if (baseSetMethod(f, e.target.value)){ if (e.target.value==='anchor' && !(baseParOf(f).pts||[]).length) baseAnchorPick=true; } else baseHist.pop(); baseRefresh(); };
+  if ($('#bVar')) $('#bVar').onchange=e=>{ baseSnap(); const par=baseParOf(f); baseSetMethod(f, e.target.value); baseSetPar(f, par); baseRefresh(); };
+  $('#bShow').onchange=e=>{ S.showBase=e.target.checked; saveS(); renderPreview(); };
+  $('#bDef').onclick=()=>{ baseSnap(); const par=baseParOf(f), keep={}; if (par.pts) keep.pts=par.pts; if (par.interp) keep.interp=par.interp; baseSetPar(f, keep); baseRefresh(); };
+  $('#bAll').onclick=()=>baseApplyAll(f);
+  $('#bUndo').onclick=baseUndo;
+  $('#bOff').onclick=()=>{ baseSnap(); baseSetMethod(f, 'none'); baseAnchorPick=false; baseRefresh(); toast('Fondo non più tolto: lo spettro è com\'era nel file. ↶ Annulla per tornare indietro.'); };
+  if ($('#bPts')) $('#bPts').onchange=e=>{ const P2=processed(f), lo=Math.min(P2.xs[0],P2.xs[P2.xs.length-1]), hi=Math.max(P2.xs[0],P2.xs[P2.xs.length-1]), r=parseNumList(e.target.value, [lo,hi]);
+    if (r.bad.length) toast(`⚠️ Non capisco: ${r.bad.slice(0,4).map(b=>'«'+b+'»').join(', ')}. ${r.amb?'Scrivi il numero senza ambiguità.':'Usa numeri separati da «;», da virgola e spazio o uno per riga.'}`);
+    const out=r.items.map(q=>q.x).filter(x=>x<lo||x>hi); if (out.length) toast(`⚠️ Fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}): ${out.map(x=>fmtTick(x,2)).join(', ')}.`);
+    baseSnap(); const par=baseParOf(f); par.pts=r.items.map(q=>q.x).filter(x=>x>=lo&&x<=hi); baseSetPar(f, par); baseRefresh(); };
+  if ($('#bInterp')) $('#bInterp').onchange=e=>{ baseSnap(); const par=baseParOf(f); if (e.target.value==='linear') par.interp='linear'; else delete par.interp; baseSetPar(f, par); baseRefresh(); };
+  if ($('#bPick')) $('#bPick').onclick=()=>{ baseAnchorPick=!baseAnchorPick; if (baseAnchorPick && !S.showBase){ S.showBase=true; saveS(); } baseRefresh(); };
+}
+function baseInfo(f){ const el=$('#bInfo'); if (!el || !f) return; const P=processed(f), m=pBase(f);
+  if (m==='none'){ el.textContent=''; return; }
+  if (m==='anchor' && !P.base){ el.textContent='⚠️ Servono almeno due punti di ancoraggio: finché non ci sono, il fondo non viene tolto.'; return; }
+  if (!P.base){ el.textContent='⚠️ Il fondo non si può calcolare su questo spettro: resta com\'è.'; return; }
+  let neg=0; const U=P.kind==='T'?null:P.ys; if (U){ let mx=-Infinity; for (const v of U) if (v>mx) mx=v; const sg=noiseSigma(U); for (const v of U) if (v< -4*sg-0.02*Math.abs(mx)) neg++; }
+  el.textContent = `Fondo ${BASEM_NAME[m]} su ${P.xs.length} punti, calcolato in ${fmtN(Math.max(0.1,f._bms||0),1)} ms.`+(neg>P.xs.length*0.05?' ⚠️ Lo spettro corretto scende sotto zero in più punti: il fondo è troppo alto, abbassa la rigidità o cambia metodo.':''); }
+/* posizioni scritte a mano, per i picchi e per i punti di ancoraggio: separate da «;», a capo, spazio o virgola e spazio; la virgola senza spazio è decimale
+   (più virgole senza spazi, «1086,712,280», sono un elenco). Un numero come «1,086» (migliaia o decimale?) si accetta solo se una delle due
+   letture cade nello spettro, altrimenti si rifiuta. Con opt.extras, accanto alla posizione: larghezza (w=8, fwhm=8) e forma (gauss, lor, pv).
+   Restituisce {items:[{x, w?, sh?, txt}], bad:[testo], amb} */
+function parseNumList(text, range, opt){
+  const items=[], bad=[]; let amb=false; const inR=v=>!range || (v>=range[0] && v<=range[1]);
+  const SH={g:'gauss',gauss:'gauss',gaussiana:'gauss',gaussian:'gauss',l:'lor',lor:'lor',lorentz:'lor',lorentziana:'lor',lorentzian:'lor',pv:'pv',voigt:'pv','pseudo-voigt':'pv',pseudovoigt:'pv'};
+  const num=t=>{ if (/^[-+]?[1-9]\d{0,2}[.,]\d{3}$/.test(t)){ const a=parseFloat(t.replace(',','.')), b=parseFloat(t.replace(/[.,]/,'')); if (inR(a)!==inR(b)) return inR(a)?a:b; amb=true; return null; }
+    if (!NUM_STRICT.test(t)) return null; const v=parseFloat(t.replace(',','.')); return Number.isFinite(v) && Math.abs(v)<1e15 ? v : null; };
+  String(text||'').split(/[\n;]+/).forEach(line=>{ line=line.trim(); if (!line) return;
+    const toks=line.split(/\s*,\s+|\s+/).filter(Boolean); let last=null;
+    for (let t of toks){ t=t.replace(/,+$/,''); if (!t) continue; const lw=t.toLowerCase();
+      if (opt && opt.extras){ const mw=/^(?:w|fwhm|largh(?:ezza)?)\s*[=:]\s*(.+)$/i.exec(t); if (mw){ const v=num(mw[1]); if (last && v>0) last.w=v; else bad.push(t); continue; }
+        if (SH[lw]){ if (last) last.sh=SH[lw]; else bad.push(t); continue; } }
+      if (/^[-+]?\d+(,\d+){2,}$/.test(t)){ t.split(',').forEach(u=>{ const v=num(u); if (v==null) bad.push(u); else items.push(last={x:v, txt:u}); }); continue; }
+      const v=num(t); if (v==null) bad.push(t); else items.push(last={x:v, txt:t}); } });
+  return {items, bad, amb};
 }
 function renderLook(){
   const cm=[['instr','Un colore per strumento','FTIR blu, Raman rosso…','<svg viewBox="0 0 48 30"><path d="M2 20 Q12 6 24 16 T46 10" stroke="#1f5fbf" stroke-width="2.2" fill="none"/><path d="M2 26 Q14 14 24 22 T46 18" stroke="#c0392b" stroke-width="2.2" fill="none"/></svg>'],
@@ -6741,6 +6909,26 @@ function pBase(f){ const v=f.an&&f.an.pBm, w=v!=null ? v : (S.base[f.instr]||'no
 function pBaseP(f){ const m=pBase(f); if (m==='none' || !BASE_PARAM.includes(m)) return null;
   if (f.an && f.an.pBm!=null) return f.an.pBp && Object.keys(f.an.pBp).length ? f.an.pBp : null;
   const t=S.baseP && S.baseP[f.instr] && S.baseP[f.instr][m]; return t && Object.keys(t).length ? t : null; }
+/* descrizione del fondo con i parametri davvero usati (per la tracciabilità e i metodi): par = parametri effettivi, null = preimpostazione storica */
+function baseText(b, par, en, f){
+  const T=(a,c)=>en?c:a, g=v=>String(+(+v).toPrecision(3)).replace('.', en?'.':','), lam=v=>{ const e=Math.floor(Math.log10(v)); return g(v/Math.pow(10,e))+'·10^'+e; };
+  const P=par||{};
+  switch (b){
+    case 'rubber': return T('linea di base automatica (inviluppo convesso)','automatic baseline (lower convex hull)');
+    case 'linear': return T('linea di base lineare tra gli estremi','linear baseline between the end points');
+    case 'arpls': return par ? T(`linea di base arPLS (Baek 2015; λ = ${lam(P.lam)}, soglia di arresto ${g(P.ratio)}, al più ${P.iter} iterazioni)`,`arPLS baseline (Baek 2015; λ = ${lam(P.lam)}, stop ratio ${g(P.ratio)}, at most ${P.iter} iterations)`)
+      : T('linea di base arPLS (Baek 2015; λ = (n/(2π·8))⁴ su al più 1500 punti, al più 8 oscillazioni sullo spettro)','arPLS baseline (Baek 2015; λ = (n/(2π·8))⁴ on at most 1500 points, at most 8 oscillations over the spectrum)');
+    case 'als': return T(`linea di base ALS (Eilers & Boelens 2005; λ = ${lam(P.lam)}, p = ${g(P.p)}, ${P.iter} iterazioni)`,`ALS baseline (Eilers & Boelens 2005; λ = ${lam(P.lam)}, p = ${g(P.p)}, ${P.iter} iterations)`);
+    case 'modpoly': case 'imodpoly': { const nm=b==='modpoly'?'ModPoly (Lieber & Mahadevan-Jansen 2003':'IModPoly (Zhao et al. 2007';
+      return T(`linea di base ${nm}; polinomio di grado ${P.deg}, al più ${P.iter} iterazioni, tolleranza ${g(P.tol)})`,`${nm}; polynomial of degree ${P.deg}, at most ${P.iter} iterations, tolerance ${g(P.tol)}) baseline`); }
+    case 'snip': return par ? T(`fondo SNIP (Ryan 1988; semifinestra ${P.hw} punti, lisciatura preliminare ${P.pre||0} punti${P.lls?', trasformazione LLS':''})`,`SNIP background (Ryan 1988; half-window ${P.hw} points, pre-smoothing ${P.pre||0} points${P.lls?', LLS transform':''})`) : T('fondo SNIP (Ryan 1988)','SNIP background (Ryan 1988)');
+    case 'rball': return T(`fondo rolling ball (Kneen & Annegarn 1996; raggio ${P.hw} punti, media mobile ${P.sm||0} punti, lisciatura preliminare ${P.pre||0} punti)`,`rolling-ball background (Kneen & Annegarn 1996; radius ${P.hw} points, moving average ${P.sm||0} points, pre-smoothing ${P.pre||0} points)`);
+    case 'anchor': { const pts=(f && f.an && f.an.pBp && f.an.pBp.pts)||P.pts||[];
+      return T(`fondo per ${pts.length} punti di ancoraggio scelti a mano (${pts.map(g).join('; ')}), ${P.interp==='linear'?'uniti da segmenti di retta':'uniti da un\'interpolazione monotona PCHIP (Fritsch & Carlson 1980)'}, valore medio su ±${P.hw!=null?P.hw:2} punti`,
+        `background through ${pts.length} hand-picked anchor points (${pts.map(g).join('; ')}), ${P.interp==='linear'?'joined by straight segments':'joined by monotone PCHIP interpolation (Fritsch & Carlson 1980)'}, mean over ±${P.hw!=null?P.hw:2} points`); }
+  }
+  return T('linea di base ','baseline ')+b;
+}
 function procNote(f, P){
   // nell'ordine in cui il programma le esegue (vedi processed): così il dato esportato si può rifare a mano
   const i=f.instr, parts=[], conv=S.conv[i], b=pBase(f), sm=pSmooth(f);
@@ -6749,7 +6937,7 @@ function procNote(f, P){
   if (P.diff) parts.push(`differenza: − ${P.diff.k} × ${P.diff.name}`);
   if (f.xr) parts.push(`intervallo ${f.xr[0]}–${f.xr[1]}`);
   if (sm) parts.push('smoothing Savitzky–Golay '+sm+' punti');
-  if (b!=='none' && i!=='tga') parts.push(({rubber:'linea di base automatica (inviluppo convesso)',arpls:'linea di base arPLS (Baek 2015; λ = (n/(2π·8))⁴ su al più 1500 punti, al più 8 oscillazioni sullo spettro)',snip:'fondo SNIP (Ryan 1988)',linear:'linea di base lineare tra gli estremi'})[b]||('linea di base '+b));
+  if (b!=='none' && i!=='tga') parts.push(baseText(b, P && P.bm===b ? P.bpar : null, false, f));
   if (conv==='dtg'||conv==='both') parts.push(conv==='dtg'?'DTG':'massa (DTG nella colonna accanto)');
   if (conv==='flip') parts.push('ribaltato');
   if (P.deriv) parts.push(P.deriv===2?'derivata seconda (minimi quadrati locali)':'derivata prima (minimi quadrati locali)');
@@ -8583,12 +8771,16 @@ function methodsText(inc, used){
     if (b==='arpls'){ st.push(T('linea di base con minimi quadrati penalizzati a pesi asimmetrici (arPLS; Baek et al., 2015; smoother di Whittaker, Eilers, 2003)','baseline by asymmetrically reweighted penalised least squares (arPLS; Baek et al., 2015; Whittaker smoother, Eilers, 2003)')); cite.add('arpls'); cite.add('whit'); }
     if (b==='snip'){ st.push(T('fondo stimato con l\'algoritmo SNIP con trasformazione LLS (Ryan et al., 1988; Morháč et al., 1997)','background estimated with the SNIP algorithm with LLS transform (Ryan et al., 1988; Morháč et al., 1997)')); cite.add('snip'); }
     if (b==='rubber') st.push(T('linea di base a inviluppo convesso inferiore («rubber band»)','lower convex-hull («rubber band») baseline'));
+    if (['als','modpoly','imodpoly','rball'].includes(b) || (b==='arpls'||b==='snip') && S.baseP[k] && S.baseP[k][b]){ const own=S.baseP[k] && S.baseP[k][b], P=processed(list[0]);
+      if (!(b==='arpls'||b==='snip')) st.push(baseText(b, P.bm===b && P.bpar ? P.bpar : (own||{}), en)+(own?'':T(' (parametri preimpostati, per ogni spettro in tracciabilita.csv)',' (default parameters, listed for each spectrum in tracciabilita.csv)')));
+      cite.add(b==='modpoly'?'modpoly':b); if (b==='als'||b==='arpls') cite.add('whit'); }
     if (b==='linear') st.push(T('sottrazione di una base lineare tra gli estremi','subtraction of a linear baseline between the end points'));
     if (sm){ st.push(T(`smoothing di Savitzky–Golay (polinomio di 2° grado, ${sm} punti; Savitzky & Golay, 1964)`,`Savitzky–Golay smoothing (2nd-order polynomial, ${sm} points; Savitzky & Golay, 1964)`)); cite.add('sg'); }
     if (dv){ st.push(T(`derivata ${dv===1?'prima':'seconda'} per regressione lineare locale`,`${dv===1?'first':'second'} derivative by local linear regression`)); cite.add('d2'); }
     proc.push(`${T_().nome[k]} (${list.length}): ${st.length?st.join('; '):T('dati come esportati dallo strumento','data as exported by the instrument')}.`);
   }
   { const cal=inc.filter(f=>f.an&&f.an.calc); if (cal.length) proc.push(T('Spettri calcolati, non misurati: ','Computed, not measured spectra: ')+cal.map(dispTitle).join('; ')+'.'); }
+  inc.forEach(f=>{ const b=pBase(f); if (['als','modpoly','imodpoly','rball','arpls','snip'].includes(b) && f.an && f.an.pBm!=null) cite.add(b); if (b==='als'||b==='arpls') cite.add('whit'); if (b==='anchor' && !(f.an&&f.an.pBp&&f.an.pBp.interp==='linear')) cite.add('pchip'); });
   { const own=inc.filter(f=>f.an&&(f.an.pSm!=null||f.an.pBm!=null)); if (own.length) proc.push(T('Elaborazione scelta per singolo spettro: ','Processing chosen for individual spectra: ')+own.map(f=>`${dispTitle(f)} (${procNote(f,processed(f))||T('nessuna','none')})`).join('; ')+'.'); }
   parts.push(T('Elaborazione degli spettri. ','Spectral processing. ')+proc.join(' '));
   parts.push(T(`I picchi sono stati individuati per prominenza, con soglia pari a 8 volte la deviazione standard del rumore (stimata in modo robusto dalla mediana delle differenze seconde) e al ${S.sens}% della prominenza massima, dopo smoothing di Savitzky–Golay adattato alla larghezza dei picchi; la posizione è affinata per interpolazione parabolica.`,
@@ -8838,7 +9030,8 @@ function commands(){
     try{ assess(f, viewOf(f)).filter(o=>o.act).forEach(o=>add('Consigli dell\'assistente','🩺',o.act.lab,()=>{ s2(); o.act.fn(); },{sub:o.t.replace(/<[^>]+>/g,''), kw:o.t.replace(/<[^>]+>/g,'')})); }catch(e){}
     const grp='Ritocca: tutti gli spettri '+NOME_IT[it], set=(k,v,msg)=>()=>{ S[k][it]=v; saveS(); renderProc(); renderPreview(); renderSummary(); toast('✔ '+msg+' — vale per tutti gli spettri '+NOME_IT[it]+'.'); };
     INSTR[it].conv.forEach(v=>add(grp,'📐','Asse Y: '+({orig:'come nel file',A:'assorbanza',T:'trasmittanza %',norm:'normalizzato 0–1',dtg:'solo DTG',both:'massa + DTG',flip:'ribaltato'}[v]||v),set('conv',v,'Asse Y cambiato'),{on:S.conv[it]===v, kw:'conversione'}));
-    [['none','nessuna'],['rubber','automatica (inviluppo)'],['arpls','arPLS (fondi curvi, fluorescenza)'],['snip','SNIP (XRF, LIBS)'],['linear','lineare']].forEach(([v,t])=>add(grp,'〰️','Linea di base: '+t,set('base',v,'Linea di base: '+t),{on:S.base[it]===v, kw:'fondo baseline '+v}));
+    [['none','nessuna'],['rubber','automatica (inviluppo)'],['arpls','arPLS (fondi curvi, fluorescenza)'],['als','ALS (minimi quadrati asimmetrici)'],['imodpoly','polinomio iterativo (IModPoly)'],['modpoly','polinomio modificato (ModPoly)'],['snip','SNIP (XRF, LIBS, Raman)'],['rball','rolling ball'],['linear','lineare']].filter(([v])=>baseAllowed(it,v)).forEach(([v,t])=>add(grp,'〰️','Linea di base: '+t,set('base',v,'Linea di base: '+t),{on:S.base[it]===v, kw:'fondo baseline fluorescenza '+v}));
+    if (baseAllowed(it,'anchor')) add('Spettro aperto','📍','Fondo per punti scelti a mano (ancoraggi)',()=>{ s2(); openTab('proc'); baseSnap(); if (baseSetMethod(f,'anchor')){ baseAnchorPick=true; S.showBase=true; saveS(); } baseRefresh(); setTimeout(()=>reveal('#baseBox'),60); },{kw:'baseline ancoraggio punti manuale fondo'});
     [[0,'nessuno'],[7,'leggero'],[15,'medio'],[31,'forte']].forEach(([v,t])=>add(grp,'🌫️','Smoothing '+t,set('smooth',v,'Smoothing '+t),{on:+S.smooth[it]===v, kw:'rumore savitzky golay liscia'}));
     [[0,'nessuna'],[1,'prima'],[2,'seconda']].forEach(([v,t])=>add(grp,'∂','Derivata '+t,set('deriv',v,'Derivata '+t),{on:+S.deriv[it]===v, kw:'derivata'}));
     if (['raman','fluo','gen'].includes(it)) add(grp,'✨',S.spike[it]?'Lascia i raggi cosmici':'Togli i raggi cosmici',set('spike',!S.spike[it],S.spike[it]?'Raggi cosmici lasciati':'Raggi cosmici tolti'),{kw:'spike cosmici'});
