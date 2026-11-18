@@ -28,6 +28,7 @@
 <script src="app/origin-core.js"></script>
 <script src="app/project.js"></script>
 <script src="app/sorption-core.js"></script>
+<script src="app/baseline-core.js"></script>
 <script src="app/library.js"></script>
 <script src="app/hplc-stored-cal.js"></script>
 <script src="app/librerie-sistema.js"></script>
@@ -2901,6 +2902,39 @@ function baselineSNIP(ys, m, counts){
   }
   return Float64Array.from(v, bw);
 }
+/* ---- fondo con parametri (app/baseline-core.js): ALS, arPLS, ModPoly, IModPoly, SNIP, rolling ball e punti di ancoraggio ----
+   Preimpostazioni pensate per il Raman (fluorescenza larga e curva), ricavate dalla larghezza tipica dei picchi (wp, FWHM in punti)
+   e validate su spettri sintetici con fondo noto (test/validation/fondo-sintetici.test.js, docs/VALIDAZIONE.md). */
+const BASE_METHODS=['none','rubber','linear','arpls','snip','als','modpoly','imodpoly','rball','anchor'];
+const BASE_PARAM=['arpls','snip','als','modpoly','imodpoly','rball','anchor'];   // metodi con parametri regolabili
+function baseDefaults(m, xs, y, instr){
+  const n=y.length, wp=Math.max(2, peakWidthPts(y)), cnt=instr==='xrf'||instr==='libs';
+  switch (m){
+    case 'als': return {lam:AcchBaseline.autoLam(n), p:0.05, iter:15};
+    case 'arpls': return {lam:Math.pow(n/(2*Math.PI*8), 4), ratio:1e-3, iter:60};   // come la base arPLS automatica: al più 8 «onde» sullo spettro
+    case 'modpoly': case 'imodpoly': return {deg:6, iter:100, tol:1e-3};
+    case 'snip': return {hw:Math.max(2, Math.round((cnt?1.2:2)*wp)), pre:Math.max(1, Math.round(0.4*wp))};
+    case 'rball': return {hw:Math.max(3, Math.round(2*wp)), sm:Math.max(1, Math.round(wp)), pre:Math.max(1, Math.round(0.4*wp))};
+    case 'anchor': return {hw:2};
+  }
+  return {};
+}
+/* fondo dello spettro y (orientato come nel file: in %T i picchi vanno in giù e si lavora sul rovescio). Restituisce null se non si può calcolare */
+function baseCurve(m, par, xs, y, instr, kind){
+  if (!m || m==='none') return null;
+  const upper=kind==='T', own=par && Object.keys(par).length ? par : null, neg=a=>Float64Array.from(a, v=>-v);
+  let bl;
+  if (m==='rubber' || m==='linear') bl=baselineOf(xs, y, m, upper);
+  else if (m==='arpls' && !own) bl=upper ? neg(baselineArPLS(xs, neg(y))) : baselineArPLS(xs, y);   // senza parametri: identica alle versioni precedenti
+  else if (m==='snip' && !own) bl=upper ? neg(baselineSNIP(neg(y))) : baselineSNIP(y, 0, instr==='xrf' && kind==='I');
+  else if (m==='anchor') bl=AcchBaseline.anchor(xs, y, par||{});
+  else if (BASE_PARAM.includes(m)){ const yy=upper ? neg(y) : y, o=Object.assign(baseDefaults(m, xs, yy, instr), own||{});
+    if (m==='snip' && instr==='xrf' && kind==='I' && o.lls==null) o.lls=true;
+    bl=AcchBaseline.compute(m, xs, yy, o); if (bl && upper) bl=neg(bl); }
+  if (!bl || bl.length!==y.length) return null;
+  for (let i=0;i<bl.length;i++) if (!Number.isFinite(bl[i])) return null;
+  return bl;
+}
 
 /* ---- raggi cosmici (Raman, CCD): z-score modificato delle differenze prime (Whitaker & Hayes 2018) ---- */
 function despike(ys, thr, maxW){
@@ -4534,12 +4568,12 @@ const DEFAULTS = {
   showPeaks:true, sens:5, maxPeaks:12, peakLabels:true, sample:'all', showArea:false, shadeArea:true,
   showInfo:true, docAuthor:'', docProject:'', outSvg:false, outOrigin:false, outOpj:false, outOpju:false, opjMode:'each', originData:'proc', oneFile:true, showFit:true, outAnalysis:true, expert:false, sober:false,
   csvRaw:false, outOrig:false, outLibCharts:false, outTrace:true, outProject:false, zipAll:false, expScope:'sel', expSub:false, expNames:{},   // voci dell'esportazione: lo ZIP solo se richiesto
-  conv:{}, smooth:{}, base:{}, deriv:{}, logX:{}, spike:{},
+  conv:{}, smooth:{}, base:{}, baseP:{}, deriv:{}, logX:{}, spike:{}, showBase:false,
   logY:{xrf:true}
 };
-for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
+for (const k of Object.keys(INSTR)){ DEFAULTS.conv[k]='orig'; DEFAULTS.smooth[k]=0; DEFAULTS.base[k]='none'; DEFAULTS.baseP[k]={}; DEFAULTS.deriv[k]=0; DEFAULTS.logX[k]=false; DEFAULTS.spike[k]=false; if (!(k in DEFAULTS.logY)) DEFAULTS.logY[k]=false; }
 const LS_KEY='spectraplot.settings.v1', LS_PRESETS='spectraplot.presets.v1', LS_FILE='spectraplot.f.';
-const OBJ_KEYS=['conv','smooth','base','logY','deriv','logX','spike'];
+const OBJ_KEYS=['conv','smooth','base','baseP','logY','deriv','logX','spike'];
 const EXP_NAMED=['pdf','png','svg','peaks','data','raw','orig','analysis','libcharts','trace','origin','opj','opju','project','zip','sub'];   // voci dell'esportazione con un nome di file (o di cartella) modificabile
 const clone = o => JSON.parse(JSON.stringify(o));
 function lsGet(k){ return hostGet(k); }
@@ -4559,10 +4593,11 @@ function sanitizeS(r){
   for (const k of ['docAuthor','docProject']){ if (typeof r[k]!=='string') r[k]=''; r[k]=r[k].slice(0,120); }
   oneOf('originData',['proc','raw']); oneOf('opjMode',['each','one']); oneOf('expScope',['sel','all','one']);
   { const n=r.expNames, o={}; if (n && typeof n==='object' && !Array.isArray(n)) for (const k of EXP_NAMED) if (typeof n[k]==='string') o[k]=n[k].slice(0,160); r.expNames=o; }
-  ['csvRaw','outOrig','outLibCharts','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea'].forEach(bool);
+  ['csvRaw','outOrig','outLibCharts','outTrace','outProject','zipAll','expSub','sober','expert','showFit','outAnalysis','oneFile','showInfo','outSvg','outOrigin','outOpj','outOpju','summary','outPdf','outPng','csvPeaks','csvData','keepFolders','cmpPng','grid','showInstr','showPeaks','peakLabels','showArea','shadeArea','showBase'].forEach(bool);
   for (const k of Object.keys(INSTR)){
     if (!INSTR[k].conv.includes(r.conv[k])) r.conv[k]='orig';
-    if (!['none','rubber','linear','arpls','snip'].includes(r.base[k])) r.base[k]='none';
+    if (!BASE_METHODS.includes(r.base[k]) || r.base[k]==='anchor') r.base[k]='none';   // i punti di ancoraggio valgono per un solo spettro
+    { const bp=r.baseP[k], o={}; if (bp && typeof bp==='object' && !Array.isArray(bp)) for (const m of BASE_PARAM){ if (m==='anchor') continue; const c=AcchBaseline.cleanParams(m, bp[m]); if (c) o[m]=c; } r.baseP[k]=o; }
     if (typeof r.spike[k]!=='boolean') r.spike[k]=false;
     if (![0,7,15,31].includes(+r.smooth[k])) r.smooth[k]=0; else r.smooth[k]=+r.smooth[k];
     if (typeof r.logY[k]!=='boolean') r.logY[k]=D.logY[k];
@@ -4675,7 +4710,7 @@ function setEcal(f, ec){
 }
 
 function procKey(f){ const i=f.instr, r=subRef(f);
-  return [i,S.conv[i],pSmooth(f),pBase(f),S.deriv[i]||0,S.spike[i]?1:0,f.kind,f.xr?f.xr.join(','):'',f._xv||0, r ? fkey(r)+'*'+f.sub.k+'*'+r.kind+'*'+(r._xv||0) : ''].join('|'); }
+  return [i,S.conv[i],pSmooth(f),pBase(f),JSON.stringify(pBaseP(f)||0),S.deriv[i]||0,S.spike[i]?1:0,f.kind,f.xr?f.xr.join(','):'',f._xv||0, r ? fkey(r)+'*'+f.sub.k+'*'+r.kind+'*'+(r._xv||0) : ''].join('|'); }
 /* spettro di riferimento da sottrarre (deve essere caricato e dello stesso strumento) */
 function subRef(f){ if (!f.sub) return null; const r=files.find(g=>g!==f && fkey(g)===f.sub.ref); return r && compatible(r.instr, f.instr) && !(r.sub && r.sub.ref===fkey(f)) ? r : null; }
 function processed(f){
@@ -4702,14 +4737,11 @@ function processed(f){
     if (hi-lo>=4){ xs=xs.subarray(lo,hi+1); y=y.subarray(lo,hi+1); }
   }
   const sw=pSmooth(f); if (sw) y=sgSmooth(y, sw);
-  const bm=pBase(f);
+  const bm=pBase(f); let base=null, pre=null;
   if (bm!=='none' && i!=='tga'){
-    const upper = kind==='T', o=new Float64Array(y.length);
-    const bl = bm==='arpls' ? (upper ? baselineArPLS(xs, Float64Array.from(y, v=>-v)).map(v=>-v) : baselineArPLS(xs, y))
-             : bm==='snip' ? (upper ? baselineSNIP(Float64Array.from(y, v=>-v)).map(v=>-v) : baselineSNIP(y, 0, i==='xrf' && kind==='I'))
-             : baselineOf(xs,y,bm,upper);
-    for (let k=0;k<y.length;k++) o[k] = upper ? y[k]/(bl[k]||1)*100 : y[k]-bl[k];
-    y=o;
+    const upper = kind==='T', o=new Float64Array(y.length), bl=baseCurve(bm, pBaseP(f), xs, y, i, kind);
+    if (bl){ for (let k=0;k<y.length;k++) o[k] = upper ? y[k]/(bl[k]||1)*100 : y[k]-bl[k];
+      pre=y; base=bl; y=o; }
   }
   let dir = kind==='T' ? -1 : 1, mass=null, dtg=null, y2=null;
   if (i==='tga' && kind==='W'){   // DTG = −dm/dT, lisciata
@@ -4724,7 +4756,7 @@ function processed(f){
     if (dv===2) dir=-dir; else dir=1; kind = dv===2 ? 'D2' : 'D1';
   }
   if (conv==='norm'){ y=transformY(y,kind,'norm').ys; kind='N'; }
-  f._pk=key; f._pd={xs, ys:y, kind, dir, diff, mass, dtg, y2, spikes, deriv:dv && i!=='tga' && i!=='epr' ? dv : 0};
+  f._pk=key; f._pd={xs, ys:y, kind, dir, diff, mass, dtg, y2, spikes, deriv:dv && i!=='tga' && i!=='epr' ? dv : 0, base, pre, bm: base ? bm : 'none'};
   return f._pd;
 }
 const lblKey = x => x.toFixed(4);
@@ -6701,9 +6733,14 @@ function originUnits(f, P){
   return {xu, yu};
 }
 function pSmooth(f){ const v=f.an&&f.an.pSm; return v!=null ? +v : (+S.smooth[f.instr]||0); }
-// correzioni della linea di base adatte a ogni tecnica: l'inviluppo e arPLS inventano picchi su DSC ed EPR, SNIP vale solo per XRF e LIBS
-function baseAllowed(k, v){ if (v==null || v==='none') return true; if (k==='tga') return false; if ((k==='dsc'||k==='epr') && (v==='rubber'||v==='arpls')) return false; if (v==='snip' && k!=='xrf' && k!=='libs') return false; return true; }
+// correzioni della linea di base adatte a ogni tecnica: i metodi automatici (inviluppo, arPLS, ALS, polinomi, SNIP, rolling ball) suppongono picchi
+// in su sopra il fondo e inventano picchi su DSC (eventi nei due versi) ed EPR (derivata): lì restano la retta e i punti scelti a mano
+function baseAllowed(k, v){ if (v==null || v==='none') return true; if (!BASE_METHODS.includes(v)) return false; if (k==='tga') return false; if ((k==='dsc'||k==='epr') && v!=='linear' && v!=='anchor') return false; return true; }
 function pBase(f){ const v=f.an&&f.an.pBm, w=v!=null ? v : (S.base[f.instr]||'none'); return baseAllowed(f.instr, w) ? w : 'none'; }
+/* parametri del fondo in uso: quelli del singolo spettro se il metodo è scelto per lui, altrimenti quelli della tecnica; null = preimpostati */
+function pBaseP(f){ const m=pBase(f); if (m==='none' || !BASE_PARAM.includes(m)) return null;
+  if (f.an && f.an.pBm!=null) return f.an.pBp && Object.keys(f.an.pBp).length ? f.an.pBp : null;
+  const t=S.baseP && S.baseP[f.instr] && S.baseP[f.instr][m]; return t && Object.keys(t).length ? t : null; }
 function procNote(f, P){
   // nell'ordine in cui il programma le esegue (vedi processed): così il dato esportato si può rifare a mano
   const i=f.instr, parts=[], conv=S.conv[i], b=pBase(f), sm=pSmooth(f);
@@ -7166,7 +7203,7 @@ function cleanAn(v){
   if (v.mixW && typeof v.mixW==='object'){ const w={}; for (const [k,x] of Object.entries(v.mixW)) if (typeof x==='number' && isFinite(x) && x>=0) w[k]=x; if (Object.keys(w).length) o.mixW=w; }
   if (v.fp && typeof v.fp==='object') o.fp=cleanFp(v.fp);
   for (const k of ['axX','axY']) if (typeof v[k]==='string' && v[k]) o[k]=v[k].slice(0,80);
-  if (['blank','qc'].includes(v.role)) o.role=v.role; if (typeof v.concK==='string' && v.concK.length<60) o.concK=v.concK; if (v.concs && typeof v.concs==='object'){ const m={}; Object.entries(v.concs).slice(0,60).forEach(([k,x])=>{ if (/^-?[\d.e+]+\|-?[\d.e+]+$/i.test(k) && typeof x==='number' && isFinite(x)) m[k]=x; }); if (Object.keys(m).length) o.concs=m; } if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (['none','linear','rubber','arpls','snip'].includes(v.pBm)) o.pBm=v.pBm;
+  if (['blank','qc'].includes(v.role)) o.role=v.role; if (typeof v.concK==='string' && v.concK.length<60) o.concK=v.concK; if (v.concs && typeof v.concs==='object'){ const m={}; Object.entries(v.concs).slice(0,60).forEach(([k,x])=>{ if (/^-?[\d.e+]+\|-?[\d.e+]+$/i.test(k) && typeof x==='number' && isFinite(x)) m[k]=x; }); if (Object.keys(m).length) o.concs=m; } if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (BASE_METHODS.includes(v.pBm)) o.pBm=v.pBm; if (o.pBm && v.pBp){ const c=AcchBaseline.cleanParams(o.pBm, v.pBp); if (c) o.pBp=c; }
   if (Number.isInteger(v.ycol) && v.ycol>1 && v.ycol<200) o.ycol=v.ycol;
   if (COLOURS[v.color]) o.color=v.color;
   if (typeof v.chan==='string' && v.chan && v.chan.length<=40) o.chan=v.chan;   // canale HPLC scelto a mano
