@@ -1308,7 +1308,7 @@
   "Modifica posizione, larghezza e forma": "Edit position, width and shape",
   "Mostra sul grafico lo spettro prima della correzione (grigio) e il fondo stimato (arancione tratteggiato): solo anteprima, non va nelle esportazioni": "Show on the plot the spectrum before correction (grey) and the estimated baseline (dashed orange): preview only, not in the exports",
   "Nessun fondo tolto, lo spettro torna com'è nel file": "No baseline removed, the spectrum goes back to how it is in the file",
-  "Nessun fondo tolto: scegli un metodo. Per il Raman con fluorescenza consiglio arPLS o il polinomio iterativo.": "No baseline removed: choose a method. For Raman with fluorescence I recommend arPLS or the iterative polynomial.",
+  "Nessun fondo tolto: scegli un metodo. Per il Raman con fluorescenza consiglio il polinomio iterativo (IModPoly) o arPLS; sugli spettri molto puliti controlla arPLS con l'anteprima, perché può restare sotto la fluorescenza.": "No baseline removed: choose a method. For Raman with fluorescence I recommend the iterative polynomial (IModPoly) or arPLS; on very clean spectra check arPLS with the preview, because it can stay below the fluorescence.",
   "Non c'è niente da annullare nel fondo.": "There is nothing to undo in the baseline.",
   "Ordine delle operazioni: raggi cosmici → smoothing →": "Order of operations: cosmic rays → smoothing →",
   "Polinomio iterativo": "Iterative polynomial",
