@@ -47,14 +47,22 @@ function tauriMock(){
       case 'lib_remove': { if (!args.path.startsWith(M.libUser+'/')) throw 'not-allowed'; M.libfs[M.libUser+'/versioni/'+args.path.slice(M.libUser.length+1)+'.tolta']=M.libfs[args.path]; delete M.libfs[args.path]; return null; }
       case 'lib_shared_add': { const d=M.pick.lib_shared_add; if (!d) return null; if (!M.libShared.includes(d)) M.libShared.push(d); return d; }
       case 'lib_shared_remove': { M.libShared=M.libShared.filter(d=>d!==args.path); return null; }
+      // I6: finestre aggiuntive. Le pagine dello stesso contesto si parlano con un BroadcastChannel (al posto degli eventi tra finestre di Tauri)
+      case 'view_open': { if (M.label!=='main') throw 'not-allowed'; const l={grafico:'vista-grafico', confronto:'vista-confronto'}[args.kind]; if (!l) throw 'invalid-kind'; M.views=M.views||{}; M.views[l]=args; return l; }
+      case 'view_put': { if (M.label!=='main') throw 'not-allowed'; const l=opt.headers['x-acch-view']; if (!(M.views||{})[l]) throw 'no-view'; M.bc.postMessage({to:l, name:'acch-vista', bytes:args.slice()}); return null; }
+      case 'view_take': { const b=M.taken||new Uint8Array(0); M.taken=null; return b.buffer.slice(b.byteOffset, b.byteOffset+b.byteLength); }
       default: throw 'mock: comando sconosciuto '+cmd;
     }
   }
   const win={ onCloseRequested(){ return Promise.resolve(()=>{}); }, setTitle(){ return Promise.resolve(); }, destroy(){ return Promise.resolve(); }, close(){ return Promise.resolve(); }, show(){ M.shown++; return Promise.resolve(); } };
   const item=o=>Promise.resolve(Object.assign({kind:'item'},o));
+  M.label=new URLSearchParams(location.search).get('label') || (/vista\.html$/.test(location.pathname) ? 'vista-'+(new URLSearchParams(location.search).get('k')||'grafico') : 'main');
+  win.label=M.label;
+  M.bc=new BroadcastChannel('acch-viste-mock'); M.bc.onmessage=e=>{ const m=e.data; if (m.to!==M.label) return; if (m.bytes) M.taken=m.bytes; M.emit(m.name, m.payload); };
   window.__TAURI__={
     core:{invoke},
-    event:{listen(name, cb){ (M.listeners[name]=M.listeners[name]||[]).push(cb); return Promise.resolve(()=>{}); }},
+    event:{listen(name, cb){ (M.listeners[name]=M.listeners[name]||[]).push(cb); return Promise.resolve(()=>{}); },
+      emitTo(to, name, payload){ M.bc.postMessage({to, name, payload}); return Promise.resolve(); }},
     window:{getCurrentWindow:()=>win},
     webview:{getCurrentWebview:()=>({onDragDropEvent(cb){ M.drag.push(cb); return Promise.resolve(()=>{}); }})},
     menu:{MenuItem:{new:item}, PredefinedMenuItem:{new:item}, Submenu:{new:o=>Promise.resolve({kind:'sub', text:o.text, items:o.items})}, Menu:{new:o=>Promise.resolve({items:o.items, setAsAppMenu(){ M.menu=o.items; return Promise.resolve(); }})}},

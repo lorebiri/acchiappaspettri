@@ -174,4 +174,6 @@
   win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,clearErr,get doc(){ return docNow; },act};
   /* avvio */
   applySizes(); mark(); showRes(lsG('acch.sh.res','peaks')); updateStatus(); pushMsg('Pronto');
+  // I6: il codice del grafico veloce si compila prima del primo spettro grande (a pezzi di pochi ms, dopo la prima schermata)
+  setTimeout(()=>{ if (win.AcchPlot) win.AcchPlot.warmup(); }, 1200);
 })(window);

@@ -281,5 +281,13 @@
 "first derivative (local least squares)",
 "mass (DTG in the next column)",
 "normalised 0–1",
-"second derivative (local least squares)"
+"second derivative (local least squares)",
+"CmdOrCtrl+-",
+"CmdOrCtrl+0",
+"CmdOrCtrl+=",
+"CmdOrCtrl+Shift+G",
+"CmdOrCtrl+Shift+M",
+"Delete",
+"JSON",
+"[grafico] disegno con Canvas 2D:"
 ]

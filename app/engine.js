@@ -79,7 +79,9 @@
      prefetch(run) lo esegue «in prova»; ogni chiamata pesante non ancora pronta viene annotata e interrompe la prova, il worker la calcola,
      e si riprova finché tutte le chiamate trovano il risultato pronto. Così la pagina lavora a pezzi brevi, mai per secondi interi.
      Fuori da prefetch le funzioni si comportano come sempre. */
-  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates'];
+  // I6: anche i calcoli EPR del controllo del dato (con 1M punti 0,1–0,4 s ciascuno)
+  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates',
+    'eprIsAbsorption','eprEdgeSignal','eprDoubleIntegral','eprWings','eprLines','peakFwhmPts','axisGaps'];
   const BIG=200000, NEED={need:true}, MAXE=24;
   let probe=false, needs=[];
   const cache=[];   // [{fn, args, fps, res}], i più recenti in fondo
@@ -88,11 +90,11 @@
   function fp(a){ if (!ArrayBuffer.isView(a)) return JSON.stringify(a); if (a._acchFp!==undefined) return a._acchFp; let h=a.length>>>0; const st=Math.max(1, Math.floor(a.length/256)), f=new Float64Array(1), u=new Uint32Array(f.buffer);
     for (let i=0;i<a.length;i+=st){ f[0]=a[i]; h=Math.imul(h^u[0], 16777619)>>>0; h=Math.imul(h^u[1], 16777619)>>>0; } return a.constructor.name+a.length+':'+h; }
   function sameArr(a, b){ if (a===b) return true; if (!b || a.length!==b.length || a.constructor!==b.constructor) return false; for (let i=0;i<a.length;i++){ const x=a[i], y=b[i]; if (x!==y && !(x!==x && y!==y) ) return false; if (x===0 && !Object.is(x,y)) return false; } return true; }
-  // argomenti che si possono copiare al worker e confrontare: numeri, testi, vettori tipizzati, piccoli elenchi di valori o di oggetti semplici
-  // (per esempio i picchi {x, xa, xb} di chromMetrics), confrontati per contenuto
+  // argomenti copiabili bit per bit: numeri, testi, vettori numerici, piccoli elenchi (anche di coppie, come le zone di fondo EPR [[a,b],…],
+  // o di oggetti semplici, come i picchi {x, xa, xb} di chromMetrics) e oggetti semplici di parametri (il fondo: {lam, p})
   const prim=v=>v==null || ['number','string','boolean'].includes(typeof v);
   const plainObj=v=>v && typeof v==='object' && !Array.isArray(v) && Object.getPrototypeOf(v)===Object.prototype && Object.values(v).every(prim);
-  const plainArgs=A=>A.every(a=>prim(a) || ArrayBuffer.isView(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>prim(v) || plainObj(v))));
+  const plainArgs=A=>A.every(a=>prim(a) || ArrayBuffer.isView(a) || plainObj(a) || (Array.isArray(a) && a.length<1000 && a.every(v=>prim(v) || plainObj(v) || (Array.isArray(v) && v.length<16 && v.every(prim)))));
   const copy=r=>ArrayBuffer.isView(r) ? r.slice() : (r && typeof r==='object') ? structuredClone(r) : r;   // chi riceve può modificare il risultato
   function lookup(fn, A){ const F=A.map(fp);
     for (let k=cache.length-1;k>=0;k--){ const e=cache[k]; if (e.fn!==fn || e.args.length!==A.length || e.fps.some((x,i)=>x!==F[i])) continue;
@@ -149,17 +151,23 @@
      I risultati restano in memoria (al massimo MAXE, controllati elemento per elemento), così chi chiede di nuovo lo stesso calcolo lo trova.
      Al massimo 40 giri; se il worker non risponde si calcola nella pagina come prima */
   let chain=Promise.resolve();
+  // I6: un calcolo lungo (XRF con più di 200 000 canali) si può annullare: il lavoro in corso finisce con 'cancelled', il worker si ferma
+  // e non si ripiega sul calcolo nella pagina (bloccherebbe la finestra per minuti)
+  let abortGen=0;
+  AcchEngine.abortPrefetch=function(){ abortGen++; kill(new Error('cancelled')); };
   AcchEngine.prefetch=function(run){ const job=chain.then(async ()=>{
-      for (let k=0;k<40;k++){ needs=[]; probe=true; let out, err=null;
+      const g=abortGen, stop=()=>{ if (abortGen!==g) throw new Error('cancelled'); };
+      await pause();   // I6: ogni lavoro parte in un compito suo; prima il secondo partiva subito dopo il primo e i due giri facevano un blocco solo
+      for (let k=0;k<40;k++){ stop(); needs=[]; probe=true; let out, err=null;
         try{ out=run(); }catch(e){ err=e; } finally{ probe=false; }
         const got=needs; needs=[];
         if (!got.length){ if (err) throw err; return out; }   // nessuna chiamata mancante: è il risultato vero, identico a quello sincrono
         for (const n of got){ if (lookup(n.fn, n.args)) continue;
-          let r; try{ r=await heavy(n.fn, n.args); }catch(e){ r=win[n.fn].apply(null, n.args); }   // Rust (I7) o worker; se nessuno dei due risponde, nella pagina
-          store(n.fn, n.args, r); }
+          let r; try{ r=await heavy(n.fn, n.args); }catch(e){ stop(); r=win[n.fn].apply(null, n.args); }   // Rust (I7) o worker; se nessuno dei due risponde, nella pagina
+          stop(); store(n.fn, n.args, r); }
         await pause(); }
-      return run(); });
-    chain=job.catch(()=>{}).then(pause); return job; };   // fra due controlli la finestra respira
+      stop(); return run(); });
+    chain=job.catch(()=>{}); return job; };
   AcchEngine.heavyCache=()=>cache.map(e=>e.fn);
   win.AcchEngine=AcchEngine;
 })(window);

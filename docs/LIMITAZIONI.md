@@ -28,6 +28,7 @@
   - **Raman, calibrazione**: uno spettro spostato di qualche cm⁻¹ può non dare nessun pigmento, senza un avviso specifico.
   - **Serie di spettri**: se tutti i file di una serie sono riconosciuti nella stessa tecnica sbagliata (per esempio LIBS deboli letti come Raman), non c'è un avviso di serie: va corretta la tecnica.
   - **XRF, oltre 50 kV**: il modello del tubo arriva a 50 kV, e una misura a 60 kV viene calcolata a 50 con un avviso.
+  - **XRF con più di 200 000 canali** (desktop 3.0.0): il limite di rivelabilità di Currie usa la linea di base SNIP esatta, che con spettri così fitti richiede minuti (circa 10 con 1 milione di canali su un Mac recente). Il calcolo resta in un processo separato, con un avviso e il tempo stimato, e si può annullare: allora per quello spettro il limite di Currie non si applica e il controllo del dato lo segnala. Online lo stesso calcolo blocca la pagina. Gli spettri XRF degli strumenti hanno al più qualche decina di migliaia di canali.
   - **XRF, righe coincidenti**: As e Pb, As e Hg, W e Au, S e Mo L restano «non distinguibili» quando manca una riga libera.
   - **Dati calcolati**: nessun allargamento dei bastoncini, nessuna conversione nm ↔ eV ↔ cm⁻¹. Uno spettro in eV va scelto a mano come UV, e l'asse resta etichettato in nm.
   - **NMR**: integrali dei soli picchi in elenco, quindi i multipletti risultano sottostimati. Formati Bruker `fid` e `1r`, BES3T e JCAMP NTUPLES non sono letti.

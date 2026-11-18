@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copia in dist-desktop/ solo ciò che serve all'app: pagina, librerie, moduli. Niente test né sorgenti nativi.
-const fs=require('fs'), path=require('path'), crypto=require('crypto'), {extractCore, coreModules, workerSource}=require('./core-extract.js'); const root=path.join(__dirname,'..'), OUT=path.join(root,'dist-desktop');
+const fs=require('fs'), path=require('path'), crypto=require('crypto'), {extractCore, coreModules, workerSource, extractPlot}=require('./core-extract.js'); const root=path.join(__dirname,'..'), OUT=path.join(root,'dist-desktop');
 // pagina del desktop: jsPDF non si carica all'avvio ma alla prima esportazione PDF (ensurePdfLib in index.html), così la prima schermata arriva prima
 const JSPDF_TAG=/<script src="vendor\/jspdf\.umd\.min\.js"><\/script>\r?\n/;
 function desktopHtml(h){ if (!JSPDF_TAG.test(h) || !h.includes('function ensurePdfLib')) throw new Error('prepare-desktop: jsPDF o ensurePdfLib non trovati in index.html'); return h.replace(JSPDF_TAG,''); }
@@ -22,8 +22,12 @@ function main(out){
     mods.push({file:'core.js', sha256:crypto.createHash('sha256').update(extractCore(html)).digest('hex')});
     fs.writeFileSync(path.join(out,'core-modules.json'), JSON.stringify(mods, null, 1)+'\n');
     fs.writeFileSync(path.join(out,'core-worker.js'), workerSource(html)); }   // I5: il worker del nucleo (app/engine.js)
+  // I6: finestre aggiuntive (grafico staccato, confronto): pagina propria con il nucleo e il blocco del disegno della pagina
+  fs.writeFileSync(path.join(out,'plot.js'), extractPlot(fs.readFileSync(path.join(root,'index.html'))));
+  fs.copyFileSync(path.join(root,'app','vista.html'), path.join(out,'vista.html'));
   fs.mkdirSync(path.join(out,'i18n')); fs.copyFileSync(path.join(root,'i18n/en.js'), path.join(out,'i18n/en.js'));
-  if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h); }
+  if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/e2e-grafico.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h);
+    fs.writeFileSync(path.join(out,'app','e2e-grafico.js'), '/* generato da scripts/prepare-desktop.js (test/validation/grafico-dati.js): dati SINTETICI per le misure G1–G3 */\n('+require('../test/validation/grafico-dati.js').I6_SETUP.toString()+')();\n'); }
   console.log('dist-desktop pronto');
 }
 if (require.main===module) main();

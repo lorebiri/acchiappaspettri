@@ -74,6 +74,7 @@ html.shell #shDocTitle h2{margin:0;max-width:44vw!important;font-size:12px;font-
 html.shell #pvWrap{flex:1;min-height:0;position:relative;border:1px solid var(--sh-border);border-radius:0;background:#fff;width:100%;max-height:none;margin:0}
 html.shell #pv,html.shell #pvo{position:absolute;inset:0;width:100%!important;height:100%!important;border-radius:0;border:0;max-height:none!important}
 html.shell #pvo{pointer-events:none}
+html.shell .pvlayer{position:absolute;inset:0;width:100%!important;height:100%!important;border-radius:0;border:0;max-height:none!important;pointer-events:none;background:transparent!important}
 html.shell .insetbar{margin:0;padding:4px 8px;border-radius:3px;flex:none}
 html.shell #cmpBar{flex:none;margin:0;padding:4px 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--sh-pane);border:1px solid var(--sh-border);border-radius:3px}
 html.shell #cmpBar[hidden]{display:none}

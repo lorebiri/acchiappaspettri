@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!-- SPDX-FileCopyrightText: 2026 Lorenzo Birindelli -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- I6: finestre aggiuntive del desktop («Stacca il grafico», «Confronto» in sola lettura). Solo il nucleo e il disegno della pagina:
+     i dati e le impostazioni restano nella finestra principale, che manda il disegno già pronto (app/vista.js). -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acchiappaspettri</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1d2330;--muted:#4b5565;--line:#c9ced8;--acc:#1f5fbf;--btn:#ffffff}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1f24;--fg:#e8eaee;--muted:#b6bcc7;--line:#454b55;--acc:#7fb0ff;--btn:#2a2e35}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);min-height:40px}
+h1{font-size:13px;font-weight:600;margin:0 auto 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:5px;padding:4px 10px;min-height:28px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button:focus-visible,#vcv:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#wrap{position:relative;flex:1;min-height:0;margin:8px}
+#wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+#vcv{background:#fff;border:1px solid var(--line)}
+.pvlayer{pointer-events:none}
+#msg[hidden]{display:none}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5b6474;pointer-events:none}
+#stato{font-size:12px;color:var(--muted);padding:0 10px 6px;min-height:20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="vtit">Acchiappaspettri</h1>
+  <span class="ro" id="vro" hidden>Sola lettura</span>
+  <button type="button" id="vzin" aria-keyshortcuts="+">Ingrandisci</button>
+  <button type="button" id="vzout" aria-keyshortcuts="-">Riduci</button>
+  <button type="button" id="vzall" aria-keyshortcuts="0">Mostra tutto</button>
+</header>
+<div id="wrap">
+  <canvas id="vcv" role="img" tabindex="0" aria-label="Grafico"></canvas>
+  <div id="msg">In attesa della finestra principale…</div>
+</div>
+<div id="stato" aria-live="polite"></div>
+<script src="app/segnala-core.js"></script>
+<script src="app/channels-core.js"></script>
+<script src="app/read-core.js"></script>
+<script src="app/calc-core.js"></script>
+<script src="app/origin-core.js"></script>
+<script src="app/sorption-core.js"></script>
+<script src="app/mcr-core.js"></script>
+<script src="app/kinetics-core.js"></script>
+<script src="app/assess-core.js"></script>
+<script src="core.js"></script>
+<script src="app/plot-index.js"></script>
+<script src="plot.js"></script>
+<script src="app/plot-gl.js"></script>
+<script src="app/vista.js"></script>
+</body>
+</html>
