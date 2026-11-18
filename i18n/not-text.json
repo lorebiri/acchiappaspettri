@@ -274,5 +274,12 @@
 "⚠️ Outside the spectrum: {0}.",
 "✔ {0} baseline applied to {1} spectr{2}{3}.",
 "✔ {0} peak{1} added{2}",
-"✔ {0} {1}{2}"
+"✔ {0} {1}{2}",
+"converted to %T",
+"converted to absorbance",
+"cosmic rays removed (modified z-score > 7, width ≤ 3 points; Whitaker & Hayes 2018)",
+"first derivative (local least squares)",
+"mass (DTG in the next column)",
+"normalised 0–1",
+"second derivative (local least squares)"
 ]

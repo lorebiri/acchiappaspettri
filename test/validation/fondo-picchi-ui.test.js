@@ -129,7 +129,12 @@ test('inglese: pannello del fondo e riquadro dei picchi tradotti, nessuna parola
   await load(p, [['a.txt',ramanTxt()]]);
   const r=await p.evaluate(async ()=>{ openTab('proc'); $('#bMeth').value='anchor'; $('#bMeth').dispatchEvent(new Event('change')); await new Promise(r=>setTimeout(r,100)); const a=$('#baseBox').innerText;
     $('#bMeth').value='als'; $('#bMeth').dispatchEvent(new Event('change')); await new Promise(r=>setTimeout(r,100)); const b=$('#baseBox').innerText;
-    openTab('peaks'); $('#pkAddTxt').value='1500 w=3 lor; 99999'; $('#pkAddTxt').dispatchEvent(new Event('input')); await new Promise(r=>setTimeout(r,100)); return {a, b, c:$('#pkAddBox').innerText}; });
+    openTab('peaks'); $('#pkAddTxt').value='1500 w=3 lor; 99999'; $('#pkAddTxt').dispatchEvent(new Event('input')); await new Promise(r=>setTimeout(r,100));
+    // bozza dei metodi e tracciabilità in inglese: l'elaborazione scelta per il singolo spettro non resta in italiano (prima: «linea di base …»)
+    const f=files[0]; anSet(f,'pBm','als'); f._pk=null; S.smooth.raman=7; const L0=LANG; LANG='en'; const m=methodsText([f], new Set()), tr=traceRows([f])[1].join(' | '); LANG=L0;
+    return {a, b, c:$('#pkAddBox').innerText, m:m.split('\n').filter(l=>/individual spectra/.test(l)).join(' '), tr}; });
+  assert.match(r.m, /ALS baseline \(Eilers & Boelens 2005; λ = /); assert.match(r.m, /smoothing Savitzky–Golay 7 points/); assert.doesNotMatch(r.m, /linea di base|punti\b/);
+  assert.match(r.tr, /ALS baseline/); delete r.m; delete r.tr;
   const ITA=/\b(il|della|delle|dei|nel|che|per|con|non|sono|spettro|spettri|picchi|picco|fondo|punti|scegli|tutti|anche|oppure|più)\b/i;
   for (const [k,t] of Object.entries(r)) assert.doesNotMatch(t.replace(/arPLS|IModPoly|ModPoly|ALS|SNIP|PCHIP/g,''), ITA, k+': '+t.slice(0,600));
   assert.match(r.b, /Baseline removal/); assert.match(r.c, /Add peaks by position/); assert.match(r.c, /Understood: 2 peaks/);

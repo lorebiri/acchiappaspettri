@@ -7045,19 +7045,19 @@ function baseText(b, par, en, f){
   }
   return T('linea di base ','baseline ')+b;
 }
-function procNote(f, P){
-  // nell'ordine in cui il programma le esegue (vedi processed): così il dato esportato si può rifare a mano
-  const i=f.instr, parts=[], conv=S.conv[i], b=pBase(f), sm=pSmooth(f);
-  if (S.spike[i] && ['raman','fluo','gen'].includes(i) && !(P && P.spikes===0)) parts.push((P&&P.spikes?P.spikes+' ':'')+'raggi cosmici rimossi (punteggio z modificato > 7, larghezza ≤ 3 punti; Whitaker & Hayes 2018)');
-  if (conv==='A'||conv==='T') parts.push(conv==='A'?'convertito in assorbanza':'convertito in %T');
-  if (P.diff) parts.push(`differenza: − ${P.diff.k} × ${P.diff.name}`);
-  if (f.xr) parts.push(`intervallo ${f.xr[0]}–${f.xr[1]}`);
-  if (sm) parts.push('smoothing Savitzky–Golay '+sm+' punti');
-  if (b!=='none' && i!=='tga') parts.push(baseText(b, P && P.bm===b ? P.bpar : null, false, f));
-  if (conv==='dtg'||conv==='both') parts.push(conv==='dtg'?'DTG':'massa (DTG nella colonna accanto)');
-  if (conv==='flip') parts.push('ribaltato');
-  if (P.deriv) parts.push(P.deriv===2?'derivata seconda (minimi quadrati locali)':'derivata prima (minimi quadrati locali)');
-  if (conv==='norm') parts.push('normalizzato 0–1');
+function procNote(f, P, en){
+  // nell'ordine in cui il programma le esegue (vedi processed): così il dato esportato si può rifare a mano. en: testo inglese (bozza dei metodi in inglese)
+  const i=f.instr, parts=[], conv=S.conv[i], b=pBase(f), sm=pSmooth(f), T=(a,c)=>en?c:a;
+  if (S.spike[i] && ['raman','fluo','gen'].includes(i) && !(P && P.spikes===0)) parts.push((P&&P.spikes?P.spikes+' ':'')+T('raggi cosmici rimossi (punteggio z modificato > 7, larghezza ≤ 3 punti; Whitaker & Hayes 2018)','cosmic rays removed (modified z-score > 7, width ≤ 3 points; Whitaker & Hayes 2018)'));
+  if (conv==='A'||conv==='T') parts.push(conv==='A'?T('convertito in assorbanza','converted to absorbance'):T('convertito in %T','converted to %T'));
+  if (P.diff) parts.push(`${T('differenza','difference')}: − ${P.diff.k} × ${P.diff.name}`);
+  if (f.xr) parts.push(`${T('intervallo','range')} ${f.xr[0]}–${f.xr[1]}`);
+  if (sm) parts.push('smoothing Savitzky–Golay '+sm+T(' punti',' points'));
+  if (b!=='none' && i!=='tga') parts.push(baseText(b, P && P.bm===b ? P.bpar : null, !!en, f));
+  if (conv==='dtg'||conv==='both') parts.push(conv==='dtg'?'DTG':T('massa (DTG nella colonna accanto)','mass (DTG in the next column)'));
+  if (conv==='flip') parts.push(T('ribaltato','flipped'));
+  if (P.deriv) parts.push(P.deriv===2?T('derivata seconda (minimi quadrati locali)','second derivative (local least squares)'):T('derivata prima (minimi quadrati locali)','first derivative (local least squares)'));
+  if (conv==='norm') parts.push(T('normalizzato 0–1','normalised 0–1'));
   return parts.join('; ');
 }
 async function buildOriginXlsx(){
@@ -7296,7 +7296,7 @@ function csvBlob(rows){ const sep=LANG==='en'?',':';'; return new Blob(['\uFEFF'
 /* una riga per spettro: quale file, con quale impronta, con quali scelte. Serve a ricostruire un dato esportato */
 function traceRows(list){ const en=LANG==='en', n=v=>v==null?'':String(v), out=[[en?'File':'File','SHA-256',en?'Bytes':'Byte',en?'Points':'Punti',en?'Technique':'Tecnica',en?'Recognised from':'Riconosciuta da',en?'Y column':'Colonna Y',en?'X scale':'Scala X',en?'X shift':'Spostamento X',en?'Processing':'Elaborazione',en?'Printed range':'Zona stampata',en?'Peak sensitivity':'Sensibilità dei picchi',en?'Cosmic-ray threshold':'Soglia dei raggi cosmici',en?'Computed data':'Dato calcolato',en?'Application version':'Versione del programma',en?'Exported':'Esportato']];
   const now=new Date().toISOString(); for (const f of list){ let h=''; try{ if (f.raw) h=AcchFormat.sha256(new Uint8Array(f.raw)); }catch(e){}
-    out.push([f.path||f.name, h, f.size, f.xs.length, NOME_IT[f.instr], f.instr===f.autoInstr?f.reason:(en?'chosen by hand':'scelta a mano'), ((f.an&&f.an.ycol)||1)+1, n(f.ecal&&f.ecal.b), n(f.ecal&&f.ecal.a), procNote(f,processed(f))||'', f.xr?f.xr.join(' - '):'', (S.sens&&typeof S.sens==='object'?S.sens[f.instr]:S.sens)??'', S.spike&&S.spike[f.instr]&&['raman','fluo','gen'].includes(f.instr)?'z > 7; larghezza ≤ 3 punti':'', f.an&&f.an.calc?(en?'yes':'sì'):'', APP_VERSION_FULL(), now]); }
+    out.push([f.path||f.name, h, f.size, f.xs.length, NOME_IT[f.instr], f.instr===f.autoInstr?f.reason:(en?'chosen by hand':'scelta a mano'), ((f.an&&f.an.ycol)||1)+1, n(f.ecal&&f.ecal.b), n(f.ecal&&f.ecal.a), procNote(f,processed(f),en)||'', f.xr?f.xr.join(' - '):'', (S.sens&&typeof S.sens==='object'?S.sens[f.instr]:S.sens)??'', S.spike&&S.spike[f.instr]&&['raman','fluo','gen'].includes(f.instr)?'z > 7; larghezza ≤ 3 punti':'', f.an&&f.an.calc?(en?'yes':'sì'):'', APP_VERSION_FULL(), now]); }
   return out; }
 /* i file delle voci scelte, nell'ordine e con i percorsi di sempre dentro lo ZIP: [{key, path, data}] (data: Blob o testo).
    Il contenuto di ogni file è quello che buildZip ha sempre scritto: cambia solo il contenitore (cartella, file singoli o ZIP) */
@@ -8228,7 +8228,7 @@ function renderMulti(){
   else if (!rows) html='<div class="pkempty">Imposta la zona della banda (o scegli un indice pronto): misuro la stessa banda su tutti gli spettri.</div>';
   else {
     const yl = (c.c!=null && c.d!=null) ? `rapporto ${MEAS_NAME[c.meas]}` : c.meas==='value' && instr==='uv' ? `A (${fmtN(c.a,0)} nm)` : MEAS_NAME[c.meas];
-    { const ps=new Set(rows.filter(o=>o.y!=null).map(o=>pSmooth(o.f)+'|'+pBase(o.f))); if (ps.size>1) html+='<p class="why">⚠️ Gli spettri della tabella hanno elaborazioni diverse (smoothing o linea di base per singolo spettro): standard e campioni vanno elaborati allo stesso modo.</p>'; }
+    { const ps=new Set(rows.filter(o=>o.y!=null).map(o=>pSmooth(o.f)+'|'+pBase(o.f)+'|'+JSON.stringify(pBaseP(o.f)))); if (ps.size>1) html+='<p class="why">⚠️ Gli spettri della tabella hanno elaborazioni diverse (smoothing o linea di base per singolo spettro): standard e campioni vanno elaborati allo stesso modo.</p>'; }
     if (rows.some(o=>o.stale)) html+='<p class="why">⚠️ Hai cambiato zona: le concentrazioni scritte erano per un\'altra banda. Controllale: con più composti ognuno ha le sue.</p>';
     if (cal && cal.weight) html+='<p class="why">Con i pesi LOD e LOQ dipendono dalla dispersione allo standard più basso e possono essere ottimistici: verificali con bianchi replicati.</p>';
     if (rows.length && (S.conv[instr]==='norm' || processed(rows[0].f).deriv)) html+='<p class="why">⚠️ Lo spettro è normalizzato o in derivata: questa retta non misura le quantità. Per la taratura usa i dati originali.</p>';
@@ -8899,7 +8899,7 @@ function methodsText(inc, used){
   }
   { const cal=inc.filter(f=>f.an&&f.an.calc); if (cal.length) proc.push(T('Spettri calcolati, non misurati: ','Computed, not measured spectra: ')+cal.map(dispTitle).join('; ')+'.'); }
   inc.forEach(f=>{ const b=pBase(f); if (['als','modpoly','imodpoly','rball','arpls','snip'].includes(b) && f.an && f.an.pBm!=null) cite.add(b); if (b==='als'||b==='arpls') cite.add('whit'); if (b==='anchor' && !(f.an&&f.an.pBp&&f.an.pBp.interp==='linear')) cite.add('pchip'); });
-  { const own=inc.filter(f=>f.an&&(f.an.pSm!=null||f.an.pBm!=null)); if (own.length) proc.push(T('Elaborazione scelta per singolo spettro: ','Processing chosen for individual spectra: ')+own.map(f=>`${dispTitle(f)} (${procNote(f,processed(f))||T('nessuna','none')})`).join('; ')+'.'); }
+  { const own=inc.filter(f=>f.an&&(f.an.pSm!=null||f.an.pBm!=null)); if (own.length) proc.push(T('Elaborazione scelta per singolo spettro: ','Processing chosen for individual spectra: ')+own.map(f=>`${dispTitle(f)} (${procNote(f,processed(f),en)||T('nessuna','none')})`).join('; ')+'.'); }
   parts.push(T('Elaborazione degli spettri. ','Spectral processing. ')+proc.join(' '));
   parts.push(T(`I picchi sono stati individuati per prominenza, con soglia pari a 8 volte la deviazione standard del rumore (stimata in modo robusto dalla mediana delle differenze seconde) e al ${S.sens}% della prominenza massima, dopo smoothing di Savitzky–Golay adattato alla larghezza dei picchi; la posizione è affinata per interpolazione parabolica.`,
     `Peaks were detected by prominence, with a threshold of 8 times the noise standard deviation (robustly estimated from the median of second differences) and ${S.sens}% of the largest prominence, after Savitzky–Golay smoothing matched to the peak width; positions were refined by parabolic interpolation.`)); cite.add('sg');
