@@ -106,7 +106,25 @@ Osservazioni non corrette (sezione 5): permesso `opener:allow-reveal-item-in-dir
 
 ## 4. Test e build: prima e dopo
 
-__TEST__
+«Prima» = `desktop` 3.0.0-rc.5 (77bc847), su questa macchina Linux. «Dopo» = branch finale (rc.5 + I5, I6, I7, I9, I11 + questo lavoro), stessa macchina, a macchina scarica. Le suite dei rami uniti contengono più test: i totali crescono anche per questo.
+
+| Suite | Comando | Prima (rc.5) | Dopo (candidata rc.6) |
+|---|---|---|---|
+| Unitari | `npm test` | 241 superati, 0 falliti, 1 saltato | **293 superati, 0 falliti, 6 saltati** (saltati: prove che richiedono il binario Rust o un'app vera) |
+| Validazione numerica | `npm run test:validation` | 61 superati, 0 falliti, 3 saltati | **77 superati, 0 falliti, 3 saltati** (nuova R12, fondo) |
+| Validazione nell'interfaccia | `npm run test:validation:ui` | 198 su 198 | **252 su 253**: 208 + 23 + 21 su 22. Fallisce `i6-grafico-ui` «G3» (scarto di 2 px contro 1 ammesso, WebGL software di Linux): **fallisce identico sul ramo `wip/i6-grafico-webgl` senza questo lavoro**, non è stato disattivato. Dentro la suite ci sono i nuovi `fondo-picchi-ui` (8), `sicurezza-csv-ui` (2) e `debug-conclusione-ui` (6) |
+| Collaudo dell'interfaccia | `node test/ui-run.js` | 39 su 39 | **39 su 39** |
+| Tempi del motore (I5) | `npm run test:validation:tempi` | — | 1 su 1 |
+| Benchmark scientifici | `N=20 node test/benchmark-gate.js` | 36 controlli superati | **36 controlli superati** |
+| Rust, app | `cargo test --lib` (src-tauri) | 19 su 19 (agente sicurezza) | **22 su 22** (con il nuovo `write_into_non_crea_cartelle_fuori`) |
+| Rust, motore | `cargo test -p acch-core` | — | 10 su 10 |
+| Clippy | `cargo clippy --all-targets` | 0 errori, 5 avvisi di stile | non ripetuto sull'insieme |
+| Build desktop | `prepare-desktop` + `tauri build --debug --features e2e --no-bundle` + `run-e2e.js` (xvfb) | ok; collaudo nell'app vera 34 su 34 e «apri grezzi» 6 su 6 (agente, sulla rc.5) | `prepare-desktop` ok e worker con `baseline-core.js` verificato; build Rust di test ok; **la build Tauri completa e il collaudo e2e non sono stati ripetuti sull'insieme unito** (da fare in CI) |
+| `npm audit` | | 0 vulnerabilità | 0 vulnerabilità |
+| `cargo audit` | | 0 vulnerabilità, 6 avvisi (crate non mantenuti, glib unsound, indiretti) | dipendenze Rust invariate dai rami uniti salvo `acch-core` (nessuna nuova crate esterna oltre a quelle già nel Cargo.lock) |
+| Installer di release, Windows, macOS | | non eseguibili qui | non eseguibili qui |
+
+Una prova di tempi I9 («nessun compito oltre 50 ms») è fallita una volta con la macchina sotto carico (load 8 su 4 core per agenti e benchmark) ed è passata nel giro finale a macchina scarica.
 
 ## 5. Decisioni che spettano a Lorenzo
 
@@ -121,6 +139,7 @@ __TEST__
 9. **Prova dei tempi I9** («nessun compito oltre 50 ms»): fallita una volta con la macchina sotto carico (load 8 su 4 core), passata a macchina scarica (sezione 4). Se capita anche in CI, va resa meno sensibile al carico.
 10. **`npm test` riscrive `i18n/_pairs.json`** (l'estrattore lo salva compatto): dopo i test l'albero di lavoro risulta modificato. Da sistemare nello script o accettare.
 11. **Pubblicazione**: nessun merge, release né tag sono stati fatti. Unione in `desktop`/`main` e pubblicazione della rc.6 restano a Lorenzo.
+12. **Test I6 «G3» del grafico**: fallisce su Linux con il WebGL software (2 px contro 1 ammesso) anche sul ramo `wip/i6-grafico-webgl` da solo. Sul Mac passava. Va deciso se la tolleranza dipende dal motore grafico o se c'è un difetto vero nel ripiego WebGL; non l'ho toccato.
 
 ## 6. Funzionalità (per una presentazione)
 
