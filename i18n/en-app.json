@@ -1385,5 +1385,9 @@
   "⚠️ {0}: metodo non adatto agli spettri {1}.": "⚠️ {0}: method not suitable for {1} spectra.",
   "✓ Fine scelta dei punti": "✓ Done choosing points",
   "✔ Fondo {0} applicato a {1} spettr{2}{3}.": "✔ {0} baseline applied to {1} spectr{2}{3}.",
-  "📍 Scegli i punti sul grafico": "📍 Pick the points on the plot"
+  "📍 Scegli i punti sul grafico": "📍 Pick the points on the plot",
+  "Fondo tolto come vuoi tu": "Baseline removed your way",
+  "Nella scheda Picchi scrivi una o più posizioni (anche con larghezza e forma) e io le aggiungo, agganciandole al massimo vicino se vuoi. Contano come i picchi trovati da me per nomi, aree, deconvoluzione e quantificazione.": "In the Peaks tab type one or more positions (also with width and shape) and I add them, snapping them to the nearest maximum if you like. They count like the peaks I find for names, areas, deconvolution and quantitation.",
+  "Per il Raman con fluorescenza e non solo: ALS, arPLS, polinomio iterativo, SNIP, rolling ball o punti scelti da te, con i parametri regolabili e il fondo stimato sul grafico mentre li muovi. Per uno spettro o per tutti, e si torna indietro quando vuoi.": "For Raman with fluorescence and beyond: ALS, arPLS, iterative polynomial, SNIP, rolling ball or points you pick, with adjustable parameters and the estimated baseline on the plot while you move them. For one spectrum or for all, and you can go back whenever you like.",
+  "Picchi scritti per posizione": "Peaks typed by position"
 }
