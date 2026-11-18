@@ -6294,10 +6294,10 @@ function pkEditRow(f, tr, p){ if (!p) return; const unit=f.uncal ? (uiEn()?'chan
 function pkAddPreview(){ const f=files[cur], el=$('#pkAddPrev'); if (!el) return; if (!f){ el.textContent=''; return; }
   const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]), txt=$('#pkAddTxt').value;
   if (!txt.trim()){ el.textContent=`Lo spettro va da ${fmtTick(lo,2)} a ${fmtTick(hi,2)}. Più posizioni insieme: separale con «;», con una virgola e uno spazio o scrivine una per riga.`; return; }
-  const r=parseNumList(txt, [lo,hi], {extras:true}), out=r.items.filter(q=>q.x<lo||q.x>hi);
-  el.innerHTML = (r.items.length ? `Capito: ${r.items.length} ${r.items.length===1?'picco':'picchi'} a ${r.items.slice(0,12).map(q=>esc(numOut(+q.x.toPrecision(10)))+(q.w?` (FWHM ${esc(fmtG(q.w,3))}${q.sh?', '+PK_SHAPE[q.sh]:''})`:q.sh?` (${PK_SHAPE[q.sh]})`:'')).join('; ')}${r.items.length>12?'…':''}.` : '')
-    + (out.length ? ` ⚠️ Fuori dallo spettro: ${out.map(q=>esc(q.txt)).join(', ')}.` : '')
-    + (r.bad.length ? ` ⚠️ Non capisco: ${r.bad.slice(0,5).map(b=>'«'+esc(b)+'»').join(', ')}${r.amb?' (un numero come 1,086 è ambiguo: scrivi 1086 o 1,0860)':''}.` : ''); }
+  const r=parseNumList(txt, [lo,hi], {extras:true}), out=r.items.filter(q=>q.x<lo||q.x>hi), en=uiEn(), SHN=en?{gauss:'Gaussian',lor:'Lorentzian',pv:'pseudo-Voigt'}:PK_SHAPE;
+  const list=r.items.slice(0,12).map(q=>esc(numOut(+q.x.toPrecision(10)))+(q.w?` (FWHM ${esc(fmtG(q.w,3))}${q.sh?', '+SHN[q.sh]:''})`:q.sh?` (${SHN[q.sh]})`:'')).join('; ')+(r.items.length>12?'…':''), bad=r.bad.slice(0,5).map(b=>'«'+esc(b)+'»').join(', '), ol=out.map(q=>esc(q.txt)).join(', ');
+  el.innerHTML = en ? (r.items.length ? `Understood: ${r.items.length} peak${r.items.length===1?'':'s'} at ${list}.` : '') + (out.length ? ` ⚠️ Outside the spectrum: ${ol}.` : '') + (r.bad.length ? ` ⚠️ Not understood: ${bad}${r.amb?' (a number like 1,086 is ambiguous: write 1086 or 1.086)':''}.` : '')
+    : (r.items.length ? `Capito: ${r.items.length} ${r.items.length===1?'picco':'picchi'} a ${list}.` : '') + (out.length ? ` ⚠️ Fuori dallo spettro: ${ol}.` : '') + (r.bad.length ? ` ⚠️ Non capisco: ${bad}${r.amb?' (un numero come 1,086 è ambiguo: scrivi 1086 o 1,0860)':''}.` : ''); }
 function pkAddRun(){ const f=files[cur]; if (!f) return; const txt=$('#pkAddTxt').value; if (!txt.trim()){ $('#pkAddTxt').focus(); return; }
   let w=null, tol=null, okW=true, okT=true;
   if ($('#pkAddW').value.trim()){ numField($('#pkAddW'), v=>{ w=v; }); if (!(w>0)){ okW=false; if (w!=null) toast('⚠️ La larghezza deve essere maggiore di zero.'); } }
@@ -6305,10 +6305,11 @@ function pkAddRun(){ const f=files[cur]; if (!f) return; const txt=$('#pkAddTxt'
   if (!okW || !okT) return;
   if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
   const r=pkAddTyped(f, {text:txt, w, sh:$('#pkAddSh').value||null, snap, tol});
-  const msg=[]; if (r.added.length) msg.push(`✔ ${r.added.length} ${r.added.length===1?'picco aggiunto':'picchi aggiunti'}${r.snapped.length?` (${r.snapped.length} agganciat${r.snapped.length===1?'o':'i'} al massimo vicino)`:''}`);
-  if (r.free.length && r.added.length) msg.push(`nessun massimo entro la tolleranza, lasciati dove li hai scritti: ${r.free.join(', ')}`);
-  if (r.dup.length) msg.push(`già presenti: ${r.dup.join(', ')}`); if (r.out.length) msg.push(`fuori dallo spettro: ${r.out.join(', ')}`); if (r.bad.length) msg.push(`non capiti: ${r.bad.join(', ')}`);
-  toast((r.added.length?'':'⚠️ ')+(msg.join(' · ')||'Nessun picco aggiunto.')+(r.added.length?' Ctrl+Z annulla.':''));
+  const en=uiEn(), msg=[], na=r.added.length, ns=r.snapped.length;
+  if (na) msg.push(en ? `✔ ${na} peak${na===1?'':'s'} added${ns?` (${ns} snapped to the nearest maximum)`:''}` : `✔ ${na} ${na===1?'picco aggiunto':'picchi aggiunti'}${ns?` (${ns} agganciat${ns===1?'o':'i'} al massimo vicino)`:''}`);
+  if (r.free.length && na) msg.push(en ? `no maximum within the tolerance, left where you wrote them: ${r.free.join(', ')}` : `nessun massimo entro la tolleranza, lasciati dove li hai scritti: ${r.free.join(', ')}`);
+  if (r.dup.length) msg.push((en?'already there: ':'già presenti: ')+r.dup.join(', ')); if (r.out.length) msg.push((en?'outside the spectrum: ':'fuori dallo spettro: ')+r.out.join(', ')); if (r.bad.length) msg.push((en?'not understood: ':'non capiti: ')+r.bad.join(', '));
+  toast((na?'':'⚠️ ')+(msg.join(' · ')||(en?'No peak added.':'Nessun picco aggiunto.'))+(na?(en?' Ctrl+Z undoes.':' Ctrl+Z annulla.'):''));
   if (r.added.length && !r.bad.length && !r.out.length) $('#pkAddTxt').value='';
   pkAddPreview(); }
 $('#pkAddTxt').addEventListener('input', pkAddPreview);
@@ -6553,6 +6554,7 @@ function renderProc(){
 /* ---- Rimozione del fondo: parametri, anteprima dal vivo, punti di ancoraggio, «applica a tutti», annulla ----
    L'ambito è quello già noto: tutti gli spettri della tecnica (impostazioni S.base e S.baseP) o solo questo spettro (f.an.pBm e f.an.pBp,
    salvati nel progetto). Il dato originale non si tocca: il fondo è un passo della catena di elaborazione (processed), prima dei picchi. */
+const BASEM_EN={none:'no', rubber:'automatic (hull)', linear:'linear', arpls:'arPLS', snip:'SNIP', als:'ALS', modpoly:'ModPoly', imodpoly:'IModPoly', rball:'rolling-ball', anchor:'anchor-point'};
 const BASEM_NAME={none:'nessuna', rubber:'automatica (inviluppo)', linear:'lineare', arpls:'arPLS', snip:'SNIP', als:'ALS', modpoly:'ModPoly', imodpoly:'IModPoly', rball:'rolling ball', anchor:'punti di ancoraggio'};
 const BASE_UI={
   als:[{k:'lam',t:'Rigidità λ',log:[1,13],sub:'più alta: fondo più liscio, che non entra nelle bande larghe'},{k:'p',t:'Asimmetria p',log:[-4,Math.log10(0.5)],sub:'peso dei punti sopra il fondo: 0,001–0,1'},{k:'iter',t:'Iterazioni',num:[1,100],adv:true}],
@@ -6589,7 +6591,8 @@ function baseApplyAll(f){ const m=pBase(f), par=AcchBaseline.cleanParams(m, base
   baseSnap();
   for (const g of files){ if (!baseAllowed(g.instr, m)){ no.push(dispTitle(g)); continue; } anSet(g,'pBm',m); anSet(g,'pBp',par?JSON.parse(JSON.stringify(par)):null); ok++; }
   baseRefresh();
-  toast(`✔ Fondo ${BASEM_NAME[m]} applicato a ${ok} spettr${ok===1?'o':'i'}${no.length?` · non adatto e lasciato com'era: ${no.slice(0,4).join(', ')}${no.length>4?'…':''}`:''}.`); }
+  const nl=no.slice(0,4).join(', ')+(no.length>4?'…':'');
+  toast(uiEn() ? `✔ ${BASEM_EN[m]||m} baseline applied to ${ok} spectr${ok===1?'um':'a'}${no.length?` · not suitable, left as they were: ${nl}`:''}.` : `✔ Fondo ${BASEM_NAME[m]} applicato a ${ok} spettr${ok===1?'o':'i'}${no.length?` · non adatto e lasciato com'era: ${nl}`:''}.`); }
 /* lunghezze in punti con il valore corrispondente sull'asse */
 function basePtsTxt(f, v){ const P=processed(f), n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):0, u=(xUnit(f)||'').replace('cm-1','cm⁻¹');
   return `${Math.round(v)} punti${dx?` ≈ ${fmtG(v*dx,3)} ${u}`:''}`; }
@@ -6651,7 +6654,8 @@ function renderBaseBox(){
   $('#bUndo').onclick=baseUndo;
   $('#bOff').onclick=()=>{ baseSnap(); baseSetMethod(f, 'none'); baseAnchorPick=false; baseRefresh(); toast('Fondo non più tolto: lo spettro è com\'era nel file. ↶ Annulla per tornare indietro.'); };
   if ($('#bPts')) $('#bPts').onchange=e=>{ const P2=processed(f), lo=Math.min(P2.xs[0],P2.xs[P2.xs.length-1]), hi=Math.max(P2.xs[0],P2.xs[P2.xs.length-1]), r=parseNumList(e.target.value, [lo,hi]);
-    if (r.bad.length) toast(`⚠️ Non capisco: ${r.bad.slice(0,4).map(b=>'«'+b+'»').join(', ')}. ${r.amb?'Scrivi il numero senza ambiguità.':'Usa numeri separati da «;», da virgola e spazio o uno per riga.'}`);
+    const bl=r.bad.slice(0,4).map(b=>'«'+b+'»').join(', ');
+    if (r.bad.length) toast(uiEn() ? `⚠️ Not understood: ${bl}. ${r.amb?'Write the number unambiguously (1,086 could be 1086 or 1.086).':'Separate numbers with «;», a comma and a space, or one per line.'}` : `⚠️ Non capisco: ${bl}. ${r.amb?'Scrivi il numero senza ambiguità (1,086 può essere 1086 o 1,086).':'Usa numeri separati da «;», da virgola e spazio o uno per riga.'}`);
     const out=r.items.map(q=>q.x).filter(x=>x<lo||x>hi); if (out.length) toast(`⚠️ Fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}): ${out.map(x=>fmtTick(x,2)).join(', ')}.`);
     baseSnap(); const par=baseParOf(f); par.pts=r.items.map(q=>q.x).filter(x=>x>=lo&&x<=hi); baseSetPar(f, par); baseRefresh(); };
   if ($('#bInterp')) $('#bInterp').onchange=e=>{ baseSnap(); const par=baseParOf(f); if (e.target.value==='linear') par.interp='linear'; else delete par.interp; baseSetPar(f, par); baseRefresh(); };
@@ -6662,7 +6666,7 @@ function baseInfo(f){ const el=$('#bInfo'); if (!el || !f) return; const P=proce
   if (m==='anchor' && !P.base){ el.textContent='⚠️ Servono almeno due punti di ancoraggio: finché non ci sono, il fondo non viene tolto.'; return; }
   if (!P.base){ el.textContent='⚠️ Il fondo non si può calcolare su questo spettro: resta com\'è.'; return; }
   let neg=0; const U=P.kind==='T'?null:P.ys; if (U){ let mx=-Infinity; for (const v of U) if (v>mx) mx=v; const sg=noiseSigma(U); for (const v of U) if (v< -4*sg-0.02*Math.abs(mx)) neg++; }
-  el.textContent = `Fondo ${BASEM_NAME[m]} su ${P.xs.length} punti, calcolato in ${fmtN(Math.max(0.1,f._bms||0),1)} ms.`+(neg>P.xs.length*0.05?' ⚠️ Lo spettro corretto scende sotto zero in più punti: il fondo è troppo alto, abbassa la rigidità o cambia metodo.':''); }
+  el.innerHTML = `<span>Fondo ${esc(BASEM_NAME[m])} su ${P.xs.length} punti, calcolato in ${fmtN(Math.max(0.1,f._bms||0),1)} ms.</span>`+(neg>P.xs.length*0.05?' <span>⚠️ Lo spettro corretto scende sotto zero in più punti: il fondo è troppo alto, abbassa la rigidità o cambia metodo.</span>':''); }
 /* posizioni scritte a mano, per i picchi e per i punti di ancoraggio: separate da «;», a capo, spazio o virgola e spazio; la virgola senza spazio è decimale
    (più virgole senza spazi, «1086,712,280», sono un elenco). Un numero come «1,086» (migliaia o decimale?) si accetta solo se una delle due
    letture cade nello spettro, altrimenti si rifiuta. Con opt.extras, accanto alla posizione: larghezza (w=8, fwhm=8) e forma (gauss, lor, pv).
