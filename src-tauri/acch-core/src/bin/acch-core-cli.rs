@@ -50,6 +50,13 @@ fn main() {
         }
         return;
     }
+    // I10: acch-core-cli --cube <uscita.acw> <tipo> <file> [<intestazione ENVI>] [--ops <file>] [--disk]
+    // → il cubo letto (dimensioni, assi, dati in f64) e i calcoli elencati in <file>, una riga ciascuno:
+    // «area|height|peak a b base», «ratio a b a2 b2 base», «intensity at», «roi x0 y0 x1 y1», «bin f», «pixel ix iy».
+    // --disk: il cubo .wdf resta sul file (lettura a pezzi, come per i cubi grandi del desktop). Stampa i millisecondi.
+    if args[0] == "--cube" && args.len() >= 4 {
+        std::process::exit(cube_cli(&args[1..]));
+    }
     let out = std::path::PathBuf::from(&args[0]);
     std::fs::create_dir_all(&out).expect("cartella di uscita");
     let opt = acch_core::Opt { legacy: args.iter().any(|a| a == "--legacy") };
@@ -74,4 +81,101 @@ fn main() {
         }
     }
     std::process::exit(code);
+}
+
+fn cube_cli(a: &[String]) -> i32 {
+    use acch_core::cube;
+    let (out, kind, main) = (&a[0], &a[1], &a[2]);
+    let mut hdr: Option<String> = None;
+    let mut ops: Vec<String> = Vec::new();
+    let mut disk = false;
+    let mut i = 3;
+    while i < a.len() {
+        match a[i].as_str() {
+            "--ops" => {
+                ops = std::fs::read_to_string(&a[i + 1]).expect("calcoli").lines().map(|s| s.to_string()).filter(|s| !s.trim().is_empty()).collect();
+                i += 2;
+            }
+            "--disk" => {
+                disk = true;
+                i += 1;
+            }
+            p => {
+                hdr = Some(String::from_utf8_lossy(&std::fs::read(p).expect("intestazione")).into_owned());
+                i += 1;
+            }
+        }
+    }
+    let t = Instant::now();
+    let bytes = std::fs::read(main).expect("file");
+    let file = if disk { Some(std::path::Path::new(main)) } else { None };
+    let mut w = acch_core::Wire::new_pub();
+    let res = cube::read(kind, &bytes, hdr.as_deref(), file);
+    let r = match res {
+        Err(e) => {
+            w.raw_pub("{").key_pub("error").str_pub(&e.0).raw_pub("}");
+            None
+        }
+        Ok(None) => {
+            w.raw_pub("{").key_pub("none").raw_pub("true}");
+            None
+        }
+        Ok(Some(c)) => Some(c),
+    };
+    if let Some(c) = r {
+        w.raw_pub("{");
+        cube::wire_head(&mut w, &c, true).expect("dati");
+        w.key_pub("results").raw_pub("[");
+        for (k, line) in ops.iter().enumerate() {
+            if k > 0 {
+                w.raw_pub(",");
+            }
+            let f: Vec<&str> = line.split_whitespace().collect();
+            let n = |j: usize| f[j].parse::<f64>().unwrap();
+            w.raw_pub("{");
+            match f[0] {
+                "roi" => match cube::roi_mean(&c, Some((n(1) as i64, n(2) as i64, n(3) as i64, n(4) as i64)), &[]) {
+                    Ok((m, cnt)) => {
+                        w.key_pub("n").num_pub(cnt).key_pub("mean").arr_pub(&m);
+                    }
+                    Err(e) => {
+                        w.key_pub("error").str_pub(&e.0);
+                    }
+                },
+                "bin" => match cube::bin(&c, n(1) as usize, &|| false) {
+                    Ok(b) => {
+                        cube::wire_head(&mut w, &b, true).expect("dati");
+                    }
+                    Err(e) => {
+                        w.key_pub("error").str_pub(&e.0);
+                    }
+                },
+                "pixel" => {
+                    let mut s = vec![0.0; c.nc];
+                    c.pixel(n(2) as usize * c.nx + n(1) as usize, &mut s).expect("pixel");
+                    w.key_pub("spectrum").arr_pub(&s);
+                }
+                k => {
+                    let op = match k {
+                        "intensity" => cube::Op { kind: k.into(), a: 0.0, b: 0.0, a2: 0.0, b2: 0.0, at: n(1), base: "none".into() },
+                        "ratio" => cube::Op { kind: k.into(), a: n(1), b: n(2), a2: n(3), b2: n(4), at: 0.0, base: f[5].into() },
+                        _ => cube::Op { kind: k.into(), a: n(1), b: n(2), a2: 0.0, b2: 0.0, at: 0.0, base: f[3].into() },
+                    };
+                    match cube::band_image(&c, &op, &|| false, &mut |_| {}) {
+                        Ok(img) => {
+                            w.key_pub("image").arr_pub(&img);
+                        }
+                        Err(e) => {
+                            w.key_pub("error").str_pub(&e.0);
+                        }
+                    }
+                }
+            }
+            w.raw_pub("}");
+        }
+        w.raw_pub("]}");
+    }
+    std::fs::write(out, w.bytes()).expect("scrittura");
+    println!("{:.1}", t.elapsed().as_secs_f64() * 1000.0);
+    0
 }

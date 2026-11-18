@@ -1,8 +1,8 @@
 # Validazione numerica di Acchiappaspettri
 
-Documento generato da `scripts/gen-validazione.js` il 2026-11-13. **Non modificare a mano**: rigenerarlo.
+Documento generato da `scripts/gen-validazione.js` il 2026-11-16. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **3.0.0-rc.3** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Versione dell'app: **3.0.0-rc.5** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
 - Motore: Node v26.13.0 (V8 14.6.202.34-node.40), darwin arm64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).
@@ -266,6 +266,23 @@ Dati sintetici con parametri noti e formule pubblicate; formati Kaomi per il che
 | Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 90 | 89.9846610498687 | -0.017 % (≤ 1 %) | ✓ |
 | Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 140 | 139.977136508864 | -0.016 % (≤ 1 %) | ✓ |
 | Redhead, primo ordine: E (kJ/mol) | Polanyi–Wigner simulato | 100 | 99.6720606307535 | -0.328 % (≤ 2 %) | ✓ |
+
+## R12. Mappe e dati iperspettrali (`app/map-core.js`, SPEC-AVANZATE §1)
+
+Il committente non ha strumenti né file di mappe: validazione su dati **sintetici** con verità nota (`test/unit/mappe-dati.js`: tre bande gaussiane con mappe di concentrazione note, fondo lineare, banda che si sposta di ±1,5 cm⁻¹) e su **file pubblici** letti solo in locale (non ridistribuiti): i sei `.wdf` d'esempio di py-wdf-reader (MIT) e cinque campioni ENVI dei test di GDAL (MIT), confrontati con un lettore indipendente in Python (`test/validation/mappe/rif_pubblici.py`, solo `struct`; valori in `mappe/pubblici.json`). Lettori Horiba LabSpec nativi (`.l6s`) e Bruker OPUS a mappa con file reali: non disponibili (la serie OPUS è DEDOTTA da brukeropus). Test: `test/validation/r12-mappe.test.js`; Rust identico al JS bit per bit: `test/unit/dual-mappe.test.js`.
+
+| Prova (sintetici) | Formato | Atteso | Ottenuto | Soglia | Esito |
+|---|---|---|---|---|---|
+| Area di banda con fondo lineare, 3 bande | .wdf per colonne | A·c (errore relativo) | 1,29e-7 | < 2e-3 | ✓ |
+| Posizione del picco (cm⁻¹) | .wdf per colonne | 1000 ± 1,5 | 8,77e-3 | < 0,05 | ✓ |
+| Area di banda con fondo lineare, 3 bande | ENVI BIP | A·c (errore relativo) | 1,29e-7 | < 2e-3 | ✓ |
+| Posizione del picco (cm⁻¹) | ENVI BIP | 1000 ± 1,5 | 8,77e-3 | < 0,05 | ✓ |
+| Area di banda con fondo lineare, 3 bande | testo X Y onda intensità | A·c (errore relativo) | 1,29e-7 | < 2e-3 | ✓ |
+| Posizione del picco (cm⁻¹) | testo X Y onda intensità | 1000 ± 1,5 | 8,77e-3 | < 0,05 | ✓ |
+| MCR-ALS sul cubo srotolato, rumore 0 | .wdf | mappe di concentrazione vere | correlazione minima 1,00000 | > 0,999 | ✓ |
+| MCR-ALS sul cubo srotolato, rumore 0,5 | .wdf | mappe di concentrazione vere | correlazione minima 1,00000 | > 0,99 | ✓ |
+
+File pubblici (prova locale, 16/11/2026): dimensioni, asse e spettri di 6 pixel per file uguali bit per bit al lettore indipendente; BIL, BIP e BSQ di GDAL danno lo stesso cubo; il `.wdf` StreamLine (acquisizione per colonne, WMAP flags 2) va al suo posto grazie alle coordinate ORGN, mentre l'ordine «per righe» di py-wdf-reader lo trasporrebbe. Prestazioni: vedi `test/validation/i10-mappe-ui.test.js` e il rapporto della tappa I10.
 
 ## R13. MCR-ALS (`app/mcr-core.js`, SPEC-AVANZATE §2)
 

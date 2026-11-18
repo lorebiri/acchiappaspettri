@@ -8,6 +8,7 @@
 //! Nessuna funzione esiste solo qui.
 pub mod agilent;
 pub mod calc;
+pub mod cube;
 pub mod decode;
 pub mod js;
 pub mod simple;
@@ -85,6 +86,25 @@ impl Wire {
     fn sep(&mut self) -> &mut Self {
         self.json.push(',');
         self
+    }
+    // I10: le stesse operazioni per chi usa il crate da fuori (acch-core-cli, comandi dell'app per le mappe)
+    pub fn new_pub() -> Self {
+        Self::new()
+    }
+    pub fn raw_pub(&mut self, s: &str) -> &mut Self {
+        self.raw(s)
+    }
+    pub fn key_pub(&mut self, k: &str) -> &mut Self {
+        self.key(k)
+    }
+    pub fn str_pub(&mut self, s: &str) -> &mut Self {
+        self.str(s)
+    }
+    pub fn num_pub(&mut self, v: usize) -> &mut Self {
+        self.num(v)
+    }
+    pub fn arr_pub(&mut self, v: &[f64]) -> &mut Self {
+        self.arr(v)
     }
     pub fn bytes(&self) -> Vec<u8> {
         let j = self.json.as_bytes();

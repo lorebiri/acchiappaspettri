@@ -87,7 +87,11 @@
   const isSpectrum=n=>{ try{ return ACCEPT.test(n) && !IMG_RE.test(n) && !/\.(acchiappa\.json|acchspettri)$/i.test(n); }catch(e){ return false; } };
   function lightFile(b, name, path){ const buf=b.byteOffset===0 && b.byteLength===b.buffer.byteLength ? b.buffer : b.slice().buffer;
     return {name, size:buf.byteLength, type:'', lastModified:Date.now(), acchPath:path, arrayBuffer(){ return Promise.resolve(buf); }, text(){ return Promise.resolve(new TextDecoder().decode(buf)); }}; }
-  async function readPicked(L, onlyWanted, light){ const out=[]; for (const p of L){ try{ const skip=onlyWanted && !wanted(p.name), b=skip ? new Uint8Array(0) : await readFrom(p.path);
+  // I10: file di mappa (possono superare i 2 GB): non si leggono qui; app/map-ui.js chiede la dimensione e li legge (pagina o Rust)
+  const MAPBIN=/\.(wdf|img|bsq|bil|bip|raw)$/i;
+  function lazyFile(name, path){ return {name, size:-1, type:'', lazy:true, lastModified:Date.now(), acchPath:path, arrayBuffer(){ return readFrom(path).then(b=>b.byteOffset===0 && b.byteLength===b.buffer.byteLength ? b.buffer : b.slice().buffer); }, text(){ return readFrom(path).then(b=>new TextDecoder().decode(b)); }}; }
+  async function readPicked(L, onlyWanted, light, lazyMaps){ const out=[]; for (const p of L){ try{ if ((light || lazyMaps) && MAPBIN.test(p.name) && (!onlyWanted || wanted(p.name))){ out.push({p, file:lazyFile(p.name, p.path)}); continue; }
+      const skip=onlyWanted && !wanted(p.name), b=skip ? new Uint8Array(0) : await readFrom(p.path);
       out.push({p, file:(light && !skip && isSpectrum(p.name)) ? lightFile(b, p.name, p.path) : new File([b], p.name)}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } return out; }
   let picking=false;
   async function nativePick(input){
@@ -100,7 +104,9 @@
       else if (input.multiple) L=await inv('pick_many',Object.assign({title:tr('Scegli file'), kind},filt));
       else { const p=await inv('pick_open',Object.assign({title:tr('Scegli file'), kind, filterName:'', extensions:[]},filt)); L=p?[p]:[]; }
       if (!L || !L.length){ input.dispatchEvent(new Event('cancel')); return; }
-      const got=await readPicked(L, folder); if (!got.length){ input.dispatchEvent(new Event('cancel')); return; }
+      let got=await readPicked(L, folder, false, PICK_KIND[input.id]==='spectra'); if (!got.length){ input.dispatchEvent(new Event('cancel')); return; }
+      // I10: mappe lette senza passare dalla pagina (oggetti leggeri, non File): vanno direttamente ad addEntries
+      const isL=g=>g.file && (g.file.lazy || /\.hdr$/i.test(g.p.name)), lazy=got.some(g=>g.file && g.file.lazy) ? got.filter(isL) : []; if (lazy.length){ got=got.filter(g=>!isL(g)); win.addEntries(lazy.map(g=>({file:g.file, path:g.p.rel||g.p.name}))).catch(e=>console.error(e)); if (!got.length){ input.dispatchEvent(new Event('cancel')); return; } }
       const dt=new DataTransfer(); got.forEach(g=>dt.items.add(g.file)); input.files=dt.files;
       // percorso dentro la cartella, come webkitRelativePath della pagina online
       if (folder) [...input.files].forEach((f,i)=>{ const rel=got[i] && got[i].p.rel; if (rel && f.webkitRelativePath!==rel) Object.defineProperty(f,'webkitRelativePath',{value:rel}); });

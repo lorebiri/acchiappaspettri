@@ -16,6 +16,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 mod engine;
+mod maps;
 mod segnala;
 mod libs;
 mod store;
@@ -137,6 +138,9 @@ fn grant_all(g: &State<Grants>, list: &[(PathBuf, String)]) -> Vec<PickedRel> {
         .collect()
 }
 
+pub(crate) fn is_project_path(p: &Path) -> bool {
+    is_project(p)
+}
 fn is_project(p: &Path) -> bool {
     p.extension()
         .and_then(|e| e.to_str())
@@ -740,6 +744,7 @@ pub fn run() {
         .manage(Store::default())
         .manage(engine::Jobs::default())
         .manage(engine::Zips::default())
+        .manage(maps::Cubes::default())
         .manage(LibDirState::default())
         .setup(|app| {
             queue_open(app.handle(), accept_args(std::env::args()));
@@ -792,6 +797,7 @@ pub fn run() {
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
+        maps::acch_cube_watch, maps::acch_cube_cancel, maps::acch_cube_open, maps::acch_cube_image, maps::acch_cube_pixel, maps::acch_cube_roi, maps::acch_cube_bin, maps::acch_cube_take, maps::acch_cube_close, maps::acch_cube_stat, maps::acch_cube_side_write, maps::acch_cube_side_open,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove
     ]);
     #[cfg(feature = "e2e")]
@@ -799,6 +805,7 @@ pub fn run() {
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
+        maps::acch_cube_watch, maps::acch_cube_cancel, maps::acch_cube_open, maps::acch_cube_image, maps::acch_cube_pixel, maps::acch_cube_roi, maps::acch_cube_bin, maps::acch_cube_take, maps::acch_cube_close, maps::acch_cube_stat, maps::acch_cube_side_write, maps::acch_cube_side_open,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);

@@ -60,6 +60,7 @@
       // desktop: prima si sceglie dove salvare, poi si prepara il file (l'attesa non compare dietro al dialogo, né se si annulla)
       let target=null; if (pick && api.host.pickSave){ target=await api.host.pickSave(suggested); if (!target) return false; }
       loader(true,'Gino sta salvando il progetto…','',0.5); await frame();
+      if (typeof api.beforeBuild==='function') await api.beforeBuild(target ? target.path : (pick ? null : path));   // I10: cubi grandi nel file affiancato accanto al progetto
       const b=await buildVerified();
       const r=target ? await api.host.writeTo(b.bytes, target) : pick ? await api.host.saveAs(b.bytes, suggested) : await api.host.overwrite(b.bytes, path);
       if (!r) return false;   // annullato
@@ -118,7 +119,7 @@
       const seen=new Map(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; if (s.plugin && !(PL && PL.available(s.plugin.id))){ plMissing.push(s); continue; } const k=(s.source||'')+'\u0000'+s.path; let e=seen.get(k); if (!e){ e={file:new File([s.bytes], s.name), path:s.path, want:[]}; if (s.plugin) e.plugin=s.plugin.id; seen.set(k,e); ents.push(e); } e.want.push({sampleKey:s.sampleKey==null?null:s.sampleKey, channel:s.channel==null?null:s.channel}); if (s.plugin){ if (!plEnts.has(e)) plEnts.set(e,[]); plEnts.get(e).push(s); } }
       const keepRec=s=>({name:s.name, path:s.path, bytes:s.bytes||null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, origin:s.origin||undefined, plugin:s.plugin||undefined, series:s.series, cube:s.cube, iso:s.iso});
       // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
-      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(keepRec).concat(plMissing.map(keepRec));
+      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s, filePath))).map(keepRec).concat(plMissing.map(keepRec));
       api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;

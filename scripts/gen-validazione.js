@@ -112,6 +112,21 @@ P('');
   for (const E of [90,140]){ const Ls=[2,5,10,20].map(beta=>{ const s=S.polanyiWigner({E, nu:1e13, beta, T0:300, T1:900, dt:0.02}); let k=0; s.rate.forEach((r,i)=>{ if (r>s.rate[k]) k=i; }); return {beta, Tm:s.T[k]}; }), Kq=S.kissinger(Ls), d=pct(Kq.E,E), y=Math.abs(d)<1; if (!y) fails++; row('Kissinger, 4 rampe: E (kJ/mol)','Polanyi–Wigner simulato',E,Kq.E,`${d.toFixed(3)} % (≤ 1 %)`,y?'✓':'✗'); }
   { const s=S.polanyiWigner({E:100, nu:1e13, beta:10, T0:200, T1:1200, dt:0.02}); let k=0; s.rate.forEach((r,i)=>{ if (r>s.rate[k]) k=i; }); const R=S.redhead(s.T[k],10,1e13), d=pct(R.E,100), y=Math.abs(d)<2; if (!y) fails++; row('Redhead, primo ordine: E (kJ/mol)','Polanyi–Wigner simulato',100,R.E,`${d.toFixed(3)} % (≤ 2 %)`,y?'✓':'✗'); }
   P(''); }
+// ---------------- R12 (tappa I10) ----------------
+{ const M=require(path.join(ROOT,'app','map-core.js')), MC=require(path.join(ROOT,'app','mcr-core.js')), G=require(path.join(ROOT,'test','unit','mappe-dati.js'));
+  const row=(a,b,c,d,e,f)=>P(`| ${a} | ${b} | ${c} | ${d} | ${e} | ${f} |`), esito=y=>{ if (!y) fails++; return y?'✓':'✗'; }, ge=v=>v.toExponential(2).replace('.',',');
+  const corr=(a,b)=>{ let n=a.length, sa=0, sb=0; for (let i=0;i<n;i++){ sa+=a[i]; sb+=b[i]; } const ma=sa/n, mb=sb/n; let ab=0, aa=0, bb=0; for (let i=0;i<n;i++){ ab+=(a[i]-ma)*(b[i]-mb); aa+=(a[i]-ma)**2; bb+=(b[i]-mb)**2; } return ab/Math.sqrt(aa*bb); };
+  P('## R12. Mappe e dati iperspettrali (`app/map-core.js`, SPEC-AVANZATE §1)'); P('');
+  P('Il committente non ha strumenti né file di mappe: validazione su dati **sintetici** con verità nota (`test/unit/mappe-dati.js`: tre bande gaussiane con mappe di concentrazione note, fondo lineare, banda che si sposta di ±1,5 cm⁻¹) e su **file pubblici** letti solo in locale (non ridistribuiti): i sei `.wdf` d\'esempio di py-wdf-reader (MIT) e cinque campioni ENVI dei test di GDAL (MIT), confrontati con un lettore indipendente in Python (`test/validation/mappe/rif_pubblici.py`, solo `struct`; valori in `mappe/pubblici.json`). Lettori Horiba LabSpec nativi (`.l6s`) e Bruker OPUS a mappa con file reali: non disponibili (la serie OPUS è DEDOTTA da brukeropus). Test: `test/validation/r12-mappe.test.js`; Rust identico al JS bit per bit: `test/unit/dual-mappe.test.js`.'); P('');
+  P('| Prova (sintetici) | Formato | Atteso | Ottenuto | Soglia | Esito |'); P('|---|---|---|---|---|---|');
+  const {cube, conc, bands, shift}=G.truth({nx:16, ny:12, nc:701});
+  for (const [fmt, c] of [['.wdf per colonne', M.readWdf(G.wdf(cube,{order:'colmajor'}))], ['ENVI BIP', M.readEnvi(...Object.values(G.envi(cube,{interleave:'bip'})))], ['testo X Y onda intensità', M.readMapText(G.columnsText(cube))]]){
+    let e=0; for (let k=0;k<3;k++){ const b=bands[k], A=b.A*b.s*Math.sqrt(2*Math.PI), img=M.bandImage(c,{kind:'area', a:b.c-6*b.s, b:b.c+6*b.s, base:'linear'}); for (let i=0;i<img.length;i++) e=Math.max(e, Math.abs(img[i]/(A*conc[k][i])-1)); }
+    row('Area di banda con fondo lineare, 3 bande', fmt, 'A·c (errore relativo)', ge(e), '< 2e-3', esito(e<2e-3));
+    const pk=M.bandImage(c,{kind:'peak', a:960, b:1040}); let ep=0; for (let i=0;i<pk.length;i++) ep=Math.max(ep, Math.abs(pk[i]-1000-shift[i])); row('Posizione del picco (cm⁻¹)', fmt, '1000 ± 1,5', ge(ep), '< 0,05', esito(ep<0.05)); }
+  for (const noise of [0, 0.5]){ const T=G.truth({nx:15, ny:10, nc:351, noise, base:false, shift:false, selective:true}), U=M.unfold(T.cube,{}), R=MC.als(U.D,{nc:3, maxIter:400, tol:1e-8}), best=T.conc.map(cv=>Math.max(...[0,1,2].map(q=>corr(M.refold(R.C,q,U.pix,U.nx,U.ny), cv)))), m=Math.min(...best);
+    row(`MCR-ALS sul cubo srotolato, rumore ${String(noise).replace('.',',')}`, '.wdf', 'mappe di concentrazione vere', 'correlazione minima '+m.toFixed(5).replace('.',','), noise?'> 0,99':'> 0,999', esito(m>(noise?0.99:0.999))); }
+  P(''); P('File pubblici (prova locale, 16/11/2026): dimensioni, asse e spettri di 6 pixel per file uguali bit per bit al lettore indipendente; BIL, BIP e BSQ di GDAL danno lo stesso cubo; il `.wdf` StreamLine (acquisizione per colonne, WMAP flags 2) va al suo posto grazie alle coordinate ORGN, mentre l\'ordine «per righe» di py-wdf-reader lo trasporrebbe. Prestazioni: vedi `test/validation/i10-mappe-ui.test.js` e il rapporto della tappa I10.'); P(''); }
 // ---------------- R13 / R14 (tappa I9) ----------------
 { const M=require(path.join(ROOT,'app','mcr-core.js')), K=require(path.join(ROOT,'app','kinetics-core.js')), SY=V('chemo/sintetici.js'), STRD=V('chemo/strd-nls.js');
   const lre=(c,w)=>Math.min(15, c===w?15:-Math.log10(Math.abs(c-w)/Math.abs(w)));
@@ -141,5 +156,5 @@ P('');
     P(`| Confronto dei modelli su dati A → B → C | consec | ${b} (AIC) | il modello vero | ${esito(b==='consec')} |`); }
   P(''); P('Non eseguiti qui (codice esterno): `scipy.optimize.least_squares` e pyglotaran. La copertura vale con rumore gaussiano indipendente; la funzione di risposta dello strumento (ultraveloce) è fuori dalla 3.0.0.'); P(''); }
 fs.mkdirSync(path.dirname(OUT),{recursive:true}); fs.writeFileSync(OUT, md.join('\n')+'\n');
-console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10, R11, R13 e R14 sopra soglia'}.`);
+console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10, R11, R12, R13 e R14 sopra soglia'}.`);
 process.exitCode=fails?1:0;

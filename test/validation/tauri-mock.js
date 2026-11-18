@@ -47,7 +47,8 @@ function tauriMock(){
       case 'lib_remove': { if (!args.path.startsWith(M.libUser+'/')) throw 'not-allowed'; M.libfs[M.libUser+'/versioni/'+args.path.slice(M.libUser.length+1)+'.tolta']=M.libfs[args.path]; delete M.libfs[args.path]; return null; }
       case 'lib_shared_add': { const d=M.pick.lib_shared_add; if (!d) return null; if (!M.libShared.includes(d)) M.libShared.push(d); return d; }
       case 'lib_shared_remove': { M.libShared=M.libShared.filter(d=>d!==args.path); return null; }
-      default: throw 'mock: comando sconosciuto '+cmd;
+      default: if (M.extra && M.extra[cmd]) return await M.extra[cmd](args, (opt && opt.headers)||{});   // I10: comandi aggiunti dal test (per esempio i cubi delle mappe)
+        throw 'mock: comando sconosciuto '+cmd;
     }
   }
   const win={ onCloseRequested(){ return Promise.resolve(()=>{}); }, setTitle(){ return Promise.resolve(); }, destroy(){ return Promise.resolve(); }, close(){ return Promise.resolve(); }, show(){ M.shown++; return Promise.resolve(); } };

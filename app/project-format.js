@@ -63,7 +63,14 @@
     if (Array.isArray(sr.members)) o.members=sr.members.filter(v=>typeof v==='string').slice(0,100000);
     if (isObj(sr.meta)) o.meta=sr.meta; return o; }
   /* f.cube: mappa nx × ny × nc. data[(iy*nx+ix)*nc+ic] (ordine «yxc», un pixel dopo l'altro, come BIP) */
+  /* I10: cubo oltre PROJECT_BYTES (map-core.js) in un file affiancato .acchcube accanto al progetto: nel progetto restano assi,
+     metadati e l'impronta {file, bytes, sha256}; il cubo non entra nello ZIP (che resta sotto archiveBytes) */
+  const extOk=e=>isObj(e) && typeof e.file==='string' && /^[^\\/:\0.][^\\/:\0]{0,198}\.acchcube$/.test(e.file) && Number.isSafeInteger(e.bytes) && e.bytes>0 && typeof e.sha256==='string' && /^[0-9a-f]{64}$/.test(e.sha256);
   function cubeOut(cb, id, add){ if (!isObj(cb)) throw new ProjectError('bad-input','cube');
+    if (cb.data==null && cb.external!=null){ const {nx,ny,nc}=cb, e=cb.external, dt=DTYPES[cb.dtype]?cb.dtype:'f32';
+      if (![nx,ny,nc].every(isPosInt) || !extOk(e) || e.bytes<nx*ny*nc*DTYPES[dt].B) throw new ProjectError('bad-input','cube');
+      const o={nx, ny, nc, order:'yxc', x:axisOut(cb.x,nc,'cube.x'), px:axisOut(cb.px,nx,'cube.px'), py:axisOut(cb.py,ny,'cube.py'), y:pickStr(cb.y,['quantity','unit','label']), dtype:dt, data:null, external:{file:e.file, bytes:e.bytes, sha256:e.sha256}};
+      if (isObj(cb.meta)) o.meta=cb.meta; return o; }
     const {nx,ny,nc}=cb, arr=cb.data;
     if (![nx,ny,nc].every(isPosInt) || !(arr instanceof Float64Array || arr instanceof Float32Array) || arr.length!==nx*ny*nc) throw new ProjectError('bad-input','cube');
     const dt=dtypeOf(arr), path=`cube/${id}.${dt}`; add(path, typedToBytes(arr));
@@ -155,7 +162,7 @@
       if (s.source===null && !(s.series || s.cube || s.iso)) throw new ProjectError('invalid-schema','spectra');
       if (s.origin!=null && (!originOk(s.origin) || s.source===null)) throw new ProjectError('invalid-schema','origin');
       if (s.plugin!=null && (!pluginOk(s.plugin) || s.source===null)) throw new ProjectError('invalid-schema','plugin');
-      for (const k of ['series','cube']) if (s[k]!=null && (!isObj(s[k]) || !isSafeEntry(s[k].data) || !s[k].data.startsWith(k+'/') || !DTYPES[s[k].dtype])) throw new ProjectError('invalid-schema',k);
+      for (const k of ['series','cube']) if (s[k]!=null && !(k==='cube' && isObj(s[k]) && s[k].data==null && extOk(s[k].external) && DTYPES[s[k].dtype]) && (!isObj(s[k]) || !isSafeEntry(s[k].data) || !s[k].data.startsWith(k+'/') || !DTYPES[s[k].dtype])) throw new ProjectError('invalid-schema',k);
       if (s.iso!=null) isoCheck(s.iso,'invalid-schema','iso'); });
     return list;
   }
@@ -202,6 +209,7 @@
       if (s.series){ const sr=s.series, m=sr.shape&&sr.shape[0], n=sr.shape&&sr.shape[1]; if (!isPosInt(m) || !isPosInt(n)) throw new ProjectError('invalid-schema','series'); axisIn(sr.t,m,'series.t'); axisIn(sr.x,n,'series.x');
         const b=await checked(sr.data); if (b.length!==m*n*DTYPES[sr.dtype].B) throw new ProjectError('invalid-schema','series'); sr.data=bytesToTyped(b, sr.dtype); }
       if (s.cube){ const cb=s.cube; if (![cb.nx,cb.ny,cb.nc].every(isPosInt) || (cb.order||'yxc')!=='yxc') throw new ProjectError('invalid-schema','cube'); axisIn(cb.x,cb.nc,'cube.x'); axisIn(cb.px,cb.nx,'cube.px'); axisIn(cb.py,cb.ny,'cube.py');
+        if (cb.data==null){ if (cb.external.bytes<cb.nx*cb.ny*cb.nc*DTYPES[cb.dtype].B) throw new ProjectError('invalid-schema','cube'); cb.data=null; continue; }   // file affiancato: lo cerca chi apre (map-ui.js)
         const b=await checked(cb.data); if (b.length!==cb.nx*cb.ny*cb.nc*DTYPES[cb.dtype].B) throw new ProjectError('invalid-schema','cube'); cb.data=bytesToTyped(b, cb.dtype); }
     }
     const libIdx=manifest.entries['project/libraries.json'] ? await json('project/libraries.json','libraries') : [];

@@ -92,7 +92,7 @@ jobs:
         run: cargo test --workspace --manifest-path src-tauri/Cargo.toml
         shell: bash
       - name: Test incrociati del motore, Rust contro JS per lettura, picchi e aree, ZIP (ACCH_DUAL=1, acch-core-cli sul corpus)
-        run: node --test test/unit/dual.test.js test/unit/dual-calc.test.js test/unit/dual-zip.test.js
+        run: node --test test/unit/dual.test.js test/unit/dual-calc.test.js test/unit/dual-zip.test.js test/unit/dual-mappe.test.js
         shell: bash
         env: { ACCH_DUAL: "1" }
       - name: Compila l'app di collaudo

@@ -66,7 +66,9 @@
       } finally { clearTimeout(shown); current=null; }
     },
     // una funzione del nucleo nel worker (per le tappe successive: fit, XRF FP), con gli stessi argomenti e lo stesso risultato
-    call(fn, ...args){ return call({op:'call', fn, args}).then(m=>m.r); }
+    call(fn, ...args){ return call({op:'call', fn, args}).then(m=>m.r); },
+    // I10: funzione di un modulo puro nel worker (McrCore, AcchMap, KinCore); i generatori si esauriscono nel worker
+    callMod(mod, fn, ...args){ return call({op:'mod', mod, fn, args}).then(m=>m.r); }
   };
   // «Annulla la lettura» nel riquadro di avanzamento, solo quando una lettura dura
   function showCancel(on){ const L=document.getElementById('loader'); if (!L) return; let b=document.getElementById('ldCancel');

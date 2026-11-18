@@ -32,6 +32,7 @@
 <script src="app/sorption-core.js"></script>
 <script src="app/mcr-core.js"></script>
 <script src="app/kinetics-core.js"></script>
+<script src="app/map-core.js"></script>
 <script src="app/library.js"></script>
 <script src="app/hplc-stored-cal.js"></script>
 <script src="app/librerie-sistema.js"></script>
@@ -4637,7 +4638,7 @@ function saveS(){ LANG = S.lang; SAMPLE = S.sample; lsSet(LS_KEY, S); }
 
 const files = []; let cur = -1; let uid = 0;
 // formati leggibili; lo stesso elenco è in src-tauri/src/lib.rs (RAW_EXT) per l'apertura dal sistema (test/unit/associazioni.test.js)
-const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|aif|xlsx|ch|uv|\d{1,3})$/i;
+const ACCEPT = /\.(txt|asc|csv|dat|dpt|prn|xy|tsv|arw|mca|spt|spe|sp|exp|jdx|dx|jcamp|spa|aif|xlsx|ch|uv|wdf|hdr|img|bsq|bil|bip|\d{1,3})$/i;   // I10: mappe (.wdf, ENVI .hdr + binario)
 // nomi di file uguali (cartelle .D di ChemStation: STD1.D/DAD1A.CSV, STD2.D/DAD1A.CSV): si aggiunge la cartella, o un numero se anche questa coincide
 const sameNameTag = f => { if ((f.title && f.title.trim()) || typeof files==='undefined') return ''; const all=files.filter(g=>g.name===f.name && (g.channel||'')===(f.channel||'') && (g.sampleKey||'')===(f.sampleKey||'') && !(g.title && g.title.trim())); if (all.length<2 || !all.includes(f)) return '';
   // la cartella più vicina che basta a distinguerlo (SEQ1/STD1.D e SEQ2/STD1.D, ciclo 26); il numero solo se i percorsi coincidono
@@ -5256,6 +5257,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
   return chosen; }
 async function addEntries(entries){
   let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[], pkgs=[];   // pkgs: pacchetti .acchplugin da installare (I11); progetti Origin: si sceglie che cosa importare in una finestra apposita
+  if (window.AcchMapUI){ try{ const r=await AcchMapUI.take(entries); entries=r.rest; skipped.push(...r.skipped); rejected.push(...r.rejected); added+=r.added; }catch(e){ console.error(e); } }   // I10: mappe e dati iperspettrali
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
@@ -7100,6 +7102,7 @@ async function exportEntries(sel, zipping){
   if (sel.origin){ status('📈 Preparo la cartella per Origin…'); add('origin', expName('origin'), await buildOriginXlsx()); }
   for (const k of ['opj','opju']) if (sel[k] && window.AcchOriginUI){ status('📈 Preparo il progetto Origin…'); await tick(); add(k, expName(k), AcchOriginUI.buildProject(k, S.opjMode)); }   // riletto e confrontato prima di consegnarlo
   if (sel.analysis){ status('🔬 Preparo i risultati delle analisi…'); await tick(); for (const [nm, txt] of analysisFiles()) add('analysis', expDir('analysis')+nm, txt); }
+  if (window.AcchMapUI && (sel.png || sel.svg || sel.analysis)) await AcchMapUI.exportFiles(sel, add, inc, expDir);   // I10: mappe (PNG, SVG con scala e unità; CSV fra i risultati)
   if (sel.libcharts && window.AcchLibUi) await AcchLibUi.chartFiles((p,d)=>add('libcharts', expDir('libcharts')+p, d));   // carte di controllo delle librerie (PNG, SVG, CSV), voce propria
   if (sel.peaks) add('peaks', expName('peaks'), '﻿'+rows.map(r=>r.map(c=>csvCell(c,csep)).join(csep)).join('\r\n'));
   return out;
@@ -8579,6 +8582,7 @@ function pdfAnalysisPages(doc, PW, PH, M, newPage, footer){
     if (H && H.kind==='bands' && H.list.length) line(T('Gruppi chimici compatibili (ipotesi): ','Compatible chemical groups (hypotheses): ')+H.list.slice(0,4).map(h=>(en?h.en:h.it)+` (${hypTag(h,en)})`).join('; '), 8.5);
     if (f.instr==='sorp' && f.iso && window.AcchSorp){ try{ const R=AcchSorp.pdfLines(f); R.lines.forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } AcchSorp.pdfImages(f).forEach((c,i)=>doc.addImage(c.toDataURL('image/png'),'PNG', M+i*(w+6), y+1, w, hh, undefined, 'FAST')); y+=hh+4; }catch(e){ console.error(e); } }
     if (f.series && window.AcchChemo){ try{ const L=AcchChemo.pdfLines(f); if (L.length>1){ L.forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; AcchChemo.pdfImages(f).forEach((c,i)=>{ if (i%2===0){ if (i) y+=hh+4; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } } doc.addImage(c.toDataURL('image/png'),'PNG', M+(i%2)*(w+6), y+1, w, hh, undefined, 'FAST'); }); y+=hh+4; } }catch(e){ console.error(e); } }
+    if (window.AcchMapUI && AcchMapUI.isMap(f)){ try{ const R=AcchMapUI.pdfBlock(f); if (R){ R.lines.forEach(t=>line(t, 8.5)); const w=(PW-2*M)*0.62, hh=w*R.h/R.w; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } doc.addImage(R.png,'PNG', M, y+1, w, hh, undefined, 'FAST'); y+=hh+4; } }catch(e){ console.error(e); } }   // I10: mappa con scala e unità
     if (f.instr==='chem' && f.chem && window.AcchChem){ try{ AcchChem.pdfLines(f).forEach(t=>line(t, 8.5)); const w=(PW-2*M-6)/2, hh=w*300/560; if (y+hh>PH-M-10){ footer(); head(T('Analisi (continua)','Analysis (continued)')); } AcchChem.pdfImages(f).forEach((c,i)=>doc.addImage(c.toDataURL('image/png'),'PNG', M+i*(w+6), y+1, w, hh, undefined, 'FAST')); y+=hh+4; }catch(e){ console.error(e); } }
     // EPR: doppio integrale con la provenienza della base (finestre agli estremi o zone scelte dall'utente)
     if (f.instr==='epr'){ try{ const Pe=processed(f); if (Pe.kind==='E' && !Pe.deriv && !eprIsAbsorption(Pe.xs, Pe.ys)){ const Z=eprZonesOf(f), r=eprDoubleIntegral(Pe.xs, Pe.ys, Z), wg=eprWings(Pe.xs, Pe.ys, Z), ed=eprEdgeSignal(Pe.xs, Pe.ys, Z);
@@ -9269,6 +9273,7 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
 <script src="app/chemo-ui.js"></script>
+<script src="app/map-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/engine.js"></script>

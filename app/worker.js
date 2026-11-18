@@ -26,6 +26,9 @@
         const use=dual && dual!=='identici' ? js : (r || js);   // con una differenza vale il JS di riferimento
         out={id:m.id, ok:true, r:packUv(use), engine:use===r?'rust':'js', why, dual, fnv:AcchRead.fnv(m.buf)};   // l'impronta del file (quickHash della pagina), fuori dalla finestra
       } else if (m.op==='call'){ const f=self[m.fn]; if (typeof f!=='function') throw new Error('funzione del nucleo sconosciuta: '+m.fn); out={id:m.id, ok:true, r:f.apply(null, m.args||[])}; }
+      // I10: una funzione di un modulo puro (per esempio McrCore.alsGen per MCR-ALS sulle mappe); un generatore si esaurisce qui, nel worker
+      else if (m.op==='mod'){ const M=self[m.mod], f=M && M[m.fn]; if (!/^(McrCore|AcchMap|KinCore)$/.test(m.mod) || typeof f!=='function') throw new Error('funzione sconosciuta: '+m.mod+'.'+m.fn);
+        let r=f.apply(M, m.args||[]); if (r && typeof r.next==='function'){ let q; do { q=r.next(); } while (!q.done); r=q.value; } out={id:m.id, ok:true, r}; }
       else if (m.op==='ping') out={id:m.id, ok:true, r:{modules:Object.keys(self).filter(k=>/^Acch|^SorpCore$/.test(k))}};
       else throw new Error('operazione sconosciuta: '+m.op);
     }catch(err){ out={id:m.id, ok:false, err:String(err && err.stack || err)}; }

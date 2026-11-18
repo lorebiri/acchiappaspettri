@@ -16,6 +16,8 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 | Carattere WenQuanYi Micro Hei 0.2.0-beta | pagina web e app desktop (`vendor/fonts/WenQuanYiMicroHei.ttf`), solo nei PDF con cinese, giapponese o coreano | Apache 2.0 (scelta tra Apache 2.0 e GPLv3 con eccezione per i font) |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
 | Descrizione del formato .opj di Origin da liborigin 3.0.x (nessun codice incluso) | `app/origin-core.js` | liborigin: GPL-2.0-or-later (avviso sotto) |
+| Tabelle dei colori viridis e cividis (256 colori, da matplotlib) | `app/map-core.js` (dati) | viridis: CC0; cividis: licenza di matplotlib (avviso sotto) |
+| Descrizione dei formati Renishaw .wdf (py-wdf-reader) e serie Bruker OPUS (brukeropus); nessun codice incluso | `app/map-core.js`, `src-tauri/acch-core/src/cube.rs` | MIT (avvisi sotto) |
 | Crate Rust (Tauri 2, wry, tao, rustls, ring e altri: 336 crate) | eseguibile desktop | MIT, Apache-2.0, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0 (elenco completo sotto) |
 | Microsoft WebView2 Loader (SDK 1.0.3650.58, collegato staticamente) | eseguibile Windows | BSD-3-Clause (Microsoft) |
 | Nullsoft Scriptable Install System 3.x | installatore Windows | zlib/libpng; modulo LZMA: vedi sotto |
@@ -1148,6 +1150,11 @@ THIS SOFTWARE IS PROVIDED BY Bruno Golosio, Antonio Brunetti, Manuel Sanchez del
 
 ### Altre tabelle
 Le tabelle di bande (FTIR, Raman, UV-Vis, fluorescenza, NMR), di righe (XRF secondo X-ray Data Booklet; LIBS da NIST Atomic Spectra Database) e di pigmenti sono compilate dall'autore a partire dalla letteratura citata nel programma e nella documentazione (tra gli altri Socrates 2001; Larkin 2011; Eastaugh et al. 2008; Janssens & Van Grieken 2004; Bell, Clark & Gibbs 1997; Burgio & Clark 2001; Caggiani et al. 2016). Si tratta di valori numerici selezionati e riordinati, non di copie delle opere. Le fonti vanno citate quando si usano i risultati.
+
+### Mappe: tabelle dei colori e descrizione dei formati (tappa I10)
+Le scale dei colori delle mappe in `app/map-core.js` sono le tabelle a 256 colori di **viridis** (Stéfan van der Walt e Nathaniel Smith, dedicata al pubblico dominio con CC0) e di **cividis** (J. R. Nuñez, C. R. Anderton, R. S. Renslow, «Optimizing colormaps with consideration for color vision deficiency to enable accurate interpretation of scientific data», PLOS ONE 13 (2018) e0199239), come distribuite da matplotlib (https://matplotlib.org, `_cm_listed.py`; licenza di matplotlib, di tipo BSD: Copyright (c) 2012– Matplotlib Development Team; All Rights Reserved), arrotondate a 8 bit.
+
+I lettori di `.wdf` e delle serie OPUS sono scritti da zero (JavaScript e Rust) seguendo la struttura dei file come descritta da py-wdf-reader (https://github.com/alchem0x2A/py-wdf-reader, MIT, Copyright (c) 2022 T.Tian; costanti dal progetto Gwyddion) e da brukeropus (https://github.com/joshduran/brukeropus, MIT, Copyright (c) 2024 joshduran). Nessun file di questi progetti è incluso; i file d'esempio usati nella validazione (R12) non sono nel repository.
 
 ### liborigin (formato dei progetti Origin .opj)
 Il lettore e lo scrittore dei progetti Origin in `app/origin-core.js` sono scritti da zero in JavaScript, ma seguono la struttura dei blocchi e le posizioni dei campi del formato .opj («CPYA») come documentate dal codice di liborigin (https://sourceforge.net/projects/liborigin/, https://github.com/SciDAVis/liborigin), usato da SciDAVis e LabPlot. Nessun file di liborigin è incluso. liborigin è distribuito sotto la GNU General Public License, versione 2 o successiva, compatibile con la licenza di Acchiappaspettri (GPL-3.0-or-later).
