@@ -1,8 +1,8 @@
 # Novità delle versioni
 
-## 3.0.0-rc.6
+## 3.0.0 — 18 novembre 2026
 
-Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Unisce alla rc.5 il motore del desktop (I5 lettura nel worker e lettore nativo, I7 picchi e salvataggio in Rust), il grafico veloce con le finestre «Stacca» e «Confronto» (I6), le serie con MCR-ALS e il fit globale delle cinetiche (I9) e le estensioni per nuovi formati (I11), descritti nella sezione 3.0.0, e aggiunge:
+Versione pubblicata per tutti. Chi arriva dalla 2.2 trova:
 
 - Picchi per posizione: nella scheda Picchi, «Aggiungi picchi per posizione» accetta una o più posizioni nell'unità dell'asse (cm⁻¹, nm, eV, 2θ, minuti…), separate da «;», da una virgola e uno spazio o una per riga, con larghezza (FWHM) e forma (gaussiana, lorentziana, pseudo-Voigt) facoltative per tutti o accanto a ciascuna (`1086 w=8 lor`). Aggancio facoltativo al massimo locale più vicino entro una tolleranza; un'anteprima dice come è stato capito il testo; doppioni, posizioni fuori dallo spettro e numeri ambigui sono segnalati. I picchi entrano come quelli trovati in automatico (nomi, aree, deconvoluzione, quantificazione); larghezza e forma fanno da partenza alla deconvoluzione. Si modificano (✎) e si tolgono dalla tabella, Ctrl+Z annulla, tutto si salva nel progetto e la nota va nel CSV dei picchi.
 - Rimozione del fondo: nuovi metodi ALS (Eilers & Boelens 2005), IModPoly e ModPoly (Zhao 2007; Lieber & Mahadevan-Jansen 2003), rolling ball (Kneen & Annegarn 1996) e punti di ancoraggio scelti sul grafico o scritti (PCHIP o rette), oltre ad arPLS, SNIP (ora anche per il Raman), inviluppo e retta. Riquadro «Rimozione del fondo» in Ritocca lo spettro: parametri regolabili con anteprima dal vivo dello spettro prima della correzione e del fondo stimato, valori consigliati ricavati dallo spettro, ambito (tutti gli spettri della tecnica o solo questo), «Applica a tutti gli spettri caricati», annulla, «Ripristina l'originale». L'ordine delle operazioni (raggi cosmici → smoothing → fondo → picchi → aree e quantificazione) è scritto nel pannello, che segue lo stesso ordine. Metodo e parametri si salvano nel progetto; la tracciabilità e la bozza dei metodi riportano i parametri usati e la bibliografia. Validazione su spettri Raman sintetici in docs/VALIDAZIONE.md (R12).
@@ -11,29 +11,6 @@ Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-r
 - Sicurezza e robustezza: un progetto ostile non può più esaurire la memoria (byte contati durante la decompressione; limite di 4 GB nell'app desktop e di 1 GB online, con un messaggio chiaro); niente formule di Excel dai testi dei file nei CSV delle librerie e dell'adsorbimento; permessi dei file del desktop più stretti.
 - Correzioni dal collaudo: libreria .acchlib trascinata con gli spettri importata; pulsante Impostazioni visibile sugli schermi stretti; bozza dei metodi interamente in inglese; avvisi lunghi accorciati.
 - Desktop, grafico veloce (I6): indice min/max e tracce WebGL, con ritorno al Canvas 2D; durante zoom e spostamento si ridisegna solo il grafico; finestre aggiuntive «Stacca» e «Confronto»; menu con tutte le scorciatoie; impostazioni su file; controllo XRF/NMR/EPR nel worker; XRF oltre 200 000 canali con avviso, tempo stimato e calcolo annullabile.
-
-## 3.0.0-rc.5
-
-Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.4, che non è stata pubblicata perché lo script del collaudo nell'app vera era troncato e i comandi della CI erano uniti in una riga. È una pre-release: non viene proposta agli utenti come aggiornamento.
-
-## 3.0.0-rc.4
-
-Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.3 aggiunge Segnala un problema, l'HPLC multicanale, le librerie per strumento e tipo di campione con le pendenze salvate, il fisisorbimento e chemisorbimento (Autosorb) e i progetti Origin (sotto, nella sezione 3.0.0).
-
-## 3.0.0-rc.3
-
-Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.2 aggiunge la nuova finestra Esporta per voci e il formato di progetto 2 con l'archivio su file nel desktop (sotto, nella sezione 3.0.0).
-
-## 3.0.0-rc.2
-
-Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.1, che non è stata pubblicata perché un controllo dei pacchetti Linux nella CI non riscriveva la versione Debian delle prove (X~rc.N). È una pre-release: non viene proposta agli utenti come aggiornamento.
-
-## 3.0.0-rc.1
-
-Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Contiene la prima tappa della 3.0.0 (correzioni dei collaudi e desktop professionale); le altre funzioni della 3.0.0 arrivano nelle prove successive.
-
-## 3.0.0
-
 - Desktop professionale: testi sobri da software scientifico, senza mascotte, emoji, esclamazioni né coriandoli; Novità proprie; nessun riferimento al browser. La versione online non cambia.
 - Nuova finestra Esporta: scegli le voci (PDF, immagini PNG e SVG, picchi, dati elaborati, dati originali nell'ordine e con i valori del file, copia identica del file originale, tabelle di analisi, tracciabilità, Origin, progetto), il nome di ogni file e gli spettri inclusi. Nell'app desktop i file vanno nella cartella scelta, anche in una sottocartella; se un file esiste già si sceglie per ognuno se sostituirlo, rinominarlo o saltarlo (o per tutti i rimanenti); alla fine un riepilogo con i file scritti, quelli non scritti e «Mostra nella cartella». Lo ZIP solo se lo chiedi; online, oltre 3 file viene proposto. Nomi sempre validi su Windows, con avviso. Esportazione rapida di una voce dai menu. Le preimpostazioni ricordano anche le voci.
 - Progetti: formato 2 (.acchspettri). I byte di ogni file originale si salvano una volta sola, c'è spazio per i canali (sampleKey), le librerie incorporate, le serie di spettri, le mappe e le isoterme. I progetti della versione 1 si aprono senza perdite; quelli salvati con la 3.0.0 chiedono di aggiornare la 2.2.0. Desktop: impostazioni, libreria e lavoro si salvano su file nella cartella dell'app, con scrittura atomica e migrazione automatica dal vecchio archivio. Libreria dei nomi: i picchi di un progetto riaperto mostrano il nome giusto anche quando una voce entra con un altro codice (conflitto o codice lungo).
@@ -55,6 +32,30 @@ Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-r
 - PDF: cm⁻¹, ∞ e √ leggibili; font Unicode caricato solo quando serve. Titoli e nomi in cinese, giapponese e coreano leggibili con il font WenQuanYi Micro Hei (Apache 2.0), anch'esso caricato solo quando serve.
 - Interfaccia: sezione «Controllo del dato» con un solo nome; avvisi, nomi dei file e menu dei canali leggibili sugli schermi stretti; riepilogo di Esporta intero a 720 px. Progetti: le voci della libreria non si duplicano più a ogni riapertura; un progetto integro con spettri illeggibili non viene più detto danneggiato.
 - Rilascio: pagina con il file da scaricare in cima e le istruzioni per Edge, SmartScreen, Smart App Control e Avast/AVG; .deb delle versioni di prova ordinati prima della stabile; licenze anche in .txt.
+
+## 3.0.0-rc.6
+
+Versione di prova preparata per il collaudo e non pubblicata: il committente ha scelto di pubblicare direttamente la 3.0.0. Unisce alla rc.5 il motore del desktop (I5 lettura nel worker e lettore nativo, I7 picchi e salvataggio in Rust), il grafico veloce con le finestre «Stacca» e «Confronto» (I6), le serie con MCR-ALS e il fit globale delle cinetiche (I9) e le estensioni per nuovi formati (I11), descritti nella sezione 3.0.0, e aggiunge:
+
+## 3.0.0-rc.5
+
+Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.4, che non è stata pubblicata perché lo script del collaudo nell'app vera era troncato e i comandi della CI erano uniti in una riga. È una pre-release: non viene proposta agli utenti come aggiornamento.
+
+## 3.0.0-rc.4
+
+Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.3 aggiunge Segnala un problema, l'HPLC multicanale, le librerie per strumento e tipo di campione con le pendenze salvate, il fisisorbimento e chemisorbimento (Autosorb) e i progetti Origin (nella sezione 3.0.0).
+
+## 3.0.0-rc.3
+
+Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Rispetto alla rc.2 aggiunge la nuova finestra Esporta per voci e il formato di progetto 2 con l'archivio su file nel desktop (nella sezione 3.0.0).
+
+## 3.0.0-rc.2
+
+Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.1, che non è stata pubblicata perché un controllo dei pacchetti Linux nella CI non riscriveva la versione Debian delle prove (X~rc.N). È una pre-release: non viene proposta agli utenti come aggiornamento.
+
+## 3.0.0-rc.1
+
+Versione di prova (release candidate) della 3.0.0, per il collaudo: è una pre-release e non viene proposta agli utenti come aggiornamento. Contiene la prima tappa della 3.0.0 (correzioni dei collaudi e desktop professionale); le altre funzioni della 3.0.0 arrivano nelle prove successive.
 
 ## 2.2.0-rc.4
 

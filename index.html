@@ -9318,9 +9318,9 @@ function renderRecipes(f){
    Regola per gli sviluppi futuri: ogni novità visibile all'utente va aggiunta in cima a NOVITA con un numero di versione
    più alto in APP_VERSION. Chi ha già usato lo strumento la vede al primo ingresso; chi arriva per la prima volta vede il benvenuto. */
 const APP_VERSION='3.0';
-const APP_VERSION_FULL=()=>'3.0.0-rc.6';
+const APP_VERSION_FULL=()=>'3.0.0';
 const NOVITA=[
-  {v:'3.0', data:'novembre 2026', voci:[
+  {v:'3.0', data:'18 novembre 2026', voci:[
     ['📍','Picchi scritti per posizione','Nella scheda Picchi scrivi una o più posizioni (anche con larghezza e forma) e io le aggiungo, agganciandole al massimo vicino se vuoi. Contano come i picchi trovati da me per nomi, aree, deconvoluzione e quantificazione.', ()=>{ go(2); openTab('peaks'); setTimeout(()=>{ reveal('#pkAddBox'); $('#pkAddTxt').focus(); }, 80); }],
     ['〰️','Fondo tolto come vuoi tu','Per il Raman con fluorescenza e non solo: ALS, arPLS, polinomio iterativo, SNIP, rolling ball o punti scelti da te, con i parametri regolabili e il fondo stimato sul grafico mentre li muovi. Per uno spettro o per tutti, e si torna indietro quando vuoi.', ()=>{ go(2); openTab('proc'); setTimeout(()=>reveal('#baseBox'), 80); }],
     ['🧪','Dati controllati meglio','Ora ti avviso se un asse usa il separatore delle migliaia anche con valori sopra 1000 («1,100»). Un asse che torna indietro si legge come due blocchi, e per l\'HPLC ti segnalo due segnali con un solo blocco o un canale del nome diverso dall\'intestazione.',null],

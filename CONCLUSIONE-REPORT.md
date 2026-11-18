@@ -1,6 +1,6 @@
 # Conclusione di Acchiappaspettri 3.0: rapporto
 
-Branch `claude/acch-conclusione`, **candidata rc.6** (non pubblicata: nessun merge su `main` o `desktop`, nessuna release, nessun tag). Data: 18 novembre 2026.
+Branch `claude/acch-conclusione`, **versione 3.0.0** (decisione di Lorenzo, comunicata dal coordinatore: niente rc.6, pubblicazione diretta della 3.0.0). Nessun tag e nessuna release creati da questa sessione; i passi per pubblicare sono in `RILASCIO-3.0.md`. Data: 18 novembre 2026.
 
 Base di partenza: `desktop` = 3.0.0-rc.5 (77bc847). Su indicazione del coordinatore, a metà lavoro sono stati uniti `wip/integra-3.0` (1500d3a: rc.5 con I5 motore del desktop, I7 picchi e ZIP in Rust, I9 cinetiche e MCR-ALS, I11 estensioni) e `wip/i6-grafico-webgl` (c944acd: grafico WebGL, finestre «Stacca» e «Confronto»). Non toccati `wip/i10-mappe` e `wip/i12-ricetta-python`.
 
@@ -179,3 +179,12 @@ Acchiappaspettri trasforma i file degli strumenti di laboratorio (spettri e crom
 **Affidabilità**
 - Ogni calcolo è confrontato con riferimenti pubblici (NIST, dati sintetici con verità nota, report pubblici), con documenti di validazione aperti e centinaia di prove automatiche.
 - Le identificazioni automatiche sono presentate come ipotesi; le concentrazioni senza standard come stime.
+
+## 7. Decisioni prese dopo il rapporto (coordinatore, per conto di Lorenzo)
+- arPLS automatico invariato; per il Raman l'assistente propone IModPoly (golden del corpus aggiornato in 7 righe, volute).
+- Versione 3.0.0 (prima 3.0.0-rc.6, poi definitiva), crate `acch-core` allineato.
+- Progetti: 4 GB nell'app desktop, 1 GB online, con il limite scritto nel messaggio.
+- «Mostra nella cartella» di «Segnala un problema» passa dal comando nativo `reveal_granted` (solo file concessi); tolto il permesso generico `opener:allow-reveal-item-in-dir`.
+- Scrittura dei progetti aperti dai recenti: invariata (voluta per «Salva»). SNIP anche per Raman e altre tecniche: confermato.
+- Prova dei tempi I9 sulla mediana di più tentativi; `npm test` non modifica più `i18n/_pairs.json`; nota sulle dipendenze Rust in `docs/LIMITAZIONI.md`.
+- Merge in `desktop`: fatto (avanzamento semplice) a test verdi. Merge in `main`: **non fatto**, perché `CLAUDE.md` chiede la conferma di Lorenzo per i merge su `main` e le pubblicazioni; preparato e verificato senza conflitti (`RILASCIO-3.0.md`).

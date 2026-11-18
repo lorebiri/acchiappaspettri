@@ -1442,5 +1442,6 @@
   "😕 Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro.": "😕 The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it.",
   "😕 Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.": "😕 The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it in the online page. The desktop app opens projects up to 4 GB.",
   "Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro.": "The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it.",
-  "Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.": "The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it in the online page. The desktop app opens projects up to 4 GB."
+  "Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.": "The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it in the online page. The desktop app opens projects up to 4 GB.",
+  "18 novembre 2026": "18 November 2026"
 }
