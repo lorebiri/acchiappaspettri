@@ -396,6 +396,18 @@ fn export_existing(g: State<'_, Grants>, dir: String, rels: Vec<String>) -> Resu
 fn write_into(dir: &Path, rel: &str, bytes: &[u8]) -> Result<(), String> {
     let path = join_rel(dir, rel)?;
     let parent = path.parent().ok_or("invalid-path")?;
+    // prima di creare le sottocartelle si controlla la parte del percorso che esiste già: un collegamento simbolico che porta fuori
+    // non deve far nascere cartelle fuori dalla cartella concessa (prima venivano create e solo dopo la scrittura era rifiutata)
+    let root0 = fs::canonicalize(dir).map_err(|e| format!("write-failed: {}", e.kind()))?;
+    let mut probe = parent.to_path_buf();
+    while !probe.exists() {
+        if !probe.pop() {
+            return Err("invalid-path".into());
+        }
+    }
+    if !fs::canonicalize(&probe).map_err(|e| format!("write-failed: {}", e.kind()))?.starts_with(&root0) {
+        return Err("not-allowed".into());
+    }
     fs::create_dir_all(parent).map_err(|e| format!("write-failed: {}", e.kind()))?;
     let (root, real) = (
         fs::canonicalize(dir).map_err(|e| format!("write-failed: {}", e.kind()))?,
@@ -440,10 +452,12 @@ fn read_file(g: State<'_, Grants>, path: String) -> Result<Response, String> {
     if !allowed {
         return Err("not-allowed".into());
     }
+    let bytes = fs::read(&p).map_err(|e| format!("read-failed: {}", e.kind()))?;
+    // il progetto aperto (anche dai recenti) si potrà salvare: il permesso di scrittura solo dopo una lettura riuscita,
+    // così un percorso inesistente non diventa scrivibile con una sola richiesta di lettura
     if is_project(&p) {
         grant(&g, &p);
     }
-    let bytes = fs::read(&p).map_err(|e| format!("read-failed: {}", e.kind()))?;
     Ok(Response::new(bytes))
 }
 
@@ -829,6 +843,23 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    // debug della conclusione: un collegamento simbolico dentro la cartella concessa che porta fuori non crea cartelle fuori
+    #[cfg(unix)]
+    #[test]
+    fn write_into_non_crea_cartelle_fuori() {
+        let base = std::env::temp_dir().join(format!("acch-wi-{}", std::process::id()));
+        let (dentro, fuori) = (base.join("dentro"), base.join("fuori"));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&dentro).unwrap();
+        fs::create_dir_all(&fuori).unwrap();
+        std::os::unix::fs::symlink(&fuori, dentro.join("link")).unwrap();
+        assert_eq!(super::write_into(&dentro, "link/nuova/sotto/x.txt", b"x"), Err("not-allowed".to_string()));
+        assert!(!fuori.join("nuova").exists(), "cartella creata fuori dalla cartella concessa");
+        assert!(super::write_into(&dentro, "sub/a/x.txt", b"x").is_ok());
+        assert_eq!(fs::read(dentro.join("sub/a/x.txt")).unwrap(), b"x");
+        let _ = fs::remove_dir_all(&base);
+    }
+
     use super::*;
     #[test]
     fn atomic_write_keeps_backup_and_leaves_no_temp() {
