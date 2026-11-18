@@ -1,0 +1,16 @@
+{
+ "kind": "text",
+ "encoding": "utf-8",
+ "signature": {"regex": "^Strumento: Spettrometro SINTETICO", "lines": 1},
+ "headerLine": 4,
+ "delimiter": ";",
+ "decimal": ",",
+ "x": {"column": 1, "unit": "nm", "label": "Lunghezza d'onda"},
+ "channels": "all",
+ "technique": "uv",
+ "meta": [
+  {"name": "Strumento", "regex": "^Strumento:\\s*(.+)$"},
+  {"name": "Data", "regex": "^Data:\\s*(.+)$"}
+ ],
+ "sample": {"regex": "^Campione:\\s*(.+)$"}
+}

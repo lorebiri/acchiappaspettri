@@ -89,8 +89,12 @@ jobs:
       - run: node scripts/prepare-desktop.js
       - name: Test del codice nativo (non su Windows, tauri#13419; lì vale il collaudo dentro l'app)
         if: matrix.name != 'windows'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --workspace --manifest-path src-tauri/Cargo.toml
         shell: bash
+      - name: Test incrociati del motore, Rust contro JS per lettura, picchi e aree, ZIP (ACCH_DUAL=1, acch-core-cli sul corpus)
+        run: node --test test/unit/dual.test.js test/unit/dual-calc.test.js test/unit/dual-zip.test.js
+        shell: bash
+        env: { ACCH_DUAL: "1" }
       - name: Compila l'app di collaudo
         shell: bash
         run: |

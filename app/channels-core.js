@@ -133,7 +133,8 @@
   const tsvQ=l=>l.split('\t').map(x=>x.trim().replace(/^"(.*)"$/,'$1').trim());
   const numRow=l=>{ const t=l.trim(); if (!t || /^"/.test(t)) return null; const c=t.split(/\t|;|\s+(?=[-+\d.])/).filter(Boolean); if (c.length<2) return null;
     const a=num(c[0]), b=num(c[1]); return a!=null && b!=null && /^[-+]?[\d.,]+(e[-+]?\d+)?$/i.test(c[0].trim()) ? [a,b] : null; };
-  function readArw(text){ const lines=text.split(/\r\n|\n|\r/); if (!lines.slice(0,3).some(l=>/^"/.test(l.trim()))) return null;
+  // parte lunga della lettura (righe e numeri), quella che fa anche il Rust (src-tauri/acch-core, textmc.rs): blocchi o null
+  function scanArw(text){ const lines=text.split(/\r\n|\n|\r/); if (!lines.slice(0,3).some(l=>/^"/.test(l.trim()))) return null;
     const blocks=[]; let i=0;
     while (i<lines.length){ const l=lines[i].trim(); if (!/^"/.test(l)){ i++; continue; }
       const q=[]; while (i<lines.length && /^"/.test(lines[i].trim())){ q.push(tsvQ(lines[i])); i++; }
@@ -141,6 +142,8 @@
       const xs=[], ys=[]; while (i<lines.length && !/^"/.test(lines[i].trim())){ const r=numRow(lines[i]); if (r){ xs.push(r[0]); ys.push(r[1]); } i++; }
       blocks.push({rec, meta:q.map(r=>r.join('\t')), xs, ys}); }
     if (!blocks.length || !blocks.some(b=>b.xs.length>=5)) return null;
+    return blocks; }
+  function readArw(text, pre){ const blocks=pre || scanArw(text); if (!blocks) return null;
     const pick=(rec,re)=>{ for (const k of Object.keys(rec)) if (re.test(k)) return rec[k]; return ''; };
     const samples=new Map();
     blocks.forEach((b,ix)=>{ const sn=pick(b.rec,/^sample\s*name$/i)||pick(b.rec,/^sample/i), ch=pick(b.rec,/^channel(\s*(name|description))?$/i)||pick(b.rec,/^ch(annel)?/i), wl=pick(b.rec,/wavelength/i), det=pick(b.rec,/^detector/i);
@@ -154,7 +157,8 @@
      sezioni «[Header]», «[Sample Information]», «[LC Chromatogram(Detector A-Ch1)]», «[PDA Multi Chromatogram(…)]»…;
      in ogni cromatogramma: «# of Points», «Intensity Units», «Intensity Multiplier», «Wavelength(nm)», poi «R.Time (min)» e i dati.
      Un «[Header]» nuovo apre un altro campione (esportazione di più dati in un file). Le tracce di stato (pressione…) non sono canali. */
-  function readShimadzu(text){ if (!/^\[Header\]\s*$/m.test(text.slice(0,20000)) || !/^\[[^\]\n]*Chromatogram[^\]\n]*\]\s*$/mi.test(text)) return null;
+  // parte lunga (righe e numeri), come scan_shimadzu in Rust: {samples, declared, status} o null
+  function scanShimadzu(text){ if (!/^\[Header\]\s*$/m.test(text.slice(0,20000)) || !/^\[[^\]\n]*Chromatogram[^\]\n]*\]\s*$/mi.test(text)) return null;
     const lines=text.split(/\r\n|\n|\r/), samples=[]; let cur=null, sec=null, notes=[], declared=0, status=[];
     const kv=l=>{ const c=l.split(/\t|,(?=\S)/); return [c[0].trim(), (c[1]||'').trim()]; };
     const newSample=()=>{ cur={name:'', file:'', channels:[]}; samples.push(cur); };
@@ -169,6 +173,8 @@
       if (sec.data && r){ sec.xs.push(r[0]); sec.ys.push(r[1]); continue; }
       if (/^R\.?\s*Time/i.test(l.trim())){ sec.data=true; sec.meta.push(l.trim()); continue; }
       if (!sec.data){ const [k,v]=kv(l); sec.kv[k]=v; sec.meta.push(l.trim()); } }
+    return {samples, declared, status}; }
+  function readShimadzu(text, pre){ const sc=pre || scanShimadzu(text); if (!sc) return null; const samples=sc.samples, declared=sc.declared, status=sc.status, notes=[];
     const out=samples.filter(s=>s.channels.length).map(s=>{ const chs=s.channels.map(c=>{ const mult=num(c.kv['Intensity Multiplier']); const k=mult!=null && mult!==0 ? mult : 1;
         const wl=c.kv['Wavelength(nm)']||c.kv['Wavelength']||'', bw=c.kv['Bandwidth(nm)']||c.kv['Band Width(nm)']||'';
         const info=parseChannel(c.paren+(wl?' '+wl+(bw?'/'+bw:'')+' nm':'')); if (!info.det) info.det=c.paren.slice(0,30);
@@ -189,8 +195,9 @@
     // due canali con la stessa descrizione nello stesso campione (per esempio due blocchi senza nome): si numerano, non si fondono
     for (const s of r.samples){ const seen={}; for (const c of s.channels){ const k=c.channel; seen[k]=(seen[k]||0)+1; if (seen[k]>1){ c.channel=(k?k+' ':'')+'#'+seen[k]; c.label=(c.label?c.label+' ':'')+'#'+seen[k]; } } }
     r.read=r.samples.reduce((a,s)=>a+s.channels.length,0); return r; }
-  function readBinary(buf, name){ const nm=String(name||'');
-    if (/\.ch$/i.test(nm) || /^\.?(179|181|130|30)$/.test(agilentVersion(new Uint8Array(buf)))){ const c=readCh(buf); if (!c) return null;
+  // pre (facoltativo): il risultato di readCh già calcolato dal lettore Rust, identico (app/read-core.js)
+  function readBinary(buf, name, pre){ const nm=String(name||'');
+    if (/\.ch$/i.test(nm) || /^\.?(179|181|130|30)$/.test(agilentVersion(new Uint8Array(buf)))){ const c=pre || readCh(buf); if (!c) return null;
       const info=parseChannel(c.head.signal||''); if (!info.det && !info.wl){ const fromName=parseChannel(nm.replace(/\.ch$/i,'')); info.det=fromName.det; info.wl=fromName.wl; }
       const meta=[`Agilent ChemStation .ch (${c.version})`, c.head.sample?'Sample Name: '+c.head.sample:'', c.head.signal?'Signal: '+c.head.signal:'', c.head.method?'Method: '+c.head.method:'', c.head.units?'Units: '+c.head.units:'', 'Time (min)'].filter(Boolean);
       return finish({format:'agilent-ch', declared:1, samples:[{sampleKey:null, name:c.head.sample, channels:[{info, raw:c.head.signal, xs:c.xs, ys:c.ys, meta, units:c.head.units}]}]}); }
@@ -198,7 +205,9 @@
   function readUvChannels(uv, wls, bw){ const chs=[]; for (const wl of wls){ const ys=uvExtract(uv, wl, bw); if (!finiteAll(ys)) continue;
       chs.push({info:{det:'UV', wl, bw:bw||null, ref:null, ex:null, em:null, extracted:true}, xs:uv.times.slice(), ys, meta:['Agilent ChemStation .uv ('+uv.version+'): cromatogramma dagli spettri DAD', uv.head.sample?'Sample Name: '+uv.head.sample:'', 'Time (min)'].filter(Boolean)}); }
     return finish({format:'agilent-uv', declared:wls.length, samples:[{sampleKey:null, name:uv.head.sample, channels:chs}]}); }
-  function readText(text, name){ const nm=String(name||'');
+  // pre (facoltativo): {arw} o {shimadzu}, le righe già lette dal Rust (stesse operazioni di scanArw e scanShimadzu)
+  function readText(text, name, pre){ const nm=String(name||'');
+    if (pre){ const r=pre.arw ? readArw(null, pre.arw) : pre.shimadzu ? readShimadzu(null, pre.shimadzu) : null; return r ? finish(r) : null; }
     if (/\.arw$/i.test(nm) || /^"?Sample\s*Name"?\t/i.test(text.slice(0,200))){ const r=readArw(text); if (r) return finish(r); }
     const s=readShimadzu(text); if (s) return finish(s);
     return null; }
@@ -209,5 +218,5 @@
     return null; }
   // chiave della memoria di uno spettro in un progetto: il percorso, più campione e canale se il file ne ha più d'uno (I3)
   const memKey=(path, sampleKey, channel)=>(sampleKey==null && channel==null) ? String(path) : String(path)+'\u0000'+(sampleKey==null?'':sampleKey)+'\u0000'+(channel==null?'':channel);
-  return {memKey, parseChannel, formatChannel, shortLabel, canon, readCh, readUv, uvExtract, uvSuggest, readArw, readShimadzu, readBinary, readUvChannels, readText, headerNames, finish, agilentVersion};
+  return {memKey, parseChannel, formatChannel, shortLabel, canon, readCh, readUv, uvExtract, uvSuggest, readArw, readShimadzu, scanArw, scanShimadzu, readBinary, readUvChannels, readText, headerNames, finish, agilentVersion};
 });

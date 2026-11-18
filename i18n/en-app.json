@@ -1265,6 +1265,8 @@
   "Isoterme dell'Autosorb (Kaomi, ASiQwin, AIF, anche Excel): BET con i criteri di Rouquerol, Langmuir, t-plot, BJH, DR, calore isosterico e DFT; per il chemisorbimento TPR/TPD, impulsi e dispersione.": "Autosorb isotherms (Kaomi, ASiQwin, AIF, Excel too): BET with the Rouquerol criteria, Langmuir, t-plot, BJH, DR, isosteric heat and DFT; for chemisorption TPR/TPD, pulses and dispersion.",
   "Progetti Origin": "Origin projects",
   "Apri i tuoi .opju e .opj: scegli le colonne da importare, con i valori identici all'originale. Puoi anche esportare in formato Origin (non ancora provato in Origin).": "Open your .opju and .opj files: choose the columns to import, with values identical to the original. You can also export in Origin format (not yet tried in Origin).",
+"Lettura annullata: {0} file non letti.": "Reading cancelled: {0} files not read.",
+"Annulla la lettura": "Cancel reading",
 "Carte di controllo delle librerie": "Library control charts",
 "per ogni voce di libreria con una carta di controllo: grafico PNG e SVG e tabella CSV dei k delle serie": "for each library entry with a control chart: PNG and SVG chart and CSV table of the run k values",
 "1 carta di controllo": "1 control chart",
@@ -1389,5 +1391,16 @@
   "Fondo tolto come vuoi tu": "Baseline removed your way",
   "Nella scheda Picchi scrivi una o più posizioni (anche con larghezza e forma) e io le aggiungo, agganciandole al massimo vicino se vuoi. Contano come i picchi trovati da me per nomi, aree, deconvoluzione e quantificazione.": "In the Peaks tab type one or more positions (also with width and shape) and I add them, snapping them to the nearest maximum if you like. They count like the peaks I find for names, areas, deconvolution and quantitation.",
   "Per il Raman con fluorescenza e non solo: ALS, arPLS, polinomio iterativo, SNIP, rolling ball o punti scelti da te, con i parametri regolabili e il fondo stimato sul grafico mentre li muovi. Per uno spettro o per tutti, e si torna indietro quando vuoi.": "For Raman with fluorescence and beyond: ALS, arPLS, iterative polynomial, SNIP, rolling ball or points you pick, with adjustable parameters and the estimated baseline on the plot while you move them. For one spectrum or for all, and you can go back whenever you like.",
-  "Picchi scritti per posizione": "Peaks typed by position"
+  "Picchi scritti per posizione": "Peaks typed by position",
+  "Serie, MCR-ALS e cinetiche": "Series, MCR-ALS and kinetics",
+  "Metti in fila spettri presi nel tempo, con la dose o con la temperatura: MCR-ALS separa i componenti e il fit globale delle cinetiche ti dà le costanti con il loro errore.": "Line up spectra taken over time, dose or temperature: MCR-ALS separates the components and the global kinetic fit gives you the rate constants with their error.",
+"⚠️ Spettri letti da un'estensione non installata o disattivata: {0} ({1}). Non si vedono, ma i file originali restano nel progetto e si salvano con lui. Installa o attiva l'estensione e riapri il progetto.": "⚠️ Spectra read by an extension that is not installed or is disabled: {0} ({1}). They are not shown, but the original files stay in the project and are saved with it. Install or enable the extension and open the project again.",
+"⚠️ L'estensione {0} non ha riletto {1} spettri salvati: i file originali restano nel progetto.": "⚠️ The extension {0} could not read {1} saved spectra again: the original files stay in the project.",
+"⚠️ File riletti con un'altra versione dell'estensione «{0}»: {1} (salvati con la {2}, ora la {3}). Controlla i dati.": "⚠️ Files read again with a different version of the extension «{0}»: {1} (saved with {2}, now {3}). Check the data.",
+"Pacchetto di estensione ricevuto: controlla e conferma l'installazione.": "Extension package received: check it and confirm the installation.",
+"letto dall'estensione «{0}» {1}": "read by the extension «{0}» {1}",
+  "Estensioni per nuovi formati": "Extensions for new formats",
+  "Se un formato non lo leggo ancora, puoi aggiungere un'estensione: gira isolata, senza rete né accesso ai tuoi dati, e prima di installarla ti mostro chi l'ha scritta e che cosa può fare.": "If I cannot read a format yet, you can add an extension: it runs isolated, with no network or access to your data, and before installing it I show you who wrote it and what it can do.",
+"Deconvoluzione in corso…": "Deconvolution in progress…",
+"Calcolo della composizione in corso…": "Computing the composition…"
 }

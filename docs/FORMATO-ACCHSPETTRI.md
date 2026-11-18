@@ -72,6 +72,7 @@ results/…                   tabelle dei risultati e bozza dei metodi (copia in
 | `channel` | stringa o `null` | quale canale del campione, nella forma normalizzata di `app/channels-core.js` (`formatChannel`): `<rivelatore> <λ>/<banda> nm ref <λ>/<banda> nm`, per esempio `DAD1A 254/4 nm ref 360/100 nm`, `PDA Ch1 254/1.2 nm`, `UV 280/4 nm extracted` (dagli spettri di un `.uv`). `null` per un file di testo a un solo canale; i file dei rivelatori (`.ch`, `.arw`, Shimadzu) lo hanno sempre |
 | `binary` | booleano | come la sorgente |
 | `origin` | oggetto, facoltativo | per uno spettro preso da un progetto Origin (sorgente `.opj`/`.opju`): `{book, sheet, col}`, cioè cartella, numero del foglio (≥ 1) e colonna Y. Gli spettri dallo stesso progetto condividono la sorgente; il `path` termina con `#origin:libro|foglio|colonna`. Un lettore che non lo conosce rilegge la sorgente come file binario e non trova numeri: nessun numero sbagliato |
+| `plugin` | oggetto, facoltativo | per uno spettro letto da un'estensione (I11, [ESTENSIONI.md](ESTENSIONI.md)): `{id, version, name?, sha256?}`, cioè identificativo e versione dell'estensione, nome mostrato e impronta SHA-256 del pacchetto `.acchplugin` usato. Richiede una sorgente. All'apertura il file si rilegge solo con quell'estensione; se manca, è disattivata o non lo rilegge, l'app avvisa (nome, versione, `id`) e il record con i suoi byte si conserva intatto e si riscrive al salvataggio. Un lettore che non conosce il campo rilegge la sorgente con i propri lettori: un formato che non conosce viene saltato e lo dice |
 | `memory` | oggetto o `null` | il lavoro sullo spettro: titolo, descrizione, intervallo, etichette dei picchi (`labels`, con i rimandi `@id` alla libreria), picchi tolti e aggiunti, elaborazioni, deconvoluzioni, analisi (`fileMemory` in `index.html`) |
 | `processed` | percorso, facoltativo | copia leggibile dei dati come visualizzati |
 | `series`, `cube`, `iso` | oggetti, facoltativi | dati propri dello spettro, sotto |
@@ -90,6 +91,32 @@ Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono
 - `data` è una voce binaria: `m·n` numeri `f64` (8 byte) o `f32` (4 byte) **little-endian**, in fila per righe: il valore al tempo `t[i]` e alla `x[j]` è l'elemento `i·n + j`.
 - `kind`: `kinetics`, `dad`, `mcr`, `generic` o altro testo breve; `members`: facoltativo, gli `id` degli spettri del progetto da cui è stata composta; `meta`: facoltativo, oggetto libero (modello, vincoli, versione dell'algoritmo).
 - In memoria (`decode` e `encode`) `data` è un `Float64Array` o `Float32Array`.
+- **Nell'app (tappa I9)** una serie costruita in Analisi → Più campioni è uno spettro derivato: `source: null`, nome «Serie …», percorso `serie/<data>.series`, dati in `series`; lo spettro mostrato è la media delle righe. All'apertura lo ricostruisce `app/chemo-ui.js` (`AcchProject.restoreDerived`). `series.meta` contiene `version` (`mcr-1`), `instr` (tecnica dei membri), `members` (percorsi degli spettri di partenza: gli `id` del progetto si assegnano solo al salvataggio), `axisSource` (`meta`, `name` o `manual`) e `resampled` (`true` se gli spettri sono stati riportati per interpolazione lineare sull'asse del primo).
+
+### `memory.an.mcr` e `memory.an.kin`: impostazioni di MCR-ALS e della cinetica globale (tappa I9)
+Campi facoltativi dentro `memory.an` della serie: un lettore 2 che non li conosce li ignora senza perdere numeri (i risultati si ricalcolano dalla matrice), quindi la versione del formato non cambia. All'apertura passano da `McrCore.cleanOpt` (`app/mcr-core.js`) e `KinCore.cleanOpt` (`app/kinetics-core.js`): restano solo i valori ammessi, il resto si scarta.
+
+| Campo | Valori ammessi | Significato |
+|---|---|---|
+| `mcr.nc` | intero 1–10 | numero di componenti |
+| `mcr.init`, `mcr.initOn` | `simplisma`, `efa`; `S`, `C` | stima iniziale e su che cosa (spettri puri o variabili pure) |
+| `mcr.nonnegC`, `mcr.nonnegS` | booleani | non negatività di concentrazioni e spettri |
+| `mcr.closure` | numero > 0 | somma costante delle concentrazioni di ogni riga |
+| `mcr.offset` | 0–100 | rumore ammesso di SIMPLISMA, in % della media massima |
+| `mcr.unimodal` | interi 0–9, al più 10 | componenti con profilo unimodale |
+| `mcr.norm` | `norm`, `max`, `none` | normalizzazione degli spettri |
+| `mcr.maxIter`, `mcr.tol` | 1–5000; 0 < tol < 1 | arresto (variazione relativa della mancanza di adattamento) |
+| `mcr.known` | `{"<componente 0–9>": percorso}` (≤ 400 caratteri) | spettri noti: percorso di uno spettro del progetto |
+| `mcr.xmin`, `mcr.xmax` | numeri | intervallo spettrale |
+| `kin.model` | `ord0`, `ord1`, `ord2`, `consec`, `rev`, `par` | modello cinetico |
+| `kin.nExp`, `kin.offset` | 1–5; booleano | esponenziali e fondo costante (solo `par`) |
+| `kin.t0fit`, `kin.t0` | booleano; numero | t₀ stimato o fisso |
+| `kin.K`, `kin.A0` | numeri > 0 | costante di equilibrio (A ⇌ B) e [A]₀ (ordini 0 e 2) |
+| `kin.nonnegS` | booleano | spettri associati alle specie ≥ 0 (NNLS) |
+| `kin.rank` | intero 1–50 | componenti della SVD su cui comprimere (assente: compressione senza perdita) |
+| `kin.k0` | fino a 5 numeri > 0 | costanti di partenza |
+
+Esempio: `"an":{"mcr":{"nc":3,"closure":1,"unimodal":[0,1]},"kin":{"model":"consec"}}`. Prova di andata e ritorno: `test/unit/chemo.test.js` (formato) e `test/validation/i9-chemo-ui.test.js` (salvataggio e riapertura nella pagina).
 
 ### `cube`: mappe e dati iperspettrali
 
@@ -212,11 +239,12 @@ Campi facoltativi aggiunti dalla tappa I4, che un lettore 2 senza libreria ignor
 ## Nell'app (`app/project.js`)
 - **Salvataggio**: per ogni spettro si passano `f.raw` (byte), `f.sampleKey`, `f.channel`, `f.series`, `f.cube`, `f.iso` se il modulo che lo ha letto li ha messi su `f`. I moduli nuovi (multicanale, mappe, fisisorbimento, Origin) scrivono lì i loro dati: non serve toccare il formato.
 - **Librerie**: `AcchProject.libraries` è l'elenco `[{id, revision, name, data}]` che si scrive al salvataggio; si riempie all'apertura con le librerie del progetto. La libreria dei picchi (I4) lo legge e lo aggiorna.
+- **Spettri letti da un'estensione** (`plugin`): `f.plugin` passa nel campo `plugin`; alla riapertura `AcchPlugins.available(id)` decide se rileggere il file con l'estensione oppure conservare il record com'è (`AcchProject.pluginMissing` elenca quelli non mostrati).
 - **Spettri senza file originale** (`source: null`): all'apertura si chiama `AcchProject.restoreDerived(record)` se un modulo lo ha definito (deve restituire `true` se ha ricostruito lo spettro); altrimenti il record si conserva intatto e si riscrive al salvataggio successivo. Nessuna perdita in silenzio.
 - **Libreria dei nomi**: all'apertura `libMerge` unisce `state.LIB` a quella dell'utente e restituisce `map` (id del progetto → id locale) quando una voce cambia id (conflitto, id oltre 40 caratteri, voce già presente con un altro id); i rimandi `@id` delle etichette si riscrivono con `map` prima di caricare gli spettri.
 
 ### API di `app/project-format.js`
-- `encode(input, JSZip)` → `Uint8Array`. `input = {appVersion, title, createdAt, state, spectra:[{name, path, bytes?, binary?, memory?, processedCsv?, sampleKey?, channel?, origin?, series?, cube?, iso?, extra?}], libraries:[{id, revision, name?, data}], results:[{name, text}]}`. Errori `bad-input` per dati non validi (matrice di dimensioni sbagliate, numeri non finiti, id di libreria doppi).
+- `encode(input, JSZip)` → `Uint8Array`. `input = {appVersion, title, createdAt, state, spectra:[{name, path, bytes?, binary?, memory?, processedCsv?, sampleKey?, channel?, origin?, plugin?, series?, cube?, iso?, extra?}], libraries:[{id, revision, name?, data}], results:[{name, text}]}`. Errori `bad-input` per dati non validi (matrice di dimensioni sbagliate, numeri non finiti, id di libreria doppi).
 - `decode(bytes, JSZip)` → sempre nella forma del formato 2: `{manifest, state, sources:[{id, data, size, sha256, binary, bytes}], spectra:[{…, source, sampleKey, channel, bytes, data, series?, cube?, iso?}], libraries:[{id, revision, name, data}], results, warnings}`. Gli spettri della stessa sorgente condividono lo stesso `Uint8Array`.
 - `fromLegacyJson(text)` → la stessa forma, per i `.acchiappa.json`.
 - Errori (`ProjectError.code`): `not-a-project`, `empty`, `corrupted`, `integrity`, `missing-entry`, `invalid-json`, `invalid-schema`, `unsafe-path`, `too-large`, `newer-format`, `no-migration`, `no-zip`, `bad-input`.
@@ -236,4 +264,4 @@ Campi facoltativi aggiunti dalla tappa I4, che un lettore 2 senza libreria ignor
 Le fotografie del falso colore e i preset globali non fanno parte del progetto. Zoom e scheda aperta non vengono ripristinati.
 
 ---
-**English summary.** `.acchspettri` is a plain, documented, versioned ZIP (format 2 since 3.0.0; format 1 and legacy `.acchiappa.json` are still read and migrated in memory). `manifest.json` lists every entry with SHA-256; `project/sources.json` and `data/` keep each original file once, byte for byte, even when several spectra (channels, told apart by `sampleKey` and `channel`) come from it; `project/spectra.json` holds per-spectrum work plus optional `series` (time × wavelength matrix), `cube` (nx × ny × channels map, binary data in a separate little-endian entry) and `iso` (adsorption isotherm); `project/libraries.json` and `libraries/` embed the peak libraries used (id and revision). A peak library (`.acchlib`, JSON format `acchlib` 1; older `.acchlib.json` files are still read) belongs to one (instrument, sample type) pair and holds entries with position, window, RRT, detector channel, method, column and the saved calibration (slope or response factor, intercept, units, range, n, R², s_y/x, relative repeatability, LOD, LOQ, date, standard lot); concurrent writes are merged entry by entry after a SHA-256 check, conflicts go to the user. Optional `memory.an.lib*` fields keep the sample type, chosen library, confirmed instrument and same-day control values of each spectrum. No absolute paths and no executable content; every entry is verified on opening. `minReaderVersion` is 2.
+**English summary.** `.acchspettri` is a plain, documented, versioned ZIP (format 2 since 3.0.0; format 1 and legacy `.acchiappa.json` are still read and migrated in memory). `manifest.json` lists every entry with SHA-256; `project/sources.json` and `data/` keep each original file once, byte for byte, even when several spectra (channels, told apart by `sampleKey` and `channel`) come from it; `project/spectra.json` holds per-spectrum work plus optional `series` (time × wavelength matrix), `cube` (nx × ny × channels map, binary data in a separate little-endian entry) and `iso` (adsorption isotherm); `project/libraries.json` and `libraries/` embed the peak libraries used (id and revision). A peak library (`.acchlib`, JSON format `acchlib` 1; older `.acchlib.json` files are still read) belongs to one (instrument, sample type) pair and holds entries with position, window, RRT, detector channel, method, column and the saved calibration (slope or response factor, intercept, units, range, n, R², s_y/x, relative repeatability, LOD, LOQ, date, standard lot); concurrent writes are merged entry by entry after a SHA-256 check, conflicts go to the user. An optional `plugin` = `{id, version, name, sha256}` records which extension (`.acchplugin`, docs/ESTENSIONI.md) read a source; if it is missing on reopening the record and its bytes are kept and rewritten. Optional `memory.an.lib*` fields keep the sample type, chosen library, confirmed instrument and same-day control values of each spectrum. No absolute paths and no executable content; every entry is verified on opening. `minReaderVersion` is 2.

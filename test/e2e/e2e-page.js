@@ -22,6 +22,45 @@ window.AcchE2E=async function(info){
       check('salva i canali nel progetto', await AcchProject.saveAs()); host.pickSave=oldPick; await AcchProject.closeProject();
       check('riapre: stessi canali, senza finestra', await AcchDesktop.openPath(path,'grezzi.acchspettri') && files.length===6 && window.ACCH_E2E_CANALI.length===1, files.length+' spettri, '+window.ACCH_E2E_CANALI.length+' finestre');
     }
+    // I5, misure (scripts/misura-motore.js): file grandi nella cartella del collaudo, letti come se fossero trascinati (percorsi concessi,
+    // lettore Rust o worker JS secondo ACCH_RUST). Per ogni file: lettura (AcchEngine), clic → grafico disegnato, blocco più lungo della finestra.
+    // elenco dei file in ACCH_E2E_UPDATE_URL (il campo libero di e2e_config), con «grafico» per misurare anche clic → grafico
+    if (cfg.scenario==='misura'){ res.misure=[]; res.engine=await AcchEngine.config(); const full=/(^|,)grafico(,|$)/.test(cfg.updateUrl||'');
+      for (const n of (cfg.updateUrl||'').split(',').filter(x=>x && x!=='grafico')){ const pth=dir+sep+n; await inv('e2e_grant',{path:pth});
+        // blocchi: un timer ogni 10 ms; il ritardo più lungo è il blocco più lungo della finestra (WKWebView non ha «longtask»)
+        let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10);
+        // dove c'è (WebView2, Chromium) anche l'API dei blocchi lunghi: non dipende dal rallentamento dei timer delle finestre in secondo piano (App Nap su macOS)
+        const LT=[]; let ob=null; try{ if ((PerformanceObserver.supportedEntryTypes||[]).includes('longtask')){ ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(e.duration))); ob.observe({type:'longtask'}); } }catch(e){ ob=null; }
+        const b=await inv('read_file',{path:pth}), buf=b instanceof ArrayBuffer ? b : new Uint8Array(b).buffer, t0=performance.now();
+        const R=await AcchEngine.read(buf, n, {}, {acchPath:pth}); const tRead=performance.now()-t0, how=AcchEngine.stats.last; await sleep(50); clearInterval(iv);
+        if (ob) ob.disconnect();
+        const m={file:n, MB:+(buf.byteLength/1e6).toFixed(1), kind:R.kind, engine:how&&how.engine, why:how&&how.why, readMs:Math.round(tRead), worstStallMs:Math.round(worst), longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null, readFileIncluded:true};
+        if (full){ let drawn=0; const od=window.drawPlot; window.drawPlot=function(){ const r=od.apply(this,arguments); if (!drawn) drawn=performance.now(); return r; };
+          let worst2=0, last2=performance.now(); const iv2=setInterval(()=>{ const t=performance.now(); worst2=Math.max(worst2,t-last2); last2=t; },10);
+          const t1=performance.now(); T.event.emit('acch-dropped',[{path:pth, name:n, rel:n}]); await until(()=>drawn && files.length, 600000); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); m.readInGraph=Object.assign({}, AcchEngine.stats.last); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
+        res.misure.push(m); }
+      check('misure eseguite', res.misure.length>0); }
+    // I7, misure dei calcoli e dello ZIP (scripts/misura-calc.js --app): Rust (IPC compreso) contro il worker JS e contro JSZip, 3 prove
+    // ciascuno, con il controllo che i risultati coincidano. Spettro sintetico di 1M punti generato qui (nessun file di laboratorio).
+    if (cfg.scenario==='calcolo'){ const N=1e6, xs=new Float64Array(N), ys=new Float64Array(N); let sd=3; const rn=()=>{ sd=(sd*16807)%2147483647; return sd/2147483647-0.5; }, g=(x,c,w)=>Math.exp(-0.5*((x-c)/w)**2);
+      for (let i=0;i<N;i++){ const x=400+i*3600/(N-1); xs[i]=x; ys[i]=g(x,1000,4)+0.6*g(x,2500,6)+0.4*g(x,3300,5)+0.01*rn(); }
+      const pk=findPeaks(xs, ys, 1, 1, 60).map(p=>p.x), med=a=>a.slice().sort((p,q)=>p-q)[a.length>>1];
+      const stall=async f=>{ let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10); const t0=performance.now(); const r=await f(); const ms=performance.now()-t0; clearInterval(iv); return {r, ms, worst}; };
+      res.calcolo=[];
+      for (const [fn,args] of [['findPeaks',[xs,ys,1,2,20]], ['peakAreas',[xs,ys,pk]], ['sgSmooth',[ys,401]], ['sgSmooth',[ys,11]], ['derivLS',[xs,ys,5000]], ['derivLS',[xs,ys,8]], ['noiseSigma',[ys]]]){
+        const R=[], J=[]; let same=null;
+        for (let k=0;k<3;k++){ const a=await stall(()=>AcchEngine.calcRust(fn,args)), b=await stall(()=>AcchEngine.call(fn,...args)); R.push(a.ms); J.push(b.ms); same=a.r ? AcchCalc.same(a.r.r, b.r, 0) : 'decline'; }
+        res.calcolo.push({fn, args:args.filter(v=>typeof v==='number').join(','), rustMs:R.map(Math.round), workerMs:J.map(Math.round), rustMed:Math.round(med(R)), workerMed:Math.round(med(J)), same:same||'identici'}); }
+      check('calcoli Rust identici al JS', res.calcolo.every(c=>c.same==='identici'), JSON.stringify(res.calcolo.map(c=>c.same)));
+      const lines=['x,y']; for (let i=0;i<N;i++) lines.push(xs[i].toFixed(4)+','+ys[i].toFixed(6)); const csv=lines.join('\r\n'), bin=new Uint8Array(30e6); for (let i=0;i<bin.length;i++) bin[i]=(i*31+(i>>9))&255;
+      // lo ZIP di Esporta (STORE) resta a JSZip: nella misura I7 il Rust, IPC compreso, non era più veloce (840 contro 729 ms)
+      const mk={'progetto (DEFLATE)':()=>{ const z=new JSZip(); z.file('mimetype','application/x',{compression:'STORE'}); for (let k=0;k<3;k++) z.file('data/00000'+k+'.dat', k===2 ? bin : new TextEncoder().encode(csv), {binary:true}); return [z, {type:'uint8array', compression:'DEFLATE', compressionOptions:{level:6}}]; }};
+      res.zip=[];
+      for (const [k,f] of Object.entries(mk)){ const R=[], J=[], RW=[], JW=[];
+        for (let r=0;r<3;r++){ const [z,gen]=f(); const a=await stall(()=>AcchEngine.zipper(z,gen)), b=await stall(()=>z.generateAsync(gen)); R.push(a.ms); J.push(b.ms); RW.push(a.worst); JW.push(b.worst); if (!a.r) R[r]=NaN; }
+        res.zip.push({kind:k, rustMs:R.map(Math.round), jszipMs:J.map(Math.round), rustMed:Math.round(med(R)), jszipMed:Math.round(med(J)), rustWorstStallMs:Math.round(med(RW)), jszipWorstStallMs:Math.round(med(JW))}); }
+      res.stats=Object.assign({}, AcchEngine.stats); check('misure eseguite', res.zip.every(z=>Number.isFinite(z.rustMed))); }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
       try{ const r=await inv('e2e_check_update',{url:cfg.updateUrl, install:cfg.scenario==='update-good'}); res.update=r;

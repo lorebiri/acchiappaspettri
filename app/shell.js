@@ -136,7 +136,11 @@
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;
   win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ qualBadge(); refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
-  function qualBadge(){ const f=files[cur]; let n=0; if (f&&viewMode!=='cmp'){ try{ n=assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){} } RES.qual.b.dataset.n=n||''; }
+  // I5: con spettri grandi il conteggio arriva dal controllo fatto a pezzi (AcchEngine.prefetch): la finestra non si ferma
+  function qualBadge(){ const f=files[cur], set=n=>{ RES.qual.b.dataset.n=n||''; }, count=()=>{ try{ return assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){ return 0; } };
+    if (!f || viewMode==='cmp') return set(0);
+    if (win.AcchEngine && win.AcchEngine.prefetch && f.xs && f.xs.length>=200000){ win.AcchEngine.prefetch(count).then(n=>{ if (files[cur]===f) set(n); }, ()=>{}); return; }
+    set(count()); }
   function saveState(){ const P=win.AcchProject; if (!P) return; const dirty=P.isDirty(), has=files.length>0; stSave.textContent=has?(dirty?tr('Modificato'):tr('Salvato')):''; stSave.classList.toggle('warn',dirty); const n=$('#shProject'); if (n){ n.textContent=(dirty?'● ':'')+P.displayName(); n.title=dirty?tr('Modificato'):''; } }
   function updateStatus(){ saveState(); const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
     if (!f||viewMode==='cmp'){ stChain.textContent=''; stRange.textContent=''; return; }
