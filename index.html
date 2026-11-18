@@ -386,6 +386,13 @@ body.busy, body.busy *{cursor:progress !important}
 .cgroup{margin-bottom:18px}
 .cgroup>b{display:block;font-size:14.5px;margin-bottom:2px}
 .cgroup>.why{margin-bottom:8px}
+.pkadd{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--soft,#f7f9fc)}
+.pkadd .pkaddt{flex:1 1 300px}
+.pkadd textarea{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;font-weight:400;color:var(--ink);background:#fff;resize:vertical;min-width:0}
+.pkadd input[type=text]{border:1px solid var(--line);border-radius:9px;padding:5px 8px;font:inherit}
+.pktab td.pos small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.pktab tr.edit td{background:#fff8ec}
+.pktab tr.edit input,.pktab tr.edit select{border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;width:96px}
 .basebox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--soft,#f7f9fc)}
 .basebox .bord{border-left:3px solid #e69a1d;padding-left:8px}
 .basebox .bpars{margin:6px 0 8px}
@@ -821,6 +828,17 @@ dialog.cmdk::backdrop{background:rgba(20,30,50,.35)}
           <span class="spacer"></span>
           <button class="btn small ghost" id="clearNames" title="Lascia solo i numeri">Togli i nomi</button>
           <button class="btn small ghost" id="resetPeaks" title="Torna ai picchi trovati in automatico, senza nomi">↺ Picchi automatici</button>
+        </div>
+        <div class="pkadd" id="pkAddBox">
+          <div class="pkaddh"><b>Aggiungi picchi per posizione</b> <span class="opt-l" id="pkAddUnit"></span></div>
+          <div class="ibfields">
+            <label class="ibf pkaddt"><span>Posizioni</span><textarea id="pkAddTxt" rows="2" spellcheck="false" autocomplete="off" placeholder="es. 1086; 712; 282 · oppure una per riga · facoltativi accanto a ognuna: w=8 (larghezza) e la forma (gauss, lor, pv)"></textarea></label>
+            <label class="ibf"><span>Larghezza FWHM <small>facoltativa, per tutti</small></span><input type="text" inputmode="decimal" id="pkAddW" style="width:120px;min-width:0" placeholder="automatica"></label>
+            <label class="ibf"><span>Forma</span><select id="pkAddSh" style="min-width:0"><option value="">automatica</option><option value="gauss">gaussiana</option><option value="lor">lorentziana</option><option value="pv">pseudo-Voigt</option></select></label>
+          </div>
+          <div class="ibfields"><label class="check" style="margin:0"><input type="checkbox" id="pkAddSnap" checked> Aggancia al massimo locale più vicino entro</label><input type="text" inputmode="decimal" id="pkAddTol" style="width:90px" aria-label="Tolleranza per l'aggancio"><span class="opt-l" id="pkAddTolU"></span>
+            <span class="spacer" style="flex:1"></span><button class="btn small primary" id="pkAddGo" type="button" title="Aggiunge i picchi scritti (anche Ctrl+Invio nel riquadro)">+ Aggiungi</button></div>
+          <p class="why" id="pkAddPrev" aria-live="polite"></p>
         </div>
         <div class="pkwrap"><table class="pktab" id="pkTable"></table></div>
         <div class="signote" id="sugNote" hidden></div>
@@ -2999,7 +3017,7 @@ function fitPeaks(xs, ys, seeds, opt){
   for (let a=deg+1;a<NB;a++){ p[a]=0; lo[a]=hi[a]=0; }
   const span=Math.abs(x1-x0);
   seeds.forEach((s,j)=>{ const o=NB+j*np, w=Math.max(s.w||span/20, 3*dx), base=p[0]+p[1]*(s.x-xm)/xr;
-    const h=Math.max(interpY(X, Y, s.x)-base, 1e-12), eta=prof==='lor'?1:prof==='gauss'?0:0.5;
+    const h=Math.max(interpY(X, Y, s.x)-base, 1e-12), eta=prof==='lor'?1:prof==='gauss'?0:(s.eta!=null && s.eta>=0 && s.eta<=1 ? s.eta : 0.5);
     p[o]=h/((eta*2/(Math.PI*w)+(1-eta)*2*SQ_LN2_PI/w)); p[o+1]=s.x; p[o+2]=w;
     lo[o]=0; hi[o]=Infinity; lo[o+1]=Math.max(Math.min(x0,x1), s.x-1.5*w); hi[o+1]=Math.min(Math.max(x0,x1), s.x+1.5*w);
     lo[o+2]=2*dx; hi[o+2]=span; if (freeEta){ p[o+3]=eta; lo[o+3]=0; hi[o+3]=1; } });
@@ -3094,7 +3112,8 @@ function deconvolve(xs, ys, opt){
   const lo=Math.min(xs[0],xs[n-1]), hi=Math.max(xs[0],xs[n-1]);
   const hb=(opt.shoulders===false || opt.fixed) ? [] : hiddenBands(xs, ys, sig).map(h=>({x:h.x, w:Math.max(3*dx, widthAt(h.x)*0.7)}));
   let seeds=opt.fixed ? [] : hb.slice();
-  for (const x of (opt.seeds||[])){ if (x<lo || x>hi) continue; const w=widthAt(x); if (!seeds.some(s=>Math.abs(s.x-x)<0.45*Math.min(w,s.w))) seeds.push({x, w}); }
+  for (const sd of (opt.seeds||[])){ const x=typeof sd==='number' ? sd : sd.x; if (!(x>=lo && x<=hi)) continue; const w=sd.w>0 ? Math.max(3*dx, sd.w) : widthAt(x);   // un seme può portare la larghezza e la forma scritte dall'utente
+    if (!seeds.some(s=>Math.abs(s.x-x)<0.45*Math.min(w,s.w))) seeds.push(sd.eta!=null ? {x, w, eta:sd.eta} : {x, w}); else if (typeof sd!=='number'){ const s=seeds.find(s=>Math.abs(s.x-x)<0.45*Math.min(w,s.w)); s.x=x; s.w=w; if (sd.eta!=null) s.eta=sd.eta; } }
   if (!seeds.length){ let im=0; for (let i=1;i<n;i++) if (sm[i]>sm[im]) im=i; seeds=[{x:xs[im], w:widthAt(xs[im])}]; }
   seeds=seeds.sort((a,b)=>a.x-b.x).slice(0, opt.maxPeaks||24);
   const run=s=>s.length ? fitPeaks(xs, ys, s, opt) : null, as=f=>f.peaks.map(q=>({x:q.c, w:q.w}));
@@ -4722,6 +4741,8 @@ function setEcal(f, ec){
   const nl={}; for (const [k,v] of Object.entries(f.labels)) nl[lblKey(T(+k))]=v; f.labels=nl;
   if (f.xr) f.xr=f.xr.map(T).sort((a,b)=>a-b);   // con la scala negativa l'intervallo si rovescia
   if (f.an && f.an.nmrX!=null) f.an.nmrX=T(f.an.nmrX);
+  if (f.an && f.an.pkm){ const m={}; for (const [k,v] of Object.entries(f.an.pkm)){ const o=Object.assign({}, v); if (o.w!=null) o.w=Math.abs(o.w*nw.b/old.b); if (o.t!=null) o.t=T(o.t); m[lblKey(T(+k))]=o; } f.an.pkm=m; }
+  if (f.an && f.an.pBp && Array.isArray(f.an.pBp.pts)) f.an.pBp.pts=f.an.pBp.pts.map(T).sort((a,b)=>a-b);
   if (f.inset){ f.inset.x=f.inset.x.map(T); f.inset.shape=f.inset.shape.map(([x,y])=>[T(x),y]); }
   f.ecal=ec||null; f.xs=f.ecal ? Float64Array.from(f.xs0, x=>nw.a+nw.b*x) : f.xs0;
   f._xv=(f._xv||0)+1; f._pk=null; f._autoKey=null; f._areaKey=null; f._zoom=null; f._yzoom=null;
@@ -4847,7 +4868,7 @@ function viewOf0(f){
   const inR = x => x>=P.xs[0] && x<=P.xs[P.xs.length-1];
   const peaks=[];
   for (const p of f._auto) if (!f.removed.some(r=>Math.abs(r-p.x)<=tol)) peaks.push(Object.assign({manual:false}, p));
-  for (const x of f.added) if (inR(x)){ const y=interpY(P.xs,P.ys,x); peaks.push({x, y, manual:true, side: instr==='dsc' && !P.deriv ? (y>=localBase(P,x) ? 1 : -1) : undefined}); }
+  for (const x of f.added) if (inR(x)){ const y=interpY(P.xs,P.ys,x), mm=pkMeta(f,x); peaks.push(Object.assign({x, y, manual:true, side: instr==='dsc' && !P.deriv ? (y>=localBase(P,x) ? 1 : -1) : undefined}, mm ? {w:mm.w, sh:mm.sh, typed:mm.t} : {})); }
   const xsAll = peaks.map(p=>p.x), sctx = sugCtx(f, peaks), endo = instr==='dsc' ? dscEndoSide(f) : 0;
   { const pkNow=procKey(f), K=Object.keys(f.labels); if (K.length && f._lblPK && f._lblPK!==pkNow){ const have=new Set(peaks.map(p=>lblKey(p.x))), step=Math.abs(P.xs[P.xs.length-1]-P.xs[0])/P.xs.length, near=Math.max(tol||0,3*step); for (const k of K){ if (have.has(k)) continue; let b=null, bd=Infinity; for (const p of peaks){ const dx=Math.abs(p.x-+k); if (dx<bd){ bd=dx; b=p; } } if (b && bd<=near && f.labels[lblKey(b.x)]==null){ f.labels[lblKey(b.x)]=f.labels[k]; delete f.labels[k]; have.add(lblKey(b.x)); } } } f._lblPK=pkNow; }
   peaks.sort((a,b)=>a.x-b.x).forEach(p=>{
@@ -5729,6 +5750,7 @@ $('#cmpDel').onclick=async ()=>{ const c=curCmp(); if(!c) return; if(!await uiCo
 $$('.goCmp').forEach(b=>b.onclick=()=>{ go(2); setView('cmp'); });
 
 let libSyncId=null;
+let pkAddFor='';
 function renderPreview(){
   { const f=files[cur], s=document.getElementById('libInstr'); if (f && s && libSyncId!==f.id && document.activeElement!==s){ libSyncId=f.id; if ([...s.options].some(o=>o.value===f.instr)) s.value=f.instr; } }
   const ro=$('#readout'); if (ro && !pvHover) ro.innerHTML='&nbsp;';
@@ -5795,6 +5817,7 @@ function renderPreview(){
   const nTodo = d.peaks.filter(p=>!p.custom && p.sugg.length).length;
   $('#acceptAll').disabled = !nTodo; $('#acceptAll').textContent = nTodo ? `✓ Accetta i suggerimenti (${nTodo})` : '✓ Suggerimenti accettati';
   $('#undoPk').disabled = !(f._hist && f._hist.length);
+  if (pkAddFor!==f.id+'|'+procKey(f)){ pkAddFor=f.id+'|'+procKey(f); pkAddSync(f); }
   $('#clearNames').disabled = !Object.keys(f.labels).length;
   renderPkTable(f, d);
 }
@@ -5874,7 +5897,7 @@ function alignXrf(f){
 function changed(f){ persist(f); renderPreview(); renderSummary(); renderList(); }
 function removePeak(f, x, manual){
   pkSnap(f); if (pop && Math.abs(pop.x-x)<1e-9) closePop(true); if (f._sel!=null && Math.abs(f._sel-x)<1e-9) f._sel=null;
-  if (manual) f.added = f.added.filter(a=>a!==x); else f.removed.push(x);
+  if (manual){ f.added = f.added.filter(a=>a!==x); pkMetaSet(f, x, null); } else f.removed.push(x);
   delete f.labels[lblKey(x)]; changed(f);
 }
 let dlState=null;
@@ -6102,9 +6125,55 @@ function drawOverlay(){
     c.fillStyle='#2563c9'; c.font='bold 3px sans-serif'; c.textAlign='center'; c.textBaseline='bottom'; c.fillText('+', x, y-(pvView.dir>0?1.4:-4.6)); } }
 }
 /* annulla (per file) */
-function pkSnap(f){ (f._hist=f._hist||[]).push(JSON.stringify({a:f.added, r:f.removed, l:f.labels, e:f.ecal||null})); if (f._hist.length>60) f._hist.shift(); }
+function pkSnap(f){ (f._hist=f._hist||[]).push(JSON.stringify({a:f.added, r:f.removed, l:f.labels, e:f.ecal||null, m:(f.an&&f.an.pkm)||null})); if (f._hist.length>60) f._hist.shift(); }
+/* larghezza (FWHM, unità dell'asse), forma e posizione scritta dei picchi aggiunti per posizione: f.an.pkm, chiave = lblKey(x) */
+function pkMeta(f, x){ const m=f.an&&f.an.pkm; return m ? m[lblKey(x)]||null : null; }
+function pkMetaSet(f, x, v){ const m=Object.assign({}, (f.an&&f.an.pkm)||{}), k=lblKey(x); if (v && (v.w!=null || v.sh || v.t!=null)) m[k]=v; else delete m[k]; anSet(f,'pkm', Object.keys(m).length ? m : null); }
+const PK_SHAPE={gauss:'gaussiana', lor:'lorentziana', pv:'pseudo-Voigt'};
+function pkTol(f){ const P=processed(f), n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):1; let wp=4; try{ wp=Math.min(n/10, peakWidthPts(upData(P).y)); }catch(e){} return +(Math.max(3, wp)*dx).toPrecision(2); }
+/* aggiunge i picchi scritti nel riquadro: ognuno entra come un picco aggiunto a mano (f.added), quindi vale per nomi, aree, deconvoluzione e quantificazione */
+function pkAddTyped(f, opt){
+  const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]), r=parseNumList(opt.text, [lo,hi], {extras:true});
+  const out={added:[], snapped:[], free:[], out:[], dup:[], bad:r.bad, amb:r.amb};
+  if (!r.items.length) return out;
+  const dir=P.dir, vis=viewOf(f).peaks.map(q=>q.x), n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):1, nearTol=0.6*dx;   // doppione: lo stesso punto del dato
+  // massimi locali veri: prominenza oltre 6 volte il rumore del dato lisciato (un granello di rumore non aggancia)
+  const sm=sgSmooth(Float64Array.from(P.ys, v=>v*dir), 5), sig=noiseSigma(Float64Array.from(P.ys, v=>v*dir))*sgNoiseGain(2), cand=opt.snap && opt.tol>0 ? peakCandidates(sm).filter(c=>c.prom>6*sig) : [];
+  pkSnap(f);
+  for (const it of r.items){ let x=it.x;
+    if (x<lo || x>hi){ out.out.push(it.txt); continue; }
+    let snapped=false, free=false;
+    if (cand.length){ let b=-1; for (const c of cand){ if (c.i<1 || c.i>n-2 || Math.abs(P.xs[c.i]-x)>opt.tol) continue; if (b<0 || Math.abs(P.xs[c.i]-x)<Math.abs(P.xs[b]-x)) b=c.i; }
+      // massimo locale più vicino entro la tolleranza, affinato con l'interpolazione parabolica; se non c'è, il picco resta dove è stato scritto
+      if (b>=0){ const y0=sm[b-1], y1=sm[b], y2=sm[b+1], den=y0-2*y1+y2, t=den<0 ? Math.max(-0.5, Math.min(0.5, 0.5*(y0-y2)/den)) : 0, xn=P.xs[b]+t*(P.xs[b+1]-P.xs[b-1])/2;
+        if (Math.abs(xn-x)>1e-12){ x=xn; snapped=true; } }
+      else free=true; }
+    if (vis.some(v=>Math.abs(v-x)<=nearTol) || f.added.some(v=>Math.abs(v-x)<=nearTol)){ out.dup.push(it.txt); continue; }
+    const wasRemoved=f.removed.some(v=>Math.abs(v-x)<=nearTol); f.removed=f.removed.filter(v=>Math.abs(v-x)>nearTol);
+    const auto = wasRemoved && (f._auto||[]).find(q=>Math.abs(q.x-x)<=nearTol);
+    if (auto){ vis.push(auto.x); out.added.push(auto.x); if (snapped) out.snapped.push([it.txt, auto.x]); continue; }   // era un picco automatico tolto: torna quello
+    f.added.push(x); vis.push(x); out.added.push(x); if (snapped) out.snapped.push([it.txt, x]); if (free) out.free.push(it.txt);
+    const w = it.w!=null ? it.w : opt.w, sh = it.sh || opt.sh || undefined;
+    pkMetaSet(f, x, {t:+it.x.toPrecision(10), w: w>0 ? w : undefined, sh});
+  }
+  if (!out.added.length) f._hist.pop(); else { f._sel=out.added[out.added.length-1]; changed(f); }
+  return out;
+}
+/* modifica di un picco dalla tabella: posizione, larghezza e forma. Un picco automatico modificato diventa un picco aggiunto a mano */
+function pkEdit(f, p, v){
+  const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]);
+  if (!(v.x>=lo && v.x<=hi)){ toast(`⚠️ ${fmtTick(v.x,2)} è fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}).`); return false; }
+  if (v.w!=null && !(v.w>0)){ toast('⚠️ La larghezza deve essere maggiore di zero.'); return false; }
+  pkSnap(f);
+  const old=p.x, lab=f.labels[lblKey(old)];
+  if (p.manual) f.added=f.added.filter(a=>Math.abs(a-old)>1e-12); else f.removed.push(old);
+  pkMetaSet(f, old, null); delete f.labels[lblKey(old)];
+  f.added.push(v.x); if (lab!=null) f.labels[lblKey(v.x)]=lab;
+  pkMetaSet(f, v.x, {t: v.x, w: v.w>0 ? v.w : undefined, sh: v.sh||undefined});   // la posizione scritta ora è quella della modifica
+  f._sel=v.x; changed(f); return true;
+}
 function pkUndo(){ const f=files[cur]; if (!f || !f._hist || !f._hist.length){ say('#tip2','Non c\'è niente da annullare. 🙂'); return; }
-  const st=JSON.parse(f._hist.pop()); const axisBack=JSON.stringify(st.e)!==JSON.stringify(f.ecal||null); if (axisBack) setEcal(f,st.e); f.added=st.a; f.removed=st.r; f.labels=st.l; closePop(); if (axisBack){ persist(f); syncDerived(f); } changed(f); say('#tip2','Annullato! ↶'); }
+  const st=JSON.parse(f._hist.pop()); const axisBack=JSON.stringify(st.e)!==JSON.stringify(f.ecal||null); if (axisBack) setEcal(f,st.e); f.added=st.a; f.removed=st.r; f.labels=st.l; if ('m' in st) anSet(f,'pkm',st.m); closePop(); if (axisBack){ persist(f); syncDerived(f); } changed(f); say('#tip2','Annullato! ↶'); }
 /* nome del picco */
 function peakSug(f, d, p){ return suggest(f.instr, p.x, d.peaks.map(q=>q.x), f.sample||S.sample, Object.assign({y:p.y}, sugCtx(f, d.peaks))); }
 // origine del nome nel CSV: un rimando «@id» a una voce della libreria personale non è una proposta della banca dati (ciclo 26, «@cTEST1»)
@@ -6178,16 +6247,17 @@ function renderPkTable(f, d){
   const yu = ({T:'%T',A:'A',I:T_().cnt||'conteggi',mAU:'mAU',N:'norm.'}[d.kind])||'y', dec=T_().dec;
   tb.innerHTML = `<thead><tr><th>#</th><th>Posizione (${esc(unit)})</th><th>Intensità (${esc(yu)})</th><th>Nome sul grafico</th><th>Suggerimenti</th><th></th></tr></thead><tbody>`+
     rows.map((p,i)=>`<tr data-x="${p.x}" class="${p.manual?'man':''}" title="${p.manual?'Aggiunto da te':'Trovato in automatico'}">
-      <td>${i+1}</td><td class="pos">${esc(p.num)}</td><td class="int">${esc(String(+p.y.toPrecision(4)).replace('.',dec))}</td>
+      <td>${i+1}</td><td class="pos">${esc(p.num)}${p.manual&&(p.w||p.sh||p.typed!=null)?`<small>${[p.typed!=null&&Math.abs(p.typed-p.x)>1e-9?'scritto '+esc(fmtPeak(f.instr,p.typed,f.uncal,f)):'', p.w?'FWHM '+esc(fmtG(p.w,3)):'', p.sh?esc(PK_SHAPE[p.sh]):''].filter(Boolean).join(' · ')}</small>`:''}</td><td class="int">${esc(String(+p.y.toPrecision(4)).replace('.',dec))}</td>
       <td class="nm"><input type="text" data-x="${p.x}" value="${esc(p.nameUi||'')}" placeholder="${p.sugg.length&&!p.custom?'—':'solo il numero'}" aria-label="Nome del picco ${esc(p.num)}"></td>
       <td>${p.custom?'':p.sugg.slice(0,2).map(pillHtml).join('')}</td>
-      <td class="act"><button type="button" class="more" data-x="${p.x}" title="Tutte le opzioni per questo picco">⋯</button><button type="button" class="del" data-x="${p.x}" title="Togli il picco (anche: Maiusc+clic sul grafico, o «Togli il picco» nel menu del clic destro)">×</button></td></tr>`).join('')+'</tbody>';
+      <td class="act"><button type="button" class="edit" data-x="${p.x}" title="Modifica posizione, larghezza e forma" aria-label="Modifica il picco ${esc(p.num)}">✎</button><button type="button" class="more" data-x="${p.x}" title="Tutte le opzioni per questo picco">⋯</button><button type="button" class="del" data-x="${p.x}" title="Togli il picco (anche: Maiusc+clic sul grafico, o «Togli il picco» nel menu del clic destro)">×</button></td></tr>`).join('')+'</tbody>';
   const pk=x=>d.peaks.find(q=>Math.abs(q.x-x)<1e-9);
   tb.querySelectorAll('tr[data-x]').forEach(tr=>{ const x=+tr.dataset.x;
     tr.onmouseenter=()=>{ const p=pk(x); if (p){ pvHover={peak:p}; drawOverlay(); } };
     tr.onmouseleave=()=>{ pvHover=null; drawOverlay(); };
     tr.querySelectorAll('.sgp').forEach(b=>b.onclick=()=>{ f._sel=x; setPeakName(f, x, '@'+b.dataset.id); });
     tr.querySelector('.more').onclick=()=>{ f._sel=x; editLabel(f, x); };
+    tr.querySelector('.edit').onclick=()=>pkEditRow(f, tr, pk(x));
     tr.querySelector('.del').onclick=()=>{ const p=pk(x); if (p) removePeak(f, p.x, p.manual); };
     const inp=tr.querySelector('input');
     inp.onfocus=()=>{ f._sel=x; drawOverlay(); markRow(); };
@@ -6204,6 +6274,48 @@ function renderPkTable(f, d){
   if (pkFocusX!=null){ const ni=tb.querySelector(`input[data-x="${pkFocusX}"]`); pkFocusX=null; if (ni){ ni.focus({preventScroll:true}); ni.select(); scrollRowIntoWrap(ni.closest('tr')); } }
   markRow();
 }
+/* riga della tabella in modifica: posizione, FWHM e forma; Invio salva, Esc annulla */
+function pkEditRow(f, tr, p){ if (!p) return; const unit=f.uncal ? (uiEn()?'channel':'canale') : (xUnit(f)||'x').replace('cm-1','cm⁻¹');
+  tr.classList.add('edit');
+  tr.innerHTML=`<td></td><td colspan="4"><span class="ibfields" style="margin:0;align-items:center"><label class="ibf"><span>Posizione (${esc(unit)})</span><input type="text" inputmode="decimal" class="eX" value="${numOut(+p.x.toPrecision(10))}"></label>
+    <label class="ibf"><span>FWHM</span><input type="text" inputmode="decimal" class="eW" value="${p.w?numOut(p.w):''}" placeholder="automatica"></label>
+    <label class="ibf"><span>Forma</span><select class="eS"><option value="">automatica</option>${Object.entries(PK_SHAPE).map(([k,t])=>`<option value="${k}" ${p.sh===k?'selected':''}>${t}</option>`).join('')}</select></label>
+    ${p.manual?'':'<small class="opt-l">diventa un picco aggiunto da te</small>'}</span></td>
+    <td class="act"><button type="button" class="btn small primary eOk">Salva</button> <button type="button" class="btn small ghost eNo">Annulla</button></td>`;
+  const ix=tr.querySelector('.eX'), iw=tr.querySelector('.eW'), is=tr.querySelector('.eS'); ix.focus(); ix.select();
+  const save=()=>{ let x=null, w=null, ok=true; numField(ix, v=>{ x=v; }); if (x==null) ok=false; if (iw.value.trim()){ numField(iw, v=>{ w=v; }); if (w==null) ok=false; }
+    if (!ok){ if (x==null && !ix.getAttribute('aria-invalid')) toast('⚠️ Scrivi la posizione del picco.'); return; }
+    if (pkEdit(f, p, {x, w, sh:is.value||null})){ pkSig=''; renderPreview(); flashRow(x); } };
+  ix.defaultValue=ix.value; iw.defaultValue=iw.value;
+  tr.querySelector('.eOk').onclick=save; tr.querySelector('.eNo').onclick=()=>{ pkSig=''; renderPreview(); };
+  tr.querySelectorAll('input,select').forEach(el=>el.onkeydown=e=>{ if (e.key==='Enter'){ e.preventDefault(); save(); } else if (e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); pkSig=''; renderPreview(); } });
+}
+/* riquadro «Aggiungi picchi per posizione» */
+function pkAddPreview(){ const f=files[cur], el=$('#pkAddPrev'); if (!el) return; if (!f){ el.textContent=''; return; }
+  const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]), txt=$('#pkAddTxt').value;
+  if (!txt.trim()){ el.textContent=`Lo spettro va da ${fmtTick(lo,2)} a ${fmtTick(hi,2)}. Più posizioni insieme: separale con «;», con una virgola e uno spazio o scrivine una per riga.`; return; }
+  const r=parseNumList(txt, [lo,hi], {extras:true}), out=r.items.filter(q=>q.x<lo||q.x>hi);
+  el.innerHTML = (r.items.length ? `Capito: ${r.items.length} ${r.items.length===1?'picco':'picchi'} a ${r.items.slice(0,12).map(q=>esc(numOut(+q.x.toPrecision(10)))+(q.w?` (FWHM ${esc(fmtG(q.w,3))}${q.sh?', '+PK_SHAPE[q.sh]:''})`:q.sh?` (${PK_SHAPE[q.sh]})`:'')).join('; ')}${r.items.length>12?'…':''}.` : '')
+    + (out.length ? ` ⚠️ Fuori dallo spettro: ${out.map(q=>esc(q.txt)).join(', ')}.` : '')
+    + (r.bad.length ? ` ⚠️ Non capisco: ${r.bad.slice(0,5).map(b=>'«'+esc(b)+'»').join(', ')}${r.amb?' (un numero come 1,086 è ambiguo: scrivi 1086 o 1,0860)':''}.` : ''); }
+function pkAddRun(){ const f=files[cur]; if (!f) return; const txt=$('#pkAddTxt').value; if (!txt.trim()){ $('#pkAddTxt').focus(); return; }
+  let w=null, tol=null, okW=true, okT=true;
+  if ($('#pkAddW').value.trim()){ numField($('#pkAddW'), v=>{ w=v; }); if (!(w>0)){ okW=false; if (w!=null) toast('⚠️ La larghezza deve essere maggiore di zero.'); } }
+  const snap=$('#pkAddSnap').checked; if (snap){ if ($('#pkAddTol').value.trim()){ numField($('#pkAddTol'), v=>{ tol=v; }); if (!(tol>0)){ okT=false; if (tol!=null) toast('⚠️ La tolleranza deve essere maggiore di zero.'); } } else tol=pkTol(f); }
+  if (!okW || !okT) return;
+  if (!S.showPeaks){ S.showPeaks=true; saveS(); syncControls(); }
+  const r=pkAddTyped(f, {text:txt, w, sh:$('#pkAddSh').value||null, snap, tol});
+  const msg=[]; if (r.added.length) msg.push(`✔ ${r.added.length} ${r.added.length===1?'picco aggiunto':'picchi aggiunti'}${r.snapped.length?` (${r.snapped.length} agganciat${r.snapped.length===1?'o':'i'} al massimo vicino)`:''}`);
+  if (r.free.length && r.added.length) msg.push(`nessun massimo entro la tolleranza, lasciati dove li hai scritti: ${r.free.join(', ')}`);
+  if (r.dup.length) msg.push(`già presenti: ${r.dup.join(', ')}`); if (r.out.length) msg.push(`fuori dallo spettro: ${r.out.join(', ')}`); if (r.bad.length) msg.push(`non capiti: ${r.bad.join(', ')}`);
+  toast((r.added.length?'':'⚠️ ')+(msg.join(' · ')||'Nessun picco aggiunto.')+(r.added.length?' Ctrl+Z annulla.':''));
+  if (r.added.length && !r.bad.length && !r.out.length) $('#pkAddTxt').value='';
+  pkAddPreview(); }
+$('#pkAddTxt').addEventListener('input', pkAddPreview);
+$('#pkAddTxt').addEventListener('keydown', e=>{ if (e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); pkAddRun(); } });
+$('#pkAddGo').onclick=pkAddRun;
+$('#pkAddSnap').onchange=()=>{ $('#pkAddTol').disabled=!$('#pkAddSnap').checked; };
+function pkAddSync(f){ if (!f) return; const u=f.uncal ? (uiEn()?'canali':'canali') : (xUnit(f)||'').replace('cm-1','cm⁻¹'); $('#pkAddUnit').textContent=u?`(${u})`:''; $('#pkAddTolU').textContent=u; $('#pkAddTol').placeholder=numOut(pkTol(f)); pkAddPreview(); }
 function markRow(){ const f=files[cur]; $$('#pkTable tr[data-x]').forEach(tr=>tr.classList.toggle('sel', !!f && f._sel!=null && Math.abs(+tr.dataset.x-f._sel)<1e-9)); }
 function scrollRowIntoWrap(tr){   // scorre solo l'elenco dei picchi, mai la pagina
   const w=tr && tr.closest('.pkwrap'); if (!w) return; const head=(w.querySelector('thead')||{}).offsetHeight||0;
@@ -6318,7 +6430,7 @@ $('#fDesc').addEventListener('input', e=>{ const f=files[cur]; if(!f) return; f.
 $('#fInstr').onchange=e=>{ const f=files[cur]; f.instr=e.target.value; COMPS.forEach(c=>{ if (c.instr && !compatible(c.instr, f.instr)) c.keys=c.keys.filter(k=>k!==fkey(f)); }); f.sub=null; syncDerived(f); saveCmps(); f.kind=kindOf(f); f.removed=[]; f.added=[]; f.labels={}; f._autoKey=null; f._pk=null; changed(f); renderLoaded(); renderProc(); };
 $('#fSample').onchange=e=>{ const f=files[cur]; f.sample=e.target.value||null; changed(f); };
 $('#fInclude').onchange=e=>{ const f=files[cur]; f.include=e.target.checked; persist(f); renderList(); renderSummary(); };
-$('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; pkSnap(f); f.removed=[]; f.added=[]; f.labels={}; f._sel=null; closePop(true); changed(f); say('#tip2','Tornato ai picchi automatici. Ctrl+Z se hai cambiato idea. ↺'); };
+$('#resetPeaks').onclick=()=>{ const f=files[cur]; if(!f) return; pkSnap(f); f.removed=[]; f.added=[]; f.labels={}; f._sel=null; anSet(f,'pkm',null); closePop(true); changed(f); say('#tip2','Tornato ai picchi automatici. Ctrl+Z se hai cambiato idea. ↺'); };
 $('#xrfAlign').onclick=()=>{ const f=files[cur]; if(!f) return; const r=alignXrf(f), m=$('#xrfMsg'); m.hidden=false;
   if (!r) m.innerHTML='Non ho trovato abbastanza righe sicure (servono almeno 2 picchi forti di elementi noti). La calibrazione resta quella del file.';
   else if (r.nochange) m.innerHTML='La calibrazione del file è già corretta: nessuna modifica. 👍';
@@ -7209,7 +7321,7 @@ async function exportEntries(sel, zipping){
     if (S.showPeaks) for (const p of view.peaks) rows.push([f.name, dispTitle(f), Lx.nome[f.instr], f.uncal?(LANG==='en'?'channel':'canale'):xUnit(f),
       String(+p.x.toFixed(4)).replace('.',dsep), String(+p.y.toPrecision(6)).replace('.',dsep), p.custom?p.name:'', p.manual?Lx.man:Lx.auto, p.custom?nameOrigin(f.labels[lblKey(p.x)], Lx):'']
       .concat(S.showArea ? [p.area!=null?String(+p.area.toPrecision(6)).replace('.',dsep):'', view.areaUnit.replace('⁻¹','-1'), p.areaPct!=null?p.areaPct.toFixed(2).replace('.',dsep):'',
-        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([satOf(p) ? Lx.satNote : '']));
+        p.xa!=null?String(+Math.min(p.xa,p.xb).toPrecision(8)).replace('.',dsep):'', p.xb!=null?String(+Math.max(p.xa,p.xb).toPrecision(8)).replace('.',dsep):''] : []).concat([[satOf(p) ? Lx.satNote : '', p.manual && (p.w || p.sh || p.typed!=null) ? (LANG==='en' ? 'added by position' : 'aggiunto per posizione')+(p.typed!=null && Math.abs(p.typed-p.x)>1e-9 ? (LANG==='en'?' (typed ':' (scritto ')+String(+p.typed.toPrecision(8)).replace('.',dsep)+')' : '')+(p.w ? '; FWHM '+String(+p.w.toPrecision(6)).replace('.',dsep) : '')+(p.sh ? '; '+(LANG==='en' ? ({gauss:'Gaussian',lor:'Lorentzian',pv:'pseudo-Voigt'})[p.sh] : PK_SHAPE[p.sh]) : '') : ''].filter(Boolean).join('; ')]));
     }
     if (sel.data){
       const P=processed(f), extra = P.y2 || (f.instr==='tga' && P.kind==='W' ? P.dtg : null);
@@ -7393,6 +7505,8 @@ function cleanAn(v){
   for (const k of ['axX','axY']) if (typeof v[k]==='string' && v[k]) o[k]=v[k].slice(0,80);
   if (['blank','qc'].includes(v.role)) o.role=v.role; if (typeof v.concK==='string' && v.concK.length<60) o.concK=v.concK; if (v.concs && typeof v.concs==='object'){ const m={}; Object.entries(v.concs).slice(0,60).forEach(([k,x])=>{ if (/^-?[\d.e+]+\|-?[\d.e+]+$/i.test(k) && typeof x==='number' && isFinite(x)) m[k]=x; }); if (Object.keys(m).length) o.concs=m; } if (['T','A','U'].includes(v.ykind)) o.ykind=v.ykind; if (v.calc===true) o.calc=true; if ([0,7,15,31].includes(v.pSm)) o.pSm=v.pSm; if (BASE_METHODS.includes(v.pBm)) o.pBm=v.pBm; if (o.pBm && v.pBp){ const c=AcchBaseline.cleanParams(o.pBm, v.pBp); if (c) o.pBp=c; }
   if (Number.isInteger(v.ycol) && v.ycol>1 && v.ycol<200) o.ycol=v.ycol;
+  if (v.pkm && typeof v.pkm==='object' && !Array.isArray(v.pkm)){ const m={}; Object.entries(v.pkm).slice(0,500).forEach(([k,x])=>{ if (!/^-?\d+(\.\d+)?(e[-+]?\d+)?$/i.test(k) || !x || typeof x!=='object') return; const q={};
+      if (typeof x.w==='number' && isFinite(x.w) && x.w>0) q.w=x.w; if (PK_SHAPE[x.sh]) q.sh=x.sh; if (typeof x.t==='number' && isFinite(x.t)) q.t=x.t; if (Object.keys(q).length) m[k]=q; }); if (Object.keys(m).length) o.pkm=m; }   // larghezza, forma e posizione scritta dei picchi aggiunti per posizione
   if (COLOURS[v.color]) o.color=v.color;
   if (typeof v.chan==='string' && v.chan && v.chan.length<=40) o.chan=v.chan;   // canale HPLC scelto a mano
   // libreria dei picchi (app/library-ui.js): tipo di campione, libreria scelta, strumento confermato, valori nominali dei controlli del giorno
@@ -7688,7 +7802,7 @@ async function runFitUI(fromAssist){
   if (b-a<12) return fail('La zona è troppo stretta: servono almeno una dozzina di punti.');
   { let mn=Infinity, mx=-Infinity; for (let i=a;i<=b;i++){ if (U.y[i]<mn) mn=U.y[i]; if (U.y[i]>mx) mx=U.y[i]; } if (!(mx>mn)) return fail('Nella zona il segnale è costante: nessuna banda da adattare.'); }
   if (b-a>6000 && $('#fitMode').value==='auto' && !await uiConfirm('La zona contiene molti punti e bande: la deconvoluzione automatica può richiedere qualche secondo. Continuo?')) return;
-  const xs=P.xs.subarray(a,b+1), ys=U.y.subarray(a,b+1), d=viewOf(f), seeds=d.peaks.map(p=>p.x).filter(x=>x>=r[0]&&x<=r[1]);
+  const xs=P.xs.subarray(a,b+1), ys=U.y.subarray(a,b+1), d=viewOf(f), seeds=d.peaks.filter(p=>p.x>=r[0]&&p.x<=r[1]).map(p=>p.w||p.sh ? {x:p.x, w:p.w||undefined, eta:p.sh==='gauss'?0:p.sh==='lor'?1:p.sh==='pv'?0.5:undefined} : p.x);
   const prof=$('#fitProf').value, bm=$('#fitBase').value, auto=$('#fitMode').value==='auto';
   if (!auto && !seeds.length) return fail('Nella zona non ci sono picchi: aggiungili col clic sul grafico, oppure scegli «automatica».');
   const t0=performance.now(), fit=deconvolve(xs, ys, {seeds, profile:prof, base:bm, fixed:!auto});
