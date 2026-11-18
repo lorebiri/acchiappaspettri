@@ -3016,8 +3016,11 @@ function baseDefaults(m, xs, y, instr){
   }
   return {};
 }
-/* fondo dello spettro y (orientato come nel file: in %T i picchi vanno in giù e si lavora sul rovescio). Restituisce null se non si può calcolare */
-function baseCurve(m, par, xs, y, instr, kind, info){
+/* fondo dello spettro y (orientato come nel file: in %T i picchi vanno in giù e si lavora sul rovescio). Restituisce null se non si può calcolare.
+   info.par riceve i parametri davvero usati. Il calcolo è baseCurveR, funzione pura: nel desktop, con gli spettri lunghi, la fa il worker (app/engine.js) */
+function baseCurve(m, par, xs, y, instr, kind, info){ const r=baseCurveR(m, par, xs, y, instr, kind); if (info) info.par=r.par; return r.bl; }
+function baseCurveR(m, par, xs, y, instr, kind){ const info={}, bl=baseCurve0(m, par, xs, y, instr, kind, info); return {bl, par:info.par||null}; }
+function baseCurve0(m, par, xs, y, instr, kind, info){
   if (!m || m==='none') return null;
   const upper=kind==='T', own=par && Object.keys(par).length ? par : null, neg=a=>Float64Array.from(a, v=>-v);
   let bl;

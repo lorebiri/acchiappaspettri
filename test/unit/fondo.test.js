@@ -73,3 +73,10 @@ test('fondo: prestazioni — 200 000 punti in pochi decimi di secondo, 2 milioni
   { const M=big(1000000), t1=Date.now(), z=B.snip(M.y, {hw:6667, pre:5}); assert.ok(Date.now()-t1<6000, 'SNIP 10⁶ punti, finestra 6667: '+(Date.now()-t1)+' ms'); assert.ok(z.every(Number.isFinite)); }
   const L=big(2000000), t0=Date.now(), b=B.als(L.y, {}); assert.equal(b.length, 2000000); assert.ok(b.every(Number.isFinite)); assert.ok(Date.now()-t0<10000, 'ALS su 2·10⁶ punti: '+(Date.now()-t0)+' ms');
 });
+test('fondo: baseCurveR è pura e copiabile al worker del desktop (stesso risultato di baseCurve, parametri usati compresi)', ()=>{
+  const s=raman(21), info={}, a=C.baseCurve('als', {lam:3e5}, s.x, s.y, 'raman', 'I', info), r=C.baseCurveR('als', {lam:3e5}, s.x, s.y, 'raman', 'I');
+  assert.deepEqual(Array.from(r.bl), Array.from(a)); assert.deepEqual(r.par, info.par); assert.equal(r.par.lam, 3e5);
+  const c=structuredClone(r); assert.deepEqual(Array.from(c.bl), Array.from(a));   // il worker restituisce il risultato per copia strutturata
+  const y0=Float64Array.from(s.y); C.baseCurveR('imodpoly', null, s.x, s.y, 'raman', 'I'); assert.deepEqual(Array.from(s.y), Array.from(y0), 'non modifica i dati');
+  assert.deepEqual(C.baseCurveR('anchor', {pts:[]}, s.x, s.y, 'raman', 'I'), {bl:null, par:null});
+});

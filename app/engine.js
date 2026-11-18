@@ -80,7 +80,7 @@
      e si riprova finché tutte le chiamate trovano il risultato pronto. Così la pagina lavora a pezzi brevi, mai per secondi interi.
      Fuori da prefetch le funzioni si comportano come sempre. */
   // I6: anche i calcoli EPR del controllo del dato (con 1M punti 0,1–0,4 s ciascuno)
-  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','whittaker','despike','smoothMA','peakCandidates',
+  const HEAVY=['sortedAt','findPeaks','hiddenBands','signalQuality','noiseRobust','noiseSigma','peakWidthPts','derivLS','sgSmooth','chromMetrics','peakAreas','baselineArPLS','baselineSNIP','baseCurveR','whittaker','despike','smoothMA','peakCandidates',
     'eprIsAbsorption','eprEdgeSignal','eprDoubleIntegral','eprWings','eprLines','peakFwhmPts','axisGaps'];
   const BIG=200000, NEED={need:true}, MAXE=24;
   let probe=false, needs=[];
