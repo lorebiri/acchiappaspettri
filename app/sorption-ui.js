@@ -190,7 +190,7 @@
 
   /* ---------------- esportazioni ---------------- */
   function csvText(f){ const A=run(f), sep=en()?',':';', d=en()?'.':',', rows=SorpCore.csvRows(f.iso, A, en());
-    const cell=c=>{ let s=typeof c==='number'?String(c).replace('.',d):String(c==null?'':c); if (/^[=+\-@]/.test(s) && !/^[-+]?\d/.test(s)) s="'"+s; return (s.includes(sep)||/["\n\r]/.test(s))?'"'+s.replace(/"/g,'""')+'"':s; };
+    const cell=c=>typeof c==='number' ? win.csvCell(String(c).replace('.',d), sep) : win.csvCell(String(c==null?'':c), sep);   // csvCell della pagina: «+1+HYPERLINK(…)» da un file non diventa una formula
     return '﻿'+rows.map(r=>r.map(cell).join(sep)).join('\r\n')+'\r\n'; }
   const csvName=f=>(en()?'physisorption_':'fisisorbimento_')+String(f.title||f.name).replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').slice(0,80)+'.csv';
   async function exportCsv(f){ const blob=new Blob([csvText(f)],{type:'text/csv'}); try{ await win.download(blob, csvName(f)); }catch(e){ console.error(e); } }
@@ -327,7 +327,7 @@
     const cs=box.querySelector('[data-c-act="csv"]'); if (cs) cs.onclick=()=>chemExportCsv(f);
   }
   function chemCsvText(f){ const A=chemRun(f), sep=en()?',':';', d=en()?'.':',', rows=SorpCore.chemCsvRows(f.chem, A, en());
-    const cell=c=>{ let s=typeof c==='number'?String(c).replace('.',d):String(c==null?'':c); if (/^[=+\-@]/.test(s) && !/^[-+]?\d/.test(s)) s="'"+s; return (s.includes(sep)||/["\n\r]/.test(s))?'"'+s.replace(/"/g,'""')+'"':s; };
+    const cell=c=>typeof c==='number' ? win.csvCell(String(c).replace('.',d), sep) : win.csvCell(String(c==null?'':c), sep);   // csvCell della pagina: «+1+HYPERLINK(…)» da un file non diventa una formula
     return '﻿'+rows.map(r=>r.map(cell).join(sep)).join('\r\n')+'\r\n'; }
   const chemCsvName=f=>(en()?'chemisorption_':'chemisorbimento_')+String(f.title||f.name).replace(/\.[^.]{1,4}$/,'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').slice(0,80)+'.csv';
   async function chemExportCsv(f){ try{ await win.download(new Blob([chemCsvText(f)],{type:'text/csv'}), chemCsvName(f)); }catch(e){ console.error(e); } }

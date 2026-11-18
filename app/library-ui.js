@@ -139,7 +139,7 @@
     cv.toBlob(b=>res(b),'image/png'); }); }
   function chartCsv(e, lib){ const sep=TD(';',','), g=chartGeom(e, 10, 10), dec=v=>String(v).replace('.', TD(',','.'));
     const head=[TD('Libreria','Library'), TD('Voce','Entry'), TD('Serie','Series'), TD('Data','Date'), 'k', 'z', TD('Regola','Rule')].join(sep);
-    const rows=g.pts.map((p,i)=>{ const z=g.active && g.sd>0 && i>=Q.CHART_MIN ? (p.k-g.m)/g.sd : null, cc=i>=Q.CHART_MIN ? Q.chartCheck(g.pts.slice(0,i+1).map(q=>q.k)) : null; return [lib?lib.name:'', e.name, i+1, p.date||'', dec(p.k), z==null?'':dec(+z.toPrecision(4)), cc&&cc.rule||''].map(v=>/[";\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(sep); });
+    const rows=g.pts.map((p,i)=>{ const z=g.active && g.sd>0 && i>=Q.CHART_MIN ? (p.k-g.m)/g.sd : null, cc=i>=Q.CHART_MIN ? Q.chartCheck(g.pts.slice(0,i+1).map(q=>q.k)) : null; return [lib?lib.name:'', e.name, i+1, p.date||'', dec(p.k), z==null?'':dec(+z.toPrecision(4)), cc&&cc.rule||''].map(v=>win.csvCell(String(v==null?'':v), sep)).join(sep); });   // csvCell della pagina: virgolette e niente formule di Excel dai nomi
     return '\uFEFF'+[head].concat(rows).join('\r\n'); }
   const chartName=(lib,e)=>(Lib.normTxt(lib.name).replace(/\s+/g,'_')+'__'+Lib.normTxt(e.name).replace(/\s+/g,'_')).slice(0,90);
   async function exportChart(o, e, kind){ const n=chartName(o.lib,e);
@@ -447,7 +447,7 @@
     for (const {f, w, lib} of R){ const r=w.res, e=w.entry, p=r.provenance||{};
       rows.push([f.name, dispTitle(f), e.name, ND(w.expected), ND(w.x), ND(w.y), e.cal.areaUnit||'', r.ok?ND(r.x):'', r.ok&&r.U!=null?ND(r.U,4):'', r.ok&&r.u?ND(r.u.kU,4):'', e.cal.concUnit||'', r.ok?TD('ok','ok'):TD('non verificata','not verified'), r.ok&&r.mode==='nocontrol'?Q.markText(lg):'', [Q.statusText(r, lg), compareText(r, lg)].filter(Boolean).join(' '), Q.warningTexts(r, lg).join(' '), profName(p.profile||lib.profile, true), Q.modeText(r, lg), r.k!=null?ND(r.k,6):'', (w.controls||[]).map(c=>ND(c.nominal)).join(' '), (r.devs||[]).map(v=>ND(v,3)).join(' '), r.drift!=null?ND(r.drift,3):'', r.chart?(r.chart.active?(r.chart.rule||'ok'):TD('non attiva','not active')):'', p.age!=null?p.age:'', p.calDate||'', p.standardLot||'', p.library||'', p.libraryId||'', p.revision||'', p.entry||'', p.entryId||'', p.entryRev||'', Lib.instrumentText(lib.instrument), lib.sampleType||'', e.cal.source==='letteratura'?((e.source&&(e.source.doi||e.source.citation))||TD('letteratura','literature')):TD('taratura dell\'utente','user calibration'), lib.thresholdReason||'']); }
     return rows; }
-  function exportFiles(inc, out, used){ try{ const rows=csvRows(inc); if (!rows) return; const csep=TD(';',','), cell=v=>{ const s=String(v==null?'':v); return /[";\r\n]/.test(s)||s.includes(csep) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  function exportFiles(inc, out, used){ try{ const rows=csvRows(inc); if (!rows) return; const csep=TD(';',','), cell=v=>win.csvCell(String(v==null?'':v), csep);   // come gli altri CSV: un nome di file «=1+2» non diventa una formula di Excel
       const name=TD('concentrazioni_da_libreria.csv','concentrations_from_library.csv'); const i=out.findIndex(x=>/^(metodi|methods)/.test(x[0])); const item=[name, '﻿'+rows.map(r=>r.map(cell).join(csep)).join('\r\n')];
       if (i>=0) out.splice(i,0,item); else out.push(item); if (used) used.add('storedcal'); }catch(e){ console.error(e); } }
   function methodsText(inc){ const R=exportRows(inc); if (!R.length) return '';
