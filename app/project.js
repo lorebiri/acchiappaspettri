@@ -136,7 +136,7 @@
       if (legacy){ name=null; path=null; } else { name=fileName||null; path=filePath||null; }
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
-      if (lost>0) toast(`⚠️ ${lost} file del progetto non sono stati riconosciuti.`);
+      if (lost>0) toast(lost===1 ? '⚠️ Un file del progetto non è stato riconosciuto.' : `⚠️ ${lost} file del progetto non sono stati riconosciuti.`);   // singolare: prima «1 file … non sono stati»
       if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
       pluginNotes(plMissing, plLost, new Map([...plEnts].map(([e,L])=>[e.path, L[0].plugin.version])));
       if (P.warnings.includes('newer-format-compatible')) toast('⚠️ Progetto salvato con una versione più recente: alcune informazioni potrebbero non essere mostrate. Aggiorna l\'applicazione.');

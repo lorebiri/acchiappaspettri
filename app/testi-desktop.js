@@ -23,6 +23,7 @@
     ['Ho ricevuto una foto: ti chiedo cosa farne.', 'Immagine ricevuta: scegli come usarla.', 'Image received: choose how to use it.'],
     ['Mmm, non mi è arrivato nessun file. Riprova o usa «Scegli file».', 'Nessun file ricevuto. Riprova o usa «Scegli file».', 'No files received. Try again or use «Choose files».'],
     ['Ops, con questo non ci riesco… Guarda il messaggio qui sotto.', 'Impossibile leggere il file: vedi il messaggio.', 'The file could not be read: see the message.'],
+    ['Libreria dei picchi importata: la trovi in «Libreria dei picchi».', 'Libreria dei picchi importata.', 'Peak library imported.'],
     ['Lascialo qui, lo acchiappo al volo!', 'Rilascia per caricare.', 'Drop to load.'],
     ['Lo sto acchiappando…', 'Caricamento…', 'Loading…'],
     ['Scegli la cartella… poi aspettami un attimo!', 'Scegli la cartella…', 'Choose the folder…'],

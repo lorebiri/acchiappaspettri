@@ -392,14 +392,14 @@ body.busy, body.busy *{cursor:progress !important}
 .cgroup{margin-bottom:18px}
 .cgroup>b{display:block;font-size:14.5px;margin-bottom:2px}
 .cgroup>.why{margin-bottom:8px}
-.pkadd{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--soft,#f7f9fc)}
+.pkadd{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--bg)}
 .pkadd .pkaddt{flex:1 1 300px}
 .pkadd textarea{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;font-weight:400;color:var(--ink);background:#fff;resize:vertical;min-width:0}
 .pkadd input[type=text]{border:1px solid var(--line);border-radius:9px;padding:5px 8px;font:inherit}
 .pktab td.pos small{display:block;color:var(--muted);font-size:11px;font-weight:400}
-.pktab tr.edit td{background:#fff8ec}
+.pktab tr.edit td{background:rgba(230,154,29,.12)}
 .pktab tr.edit input,.pktab tr.edit select{border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;width:96px}
-.basebox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--soft,#f7f9fc)}
+.basebox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg)}
 .basebox .bord{border-left:3px solid #e69a1d;padding-left:8px}
 .basebox .bpars{margin:6px 0 8px}
 .basebox .bpf{min-width:220px;flex:1 1 220px}
@@ -5393,7 +5393,7 @@ async function loadChannels(msrc, msgs, onDup, stat){ const chosen=new Map();
     if (!chosen.has(src)) chosen.set(src, []); chosen.get(src).push([p, src.file, src.path, src.buf, src.bin, det, {sampleKey:sk, channel:c.channel, label:c.label, info:c.info, src:fmt}]); }
   return chosen; }
 async function addEntries(entries){
-  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[], pkgs=[];   // pkgs: pacchetti .acchplugin da installare (I11); progetti Origin: si sceglie che cosa importare in una finestra apposita
+  let skipped=[], rejected=[], errors=[], unreadable=[], dup=0, added=0, cancelled=0, libsIn=0; const images=[], projects=[], extra=[], msrc=[], chMsgs=[], produced=new Set(), chStat={missing:0}, order=[]; const origins=[], pkgs=[];   // pkgs: pacchetti .acchplugin da installare (I11); progetti Origin: si sceglie che cosa importare in una finestra apposita
   const tot=entries.length; let done=0, lastPaint=0;
   const PEND=window.ACCH_PENDING_MEM;
   if (tot) { loader(true, tot===1?'Gino sta acchiappando il file…':`Gino sta acchiappando ${tot} file…`, '', 0); await frame(); }
@@ -5444,6 +5444,8 @@ async function addEntries(entries){
       const om=window.AcchOriginUI ? /#origin:([^#]*)$/.exec(path) : null;   // uno spettro scelto da un progetto Origin (vedi app/origin-ui.js)
       if (/\.opju?$/i.test(file.name) && window.AcchOriginUI && !om){ origins.push({file, path}); continue; }
       if (/\.acchplugin$/i.test(file.name) && window.AcchPlugins){ pkgs.push(file); continue; }
+      // una libreria dei picchi trascinata o scelta insieme agli spettri si importa nella libreria (prima: «formato non riconosciuto»)
+      if (/\.acchlib(\.json)?$/i.test(file.name) && window.AcchLibUi){ try{ if (await AcchLibUi.importText(await file.text(), file.name)) libsIn++; else unreadable.push(path); }catch(e){ console.error(e); unreadable.push(path); } continue; }
       let plugs=(window.AcchPlugins && !om) ? AcchPlugins.candidates(file.name, ent) : [];   // I11: estensioni che leggono questo formato
       // I11: controllo preventivo della dimensione, prima di leggere il file; se lo legge anche l'app, ci pensa lei
       if (plugs.length && file.size>AcchPlugins.maxBytes()){ plugs=[]; if (!ACCEPT.test(file.name)){ rejected.push(`${path}: ${AcchPlugins.tooBigText(file.size)}`); continue; } }
@@ -5535,6 +5537,8 @@ async function addEntries(entries){
     say('#hello', 'Questo ce l\'ho già! 😄 Prova con un altro file.');
   } else if (pkgs.length && !skipped.length && !errors.length && !unreadable.length && !origins.length && !images.length && !projects.length){
     say('#hello', 'Pacchetto di estensione ricevuto: controlla e conferma l\'installazione.');
+  } else if (libsIn && !skipped.length && !errors.length && !unreadable.length){
+    say('#hello', 'Libreria dei picchi importata: la trovi in «Libreria dei picchi».');
   } else if (origins.length && !skipped.length && !errors.length && !unreadable.length){
     say('#hello', 'Progetto Origin ricevuto: scegli gli spettri da importare.');
   } else if (images.length && !skipped.length && !errors.length && !unreadable.length){
@@ -5650,7 +5654,7 @@ function toast(txt){ txt=String(txt); const t=$('#toast'); if (!t) return; const
     if (s0>0){ toastQ.unshift(toastCur); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); } }
   else if (toastQ.length){ if (!toastQ.includes(txt)) toastQ.push(txt); toastQ.sort((a,b)=>toastSev(b)-toastSev(a)); txt=toastQ.shift(); }   // fra un avviso e il successivo: prima il più grave
   toastShow(txt); }
-function toastShow(txt){ const t=$('#toast'), s=toastSev(txt); toastCur=txt; $('#toastTxt').textContent=deskT(txt); t.classList.toggle('warn', s>0); t.classList.toggle('err', s===2); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(toastHide, Math.max(s===2?10000:3200, txt.length*55)); }
+function toastShow(txt){ const t=$('#toast'), s=toastSev(txt); toastCur=txt; $('#toastTxt').textContent=deskT(txt); t.classList.toggle('warn', s>0); t.classList.toggle('err', s===2); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(toastHide, Math.min(15000, Math.max(s===2?10000:3200, txt.length*55))); }
 function toastHide(){ const t=$('#toast'); clearTimeout(toastT); if (t) t.classList.remove('on'); toastCur=null; if (toastQ.length) toastT=setTimeout(()=>{ if (toastQ.length) toastShow(toastQ.shift()); }, 250); }
 $('#toastX').onclick=toastHide;
 document.addEventListener('keydown', e=>{ if (e.key==='Escape' && toastCur!=null && toastSev(toastCur)>0 && $('#toast').classList.contains('on') && !document.querySelector('dialog[open]')){ toastHide(); e.stopPropagation(); } }, true);   // Esc chiude prima l'avviso in vista
@@ -6324,7 +6328,10 @@ function pkAddTyped(f, opt){
     if (vis.some(v=>Math.abs(v-x)<=nearTol) || f.added.some(v=>Math.abs(v-x)<=nearTol)){ out.dup.push(snapped ? `${it.txt} → ${numOut(+x.toPrecision(6))}` : it.txt); continue; }
     const wasRemoved=f.removed.some(v=>Math.abs(v-x)<=nearTol); f.removed=f.removed.filter(v=>Math.abs(v-x)>nearTol);
     const auto = wasRemoved && (f._auto||[]).find(q=>Math.abs(q.x-x)<=nearTol);
-    if (auto){ vis.push(auto.x); out.added.push(auto.x); if (snapped) out.snapped.push([it.txt, auto.x]); continue; }   // era un picco automatico tolto: torna quello
+    if (auto){ vis.push(auto.x); out.added.push(auto.x); if (snapped) out.snapped.push([it.txt, auto.x]);
+      const w0 = it.w!=null ? it.w : opt.w, sh0 = it.sh || opt.sh;
+      if (w0>0 || sh0){ f.added.push(auto.x); f.removed.push(auto.x); pkMetaSet(f, auto.x, {t:+it.x.toPrecision(10), w: w0>0 ? w0 : undefined, sh: sh0||undefined}); }   // con larghezza o forma diventa un picco aggiunto, che le conserva
+      continue; }   // era un picco automatico tolto: torna quello
     f.added.push(x); vis.push(x); out.added.push(x); if (snapped) out.snapped.push([it.txt, x]); if (free) out.free.push(it.txt);
     const w = it.w!=null ? it.w : opt.w, sh = it.sh || opt.sh || undefined;
     pkMetaSet(f, x, {t:+it.x.toPrecision(10), w: w>0 ? w : undefined, sh});
@@ -6337,6 +6344,8 @@ function pkEdit(f, p, v){
   const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]);
   if (!(v.x>=lo && v.x<=hi)){ toast(`⚠️ ${fmtTick(v.x,2)} è fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}).`); return false; }
   if (v.w!=null && !(v.w>0)){ toast('⚠️ La larghezza deve essere maggiore di zero.'); return false; }
+  { const n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):1, other=viewOf(f).peaks.find(q=>Math.abs(q.x-p.x)>1e-12 && Math.abs(q.x-v.x)<=0.6*dx);   // niente doppioni
+    if (other){ toast(`⚠️ C'è già un picco a ${fmtPeak(f.instr, other.x, f.uncal, f)}: modifica quello o toglilo prima.`); return false; } }
   pkSnap(f);
   const old=p.x, lab=f.labels[lblKey(old)];
   if (p.manual) f.added=f.added.filter(a=>Math.abs(a-old)>1e-12); else f.removed.push(old);
@@ -6451,9 +6460,9 @@ function renderPkTable(f, d){
 function pkEditRow(f, tr, p){ if (!p) return; const unit=f.uncal ? (uiEn()?'channel':'canale') : (xUnit(f)||'x').replace('cm-1','cm⁻¹');
   tr.classList.add('edit');
   tr.innerHTML=`<td></td><td colspan="4"><span class="ibfields" style="margin:0;align-items:center"><label class="ibf"><span>Posizione (${esc(unit)})</span><input type="text" inputmode="decimal" class="eX" value="${numOut(+p.x.toPrecision(10))}"></label>
-    <label class="ibf"><span>FWHM</span><input type="text" inputmode="decimal" class="eW" value="${p.w?numOut(p.w):''}" placeholder="automatica"></label>
+    <label class="ibf"><span>FWHM</span><input type="text" inputmode="decimal" class="eW" value="${p.w?numOut(p.w):''}" placeholder="${uiEn()?'automatic':'automatica'}"></label>
     <label class="ibf"><span>Forma</span><select class="eS"><option value="">automatica</option>${Object.entries(PK_SHAPE).map(([k,t])=>`<option value="${k}" ${p.sh===k?'selected':''}>${t}</option>`).join('')}</select></label>
-    ${p.manual?'':'<small class="opt-l">diventa un picco aggiunto da te</small>'}</span></td>
+    ${p.manual?'':`<small class="opt-l">${uiEn()?'becomes a peak added by you':'diventa un picco aggiunto da te'}</small>`}</span></td>
     <td class="act"><button type="button" class="btn small primary eOk">Salva</button> <button type="button" class="btn small ghost eNo">Annulla</button></td>`;
   const ix=tr.querySelector('.eX'), iw=tr.querySelector('.eW'), is=tr.querySelector('.eS'); ix.focus(); ix.select();
   const save=()=>{ let x=null, w=null, ok=true; numField(ix, v=>{ x=v; }); if (x==null) ok=false; if (iw.value.trim()){ numField(iw, v=>{ w=v; }); if (w==null) ok=false; }
@@ -6469,7 +6478,7 @@ function pkAddPreview(){ const f=files[cur], el=$('#pkAddPrev'); if (!el) return
   if (!txt.trim()){ el.textContent=`Lo spettro va da ${fmtTick(lo,2)} a ${fmtTick(hi,2)}. Più posizioni insieme: separale con «;», con una virgola e uno spazio o scrivine una per riga.`; return; }
   const r=parseNumList(txt, [lo,hi], {extras:true}), out=r.items.filter(q=>q.x<lo||q.x>hi), en=uiEn(), SHN=en?{gauss:'Gaussian',lor:'Lorentzian',pv:'pseudo-Voigt'}:PK_SHAPE;
   const list=r.items.slice(0,12).map(q=>esc(numOut(+q.x.toPrecision(10)))+(q.w?` (FWHM ${esc(fmtG(q.w,3))}${q.sh?', '+SHN[q.sh]:''})`:q.sh?` (${SHN[q.sh]})`:'')).join('; ')+(r.items.length>12?'…':''), bad=r.bad.slice(0,5).map(b=>'«'+esc(b)+'»').join(', '), ol=out.map(q=>esc(q.txt)).join(', ');
-  el.innerHTML = en ? (r.items.length ? `Understood: ${r.items.length} peak${r.items.length===1?'':'s'} at ${list}.` : '') + (out.length ? ` ⚠️ Outside the spectrum: ${ol}.` : '') + (r.bad.length ? ` ⚠️ Not understood: ${bad}${r.amb?' (a number like 1,086 is ambiguous: write 1086 or 1.086)':''}.` : '')
+  el.innerHTML = en ? (r.items.length ? `Understood: ${r.items.length} peak${r.items.length===1?'':'s'} at ${list}.` : '') + (out.length ? ` ⚠️ Outside the spectrum: ${ol}.` : '') + (r.bad.length ? ` ⚠️ Not understood: ${bad}${r.amb?' (a number like 1,086 is ambiguous: write 1086 or 1.0860)':''}.` : '')
     : (r.items.length ? `Capito: ${r.items.length} ${r.items.length===1?'picco':'picchi'} a ${list}.` : '') + (out.length ? ` ⚠️ Fuori dallo spettro: ${ol}.` : '') + (r.bad.length ? ` ⚠️ Non capisco: ${bad}${r.amb?' (un numero come 1,086 è ambiguo: scrivi 1086 o 1,0860)':''}.` : ''); }
 function pkAddRun(){ const f=files[cur]; if (!f) return; const txt=$('#pkAddTxt').value; if (!txt.trim()){ $('#pkAddTxt').focus(); return; }
   let w=null, tol=null, okW=true, okT=true;
@@ -6480,6 +6489,7 @@ function pkAddRun(){ const f=files[cur]; if (!f) return; const txt=$('#pkAddTxt'
   const r=pkAddTyped(f, {text:txt, w, sh:$('#pkAddSh').value||null, snap, tol});
   const en=uiEn(), msg=[], na=r.added.length, ns=r.snapped.length;
   if (na) msg.push(en ? `✔ ${na} peak${na===1?'':'s'} added${ns?` (${ns} snapped to the nearest maximum)`:''}` : `✔ ${na} ${na===1?'picco aggiunto':'picchi aggiunti'}${ns?` (${ns} agganciat${ns===1?'o':'i'} al massimo vicino)`:''}`);
+  const cut=a=>a.length>8 ? a.slice(0,8).join(', ')+(en?` … and ${a.length-8} more`:` … e altri ${a.length-8}`) : a.join(', '); r.free=[cut(r.free)].filter(Boolean); r.dup=[cut(r.dup)].filter(Boolean); r.out=[cut(r.out)].filter(Boolean); r.bad=[cut(r.bad)].filter(Boolean);
   if (r.free.length && na) msg.push(en ? `no maximum within the tolerance, left where you wrote them: ${r.free.join(', ')}` : `nessun massimo entro la tolleranza, lasciati dove li hai scritti: ${r.free.join(', ')}`);
   if (r.dup.length) msg.push((en?'already there: ':'già presenti: ')+r.dup.join(', ')); if (r.out.length) msg.push((en?'outside the spectrum: ':'fuori dallo spettro: ')+r.out.join(', ')); if (r.bad.length) msg.push((en?'not understood: ':'non capiti: ')+r.bad.join(', '));
   toast((na?'':'⚠️ ')+(msg.join(' · ')||(en?'No peak added.':'Nessun picco aggiunto.'))+(na?(en?' Ctrl+Z undoes.':' Ctrl+Z annulla.'):''));
@@ -6489,7 +6499,7 @@ $('#pkAddTxt').addEventListener('input', pkAddPreview);
 $('#pkAddTxt').addEventListener('keydown', e=>{ if (e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); pkAddRun(); } });
 $('#pkAddGo').onclick=pkAddRun;
 $('#pkAddSnap').onchange=()=>{ $('#pkAddTol').disabled=!$('#pkAddSnap').checked; };
-function pkAddSync(f){ if (!f) return; const u=f.uncal ? (uiEn()?'canali':'canali') : (xUnit(f)||'').replace('cm-1','cm⁻¹'); $('#pkAddUnit').textContent=u?`(${u})`:''; $('#pkAddTolU').textContent=u; $('#pkAddTol').placeholder=numOut(pkTol(f)); pkAddPreview(); }
+function pkAddSync(f){ if (!f) return; $('#pkAddTxt').placeholder = uiEn() ? 'e.g. 1086; 712; 282 · or one per line · optional next to each: w=8 (width) and the shape (gauss, lor, pv)' : 'es. 1086; 712; 282 · oppure una per riga · facoltativi accanto a ognuna: w=8 (larghezza) e la forma (gauss, lor, pv)';   /* le aree di testo non passano dal traduttore */ $('#pkAddW').placeholder = uiEn() ? 'automatic' : 'automatica'; const u=f.uncal ? (uiEn()?'canali':'canali') : (xUnit(f)||'').replace('cm-1','cm⁻¹'); $('#pkAddUnit').textContent=u?`(${u})`:''; $('#pkAddTolU').textContent=u; $('#pkAddTol').placeholder=numOut(pkTol(f)); pkAddPreview(); }
 function markRow(){ const f=files[cur]; $$('#pkTable tr[data-x]').forEach(tr=>tr.classList.toggle('sel', !!f && f._sel!=null && Math.abs(+tr.dataset.x-f._sel)<1e-9)); }
 function scrollRowIntoWrap(tr){   // scorre solo l'elenco dei picchi, mai la pagina
   const w=tr && tr.closest('.pkwrap'); if (!w) return; const head=(w.querySelector('thead')||{}).offsetHeight||0;
@@ -6754,7 +6764,7 @@ const BASE_UI={
   anchor:[]
 };
 BASE_UI.modpoly=BASE_UI.imodpoly;
-let baseHist=[], baseAnchorPick=false, baseBoxSig='', baseT=null;
+let baseHist=[], baseAnchorPick=false, baseBoxSig='', baseT=null, baseTS=null;
 function baseSnap(){ baseHist.push(JSON.stringify({b:S.base, p:S.baseP, f:files.map(g=>[g.id, g.an&&g.an.pBm!=null?g.an.pBm:null, g.an&&g.an.pBp?g.an.pBp:null])})); if (baseHist.length>40) baseHist.shift(); }
 function baseUndo(){ if (!baseHist.length){ toast('Non c\'è niente da annullare nel fondo.'); return; }
   const st=JSON.parse(baseHist.pop()); S.base=Object.assign({}, S.base, st.b); S.baseP=Object.assign({}, S.baseP, st.p); saveS();
@@ -6778,7 +6788,10 @@ function baseSetScope(f, sc){ const m=pBase(f), par=baseParOf(f);
 /* «applica a tutti gli spettri caricati»: lo stesso metodo e gli stessi parametri a ogni spettro (scelta per singolo spettro, salvata nel progetto) */
 function baseApplyAll(f){ const m=pBase(f), par=AcchBaseline.cleanParams(m, baseParOf(f)); let ok=0; const no=[];
   baseSnap();
-  for (const g of files){ if (!baseAllowed(g.instr, m)){ no.push(dispTitle(g)); continue; } anSet(g,'pBm',m); anSet(g,'pBp',par?JSON.parse(JSON.stringify(par)):null); ok++; }
+  for (const g of files){ if (!baseAllowed(g.instr, m)){ no.push(dispTitle(g)); continue; }
+    // punti di ancoraggio: servono almeno due punti dentro l'asse di quello spettro, altrimenti il fondo sarebbe costante e sbagliato
+    if (m==='anchor' && g!==f){ const lo=Math.min(g.xs[0],g.xs[g.xs.length-1]), hi=Math.max(g.xs[0],g.xs[g.xs.length-1]); if (((par&&par.pts)||[]).filter(x=>x>=lo&&x<=hi).length<2){ no.push(dispTitle(g)); continue; } }
+    anSet(g,'pBm',m); anSet(g,'pBp',par?JSON.parse(JSON.stringify(par)):null); ok++; }
   baseRefresh();
   const nl=no.slice(0,4).join(', ')+(no.length>4?'…':'');
   toast(uiEn() ? `✔ ${BASEM_EN[m]||m} baseline applied to ${ok} spectr${ok===1?'um':'a'}${no.length?` · not suitable, left as they were: ${nl}`:''}.` : `✔ Fondo ${BASEM_NAME[m]} applicato a ${ok} spettr${ok===1?'o':'i'}${no.length?` · non adatto e lasciato com'era: ${nl}`:''}.`); }
@@ -6812,7 +6825,7 @@ function renderBaseBox(){
       ${m==='imodpoly'||m==='modpoly'?`<label class="ibf"><span>Variante</span><select id="bVar"><option value="imodpoly" ${m==='imodpoly'?'selected':''}>IModPoly (Zhao 2007)</option><option value="modpoly" ${m==='modpoly'?'selected':''}>ModPoly (Lieber 2003)</option></select></label>`:''}</div>
     ${m==='none'?'<p class="why">Nessun fondo tolto: scegli un metodo. Per il Raman con fluorescenza consiglio il polinomio iterativo (IModPoly) o arPLS; sugli spettri molto puliti controlla arPLS con l\'anteprima, perché può restare sotto la fluorescenza.</p>':''}
     ${ui.length?`<div class="ibfields bpars">${ui.map(field).join('')}</div>`:''}
-    ${m==='anchor'?`<div class="ibfields bpars"><label class="ibf" style="flex:1 1 260px"><span>Punti di ancoraggio (${esc(unit)})</span><textarea id="bPts" rows="2" placeholder="es. 250; 800; 1900; 3100 (o uno per riga)">${esc(A.map(x=>numOut(+x.toPrecision(8))).join('; '))}</textarea></label>
+    ${m==='anchor'?`<div class="ibfields bpars"><label class="ibf" style="flex:1 1 260px"><span>Punti di ancoraggio (${esc(unit)})</span><textarea id="bPts" rows="2" placeholder="${uiEn()?'e.g. 250; 800; 1900; 3100 (or one per line)':'es. 250; 800; 1900; 3100 (o uno per riga)'}">${esc(A.map(x=>numOut(+x.toPrecision(8))).join('; '))}</textarea></label>
       <label class="ibf"><span>Tra i punti</span><select id="bInterp"><option value="pchip" ${curPar.interp!=='linear'?'selected':''}>curva morbida (PCHIP)</option><option value="linear" ${curPar.interp==='linear'?'selected':''}>segmenti di retta</option></select></label>
       <label class="ibf bpf"><span>Media attorno a ogni punto <output data-bo="hw" data-pts="1">${basePtsTxt(f, eff.hw!=null?eff.hw:2)}</output></span><input type="range" data-bp="hw" min="0" max="50" step="1" value="${eff.hw!=null?eff.hw:2}" aria-label="Media attorno a ogni punto"></label>
       <button type="button" class="btn small ${baseAnchorPick?'primary':''}" id="bPick" aria-pressed="${baseAnchorPick}">${baseAnchorPick?'✓ Fine scelta dei punti':'📍 Scegli i punti sul grafico'}</button></div>
@@ -6824,7 +6837,8 @@ function renderBaseBox(){
       <span class="spacer"></span><button type="button" class="btn small ghost" id="bOff" ${m==='none'?'disabled':''} title="Nessun fondo tolto, lo spettro torna com'è nel file">Ripristina l'originale</button></div>
     <p class="why" id="bInfo" aria-live="polite"></p>`;
   baseInfo(f);
-  const live=()=>{ clearTimeout(baseT); baseT=setTimeout(()=>{ renderPreview(); baseInfo(files[cur]); renderSummary(); const u=$('#bUndo'); if (u) u.disabled=!baseHist.length; }, 90); };
+  // anteprima subito; il riepilogo dell'esportazione (che rifà il controllo del dato per contare le pagine) solo quando il cursore si ferma
+  const live=()=>{ clearTimeout(baseT); clearTimeout(baseTS); baseT=setTimeout(()=>{ renderPreview(); baseInfo(files[cur]); const u=$('#bUndo'); if (u) u.disabled=!baseHist.length; baseTS=setTimeout(renderSummary, 600); }, 90); };
   let snapped=false; const snapOnce=()=>{ if (!snapped){ baseSnap(); snapped=true; } };
   box.querySelectorAll('[data-bp]').forEach(el=>{ const key=el.dataset.bp;
     const write=v=>{ const g=files[cur]; if (!g) return; const par=baseParOf(g); if (v==null) delete par[key]; else par[key]=v; baseSetPar(g, par); };
@@ -6844,8 +6858,8 @@ function renderBaseBox(){
   $('#bOff').onclick=()=>{ baseSnap(); baseSetMethod(f, 'none'); baseAnchorPick=false; baseRefresh(); toast('Fondo non più tolto: lo spettro è com\'era nel file. ↶ Annulla per tornare indietro.'); };
   if ($('#bPts')) $('#bPts').onchange=e=>{ const P2=processed(f), lo=Math.min(P2.xs[0],P2.xs[P2.xs.length-1]), hi=Math.max(P2.xs[0],P2.xs[P2.xs.length-1]), r=parseNumList(e.target.value, [lo,hi]);
     const bl=r.bad.slice(0,4).map(b=>'«'+b+'»').join(', ');
-    if (r.bad.length) toast(uiEn() ? `⚠️ Not understood: ${bl}. ${r.amb?'Write the number unambiguously (1,086 could be 1086 or 1.086).':'Separate numbers with «;», a comma and a space, or one per line.'}` : `⚠️ Non capisco: ${bl}. ${r.amb?'Scrivi il numero senza ambiguità (1,086 può essere 1086 o 1,086).':'Usa numeri separati da «;», da virgola e spazio o uno per riga.'}`);
-    const out=r.items.map(q=>q.x).filter(x=>x<lo||x>hi); if (out.length) toast(`⚠️ Fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}): ${out.map(x=>fmtTick(x,2)).join(', ')}.`);
+    if (r.bad.length) toast(uiEn() ? `⚠️ Not understood: ${bl}. ${r.amb?'Write the number unambiguously: 1086 or 1.0860.':'Separate numbers with «;», a comma and a space, or one per line.'}` : `⚠️ Non capisco: ${bl}. ${r.amb?'Scrivi il numero senza ambiguità (1,086 può essere 1086 o 1,086).':'Usa numeri separati da «;», da virgola e spazio o uno per riga.'}`);
+    const out=r.items.map(q=>q.x).filter(x=>x<lo||x>hi), ol=out.slice(0,8).map(x=>fmtTick(x,2)).join(', ')+(out.length>8?' …':''); if (out.length) toast(uiEn() ? `⚠️ Outside the spectrum (${fmtTick(lo,2)}–${fmtTick(hi,2)}): ${ol}.` : `⚠️ Fuori dallo spettro (${fmtTick(lo,2)}–${fmtTick(hi,2)}): ${ol}.`);
     baseSnap(); const par=baseParOf(f); par.pts=r.items.map(q=>q.x).filter(x=>x>=lo&&x<=hi); baseSetPar(f, par); baseRefresh(); };
   if ($('#bInterp')) $('#bInterp').onchange=e=>{ baseSnap(); const par=baseParOf(f); if (e.target.value==='linear') par.interp='linear'; else delete par.interp; baseSetPar(f, par); baseRefresh(); };
   if ($('#bPick')) $('#bPick').onclick=()=>{ baseAnchorPick=!baseAnchorPick; if (baseAnchorPick && !S.showBase){ S.showBase=true; saveS(); } baseRefresh(); };

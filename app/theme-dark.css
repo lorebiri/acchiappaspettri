@@ -149,3 +149,4 @@ html[data-theme=dark] .calbox{background:hsl(220 45% 9%)}
 html[data-theme=dark] .mixrow{border-bottom:1px solid hsl(214 26% 11%)}
 html[data-theme=dark] .mixrow .sc{background:hsl(216 29% 11%)}
 html[data-theme=dark] .mixrow .sc i{background:hsl(262 45% 23%)}
+html[data-theme=dark] ::placeholder{color:var(--muted);opacity:1}

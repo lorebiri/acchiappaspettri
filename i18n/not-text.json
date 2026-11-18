@@ -289,5 +289,13 @@
 "CmdOrCtrl+Shift+M",
 "Delete",
 "JSON",
-"[grafico] disegno con Canvas 2D:"
+"[grafico] disegno con Canvas 2D:",
+"(a number like 1,086 is ambiguous: write 1086 or 1.0860)",
+"Write the number unambiguously: 1086 or 1.0860.",
+"becomes a peak added by you",
+"e.g. 1086; 712; 282 · or one per line · optional next to each: w=8 (width) and the shape (gauss, lor, pv)",
+"e.g. 250; 800; 1900; 3100 (or one per line)",
+"… and {0} more",
+"⚠️ Outside the spectrum ({0}–{1}): {2}.",
+"⚠️ Fuori dallo spettro ({0}–{1}): {2}."
 ]

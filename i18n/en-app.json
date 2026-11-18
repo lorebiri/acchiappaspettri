@@ -1432,5 +1432,11 @@
 "Spettro XRF molto grande": "Very large XRF spectrum",
 "△ {0} canali: il limite di Currie richiede circa {1} min di calcolo, in un processo separato. Gli spettri XRF degli strumenti hanno di solito al più qualche decina di migliaia di canali.": "△ {0} channels: the Currie limit needs about {1} min of computation, in a separate process. XRF spectra from instruments usually have at most a few tens of thousands of channels.",
 "Annulla il calcolo": "Cancel the computation",
-"Limite di rivelabilità di Currie non calcolato: il calcolo è stato annullato. Le righe deboli possono essere rumore; ricarica lo spettro e lascia finire il calcolo per controllarle.": "Currie detection limit not computed: the computation was cancelled. Weak lines may be noise; reload the spectrum and let the computation finish to check them."
+"Limite di rivelabilità di Currie non calcolato: il calcolo è stato annullato. Le righe deboli possono essere rumore; ricarica lo spettro e lascia finire il calcolo per controllarle.": "Currie detection limit not computed: the computation was cancelled. Weak lines may be noise; reload the spectrum and let the computation finish to check them.",
+  "gaussiana": "Gaussian",
+  "lorentziana": "Lorentzian",
+  "consigliato": "recommended",
+  "⚠️ C'è già un picco a {0}: modifica quello o toglilo prima.": "\u26a0\ufe0f There is already a peak at {0}: edit that one or remove it first.",
+  "Libreria dei picchi importata: la trovi in «Libreria dei picchi».": "Peak library imported: you find it in «Peak library».",
+  "⚠️ Un file del progetto non è stato riconosciuto.": "⚠️ One file of the project was not recognised."
 }

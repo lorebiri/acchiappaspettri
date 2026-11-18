@@ -34,6 +34,7 @@ html.web:not(.web-full) #batchBar [data-b="fit"]{display:none!important}
 html.web .brand{flex-wrap:wrap;min-width:0}
 html.web #langBtn,html.web #settingsBtn{font-size:0;min-width:36px;min-height:36px} html.web header .row,html.web header > div{flex-wrap:nowrap}
 html.web #langBtn *,html.web #settingsBtn *{font-size:14px}
+html.web #settingsBtn::before{content:'⚙️';font-size:16px;line-height:1}   /* l'icona è testo: con font-size 0 il pulsante restava vuoto */
 html.web #cmdBtn kbd{display:none}
 html.web .bench{display:flex;flex-direction:column}
 html.web #filesCard{order:2}
@@ -60,7 +61,7 @@ html.web .pktab th:nth-child(1){width:22px} html.web .pktab th:nth-child(2){widt
 html.web .pktab td:nth-child(4) input{font-size:12px;padding:0 4px}
 html.web .pktab th:nth-child(4){font-size:0} html.web .pktab th:nth-child(4)::after{content:'Nome';font-size:12px} html.web:lang(en) .pktab th:nth-child(4)::after{content:'Name'}
 html.web .brand{flex-wrap:nowrap}
-html.web #soberBtn{font-size:0;min-width:36px;min-height:36px} html.web #soberBtn::before{content:'◐';font-size:16px}
+html.web #soberBtn{font-size:0;min-width:36px;min-height:36px;padding:0 8px;overflow:visible} html.web #soberBtn::before{content:'◐';font-size:16px;line-height:1}
 }
 html.web .pktab .sgp{border-radius:8px}
 html.web .pktab td:last-child{padding-right:6px}
