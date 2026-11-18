@@ -2,7 +2,7 @@
 
 Turns spectra and chromatograms saved as files (FTIR/ATR-FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) into clean plots and scientific analysis. Italian and English. Your data stay on your computer.
 
-**▶ [Use it online](https://lorebiri.github.io/acchiappaspettri/)** · **🖥️ [Download the desktop app](https://github.com/lorebiri/acchiappaspettri/releases/latest)** (Windows, macOS, Linux: works offline, offers updates when a new version is published)
+**▶ [Use it online](https://lorebiri.github.io/acchiappaspettri/)** · **🖥️ [Download the desktop app](https://lorebiri.github.io/acchiappaspettri/scarica/#scarica)** (Windows, macOS, Linux: works offline, offers updates when a new version is published) · **[Website](https://lorebiri.github.io/acchiappaspettri/scarica/en/)** · [Sito](https://lorebiri.github.io/acchiappaspettri/scarica/)
 
 | | |
 |---|---|

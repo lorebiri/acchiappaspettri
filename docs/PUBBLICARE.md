@@ -29,6 +29,22 @@ Dopo la pubblicazione: scarica i pacchetti dalla pagina online e installali alme
 
 La pagina online e le app installate vedono la nuova versione appena la release è pubblica. La pagina si aggiorna con il push su `main` (GitHub Pages).
 
+## Sito di presentazione e download
+
+Il sito è nella cartella `scarica/` (italiano in `scarica/index.html`, inglese in `scarica/en/index.html`) ed esce con l'app, allo stesso push su `main`:
+
+| Che cosa | Indirizzo |
+|---|---|
+| App online (invariata, quella dei preferiti) | <https://lorebiri.github.io/acchiappaspettri/> |
+| Sito, italiano | <https://lorebiri.github.io/acchiappaspettri/scarica/> |
+| Sito, inglese | <https://lorebiri.github.io/acchiappaspettri/scarica/en/> |
+
+- **Nessuna impostazione da cambiare**: Pages pubblica il ramo `main` così com'è («Deploy from a branch»), quindi `scarica/` esce da sola. Il workflow `.github/workflows/sito.yml` prova il sito a ogni modifica (struttura, link, immagini, nomi di terzi, download simulato nel browser, screenshot desktop e mobile tra gli artefatti).
+- **Versione e file da scaricare**: il sito li legge dall'API di GitHub (`releases/latest`, solo versioni stabili), con dimensione e impronta SHA-256 di ogni pacchetto. Non c'è nulla da aggiornare a mano a ogni versione; senza JavaScript o se GitHub non risponde, i pulsanti portano alla pagina delle versioni.
+- **Schermate**: `scarica/img/*.webp` sono schermate vere dell'app su dati sintetici o di prova. Dopo un cambiamento visibile si rifanno con `node scripts/sito-schermate.js` (tutte) o `node scripts/sito-schermate.js picchi fondo` (alcune); `PW_CHROMIUM=/percorso/chromium` usa un Chromium già installato.
+- **Pubblicare con GitHub Actions** (facoltativo): se si passa *Settings → Pages → Source* a «GitHub Actions», va creata la variabile del repository `PAGES_DA_WORKFLOW` = `si`. Il lavoro «pubblica» di `sito.yml` costruisce allora con Jekyll l'intero ramo `main`, come la pubblicazione dal ramo, e lo pubblica: app e sito insieme, agli stessi indirizzi. Finché la variabile non c'è, quel lavoro non parte.
+- Dall'app il sito si apre da *Impostazioni → Informazioni → Sito del programma* e, nel desktop, da *Aiuto → Sito di Acchiappaspettri*.
+
 ## Beta
 ```bash
 node scripts/set-version.js 2.3.0-beta.1

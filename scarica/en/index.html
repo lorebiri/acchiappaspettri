@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; img-src 'self' data:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Acchiappaspettri: spectra and chromatograms, from file to plot and analysis. Free, online or desktop</title>
+<meta name="description" content="Acchiappaspettri reads spectra and chromatograms (FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR, gas adsorption), finds peaks, removes the background, checks data quality and prepares PDFs, images and tables. Free and open source, in English and Italian. Online in the browser or for Windows, macOS and Linux.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="Acchiappaspettri: spectra and chromatograms, from file to plot and analysis">
+<meta property="og:description" content="Free and open source, in English and Italian. Online in the browser or for Windows, macOS and Linux. Your data stay on your computer.">
+<meta property="og:url" content="https://lorebiri.github.io/acchiappaspettri/scarica/en/">
+<meta property="og:image" content="https://lorebiri.github.io/acchiappaspettri/scarica/img/desktop-spazio.webp">
+<link rel="canonical" href="https://lorebiri.github.io/acchiappaspettri/scarica/en/">
+<link rel="icon" href="../icona.svg" type="image/svg+xml">
+<link rel="alternate" hreflang="it" href="https://lorebiri.github.io/acchiappaspettri/scarica/">
+<link rel="alternate" hreflang="en" href="https://lorebiri.github.io/acchiappaspettri/scarica/en/">
+<link rel="stylesheet" href="../stile.css">
+<script src="../tema.js"></script>
+<script type="module" src="../avvio.js"></script>
+</head>
+<body>
+<a class="salta" href="#contenuto">Skip to content</a>
+
+<header class="testata">
+  <div class="wrap testata-riga">
+    <a class="marchio" href="#contenuto"><img src="../icona.svg" alt="" width="34" height="34"> <span>Acchiappaspettri</span></a>
+    <nav aria-label="Page sections">
+      <ul>
+        <li><a href="#scegli">Online or desktop</a></li>
+        <li class="nav-ampia"><a href="#tecniche">Techniques and formats</a></li>
+        <li class="nav-ampia"><a href="#funzioni">Features</a></li>
+        <li class="nav-ampia"><a href="#affidabilita">Reliability</a></li>
+        <li class="nav-ampia"><a href="#domande">FAQ</a></li>
+        <li><a class="nav-scarica" href="#scarica">Download</a></li>
+      </ul>
+    </nav>
+    <div class="strumenti">
+      <a class="lingua" href="../" hreflang="it" lang="it" title="Versione italiana">IT</a>
+      <button class="tema" id="tema" type="button" hidden aria-label="Theme: same as the system">
+        <svg class="t-auto" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+        <svg class="t-chiaro" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="t-scuro" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="contenuto" tabindex="-1">
+
+  <section class="hero" aria-labelledby="titolo">
+    <div class="wrap hero-griglia">
+      <div>
+        <p class="occhiello">Spectroscopy and chromatography · free software</p>
+        <h1 id="titolo">From the instrument file to a clean plot and analysis. <span class="accento">Free, on your computer.</span></h1>
+        <p class="sottotitolo">Acchiappaspettri reads spectra and chromatograms (<strong>FTIR, Raman, UV-Vis, HPLC, XRF, NMR</strong> and other techniques), finds peaks, removes the background, checks data quality and prepares <strong>PDFs, images and tables</strong> ready for reports, theses and papers.</p>
+        <p class="avviso-versione" id="nota-versione" hidden></p>
+        <div class="cta">
+          <div>
+            <a class="btn secondario" href="../../"><span>Use online</span><small>in the browser, nothing to install</small></a>
+          </div>
+          <div id="scarica-principale" aria-live="polite">
+            <a class="btn primario" href="https://github.com/lorebiri/acchiappaspettri/releases/latest"><span>Download the program</span><small>Windows, macOS, Linux</small></a>
+          </div>
+        </div>
+        <ul class="vantaggi" aria-label="The advantages at a glance">
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M15 8.5a3.5 3.5 0 1 0 0 7M8 11h5M8 13.5h5"/></svg>
+            <span><strong>Free and open source</strong>no subscription, no account</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span><strong>Your data stay on your computer</strong>nothing is uploaded to a server</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg>
+            <span><strong>Works without internet</strong>the desktop program, always</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c0 4-3 7-7 8"/><path d="M13 21l4-10 4 10M14.5 17.5h5"/></svg>
+            <span><strong>English and Italian</strong>interface, PDF and methods draft</span>
+          </li>
+        </ul>
+      </div>
+      <figure class="cornice">
+        <img src="../img/desktop-spazio.webp" width="1440" height="900" alt="The desktop program with six synthetic polyethylene FTIR spectra in the list on the left; the plot shows the 1000-hour spectrum with labelled peaks, the peak table with names below and the Peaks panel on the right (Italian interface)." fetchpriority="high">
+      </figure>
+    </div>
+  </section>
+
+  <section id="scegli" class="alt" aria-labelledby="t-scegli">
+    <div class="wrap">
+      <h2 id="t-scegli">Online or desktop?</h2>
+      <p class="intro">They are the same program: <strong>same file readers, same calculations, same numbers</strong>. Every version is tested by comparing the two on the same files (peaks, areas, suggestions, hypotheses and checks must match). What changes is the way you work.</p>
+      <div class="confronto-wrap">
+        <table class="confronto">
+          <caption class="vh">Comparison between the online version and the desktop program</caption>
+          <thead><tr><th scope="col">What</th><th scope="col">Online</th><th scope="col">Desktop</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">File reading, peaks, suggested names, background, data-quality check</th><td data-l="Online"><span class="si">Yes</span>, identical</td><td data-l="Desktop"><span class="si">Yes</span>, identical</td></tr>
+            <tr><th scope="row">Deconvolution, calibration, statistics, XRF, adsorption, exports, projects</th><td data-l="Online"><span class="si">Yes</span>; the study tools open with «Show here»</td><td data-l="Desktop"><span class="si">Yes</span>, all in view</td></tr>
+            <tr><th scope="row">Installation</th><td data-l="Online">None: you open a page</td><td data-l="Desktop">A package of a few MB for Windows, macOS or Linux (the Linux AppImage is larger because it bundles its libraries)</td></tr>
+            <tr><th scope="row">Where the data stay</th><td data-l="Online">In the browser, on your computer</td><td data-l="Desktop">On your computer, in the files you choose</td></tr>
+            <tr><th scope="row">Without internet</th><td data-l="Online">A connection is needed to open the page; then all calculations are local</td><td data-l="Desktop"><span class="si">Always</span></td></tr>
+            <tr><th scope="row">Workspace</th><td data-l="Online">Guided three-step page, with a mascot that explains</td><td data-l="Desktop">Professional: menus, toolbar, tabbed documents (plot, data sheet, several samples), results below the plot, properties on the right, status bar</td></tr>
+            <tr><th scope="row">Calculation engine</th><td data-l="Online">JavaScript in the page</td><td data-l="Desktop">Native reader in Rust and heavy calculations in a separate process: the window never freezes, with numbers identical to the online ones</td></tr>
+            <tr><th scope="row">Very large files</th><td data-l="Online">Fine up to hundreds of thousands of points</td><td data-l="Desktop">WebGL plot for millions of points; 1 million points from click to plot in about one second</td></tr>
+            <tr><th scope="row">Windows</th><td data-l="Online">One page</td><td data-l="Desktop">Plots can be detached into separate windows («Detach», «Comparison»), also on a second screen</td></tr>
+            <tr><th scope="row">Opening files</th><td data-l="Online">Drag them onto the page or choose them</td><td data-l="Desktop">Also by double-clicking instrument files, projects and libraries, or with «Open with»</td></tr>
+            <tr><th scope="row">Settings, libraries, work in progress</th><td data-l="Online">In the browser's storage</td><td data-l="Desktop">In files, in the app folder, written safely</td></tr>
+            <tr><th scope="row">Export</th><td data-l="Online">Browser download (ZIP above 3 files, if you want)</td><td data-l="Desktop">Straight into a folder, with your file names and a summary of what was written</td></tr>
+            <tr><th scope="row">Updates</th><td data-l="Online">Always the latest version</td><td data-l="Desktop">The program tells you when a new one is out; updates are signed and verified</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="coppia spazio-sopra">
+        <figure class="cornice"><img src="../img/online-en.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The online version in English, step 2 «Review»: synthetic polyethylene FTIR spectrum with English peak names, the Peaks panel and «Add peaks by position»."><figcaption>The online version: a guided page, in the browser.</figcaption></figure>
+        <figure class="cornice telefono"><img src="../img/online-mobile.webp" width="390" height="844" loading="lazy" decoding="async" alt="The online version on a phone: the three steps at the top, a Raman spectrum with labelled peaks and the tool tabs (Italian interface)."><figcaption>On a phone too.</figcaption></figure>
+      </div>
+      <div class="scelta">
+        <div class="carta">
+          <h3>Choose online if…</h3>
+          <ul>
+            <li>you want a quick look at a file, on any computer;</li>
+            <li>you cannot install programs (institute computer, classroom, library);</li>
+            <li>you want to try before deciding.</li>
+          </ul>
+        </div>
+        <div class="carta">
+          <h3>Choose desktop if…</h3>
+          <ul>
+            <li>you work with spectra every day or with series of many samples;</li>
+            <li>you have large files (maps, long chromatograms, millions of points);</li>
+            <li>you work offline, in the lab or on a field campaign;</li>
+            <li>you want to open instrument files with a double click and export straight into a folder.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tecniche" aria-labelledby="t-tecniche">
+    <div class="wrap">
+      <h2 id="t-tecniche">Supported techniques and formats</h2>
+      <p class="intro">The instrument is recognised automatically, from the file header, its name or the axis. If the file has a problem (unreadable rows, ambiguous separators, suspicious units) the program says so in plain words instead of drawing a wrong plot.</p>
+      <ul class="tecniche" aria-label="Techniques">
+        <li><strong>Infrared (FTIR, ATR-FTIR)</strong>transmittance and absorbance, cm⁻¹ or µm, carbonyl index</li>
+        <li><strong>Raman</strong>shift in cm⁻¹ or wavelength in nm, cosmic rays, fluorescence</li>
+        <li><strong>UV-Visible</strong>nm, eV or cm⁻¹, Tauc band gap</li>
+        <li><strong>Fluorescence</strong>emission and excitation, Rayleigh and water Raman, Stokes shift</li>
+        <li><strong>HPLC chromatography</strong>one or more channels, plate number, tailing, resolution, S/N, calibration</li>
+        <li><strong>X-ray fluorescence (XRF)</strong>energy calibration, elements, composition with or without standards</li>
+        <li><strong>LIBS</strong>atomic lines of 41 elements and molecular bands</li>
+        <li><strong>Thermogravimetry (TGA)</strong>mass %, DTG, T₅%, residue, steps</li>
+        <li><strong>Calorimetry (DSC)</strong>endo/exo, ΔH in J/g, onset, possible Tg, segments</li>
+        <li><strong>NMR</strong>¹H and ¹³C, ppm, integrals, reference</li>
+        <li><strong>EPR</strong>field in G, mT or T, g value, double integral</li>
+        <li><strong>Physisorption</strong>isotherms, BET, Langmuir, t-plot, BJH, DR, DFT with your own kernel</li>
+        <li><strong>Chemisorption</strong>TPR, TPO, TPD, pulses, dispersion and metal area</li>
+      </ul>
+      <div class="formati" data-marchi="formati">
+        <div class="carta">
+          <h3>Text files and tables</h3>
+          <dl>
+            <dt>Column text</dt><dd><code>.txt</code> <code>.csv</code> <code>.tsv</code> <code>.asc</code> <code>.dat</code> <code>.dpt</code> <code>.prn</code> <code>.xy</code> <code>.exp</code>, with decimal comma or point, any separator, several blocks and columns</dd>
+            <dt>JCAMP-DX</dt><dd><code>.jdx</code> <code>.dx</code> <code>.jcamp</code>, plain and compressed (SQZ, DIF, DUP)</dd>
+            <dt>Excel workbooks</dt><dd><code>.xlsx</code> for adsorption; for the other techniques export them to CSV</dd>
+          </dl>
+        </div>
+        <div class="carta">
+          <h3>Instrument formats</h3>
+          <dl>
+            <dt>Infrared</dt><dd>Thermo OMNIC <code>.spa</code>, Bruker OPUS (<code>.0</code>, <code>.1</code>…), PerkinElmer <code>.sp</code> and <code>.asc</code>, JASCO</dd>
+            <dt>Chromatography</dt><dd>Agilent ChemStation/OpenLab <code>.ch</code> and <code>.uv</code> with all channels, Waters <code>.arw</code>, Shimadzu (several blocks and samples)</dd>
+            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code></dd>
+            <dt>Adsorption</dt><dd>Anton Paar Autosorb (Kaomi, ASiQwin) and AIF</dd>
+            <dt>Origin projects</dt><dd><code>.opju</code> and <code>.opj</code>: you choose which X/Y pairs to import</dd>
+          </dl>
+        </div>
+        <div class="carta">
+          <h3>Program files</h3>
+          <dl>
+            <dt>Projects</dt><dd><code>.acchspettri</code>: original data, work and results in one file</dd>
+            <dt>Peak libraries</dt><dd><code>.acchlib</code>, per instrument and sample type</dd>
+            <dt>Extensions</dt><dd><code>.acchplugin</code>: readers for new formats, isolated with no network and no data access, verified on example files before installation</dd>
+          </dl>
+          <p class="nota">A format is not read? <a href="#contatti">Send it</a>: that is the fastest way to add it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="come" class="alt" aria-labelledby="t-come">
+    <div class="wrap">
+      <h2 id="t-come">How it works: load, review, download</h2>
+      <p class="intro">Three steps, online and in the desktop program. Every choice can be undone and the original file is never modified.</p>
+      <ol class="passi">
+        <li>
+          <h3>Load</h3>
+          <p>Drag single files, many files or a whole folder. The instrument is recognised and the plot is ready at once; a saved project brings back all the work.</p>
+          <figure class="cornice"><img src="../img/passo-carica.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The first step of the online version: the area to drop files or folders, the formats read and the box to reopen a saved project."></figure>
+        </li>
+        <li>
+          <h3>Review</h3>
+          <p>Peaks found, suggested names, data-quality check with one-click remedies, spectrum adjustments and analysis. Every option says whether it applies to the spectrum, the instrument or all plots.</p>
+          <figure class="cornice"><img src="../img/passo-controlla.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The second step online: Raman spectrum with three narrow isolated peaks; the data-quality check warns they look like cosmic rays and offers a one-click remedy."></figure>
+        </li>
+        <li>
+          <h3>Download</h3>
+          <p>Tick what you need (PDF, images, peaks, processed data, analysis tables, traceability, project) and choose the file names: one button.</p>
+          <figure class="cornice"><img src="../img/passo-scarica.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The third step online: what to download, with the PDF for review, PNG images at 600 dpi and the items for Origin."></figure>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="funzioni" aria-labelledby="t-funzioni">
+    <div class="wrap">
+      <h2 id="t-funzioni">What it does, feature by feature</h2>
+      <p class="intro">The screenshots below are of the real program, on synthetic or test data distributed with the code. Most show the Italian interface; every screen is also available in English.</p>
+      <ul class="indice-funzioni" aria-label="Go to a feature">
+        <li><a href="#f-picchi">Peaks</a></li>
+        <li><a href="#f-fondo">Adjustments and background</a></li>
+        <li><a href="#f-qualita">Data quality</a></li>
+        <li><a href="#f-deconvoluzione">Deconvolution</a></li>
+        <li><a href="#f-tarature">Calibration and HPLC</a></li>
+        <li><a href="#f-riferimenti">Mixtures and references</a></li>
+        <li><a href="#f-statistica">Statistics</a></li>
+        <li><a href="#f-xrf">XRF</a></li>
+        <li><a href="#f-adsorbimento">BET and adsorption</a></li>
+        <li><a href="#f-esportazioni">Exports</a></li>
+        <li><a href="#f-progetti">Projects</a></li>
+        <li><a href="#f-desktop">Desktop</a></li>
+      </ul>
+
+      <article class="funzione" id="f-picchi" aria-labelledby="t-f-picchi">
+        <div class="funzione-testo">
+          <p class="etichetta">Peaks</p>
+          <h3 id="t-f-picchi">Automatic peaks, by position and with a name</h3>
+          <p>Peaks are found automatically, with a threshold from «many, even small ones» to «few, only the large ones». A click on an empty spot adds one, a click on a peak names it.</p>
+          <ul class="punti">
+            <li><span class="etichetta novita">New</span> <strong>By position</strong>: type one or more positions in the axis unit (<code>1086; 712; 282</code>), with optional width and shape (<code>1500 w=10 lor</code>) and snapping to the nearest maximum. A preview shows how the text was understood.</li>
+            <li><strong>Names from libraries</strong>: suggestions from databases per sample type (cultural heritage, biological, chemistry, materials) and from your own libraries per instrument. They are always hypotheses to be confirmed.</li>
+            <li>Edit, delete, Ctrl+Z to undo; everything is saved in the project and goes into the peak CSV.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/picchi.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop Peaks tab: «1086; 712 w=8 lor; 282» typed in «Add peaks by position» with the preview of how it was understood; below, the table with names suggested by the libraries."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-fondo" aria-labelledby="t-f-fondo">
+        <div class="funzione-testo">
+          <p class="etichetta novita">New · Adjust the spectrum</p>
+          <h3 id="t-f-fondo">Adjustments and background removal, with a preview</h3>
+          <p>Conversions (transmittance and absorbance, axis units), smoothing, cosmic rays, derivatives, normalisation and scaling. And now <strong>background removal</strong> with methods established in the literature.</p>
+          <ul class="punti">
+            <li><strong>Methods</strong>: arPLS, ALS, iterative polynomial (IModPoly, ModPoly), SNIP, rolling ball, convex hull, straight line, or anchor points picked on the plot or typed.</li>
+            <li><strong>Live preview</strong>: while you move the sliders you see the spectrum before correction and the estimated background; recommended values are computed from the spectrum.</li>
+            <li>For one spectrum or all spectra of the technique; undo and «Restore the original». The original file never changes.</li>
+            <li>Method and parameters in the project, in the traceability file and in the methods draft, with references.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/fondo.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Background removal with the ALS method and the preview on: the original spectrum in grey on a large fluorescence hump, the estimated background in dashed orange and the corrected spectrum in red."></figure>
+      </article>
+
+      <article class="funzione" id="f-qualita" aria-labelledby="t-f-qualita">
+        <div class="funzione-testo">
+          <p class="etichetta">Data-quality check</p>
+          <h3 id="t-f-qualita">Data quality, before the numbers</h3>
+          <p>Before any analysis the program looks at the data and says what is wrong: noise, saturation, cosmic rays, missing points, irregular axis, drift, suspicious units, unread rows.</p>
+          <ul class="punti">
+            <li><strong>One-click remedies</strong> where they exist, with an explanation of what changes.</li>
+            <li>Technique-specific warnings (for example HPLC with a flat top, EPR with a curved baseline, XRF with few counts).</li>
+            <li>Warnings stay in the PDF and in the exported tables.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/qualita.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The data-quality check on a test HPLC chromatogram: red «Data to check» band and eight warnings, including thousands separator, unread rows, gaps in the axis, asymmetric peaks and flat tops."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-deconvoluzione" aria-labelledby="t-f-deconvoluzione">
+        <div class="funzione-testo">
+          <p class="etichetta">Analysis</p>
+          <h3 id="t-f-deconvoluzione">Deconvolution of overlapping bands</h3>
+          <p>Splits overlapping bands into Gaussian, Lorentzian or pseudo-Voigt components, on the region you choose or with a right click on the plot.</p>
+          <ul class="punti">
+            <li><strong>Uncertainty of every number</strong>: position, width, area and fraction with their error.</li>
+            <li>Number of components suggested and checked; the same deconvolution on several spectra <span class="solo-desktop">desktop</span>.</li>
+            <li>Validated on synthetic cases: right number of components in 197 cases out of 200, median area error +0.02 %.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/deconvoluzione.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Deconvolution of three overlapping synthetic Raman bands: coloured components and fit in the plot, below the table with centre, width, height and area with uncertainties."></figure>
+      </article>
+
+      <article class="funzione" id="f-tarature" aria-labelledby="t-f-tarature">
+        <div class="funzione-testo">
+          <p class="etichetta">Quantitation</p>
+          <h3 id="t-f-tarature">Calibration and HPLC libraries</h3>
+          <p>Ordinary or weighted calibration lines (1/x, 1/x²), with limits of detection and quantitation, Mandel test, confidence intervals and the status of every estimate (extrapolated, below LOD or LOQ, flat top, co-eluted…).</p>
+          <ul class="punti">
+            <li><strong>Standards, blank and control</strong> with recovery; PLS models for overlapping bands.</li>
+            <li><strong>Multichannel HPLC</strong>: every channel of the instrument files, one chromatogram per channel.</li>
+            <li><strong>Libraries per instrument and sample type</strong> that remember calibrations (slope, intercept, range, LOD, LOQ, date and batch): the concentration is computed without redoing the line, with the source next to every number.</li>
+            <li>Control chart, system suitability and maintenance in the library.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/taratura.webp" width="1440" height="900" loading="lazy" decoding="async" alt="A synthetic HPLC calibration with six standards, blank, control and unknowns: line with R², slope and intercept with 95 % intervals, LOD, LOQ, Mandel test and plot."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-riferimenti" aria-labelledby="t-f-riferimenti">
+        <div class="funzione-testo">
+          <p class="etichetta">Comparison</p>
+          <h3 id="t-f-riferimenti">Mixtures and reference spectra</h3>
+          <p>Compare a spectrum with your references (similarity index) and decompose it into a mixture of references, with fractions and residual.</p>
+          <ul class="punti">
+            <li>References loaded from files or taken from the open spectra; personal library to export and import.</li>
+            <li>Difference spectra, overlaid or offset comparisons with a legend.</li>
+            <li>Validated: fractions within 0.02 points (median), no false component in 1200 cases.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/riferimenti.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The References tab: a synthetic Raman mixture decomposed into two references (65 % and 35 %, R² = 0.995), with the list of saved references."></figure>
+      </article>
+
+      <article class="funzione" id="f-statistica" aria-labelledby="t-f-statistica">
+        <div class="funzione-testo">
+          <p class="etichetta">Several samples</p>
+          <h3 id="t-f-statistica">Statistics: PCA, groups, MCR-ALS and kinetics</h3>
+          <p>When there are many samples: <strong>PCA</strong> with score and loading plots, <strong>clustering</strong> with a dendrogram and a suggested number of groups, the trend of a band over time or with dose.</p>
+          <ul class="punti">
+            <li><strong>MCR-ALS</strong> on spectral series (over time, with dose, with temperature): SIMPLISMA, EFA, non-negativity, closure, unimodality, known spectra.</li>
+            <li><strong>Global kinetic fit</strong>: order 0, 1 and 2, A → B → C, A ⇌ B, parallel reactions, with standard errors, residuals and AIC/BIC/F comparison.</li>
+            <li>Results in the analysis tables and in the PDF; settings in the project.</li>
+          </ul>
+        </div>
+        <div class="funzione-immagini">
+          <figure class="cornice"><img src="../img/pca.webp" width="1440" height="900" loading="lazy" decoding="async" alt="PCA of 15 synthetic Raman spectra: PC1–PC2 score plot with three separate groups, Ward dendrogram and loadings."></figure>
+          <figure class="cornice"><img src="../img/mcr.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Global kinetic fit A → B → C on 14 synthetic UV-Vis spectra: rate constants with standard errors and intervals, model concentrations, species spectra and residuals."></figure>
+        </div>
+      </article>
+
+      <article class="funzione inversa" id="f-xrf" aria-labelledby="t-f-xrf">
+        <div class="funzione-testo">
+          <p class="etichetta">X-ray fluorescence</p>
+          <h3 id="t-f-xrf">XRF: elements and composition</h3>
+          <p>Energy calibration checked and corrected, elements recognised with coinciding lines declared (for example Pb Lα and As Kα), net areas with the SNIP background.</p>
+          <ul class="punti">
+            <li><strong>Standardless composition</strong> with fundamental parameters, always presented as an <em>estimate</em> with the assumptions used and a sensitivity range.</li>
+            <li>With your standards, concentrations and thicknesses.</li>
+            <li>For cultural heritage: probable elements and compatible pigments, as hypotheses.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/xrf.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Synthetic XRF spectrum of a bronze on a log scale with labelled lines and, on the right, the standardless composition estimate (Cu 84 %, Sn 8.1 %, Pb 4.7 %, Zn 2.5 %, As 0.6 %) with uncertainties and warnings."></figure>
+      </article>
+
+      <article class="funzione" id="f-adsorbimento" aria-labelledby="t-f-adsorbimento">
+        <div class="funzione-testo">
+          <p class="etichetta">Porous materials</p>
+          <h3 id="t-f-adsorbimento">BET and adsorption</h3>
+          <p>Physisorption isotherms with both branches, <strong>BET surface area with the Rouquerol criteria</strong> (ISO 9277), Langmuir, pore volume, t-plot and αs, BJH and Dollimore–Heal, DR and DA, isosteric heat, DFT with your own kernel.</p>
+          <ul class="punti">
+            <li><strong>Chemisorption</strong>: TPR, TPO and TPD with Kissinger and Redhead, pulses, static chemisorption, dispersion and metal area.</li>
+            <li>Guided import when the file's columns are uncertain.</li>
+            <li>Results in the CSV and the PDF, settings in the project.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/bet.webp" width="1440" height="900" loading="lazy" decoding="async" alt="A nitrogen physisorption isotherm and, below, the BET tab with its plot, the range chosen with the Rouquerol criteria and the results (183 m²/g)."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-esportazioni" aria-labelledby="t-f-esportazioni">
+        <div class="funzione-testo" data-marchi="esportazioni">
+          <p class="etichetta">Results</p>
+          <h3 id="t-f-esportazioni">Exports: PDF, images, tables, methods</h3>
+          <p>One window: choose the items, the name of each file and the spectra included. Presets remember your choices.</p>
+          <ul class="punti">
+            <li><strong>PDF</strong> ready to read, with several plots per page, comparison pages and analysis pages.</li>
+            <li><strong>Images</strong>: PNG at 600 dpi and vector SVG, with journal sizes.</li>
+            <li><strong>CSV</strong> for Excel: peaks, processed data, original data, analysis tables; workbook for Origin and <code>.opj</code>/<code>.opju</code> projects.</li>
+            <li><strong>Draft «Methods» paragraph</strong>, in English or Italian, with the processing actually used and references.</li>
+            <li><strong>Traceability</strong>: the fingerprint of every file and every processing step, to reproduce every number.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/esporta.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop Export tab: the list of items (PDF, images, peaks, processed and original data, analysis results, traceability, Origin, project) and the summary with «Export to folder…»."></figure>
+      </article>
+
+      <article class="funzione" id="f-progetti" aria-labelledby="t-f-progetti">
+        <div class="funzione-testo">
+          <p class="etichetta">Projects</p>
+          <h3 id="t-f-progetti">One file keeps data and work</h3>
+          <p>The <code>.acchspettri</code> project contains the <strong>original data</strong> of every spectrum (binary formats included) and all the work: names, peaks, processing, deconvolutions, calibrations, references, libraries, comparisons, settings.</p>
+          <ul class="punti">
+            <li>Reopen it on another computer, online or on the desktop, or pass it to a colleague.</li>
+            <li>Checked at every opening; documented, open format.</li>
+            <li>On the desktop: saved to a file, recent projects, double click to open.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/progetto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop right after reopening a project: project name on the left, six spectra with their peak names restored and the status bar «Project opened: 6 spectra»."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-desktop" aria-labelledby="t-f-desktop">
+        <div class="funzione-testo">
+          <p class="etichetta">Desktop program</p>
+          <h3 id="t-f-desktop">Comparisons, detachable windows, dark theme</h3>
+          <p>On the desktop, plots are compared overlaid or offset and can be detached into separate windows («Detach», «Comparison»), also on a second screen. The fast WebGL plot stays smooth with millions of points.</p>
+          <ul class="punti">
+            <li>Menus with every shortcut, command bar (<kbd>Ctrl</kbd>+<kbd>K</kbd>), multi-selection.</li>
+            <li>Status bar with the processing chain of the active spectrum.</li>
+            <li>Light or dark theme; exported plots stay white.</li>
+          </ul>
+        </div>
+        <div class="funzione-immagini">
+          <figure class="cornice"><img src="../img/confronto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop Comparison view: six synthetic spectra of aged polyethylene, offset with a coloured legend."></figure>
+          <figure class="cornice"><img src="../img/desktop-scuro.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop workspace in the dark theme: synthetic polyethylene FTIR spectrum with peak names, peak table below and properties on the right."></figure>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="affidabilita" class="alt" aria-labelledby="t-affidabilita">
+    <div class="wrap">
+      <h2 id="t-affidabilita">Reliability: numbers you can check</h2>
+      <p class="intro">Scientific software must say how far its numbers can be trusted. This is how Acchiappaspettri does it.</p>
+      <div class="griglia tre">
+        <div class="carta">
+          <h3>Validated against public references</h3>
+          <p>Every calculation is compared with a known truth: the NIST reference problems for regression, synthetic spectra generated with a known truth, public data. The tests run automatically at every change, hundreds per version.</p>
+        </div>
+        <div class="carta">
+          <h3>Open documents</h3>
+          <p>Validation results, scientific choices, known limitations and the project format are public, together with the code: <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/VALIDAZIONE.md">validation</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/SCIENZA.md">science</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/LIMITAZIONI.md">limitations</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/FORMATO-ACCHSPETTRI.md">project format</a> (in Italian).</p>
+        </div>
+        <div class="carta">
+          <h3>«Hypotheses» and «estimates» declared</h3>
+          <p>Automatic identifications are presented as <em>hypotheses</em> to be confirmed; concentrations without standards as <em>estimates</em>, with the assumptions used. A single band is inconclusive, and the program says so.</p>
+        </div>
+      </div>
+      <ul class="numeri" aria-label="Some validation results">
+        <li><b>−0.3 %</b>median area error of Lorentzian peaks with the fit (against −17.4 % valley to valley)</li>
+        <li><b>197 / 200</b>deconvolutions with the right number of components, on bands 0.7–1.5 widths apart</li>
+        <li><b>0.56 %</b>median background error with IModPoly on 100 synthetic Raman spectra with fluorescence</li>
+        <li><b>94.9 %</b>of the 95 % confidence intervals of the slope contain the true value</li>
+      </ul>
+      <p class="nota">Tests on certified materials have not been done yet: calibration remains the responsibility of whoever measures, as with any software.</p>
+    </div>
+  </section>
+
+  <section id="scarica" aria-labelledby="t-scarica">
+    <div class="wrap">
+      <h2 id="t-scarica">Download the desktop program</h2>
+      <p class="intro"><span id="versione">The packages of every version are on the releases page on GitHub.</span> All free, forever. Rather not install anything? <a href="../../">Use the online version</a>.</p>
+      <div class="sistemi" data-marchi="download">
+        <div class="carta carta-sistema" data-sistema="windows">
+          <h3>Windows</h3>
+          <ul class="file">
+            <li data-file="win"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Installer for Windows 10 and 11 (64-bit)</a><span class="file-info">Acchiappaspettri_…_x64-setup.exe</span></li>
+          </ul>
+        </div>
+        <div class="carta carta-sistema" data-sistema="mac">
+          <h3>macOS</h3>
+          <ul class="file">
+            <li data-file="mac-arm"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Mac with Apple chip (M1, M2, M3, M4…)</a><span class="file-info">Acchiappaspettri_…_aarch64.dmg</span></li>
+            <li data-file="mac-intel"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Mac with Intel processor</a><span class="file-info">Acchiappaspettri_…_x64.dmg</span></li>
+          </ul>
+        </div>
+        <div class="carta carta-sistema" data-sistema="linux">
+          <h3>Linux</h3>
+          <ul class="file">
+            <li data-file="linux-appimage"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">AppImage (x86_64), updates itself</a><span class="file-info">Acchiappaspettri_…_amd64.AppImage</span></li>
+            <li data-file="linux-deb"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">.deb package (Debian, Ubuntu)</a><span class="file-info">Acchiappaspettri_…_amd64.deb</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="nota">Next to each file you will see its <strong>SHA-256 fingerprint</strong>, read from GitHub: compare it with the one of the downloaded file (<a href="#d-impronta">how</a>). The other files on the releases page (<code>.sig</code>, <code>.app.tar.gz</code>, <code>latest.json</code>) are for automatic updates; «Source code» is the source code.</p>
+
+      <div class="avvisi" data-marchi="avvisi">
+        <div class="riquadro">
+          <p><strong>Why the system shows warnings.</strong> The program is free and is not signed with a Microsoft or Apple certificate, which costs money every year: so browser and system warn that they do not know it. It does not mean something is wrong. <strong>Updates</strong>, on the other hand, are signed and the program verifies them before installing. If you like, check the file's SHA-256 fingerprint.</p>
+        </div>
+        <div class="griglia spazio-sopra">
+          <div class="carta">
+            <h3>Windows</h3>
+            <ol>
+              <li><strong>Edge</strong>, while downloading («not commonly downloaded»): <em>⋯</em> next to the file → <em>Keep</em> → <em>Show more</em> → <em>Keep anyway</em>. In Chrome: <em>Keep</em>.</li>
+              <li><strong>SmartScreen</strong> (blue window «Windows protected your PC»): <em>More info</em> → <em>Run anyway</em>.</li>
+              <li><strong>Security warning</strong> (unknown publisher): <em>Run</em>.</li>
+            </ol>
+            <p class="nota"><strong>Smart App Control</strong> (Windows 11), when on, blocks unsigned programs with no «Run anyway»: use the online version, or ask your IT service. <strong>Avast and AVG</strong> may start the app in their sandbox: add an exception for <code>%LOCALAPPDATA%\Acchiappaspettri\acchiappaspettri.exe</code>.</p>
+          </div>
+          <div class="carta">
+            <h3>macOS</h3>
+            <ol>
+              <li>Open the <code>.dmg</code> file and drag Acchiappaspettri into <em>Applications</em>.</li>
+              <li>At first launch, if the Mac says the app cannot be opened: <em>System Settings</em> → <em>Privacy &amp; Security</em> → <em>Open Anyway</em>.</li>
+              <li>From then on it opens normally.</li>
+            </ol>
+          </div>
+          <div class="carta">
+            <h3>Linux</h3>
+            <ol>
+              <li><strong>AppImage</strong>: make it executable (<em>Properties</em> → <em>Permissions</em>, or <code>chmod +x</code>) and open it. It updates itself.</li>
+              <li><strong>.deb</strong>: <code>sudo apt install ./Acchiappaspettri_…_amd64.deb</code>; update by downloading the new version.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="nota">Step-by-step instructions for every case: <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/INSTALLAZIONE.md#installation-english">installation guide</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="domande" class="alt" aria-labelledby="t-domande">
+    <div class="wrap">
+      <h2 id="t-domande">Frequently asked questions</h2>
+      <div class="domande">
+        <details id="d-costo"><summary>How much does it cost? Is there a paid version?</summary>
+          <p>Nothing, for everyone: universities, research institutes, companies, schools. There is no paid version and no subscription. It is free software under the GNU GPL version 3 or later: you can use, redistribute and modify it.</p></details>
+        <details id="d-dati"><summary>Are my data uploaded anywhere?</summary>
+          <p>No. Even online, files are read and processed in your browser, on your computer: they are not sent to any server. The desktop program connects to the internet only to check for updates.</p></details>
+        <details id="d-numeri"><summary>Do online and desktop give the same results?</summary>
+          <p>Yes: they use the same readers and the same calculations. Where the desktop uses the native Rust engine, the numbers are identical to the reference ones (bit for bit or within 1·10⁻¹² of the scale), and every version checks this with automatic tests.</p></details>
+        <details id="d-impronta"><summary>How do I check the SHA-256 fingerprint of the downloaded file?</summary>
+          <ul>
+            <li><strong>Windows</strong> (PowerShell): <code>Get-FileHash .\file-name.exe</code></li>
+            <li><strong>macOS</strong> (Terminal): <code>shasum -a 256 file-name.dmg</code></li>
+            <li><strong>Linux</strong>: <code>sha256sum file-name</code></li>
+          </ul>
+          <p>The result must match the fingerprint shown next to the file in the <a href="#scarica">Download</a> section.</p></details>
+        <details id="d-firma"><summary>Why is the program not signed?</summary>
+          <p>A code-signing certificate costs money every year and the project has no budget: it prefers to stay free for everyone. The code is public, the packages are built automatically from the code on GitHub, the fingerprints are published and updates are signed and verified by the program.</p></details>
+        <details id="d-aggiornamenti"><summary>How does it update?</summary>
+          <p>The desktop program checks whether a new version is out and offers it: it installs with one click, after verifying its signature. The online version is always the latest.</p></details>
+        <details id="d-formato"><summary>My instrument is not in the list: can I still use it?</summary>
+          <p>Almost always: nearly every instrument exports column text (CSV, TXT) or JCAMP-DX, which the program reads. If the proprietary format is not read, <a href="#contatti">send an example file</a>; if you can program, you can also write an <code>.acchplugin</code> extension without code.</p></details>
+        <details id="d-identificazione"><summary>Can I trust the suggested peak names?</summary>
+          <p>They are hypotheses based on band positions, useful to get oriented: they must be confirmed with other bands, other techniques or reference samples. That is why the program calls them hypotheses and keeps them apart from the names you confirm.</p></details>
+        <details id="d-citare"><summary>How do I cite it in a paper or thesis?</summary>
+          <p>The repository has a <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/CITATION.cff">CITATION.cff</a> file with the citation. The draft «Methods» paragraph exported by the program describes the processing used, with the references for the methods.</p></details>
+        <details id="d-requisiti"><summary>What does my computer need?</summary>
+          <p>Online: an up-to-date browser. Desktop: Windows 10 or 11 64-bit, macOS on a Mac with Apple chip or Intel, 64-bit Linux (x86_64). No runtime, terminal or configuration needed.</p></details>
+        <details id="d-preferiti"><summary>I bookmarked the online version: does anything change?</summary>
+          <p>No: the online version stays at the same address, <a href="../../">lorebiri.github.io/acchiappaspettri</a>. This presentation page lives in a separate section.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="contatti" aria-labelledby="t-contatti">
+    <div class="wrap">
+      <h2 id="t-contatti">Privacy, contact and reports</h2>
+      <div class="griglia tre">
+        <div class="carta" id="privacy">
+          <h3>Privacy</h3>
+          <p>No account, no cookies, no analytics. Spectral data never leave the computer. This page only asks GitHub for the list of files of the latest version. GitHub, which hosts the pages, keeps the usual technical access logs, like any website.</p>
+        </div>
+        <div class="carta">
+          <h3>Report a problem</h3>
+          <p>In the program: <em>Help → Report a problem…</em> prepares a message in your email program with technical data and a screenshot you can black out. It sends nothing by itself and includes no spectral data without your consent.</p>
+          <p>Or open an <a href="https://github.com/lorebiri/acchiappaspettri/issues">issue on GitHub</a>.</p>
+        </div>
+        <div class="carta">
+          <h3>Contact</h3>
+          <p>Lorenzo Birindelli, CNR-ICCOM, Pisa, Italy.<br><a href="mailto:lorenzo.birindelli@cnr.it">lorenzo.birindelli@cnr.it</a></p>
+          <p>Ideas, formats to add, collaborations: just write.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="piede">
+  <div class="wrap piede-griglia">
+    <div>
+      <p><strong>Acchiappaspettri</strong> · © 2026 Lorenzo Birindelli · free software under the GNU GPL version 3 or later, provided without any warranty.</p>
+      <p>Automatic identifications are hypotheses to be confirmed; concentrations depend on the model and on the measurement conditions.</p>
+    </div>
+    <ul>
+      <li><a href="../../">Online version</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri">Source code</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri/blob/main/LICENSE">Licence</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri#readme">Documentation</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri/blob/main/CHANGELOG.md">What's new</a></li>
+      <li><a href="../" hreflang="it" lang="it">Italiano</a></li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>
