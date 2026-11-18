@@ -140,3 +140,13 @@ test('inglese: pannello del fondo e riquadro dei picchi tradotti, nessuna parola
   assert.match(r.b, /Baseline removal/); assert.match(r.c, /Add peaks by position/); assert.match(r.c, /Understood: 2 peaks/);
   assert.deepStrictEqual(errors, []); await ctx.close();
 });
+
+// regressione: senza correzione del fondo la tolleranza consigliata veniva misurata sulla gobba della fluorescenza (≈ 330 cm⁻¹),
+// così «1500» si agganciava alla cima della gobba e risultava «già presente»
+for (const desk of [false, true]) test(`${desk?'desktop':'online'}: picchi per posizione su uno spettro con fluorescenza non corretta: tolleranza piccola, nessun aggancio alla gobba`, async ()=>{
+  const {ctx,p,errors}=await B.openPage(browser, server, {desk}); await load(p, [['a.txt',ramanTxt()]]);
+  const r=await p.evaluate(async ()=>{ const f=files[0]; openTab('peaks'); const tol=pkTol(f); $('#pkAddTxt').value='1500'; $('#pkAddGo').click(); await new Promise(r=>setTimeout(r,100));
+    return {tol, added:f.added.slice(), base:pBase(f), row:[...document.querySelectorAll('#pkTable tr[data-x]')].some(t=>Math.abs(+t.dataset.x-1500)<1e-6)}; });
+  assert.strictEqual(r.base, 'none'); assert.ok(r.tol<=30, 'tolleranza '+r.tol); assert.deepStrictEqual(r.added, [1500]); assert.ok(r.row);
+  assert.deepStrictEqual(errors, []); await ctx.close();
+});

@@ -6299,7 +6299,11 @@ function pkSnap(f){ (f._hist=f._hist||[]).push(JSON.stringify({a:f.added, r:f.re
 function pkMeta(f, x){ const m=f.an&&f.an.pkm; return m ? m[lblKey(x)]||null : null; }
 function pkMetaSet(f, x, v){ const m=Object.assign({}, (f.an&&f.an.pkm)||{}), k=lblKey(x); if (v && (v.w!=null || v.sh || v.t!=null)) m[k]=v; else delete m[k]; anSet(f,'pkm', Object.keys(m).length ? m : null); }
 const PK_SHAPE={gauss:'gaussiana', lor:'lorentziana', pv:'pseudo-Voigt'};
-function pkTol(f){ const P=processed(f), n=P.xs.length, dx=n>1?Math.abs(P.xs[n-1]-P.xs[0])/(n-1):1; let wp=4; try{ wp=Math.min(n/10, peakWidthPts(upData(P).y)); }catch(e){} return +(Math.max(3, wp)*dx).toPrecision(2); }
+/* tolleranza d'aggancio consigliata: mezza larghezza tipica dei picchi (al più l'1% dell'asse), misurata su uno spettro appiattito:
+   sul dato con la fluorescenza la «gobba» sembrerebbe il picco più largo e l'aggancio finirebbe sulla sua cima */
+function pkTol(f){ const P=processed(f), n=P.xs.length, span=Math.abs(P.xs[n-1]-P.xs[0]), dx=n>1?span/(n-1):1; let wp=4;
+  try{ const y=upData(P).y, b=baselineArPLS(P.xs, y); wp=peakWidthPts(Float64Array.from(y,(v,i)=>v-b[i])); }catch(e){}
+  return +Math.min(0.01*span, Math.max(3*dx, wp*dx)).toPrecision(2); }
 /* aggiunge i picchi scritti nel riquadro: ognuno entra come un picco aggiunto a mano (f.added), quindi vale per nomi, aree, deconvoluzione e quantificazione */
 function pkAddTyped(f, opt){
   const P=processed(f), lo=Math.min(P.xs[0],P.xs[P.xs.length-1]), hi=Math.max(P.xs[0],P.xs[P.xs.length-1]), r=parseNumList(opt.text, [lo,hi], {extras:true});
@@ -6317,7 +6321,7 @@ function pkAddTyped(f, opt){
       if (b>=0){ const y0=sm[b-1], y1=sm[b], y2=sm[b+1], den=y0-2*y1+y2, t=den<0 ? Math.max(-0.5, Math.min(0.5, 0.5*(y0-y2)/den)) : 0, xn=P.xs[b]+t*(P.xs[b+1]-P.xs[b-1])/2;
         if (Math.abs(xn-x)>1e-12){ x=xn; snapped=true; } }
       else free=true; }
-    if (vis.some(v=>Math.abs(v-x)<=nearTol) || f.added.some(v=>Math.abs(v-x)<=nearTol)){ out.dup.push(it.txt); continue; }
+    if (vis.some(v=>Math.abs(v-x)<=nearTol) || f.added.some(v=>Math.abs(v-x)<=nearTol)){ out.dup.push(snapped ? `${it.txt} → ${numOut(+x.toPrecision(6))}` : it.txt); continue; }
     const wasRemoved=f.removed.some(v=>Math.abs(v-x)<=nearTol); f.removed=f.removed.filter(v=>Math.abs(v-x)>nearTol);
     const auto = wasRemoved && (f._auto||[]).find(q=>Math.abs(q.x-x)<=nearTol);
     if (auto){ vis.push(auto.x); out.added.push(auto.x); if (snapped) out.snapped.push([it.txt, auto.x]); continue; }   // era un picco automatico tolto: torna quello
