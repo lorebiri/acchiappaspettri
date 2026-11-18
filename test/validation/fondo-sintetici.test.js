@@ -27,6 +27,7 @@ function run(noise, N){
   const tab={}; for (const m of METHODS){ const R=out[m]; tab[m]={rmseMed:quant(R.rmse,0.5), rmseP95:quant(R.rmse,0.95), maxMed:quant(R.max,0.5), maxP95:quant(R.max,0.95), recall:100*R.found/R.total, fakePerSpectrum:R.fake/N, msPerSpectrum:R.ms/N}; }
   return tab;
 }
+module.exports={run, METHODS, LIM};
 const fmt=t=>Object.entries(t).map(([m,r])=>`${m.padEnd(9)} RMS med ${r.rmseMed.toFixed(2)}%  p95 ${r.rmseP95.toFixed(2)}%  | max med ${r.maxMed.toFixed(2)}%  p95 ${r.maxP95.toFixed(2)}%  | picchi ritrovati ${r.recall.toFixed(1)}%  falsi/spettro ${r.fakePerSpectrum.toFixed(2)}  | ${r.msPerSpectrum.toFixed(1)} ms`).join('\n');
 
 test('fondo sintetico, rumore 1% del picco: errore del fondo entro le soglie, picchi veri ritrovati', ()=>{

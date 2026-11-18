@@ -1,5 +1,11 @@
 # Novità delle versioni
 
+## In preparazione (dopo la 3.0.0-rc.5, non ancora pubblicato)
+
+- Picchi per posizione: nella scheda Picchi, «Aggiungi picchi per posizione» accetta una o più posizioni nell'unità dell'asse (cm⁻¹, nm, eV, 2θ, minuti…), separate da «;», da una virgola e uno spazio o una per riga, con larghezza (FWHM) e forma (gaussiana, lorentziana, pseudo-Voigt) facoltative per tutti o accanto a ciascuna (`1086 w=8 lor`). Aggancio facoltativo al massimo locale più vicino entro una tolleranza; un'anteprima dice come è stato capito il testo; doppioni, posizioni fuori dallo spettro e numeri ambigui sono segnalati. I picchi entrano come quelli trovati in automatico (nomi, aree, deconvoluzione, quantificazione); larghezza e forma fanno da partenza alla deconvoluzione. Si modificano (✎) e si tolgono dalla tabella, Ctrl+Z annulla, tutto si salva nel progetto e la nota va nel CSV dei picchi.
+- Rimozione del fondo: nuovi metodi ALS (Eilers & Boelens 2005), IModPoly e ModPoly (Zhao 2007; Lieber & Mahadevan-Jansen 2003), rolling ball (Kneen & Annegarn 1996) e punti di ancoraggio scelti sul grafico o scritti (PCHIP o rette), oltre ad arPLS, SNIP (ora anche per il Raman), inviluppo e retta. Riquadro «Rimozione del fondo» in Ritocca lo spettro: parametri regolabili con anteprima dal vivo dello spettro prima della correzione e del fondo stimato, valori consigliati ricavati dallo spettro, ambito (tutti gli spettri della tecnica o solo questo), «Applica a tutti gli spettri caricati», annulla, «Ripristina l'originale». L'ordine delle operazioni (raggi cosmici → smoothing → fondo → picchi → aree e quantificazione) è scritto nel pannello, che segue lo stesso ordine. Metodo e parametri si salvano nel progetto; la tracciabilità e la bozza dei metodi riportano i parametri usati e la bibliografia. Validazione su spettri Raman sintetici in docs/VALIDAZIONE.md (R12).
+- Barra di stato del desktop: la catena di elaborazione mostra il fondo scelto per il singolo spettro.
+
 ## 3.0.0-rc.5
 
 Versione di prova (release candidate) della 3.0.0, uguale alla 3.0.0-rc.4, che non è stata pubblicata perché lo script del collaudo nell'app vera era troncato e i comandi della CI erano uniti in una riga. È una pre-release: non viene proposta agli utenti come aggiornamento.

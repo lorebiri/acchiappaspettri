@@ -113,6 +113,14 @@ Le coppie (`source`, `sampleKey`, `channel`) distinguono gli spettri che vengono
 - `unit`: unità di `p`, `p0`, `n`, `t` come testo; `meta`: oggetto libero (massa, adsorbato, parametri di riduzione, da dove vengono).
 - Resta nel JSON: un'isoterma ha meno di 1000 punti.
 
+### `memory.an.pBm`, `memory.an.pBp`, `memory.an.pkm` e `state.S.baseP`: fondo con parametri e picchi scritti
+Campi facoltativi, introdotti dopo la 3.0.0-rc.5 senza cambiare la versione del formato (un lettore 2 che non li conosce li ignora).
+- `memory.an.pBm`: metodo del fondo scelto per il singolo spettro, uno di `none`, `rubber`, `linear`, `arpls`, `snip`, `als`, `modpoly`, `imodpoly`, `rball`, `anchor`. Le versioni fino alla 3.0.0-rc.5 accettano solo i primi cinque: con gli altri lo spettro si apre con il fondo della tecnica.
+- `memory.an.pBp`: parametri di quel metodo (`lam`, `p`, `iter`, `ratio`, `deg`, `tol`, `hw`, `sm`, `pre`, `lls`; per `anchor` anche `pts`, al più 200 posizioni nell'unità dell'asse, e `interp: "linear"`). Assenti = valori consigliati dal programma, calcolati sullo spettro.
+- `state.S.baseP[tecnica][metodo]`: gli stessi parametri per tutti gli spettri di una tecnica (i punti di ancoraggio no).
+- `memory.an.pkm`: per i picchi aggiunti per posizione (presenti in `added`), chiave = posizione con 4 decimali come in `labels`; valore `{w, sh, t}` = FWHM nell'unità dell'asse, forma (`gauss`, `lor`, `pv`) e posizione scritta prima dell'aggancio.
+All'apertura passano da `AcchBaseline.cleanParams` (`app/baseline-core.js`) e da `cleanAn` (`index.html`): solo nomi noti, numeri finiti entro i limiti, forme ammesse.
+
 ### `memory.an.sorp` e `memory.an.chem`: impostazioni del fisisorbimento e del chemisorbimento
 Campi facoltativi dentro `memory.an`: un lettore 2 che non li conosce li ignora senza perdere numeri, quindi la versione del formato non cambia. All'apertura passano da `SorpCore.cleanOpt` (`app/sorption-core.js`), che tiene solo numeri finiti, valori ammessi e dimensioni limitate.
 - `sorp`:

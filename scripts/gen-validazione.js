@@ -112,6 +112,18 @@ P('');
   for (const E of [90,140]){ const Ls=[2,5,10,20].map(beta=>{ const s=S.polanyiWigner({E, nu:1e13, beta, T0:300, T1:900, dt:0.02}); let k=0; s.rate.forEach((r,i)=>{ if (r>s.rate[k]) k=i; }); return {beta, Tm:s.T[k]}; }), Kq=S.kissinger(Ls), d=pct(Kq.E,E), y=Math.abs(d)<1; if (!y) fails++; row('Kissinger, 4 rampe: E (kJ/mol)','Polanyi–Wigner simulato',E,Kq.E,`${d.toFixed(3)} % (≤ 1 %)`,y?'✓':'✗'); }
   { const s=S.polanyiWigner({E:100, nu:1e13, beta:10, T0:200, T1:1200, dt:0.02}); let k=0; s.rate.forEach((r,i)=>{ if (r>s.rate[k]) k=i; }); const R=S.redhead(s.T[k],10,1e13), d=pct(R.E,100), y=Math.abs(d)<2; if (!y) fails++; row('Redhead, primo ordine: E (kJ/mol)','Polanyi–Wigner simulato',100,R.E,`${d.toFixed(3)} % (≤ 2 %)`,y?'✓':'✗'); }
   P(''); }
+// ---------------- R12: rimozione del fondo ----------------
+{ const FS=V('fondo-sintetici.test.js'), NAME={arpls:'arPLS (Baek 2015)', als:'ALS (Eilers & Boelens 2005)', imodpoly:'IModPoly (Zhao 2007)', modpoly:'ModPoly (Lieber 2003)', snip:'SNIP (Ryan 1988)', rball:'rolling ball (Kneen & Annegarn 1996)'};
+  const f2=v=>v.toFixed(2).replace('.',','), f1=v=>v.toFixed(1).replace('.',',');
+  P('## R12. Rimozione del fondo (`app/baseline-core.js`, `baseDefaults` in `index.html`)'); P('');
+  P('Spettri Raman **sintetici** con verità nota (`test/fixtures/raman-sintetici.js`): 1500 punti tra 200 e 3200 cm⁻¹, da 4 a 9 picchi lorentziani, gaussiani o misti (FWHM 6–36 cm⁻¹), sopra un fondo di fluorescenza alto da 2 a 8 volte il picco più alto (gobba gaussiana, polinomio di 3° grado o decadimento esponenziale), più rumore gaussiano. Parametri: quelli preimpostati dal programma. Errore del fondo = fondo stimato − fondo vero, in % del picco più alto; «ritrovati» = picchi veri trovati dalla ricerca automatica entro 3 cm⁻¹ dopo la correzione. Nessuno spettro Raman reale disponibile (né in `examples/` né raggiungibile): la prova su spettri reali resta da fare. Test: `test/validation/fondo-sintetici.test.js`.'); P('');
+  for (const [noise, N] of [[0.01,100],[0.002,40],[0.0005,40],[0.03,40]]){ const t=FS.run(noise, N);
+    P(`Rumore ${String(noise*100).replace('.',',')} % del picco più alto, ${N} spettri:`); P('');
+    P('| Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |'); P('|---|---|---|---|---|---|---|---|---|---|');
+    for (const m of FS.METHODS){ const r=t[m], L=noise===0.01?FS.LIM[m]:null, y=L ? r.rmseMed<L[0] && r.rmseP95<L[1] : null; if (y===false) fails++;
+      P(`| ${NAME[m]} | ${f2(r.rmseMed)} % | ${f2(r.rmseP95)} % | ${f2(r.maxMed)} % | ${f2(r.maxP95)} % | ${f1(r.recall)} % | ${f2(r.fakePerSpectrum)} | ${f1(r.msPerSpectrum)} | ${L?`${f1(L[0])} / ${f1(L[1])} %`:'—'} | ${y==null?'—':y?'✓':'✗'} |`); }
+    P(''); }
+  P('Limite noto: arPLS con la rigidità automatica storica (λ = (n/(2π·8))⁴, come nella 2.x) non segue una fluorescenza ripida sugli spettri molto puliti (rumore ≤ 0,2 % del picco): il fondo resta sotto la fluorescenza e l\'errore cresce. Con un λ più basso, o con IModPoly e ALS, l\'errore resta sotto il 2–3 %. Vedi `docs/LIMITAZIONI.md`.'); P(''); }
 fs.mkdirSync(path.dirname(OUT),{recursive:true}); fs.writeFileSync(OUT, md.join('\n')+'\n');
-console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10 e R11 sopra soglia'}.`);
+console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10, R11 e R12 sopra soglia'}.`);
 process.exitCode=fails?1:0;

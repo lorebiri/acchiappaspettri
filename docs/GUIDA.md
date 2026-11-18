@@ -6,6 +6,18 @@
 
 ⌘K (Ctrl+K) cerca e lancia qualsiasi comando; `?` mostra le scorciatoie.
 
+## Picchi per posizione
+Scheda *Picchi* → **Aggiungi picchi per posizione**: scrivi le posizioni nell'unità dell'asse (es. `1086; 712; 282`, oppure una per riga) e premi **+ Aggiungi** (o Ctrl+Invio). Facoltativi: la larghezza FWHM e la forma per tutti, oppure accanto a una posizione (`1500 w=10 lor`, `2400 gauss`). Con **Aggancia al massimo locale più vicino entro…** il picco va sul massimo vero entro la tolleranza; se lì non c'è un massimo resta dove l'hai scritto. Sotto il riquadro leggi come è stato capito il testo. Nella tabella ✎ modifica posizione, larghezza e forma, × toglie il picco, Ctrl+Z annulla. I picchi scritti valgono come gli altri per nomi, aree, deconvoluzione e quantificazione e si salvano nel progetto.
+
+## Rimozione del fondo
+Scheda *Ritocca lo spettro* → **Rimozione del fondo** (per il Raman con fluorescenza, ma vale per ogni spettro a picchi in su). Il fondo si toglie dopo raggi cosmici e smoothing e **prima** della ricerca dei picchi, delle aree e della quantificazione: il pannello è nello stesso ordine.
+- **Vale per**: tutti gli spettri della tecnica, oppure solo questo spettro.
+- **Metodo**: arPLS, ALS, polinomio iterativo (IModPoly o ModPoly), SNIP, rolling ball, inviluppo, retta, **punti di ancoraggio**. I parametri partono dai valori consigliati per lo spettro; i cursori aggiornano il grafico mentre li muovi. *Valori consigliati* li riporta indietro.
+- **Mostra sul grafico…**: lo spettro prima della correzione (grigio) e il fondo stimato (arancione tratteggiato), solo nell'anteprima.
+- **Punti di ancoraggio**: *Scegli i punti sul grafico* e clic dove c'è solo fondo (un clic vicino a un punto lo toglie; Esc per finire), oppure scrivi le posizioni.
+- **Applica a tutti gli spettri caricati** dà a ciascuno lo stesso metodo e gli stessi parametri (DSC, EPR e TGA restano esclusi dai metodi automatici). **↶ Annulla** torna indietro di un passo, **Ripristina l'originale** toglie la correzione. Il file originale non cambia mai.
+- Per gli spettri molto puliti (rumore sotto lo 0,2 % del picco) con fluorescenza ripida controlla arPLS con l'anteprima: può restare sotto la fluorescenza; IModPoly o ALS, o un λ più basso, vanno meglio ([VALIDAZIONE.md](VALIDAZIONE.md), R12).
+
 ## Esportare
 Nella pagina *Esporta* ogni voce ha la sua casella e un nome di file (o di cartella) già proposto, che puoi cambiare:
 - PDF del report; immagini PNG e SVG (una per grafico e per ogni confronto); elenco dei picchi in CSV;
