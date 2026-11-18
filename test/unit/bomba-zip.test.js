@@ -24,3 +24,9 @@ test('bomba ZIP: manifest.json che mente sulla dimensione viene fermato durante 
 test('bomba ZIP: voce con dimensione e impronta vere ma rapporto di compressione assurdo (80 MB di zeri) viene rifiutata', async ()=>{
   const b=await bomb('ratio'); assert.ok(b.length<1024*1024, 'archivio piccolo: '+b.length); await assert.rejects(F.decode(b, JSZip), e=>e.code==='too-large');
 });
+test('limite dei progetti: 1 GB online, 4 GB nel desktop, con il limite nell\'errore per il messaggio', async ()=>{
+  assert.strictEqual(F.LIMITS.totalBytes, 1024**3); assert.strictEqual(F.LIMITS.totalBytesDesktop, 4*1024**3);
+  const b=await bomb('ratio');
+  await assert.rejects(F.decode(b, JSZip, {maxTotal:10*1024*1024}), e=>e.code==='too-large' && e.limitBytes===10*1024*1024 && e.desktop===false);
+  globalThis.__TAURI__={}; try{ await assert.rejects(F.decode(b, JSZip), e=>e.code==='too-large' && e.limitBytes===4*1024**3 && e.desktop===true); } finally { delete globalThis.__TAURI__; }
+});

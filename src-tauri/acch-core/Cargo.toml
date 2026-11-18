@@ -1,6 +1,6 @@
 [package]
 name = "acch-core"
-version = "3.0.0-rc.3"
+version = "3.0.0-rc.6"
 description = "Acchiappaspettri: lettura veloce dei file (stessi numeri del nucleo JS di riferimento)"
 authors = ["Lorenzo Birindelli"]
 edition = "2021"

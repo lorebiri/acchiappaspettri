@@ -444,6 +444,17 @@ fn reveal_in_dir(g: State<'_, Grants>, dir: String, rel: Option<String>) -> Resu
     tauri_plugin_opener::reveal_item_in_dir(&target).map_err(|e| format!("reveal-failed: {e}"))
 }
 
+/// «Mostra nella cartella» per un file concesso (per esempio lo screenshot di «Segnala un problema»): al posto del permesso
+/// `opener:allow-reveal-item-in-dir`, che lasciava mostrare qualunque percorso, si mostrano solo i file già concessi.
+#[tauri::command(async)]
+fn reveal_granted(g: State<'_, Grants>, path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !g.paths.lock().unwrap().contains(&p) || !p.exists() {
+        return Err("not-allowed".into());
+    }
+    tauri_plugin_opener::reveal_item_in_dir(&p).map_err(|e| format!("reveal-failed: {e}"))
+}
+
 /// Legge un file scelto dall'utente oppure un progetto (per l'elenco dei recenti).
 #[tauri::command(async)]
 fn read_file(g: State<'_, Grants>, path: String) -> Result<Response, String> {
@@ -811,7 +822,7 @@ pub fn run() {
     #[cfg(not(feature = "e2e"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
-        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, reveal_granted, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         viste::view_open, viste::view_put, viste::view_take
@@ -819,7 +830,7 @@ pub fn run() {
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         pick_open, pick_many, pick_folder, pick_save, read_file, write_file, take_pending_open, install_info, installer_language, app_ready,
-        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, store_write, save_report_shot, send_report_mapi,
+        pick_export_dir, export_existing, write_in_dir, reveal_in_dir, reveal_granted, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
         viste::view_open, viste::view_put, viste::view_take,

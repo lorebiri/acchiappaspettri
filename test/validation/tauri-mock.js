@@ -18,6 +18,7 @@ function tauriMock(){
       case 'installer_language': return null;
       case 'take_pending_open': { const L=M.pending||[]; M.pending=[]; return L; }   // file passati dal sistema operativo (I3: anche i grezzi)
       case 'app_ready': M.shown++; return null;
+      case 'reveal_granted': return null;
       case 'pick_many': case 'pick_folder': return M.pick[cmd] || [];
       case 'pick_open': case 'pick_save': return M.pick[cmd]===undefined ? null : M.pick[cmd];
       case 'read_file': { const t=M.files[args.path]; if (t==null) throw 'read-failed: NotFound'; return Array.from(typeof t==='string' ? enc(t) : t); }

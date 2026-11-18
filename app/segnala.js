@@ -195,7 +195,7 @@
         const copied=await copy(lastText, false);
         let opened=true; try{ await tau.opener.openUrl(m.url); }catch(e){ opened=false; C.log.push('WARN','mailto: '+String(e)); }
         $('#rpAfter').hidden=false;
-        if (path){ const rb=$('#rpReveal'); rb.hidden=false; rb.onclick=()=>{ try{ tau.opener.revealItemInDir(path); }catch(e){ console.warn(e); } }; }
+        if (path){ const rb=$('#rpReveal'); rb.hidden=false; rb.onclick=()=>{ inv('reveal_granted', {path}).catch(e=>console.warn(e)); }; }   // comando nativo: solo file concessi (niente permesso generico dell'opener)
         msg(opened ? tr('Messaggio preparato nel programma di posta. Controllalo e invialo da lì.') : tr('Non si è aperto nessun programma di posta. Scrivi a lorenzo.birindelli@cnr.it e incolla il testo del messaggio.'));
         if (path) msg(tr('Lo screenshot è nella cartella Download')+' («'+shown+'»): '+tr('allegalo al messaggio.'), true);
         if (copied) msg(tr('Il testo completo è anche negli appunti.'), true);

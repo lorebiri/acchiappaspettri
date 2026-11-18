@@ -4,14 +4,14 @@ version = 3
 
 [[package]]
 name = "acch-core"
-version = "3.0.0-rc.3"
+version = "3.0.0-rc.6"
 dependencies = [
  "miniz_oxide 0.8.9",
 ]
 
 [[package]]
 name = "acchiappaspettri"
-version = "3.0.0-rc.5"
+version = "3.0.0-rc.6"
 dependencies = [
  "acch-core",
  "serde",

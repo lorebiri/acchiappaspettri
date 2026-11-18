@@ -73,7 +73,7 @@ describe('Segnala un problema', {timeout:6*60*1000}, ()=>{
     assert.ok(body.includes('Nome del file: '+NAME));
     assert.strictEqual(save.args.dest, 'downloads');
     assert.ok(body.includes('cartella Download («'+save.args.name+'»)'), 'il corpo dice dove è lo screenshot');
-    assert.ok(calls.some(c=>c.cmd==='revealItemInDir' && c.args.p.endsWith(save.args.name)), '«Mostra nella cartella»');
+    assert.ok(calls.some(c=>c.cmd==='reveal_granted' && c.args.path.endsWith(save.args.name)), '«Mostra nella cartella»');
     assert.ok(/Messaggio preparato nel programma di posta/.test(msg) && /cartella Download/.test(msg) && !/inviat/i.test(msg), msg);
   });
 

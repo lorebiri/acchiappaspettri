@@ -7829,9 +7829,10 @@ function assess(f, d){
     else if (q.flat>=3 && it==='ftir' && f.kind!=='U') add('bad', `Il massimo è piatto su ${q.flat} punti: banda satura (assorbanza troppo alta). Posizione e area delle bande tagliate non sono affidabili: usa un film più sottile, l'ATR invece della trasmissione, oppure diluisci il campione.`);
     else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
     if (q.bgRatio>0.3 && pBase(f)==='none' && ['raman','fluo','ftir','xrf','libs','gen'].includes(it)){
-      const m = (it==='xrf'||it==='libs') ? 'snip' : 'arpls';
+      // Raman: il polinomio iterativo, più accurato di arPLS automatico sugli spettri puliti con fluorescenza ripida (docs/VALIDAZIONE.md, R12)
+      const m = (it==='xrf'||it==='libs') ? 'snip' : it==='raman' ? 'imodpoly' : 'arpls', mName={snip:'SNIP (Ryan 1988)', imodpoly:'IModPoly (Zhao 2007)', arpls:'arPLS (Baek 2015)'}[m], mShort={snip:'SNIP', imodpoly:'IModPoly', arpls:'arPLS'}[m];
       const bgp=Math.round(q.bgRatio*100);
-      add('warn', it==='raman' ? `Il fondo pesa circa il ${bgp}% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.` : `Il fondo pesa circa il ${bgp}% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base ${m==='snip'?'SNIP (Ryan 1988)':'arPLS (Baek 2015)'}.`, {lab:`Applica ${m==='snip'?'SNIP':'arPLS'}`, fn:()=>{ S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
+      add('warn', it==='raman' ? `Il fondo pesa circa il ${bgp}% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base ${mName}.` : `Il fondo pesa circa il ${bgp}% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base ${mName}.`, {lab:`Applica ${mShort}`, fn:()=>{ baseSnap(); S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
     if (q.wPts<4 && !['libs','xrf'].includes(it)) add('info', `Solo ≈${fmtG(q.wPts,2)} punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine.`);
     if (q.irregular>0.05) add('info', 'Il passo dell\'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante.');
     if (['raman','fluo','gen'].includes(it) && S.spike[it] && d.peaks.length){ try{ const ds=despike(f.kind==='T'?Float64Array.from(f.ys,v=>-v):f.ys), at=(ds.at||[]).map(k=>f.xs[k]), st=Math.abs(f.xs[f.xs.length-1]-f.xs[0])/f.xs.length, hit=d.peaks.filter(p=>at.some(x=>Math.abs(x-p.x)<=4*st)); if (hit.length) add('warn', `Un punto tolto come raggio cosmico cade sulla cima di ${hit.length===1?'un picco':hit.length+' picchi'} (${hit.slice(0,3).map(p=>fmtPeak(it,p.x,f.uncal,f)).join(', ')}): se il picco è stretto e vero, altezza e forma sono state cambiate. Confronta con i raggi cosmici non tolti.`); }catch(e){} }
@@ -9317,7 +9318,7 @@ function renderRecipes(f){
    Regola per gli sviluppi futuri: ogni novità visibile all'utente va aggiunta in cima a NOVITA con un numero di versione
    più alto in APP_VERSION. Chi ha già usato lo strumento la vede al primo ingresso; chi arriva per la prima volta vede il benvenuto. */
 const APP_VERSION='3.0';
-const APP_VERSION_FULL=()=>'3.0.0-rc.5';
+const APP_VERSION_FULL=()=>'3.0.0-rc.6';
 const NOVITA=[
   {v:'3.0', data:'novembre 2026', voci:[
     ['📍','Picchi scritti per posizione','Nella scheda Picchi scrivi una o più posizioni (anche con larghezza e forma) e io le aggiungo, agganciandole al massimo vicino se vuoi. Contano come i picchi trovati da me per nomi, aree, deconvoluzione e quantificazione.', ()=>{ go(2); openTab('peaks'); setTimeout(()=>{ reveal('#pkAddBox'); $('#pkAddTxt').focus(); }, 80); }],

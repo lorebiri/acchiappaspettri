@@ -54,5 +54,6 @@ const dictPath=path.join(root,'i18n/en.json'); const dict=fs.existsSync(dictPath
 const extraPath=path.join(root,'i18n/en-app.json'), extra=fs.existsSync(extraPath)?JSON.parse(fs.readFileSync(extraPath,'utf8')):{}, skipPath=path.join(root,'i18n/not-text.json'), skip=new Set(fs.existsSync(skipPath)?JSON.parse(fs.readFileSync(skipPath,'utf8')):[]);
 const all=[...out].sort(), todo=all.filter(s=>!(s in dict) && !(s in pairs) && !(s in extra) && !skip.has(s));
 console.log({all:all.length, pairs:Object.keys(pairs).length, dict:Object.keys(dict).length, todo:todo.length, todoChars:todo.join('').length});
-fs.writeFileSync(path.join(root,'i18n/_pairs.json'), JSON.stringify(pairs,null,0));
+// stesso formato del file nel repository (una coppia per riga): i test che lanciano l'estrattore non lasciano l'albero modificato
+fs.writeFileSync(path.join(root,'i18n/_pairs.json'), '{\n'+Object.entries(pairs).map(([k,v])=>JSON.stringify(k)+': '+JSON.stringify(v)).join(',\n')+'\n}\n');
 fs.writeFileSync(path.join(root,'i18n/_todo.json'), JSON.stringify(todo,null,0));

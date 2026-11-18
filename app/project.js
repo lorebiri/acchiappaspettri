@@ -72,7 +72,9 @@
     }catch(e){ console.error(e); showErr(e); return false; }
     finally{ busy=false; loader(false); notify(); }
   }
-  function showErr(e){ api.lastError=e; const code=e && e.code, m=MSG[code]; toast('😕 '+(m || 'Non sono riuscito a completare l\'operazione sul progetto. I tuoi dati non sono stati toccati.')); if (api.onError) api.onError(m||null, e); }
+  function showErr(e){ api.lastError=e; const code=e && e.code;
+    // troppo grande: quanto è il limite e dove (online 1 GB, nell'app desktop 4 GB di dati decompressi)
+    const m = code==='too-large' && e.limitBytes ? (e.desktop ? `Il progetto contiene più di ${Math.round(e.limitBytes/1073741824)} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro.` : `Il progetto contiene più di ${Math.round(e.limitBytes/1073741824)} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.`) : MSG[code]; toast('😕 '+(m || 'Non sono riuscito a completare l\'operazione sul progetto. I tuoi dati non sono stati toccati.')); if (api.onError) api.onError(m||null, e); }
   /* true se si può proseguire: nessuna modifica, oppure salvate o volutamente scartate */
   async function guard(){ if (busy){ toast('Un momento: sto finendo un\'operazione sul progetto.'); return false; } if (!isDirty()) return true; const ans=await api.host.ask(`Il progetto «${displayName()}» ha modifiche non salvate. Vuoi salvarle?`); if (ans==='cancel') return false; if (ans==='save') return doSave(false); autosave.clear(); return true; }
   function clearAll(){

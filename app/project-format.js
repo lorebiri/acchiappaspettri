@@ -11,7 +11,10 @@
   const FORMAT='acchspettri', FORMAT_VERSION=2, MIN_READER=2, MIME='application/vnd.acchiappaspettri.project+zip';
   // totalBytes: byte decompressi contati davvero durante la lettura (le dimensioni scritte nello ZIP possono mentire); ratio: rapporto massimo
   // decompresso/compresso di una voce oltre 64 MB (DEFLATE arriva a ~1000:1 solo con dati costruiti apposta); manifestBytes: manifest.json
-  const LIMITS={archiveBytes:2*1024*1024*1024, entries:20000, totalBytes:1024*1024*1024, jsonBytes:512*1024*1024, manifestBytes:16*1024*1024, ratio:500, spectra:10000};
+  // totalBytes: online (la pagina del browser ha meno memoria); totalBytesDesktop: nell'app desktop (decisione del coordinatore, conclusione 3.0)
+  const LIMITS={archiveBytes:2*1024*1024*1024, entries:20000, totalBytes:1024*1024*1024, totalBytesDesktop:4*1024*1024*1024, jsonBytes:512*1024*1024, manifestBytes:16*1024*1024, ratio:500, spectra:10000};
+  const isDesktop=()=>typeof globalThis!=='undefined' && !!globalThis.__TAURI__;
+  const tooBig=(detail, max)=>{ const e=new ProjectError('too-large', detail); e.limitBytes=max; e.desktop=isDesktop(); return e; };
   class ProjectError extends Error{ constructor(code, detail){ super(code+(detail?': '+detail:'')); this.name='ProjectError'; this.code=code; this.detail=detail||''; } }
 
   /* SHA-256 (FIPS 180-4), sincrono e senza dipendenze: serve anche dove crypto.subtle non c'è */
@@ -164,7 +167,8 @@
   /* decodifica e verifica. Restituisce sempre la forma del formato 2:
      {manifest, state, sources:[{id,data,size,sha256,binary,bytes}], spectra:[{…, source, sampleKey, channel, bytes, series?, cube?, iso?}],
       libraries:[{id,revision,name,data}], results:[{name,text}], warnings} */
-  async function decode(bytes, JSZip){
+  async function decode(bytes, JSZip, opt){
+    const maxTotal=(opt && opt.maxTotal) || (isDesktop() ? LIMITS.totalBytesDesktop : LIMITS.totalBytes);
     if (!JSZip) throw new ProjectError('no-zip');
     if (!bytes || !bytes.length) throw new ProjectError('empty');
     if (bytes.length>LIMITS.archiveBytes) throw new ProjectError('too-large','archive');
@@ -173,7 +177,7 @@
     let zip; try{ zip=await JSZip.loadAsync(bytes); }catch(e){ throw new ProjectError('corrupted', 'zip'); }
     const names=Object.keys(zip.files); if (names.length>LIMITS.entries) throw new ProjectError('too-large','entries');
     let declared=0; for (const n of names){ if (!isSafeEntry(n.replace(/\/$/,''))) throw new ProjectError('unsafe-path', n); const d=zip.files[n]._data; if (d && d.uncompressedSize) declared+=d.uncompressedSize; }
-    if (declared>LIMITS.totalBytes) throw new ProjectError('too-large','content');
+    if (declared>maxTotal) throw tooBig('content', maxTotal);
     /* lettura di una voce con il conto dei byte mentre si decomprime: ci si ferma appena si supera max (la dimensione dichiarata nel manifest),
        il totale del progetto o il rapporto di compressione massimo. Prima si decomprimeva tutto e si controllava dopo: un progetto di 3 MB
        portava la pagina a 7 GB di memoria per due minuti (bomba ZIP, debug della conclusione). */
@@ -183,7 +187,7 @@
       const fail=err=>{ if (done) return; done=true; try{ st && st.pause(); }catch(x){} rej(err); };
       try{ st=e.internalStream('uint8array'); }catch(err){ return rej(new ProjectError('corrupted', p)); }
       st.on('data', c=>{ if (done) return; n+=c.length; used+=c.length;
-          if (n>max || used>LIMITS.totalBytes || (n>64*1024*1024 && comp>0 && n/comp>LIMITS.ratio)) return fail(new ProjectError('too-large', p));
+          if (n>max || used>maxTotal || (n>64*1024*1024 && comp>0 && n/comp>LIMITS.ratio)) return fail(tooBig(p, maxTotal));
           parts.push(c); })
         .on('error', ()=>fail(new ProjectError('corrupted', p)))
         .on('end', ()=>{ if (done) return; done=true; const out=new Uint8Array(n); let o=0; for (const c of parts){ out.set(c,o); o+=c.length; } res(out); })
