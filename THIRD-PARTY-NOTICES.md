@@ -16,6 +16,7 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 | Carattere WenQuanYi Micro Hei 0.2.0-beta | pagina web e app desktop (`vendor/fonts/WenQuanYiMicroHei.ttf`), solo nei PDF con cinese, giapponese o coreano | Apache 2.0 (scelta tra Apache 2.0 e GPLv3 con eccezione per i font) |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
 | Descrizione del formato .opj di Origin da liborigin 3.0.x (nessun codice incluso) | `app/origin-core.js` | liborigin: GPL-2.0-or-later (avviso sotto) |
+| PyMca / fisx: modello di file .cfg (da `McaTheory.cfg` e `Steel.cfg`); file d'esempio nei test | `app/pymca-cfg-core.js` (MODEL_CFG); `test/fixtures/pymca/` (non nei pacchetti) | MIT (avviso sotto) |
 | Crate Rust (Tauri 2, wry, tao, rustls, ring e altri: 336 crate) | eseguibile desktop | MIT, Apache-2.0, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0 (elenco completo sotto) |
 | Microsoft WebView2 Loader (SDK 1.0.3650.58, collegato staticamente) | eseguibile Windows | BSD-3-Clause (Microsoft) |
 | Nullsoft Scriptable Install System 3.x | installatore Windows | zlib/libpng; modulo LZMA: vedi sotto |
@@ -1159,6 +1160,35 @@ terms of the GNU General Public License as published by the Free Software Founda
 the License, or (at your option) any later version.
 ```
 Per .opju («CPYUA») non esiste documentazione pubblica: la struttura è stata ricostruita da Acchiappaspettri; la codifica dei valori è FPC (M. Burtscher, P. Ratanaworabhan, «FPC: A High-Speed Compressor for Double-Precision Floating-Point Data», IEEE Trans. Computers 58 (2009) 18–31), algoritmo riscritto da zero.
+
+### PyMca / fisx
+`app/pymca-cfg-core.js` legge e scrive i file di configurazione `.cfg` di PyMca. Il lettore e lo scrittore sono scritti da zero; il modello di file usato per scrivere (`MODEL_CFG`) deriva da `PyMca5/PyMcaData/McaTheory.cfg` e `Steel.cfg` di PyMca 5.9.7. Nei test (`test/fixtures/pymca/`, fuori dai pacchetti) ci sono, senza modifiche, `McaTheory.cfg`, `Steel.cfg`, `Steel.spe` e `XRFSpectrum.mca` di PyMca. Nessun codice di PyMca o di fisx (1.3.2, stessa licenza) è incluso; PyMca serve solo, come programma esterno, a `scripts/pymca-cfg-verifica.py`. Si chiede di citare: Solé V.A., Papillon E., Cotte M., Walter Ph., Susini J. (2007) A multiplatform code for the analysis of energy-dispersive X-ray fluorescence spectra. Spectrochim. Acta B 62, 63–68, doi:10.1016/j.sab.2006.12.002.
+
+```text
+The PyMca X-Ray Fluorescence Toolkit is Copyright (C) 2004-2023 of the
+European Synchrotron Radiation Facility (ESRF).
+
+The MIT License (MIT)
+
+Copyright (c) 2004-2023 European Synchrotron Radiation Facility (ESRF)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
 
 ## 3. Windows
 
