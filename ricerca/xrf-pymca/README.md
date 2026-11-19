@@ -1,6 +1,6 @@
 # Prototipo: PyMca e Acchiappaspettri sugli stessi spettri XRF
 
-**Solo studio.** Non fa parte dell'app e non entra nei pacchetti. Risultati e commento in [`docs/studi/XRF-PYMCA-PALLESCHI.md`](../../docs/studi/XRF-PYMCA-PALLESCHI.md).
+**Solo studio.** Non fa parte dell'app e non entra nei pacchetti. Risultati e commento in [`docs/studi/XRF-PYMCA-CFLIBS.md`](../../docs/studi/XRF-PYMCA-CFLIBS.md).
 
 | File | Cosa fa |
 |---|---|

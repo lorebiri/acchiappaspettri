@@ -2,7 +2,7 @@
 
 Questa cartella serve a controllare **quanto sono giusti i risultati di Acchiappaspettri** su campioni di composizione nota: materiali di riferimento certificati (per esempio i NIST SRM, i CHARM per le leghe di rame, i vetri Corning). Si mettono qui lo spettro e il certificato; uno script fa il calcolo con il nucleo dell'app e scrive un rapporto con i numeri a confronto.
 
-Finora l'accuratezza dell'app è stata misurata soprattutto su spettri simulati con lo stesso modello (vedi `docs/studi/XRF-PYMCA-PALLESCHI.md`, § 1.5 e § 4.4): questa è la prova sui materiali veri.
+Finora l'accuratezza dell'app è stata misurata soprattutto su spettri simulati con lo stesso modello (vedi `docs/studi/XRF-PYMCA-CFLIBS.md`, § 1.5 e § 4.4): questa è la prova sui materiali veri.
 
 ## In tre passi
 

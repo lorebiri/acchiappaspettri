@@ -1433,7 +1433,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base SNIP (Ryan 1988).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -1492,7 +1492,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base SNIP (Ryan 1988).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -2565,7 +2565,7 @@
   "yMax": 7317.9,
   "avvisi": [
    "warn: S/N ≈ 22: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 67% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007)."
+   "warn: Il fondo pesa circa il 67% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base ALS (Eilers 2005)."
   ],
   "picchi": [
    [
@@ -2582,7 +2582,7 @@
   "yMax": 86274.6,
   "avvisi": [
    "warn: S/N ≈ 42: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 79% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
+   "warn: Il fondo pesa circa il 79% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base SNIP (Ryan 1988).",
    "warn: 4 punti con un salto stretto e isolato: sembrano raggi cosmici. Possono diventare falsi picchi."
   ],
   "picchi": [

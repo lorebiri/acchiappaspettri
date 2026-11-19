@@ -1,6 +1,6 @@
 # Validazione su dati reali (riservati): risultati aggregati
 
-*19 novembre 2026, ramo `claude/xrf-libs-3.1`. Dati forniti dal CNR per i soli test interni: spettri, certificati e risultati **non** sono in questo repository. Qui ci sono solo errori aggregati e anonimi; i rapporti dettagliati restano con i dati riservati.*
+*19 novembre 2026, ramo `claude/xrf-libs-3.1`. Dati reali di laboratorio, usati per i soli test interni: spettri, certificati e risultati **non** sono in questo repository. Qui ci sono solo errori aggregati e anonimi; i rapporti dettagliati restano con i dati riservati.*
 
 ## XRF: 6 standard di bronzo certificati (Cu–Zn–Sn–Pb)
 
@@ -21,18 +21,18 @@ Strumento portatile con tubo Rh a trasmissione, 40 kV, rivelatore SDD; 10 spettr
 
 ## LIBS: CF-LIBS
 
-Gli spettri LIBS non sono disponibili; sono disponibili le composizioni CF-LIBS calcolate dal gruppo di Pisa sui 6 standard (con temperatura ≈ 0,86–0,96 eV e densità elettronica).
+Gli spettri LIBS non sono disponibili; sono disponibili le composizioni CF-LIBS già calcolate dal laboratorio sui 6 standard (con temperatura ≈ 0,86–0,96 eV e densità elettronica).
 
 | | Errore relativo medio | Mediana |
 |---|---|---|
-| CF-LIBS del gruppo di Pisa, spettri reali, contro il certificato | 21% | 19% (Sn −34%, Pb −33%, Cu +4%, Zn −5% di bias) |
+| CF-LIBS del laboratorio, spettri reali, contro il certificato | 21% | 19% (Sn −34%, Pb −33%, Cu +4%, Zn −5% di bias) |
 | App, spettri **sintetici** realistici, plasma otticamente sottile | 22% (n_e 10¹⁷) / 33% (n_e 10¹⁶) | 6% / 29% |
 | App, sintetici con autoassorbimento, corretto | 123% (n_e 10¹⁷) / 19% (n_e 10¹⁶) | 33% / 18% |
 
-Sintetici: composizione certificata, T e n_e del gruppo di Pisa (unità di n_e non indicata: provate 10¹⁶ e 10¹⁷ cm⁻³), 220–700 nm, 0,1 nm di risoluzione, rumore di Poisson, lastra di 0,05 cm per l'autoassorbimento.
+Sintetici: composizione certificata, T e n_e del laboratorio (unità di n_e non indicata: provate 10¹⁶ e 10¹⁷ cm⁻³), 220–700 nm, 0,1 nm di risoluzione, rumore di Poisson, lastra di 0,05 cm per l'autoassorbimento.
 
 - **Difetto trovato e corretto**: i multipletti non risolti della stessa specie (Zn I 330 e 334 nm) venivano scartati come righe sovrapposte, e Zn risultava 0 senza avviso. Ora diventano una riga sola.
-- **La CF-LIBS dell'app è ancora fragile**: con autoassorbimento forte (n_e alta) la correzione di Palleschi non basta, il Cu esce sottostimato e lo Sn gonfiato. Nel caso sottile a n_e 10¹⁶ la densità da Hα risulta sovrastimata (anomalia da capire). Resta «sperimentale».
+- **La CF-LIBS dell'app è ancora fragile**: con autoassorbimento forte (n_e alta) la correzione dalla larghezza non basta, il Cu esce sottostimato e lo Sn gonfiato. Nel caso sottile a n_e 10¹⁶ la densità da Hα risulta sovrastimata (anomalia da capire). Resta «sperimentale».
 - Dataset LIBS pubblici di bronzi con composizione nota e licenza aperta: non trovati.
 
 ## Raman: rimozione del fondo della 3.0 su spettri veri

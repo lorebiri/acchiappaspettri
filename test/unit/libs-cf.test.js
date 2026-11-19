@@ -75,10 +75,10 @@ test('neFromHydrogen: n_e ritrovata entro il 10 % da Hα e Hβ su spettri sintet
 });
 
 /* ---------------- autoassorbimento ---------------- */
-test('autoassorbimento: El Sherbini (α = −0,54, β = 0,46) e Palleschi (esponente 0,85) coincidono entro l\'1 %', ()=>{
+test('autoassorbimento: El Sherbini (α = −0,54, β = 0,46) e formula pratica (esponente 0,85) coincidono entro l\'1 %', ()=>{
   const w=0.005, ne=1e17, d0=2*w*ne/1e16;
   assert.strictEqual(C.saFromWidth(d0, w, ne), 1); assert.ok(Math.abs(C.saFromWidth(2*d0, w, ne)-Math.pow(2,-1/0.54))<1e-12);
-  const p=C.selfAbsCorrect(100, 2*d0, w, ne, 'palleschi'), e=C.selfAbsCorrect(100, 2*d0, w, ne, 'elsherbini');
+  const p=C.selfAbsCorrect(100, 2*d0, w, ne, 'potenza'), e=C.selfAbsCorrect(100, 2*d0, w, ne, 'elsherbini');
   assert.ok(Math.abs(p.I0-100*Math.pow(2,0.85))<1e-9); assert.ok(rel(p.I0, e.I0)<0.01, p.I0+' '+e.I0);
   assert.strictEqual(C.selfAbsCorrect(100, 0.5*d0, w, ne).I0, 100, 'riga più stretta di Δλ0: nessuna correzione');
   assert.strictEqual(C.selfAbsCorrect(100, 0.1, 0, ne), null);
@@ -148,7 +148,7 @@ for (const name of Object.keys(CASES)) test('validazione sintetica, otticamente 
 });
 test('validazione sintetica con autoassorbimento (L = 0,1 cm): la correzione con la larghezza riduce l\'errore', ()=>{
   for (const name of ['bronzo Cu–Sn–Zn–Pb','acciaio Fe–Cr–Ni–Mn']){
-    const a=runCase(name, {L:0.1}, {ne:1e17}), b=runCase(name, {L:0.1}, {ne:1e17, selfAbs:{method:'palleschi', w:C.syntheticW}});
+    const a=runCase(name, {L:0.1}, {ne:1e17}), b=runCase(name, {L:0.1}, {ne:1e17, selfAbs:{method:'potenza', w:C.syntheticW}});
     assert.ok(a.r.ok && b.r.ok); const ea=errs(a.r, a.S), eb=errs(b.r, b.S), ma=ea.reduce((s,e)=>s+e.err,0)/ea.length, mb=eb.reduce((s,e)=>s+e.err,0)/eb.length;
     assert.ok(mb<0.6*ma, name+': errore medio senza correzione '+ma.toFixed(3)+', con correzione '+mb.toFixed(3));
     REPORT.push(['autoassorbimento L=0,1 cm, '+name, 'errore medio relativo', (100*ma).toFixed(1)+' % → '+(100*mb).toFixed(1)+' %', 'T '+a.r.T.toFixed(0)+' → '+b.r.T.toFixed(0)+' K']);

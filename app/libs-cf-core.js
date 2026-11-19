@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 /* CF-LIBS (LIBS senza taratura), SPERIMENTALE: parte pura, senza DOM (vale nel browser, nel worker e in node).
-   Metodo del gruppo di Pisa (Ciucci, Corsi, Palleschi, Rastelli, Salvetti, Tognoni, Appl. Spectrosc. 53, 1999, 960,
-   doi:10.1366/0003702991947612; brevetto US 6,657,721 B1), come riassunto in docs/studi/XRF-PYMCA-PALLESCHI.md §3.3 e §3.5
+   Metodo CF-LIBS (Ciucci et al., 1999, doi:10.1366/0003702991947612; brevetto US 6,657,721 B1), come riassunto in
+   docs/studi/XRF-PYMCA-CFLIBS.md §3.3 e §3.5
    e descritto in docs/CF-LIBS.md. Ipotesi: plasma omogeneo, otticamente sottile (salvo la correzione dell'autoassorbimento),
    in equilibrio termodinamico locale (LTE), risposta spettrale dello strumento costante (F uguale per tutte le righe).
    Dati atomici: app/libs-data.js (NIST ASD). Deterministico: i numeri casuali (incertezze Monte Carlo, rumore degli spettri
@@ -167,7 +167,7 @@
      Ī = Ī0·SA^β con β = 0,46; SA = (Δλ/(2 w_s n_e/10¹⁶))^{1/α}. Nel PDF il segno di α è perso nell'estrazione (studio §3.3): α < 0
      perché la riga autoassorbita è più larga. NB: in 10.3390/app10144973 eq. 26-27 il testo estratto dà gli esponenti scambiati
      (I = SA^{−0,54}·I0, Δλ = SA^{0,46}·Δλ0); la loro combinazione, eq. 28, è comunque la stessa: I = (Δλ/Δλ0)^{−0,85}·I0.
-     Formula pratica di Palleschi 2022 (doi:10.56530/spectroscopy.xq8876v9, eq. 6): I0 ≈ I·(Δλ/Δλ0)^{0,85}, valida anche per
+     Formula pratica (Spectroscopy 2022, doi:10.56530/spectroscopy.xq8876v9, eq. 6): I0 ≈ I·(Δλ/Δλ0)^{0,85}, valida anche per
      autoassorbimento forte (plasma omogeneo in LTE). Le due sono la stessa relazione (0,46/0,54 = 0,85). Serve w della riga. */
   const SA_ALPHA=-0.54, SA_BETA=0.46, SA_EXP=0.85;
   function saFromWidth(fL, w, ne){ const d0=2*w*ne/1e16; if (!(fL>0 && d0>0)) return null; return Math.min(1, Math.pow(fL/d0, 1/SA_ALPHA)); }
@@ -199,7 +199,7 @@
        Saha a partire da n_e ≈ 10¹⁸ cm⁻³ (studio §3.3, passo A iii); l'ipotesi della pressione per fissare la scala assoluta è
        di questo programma e va verificata sul testo del brevetto (DA VERIFICARE).
      opt.closure: 'sum' (ΣC = 100 %, brevetto eq. 7-8) oppure {el, wt} (standard interno, frazione in peso nota).
-     opt.selfAbs: {method:'palleschi'|'elsherbini', w:{chiave riga: w in nm} o funzione(line)→w, ne}: correzione con la larghezza.
+     opt.selfAbs: {method:'potenza'|'elsherbini', w:{chiave riga: w in nm} o funzione(line)→w, ne}: correzione con la larghezza.
      opt.intensity: 'photons' (conteggi, predefinito) o 'energy' (spettro tarato in radianza). */
   function cf(D, meas, opt){ opt=Object.assign({mode:'saha-boltzmann', pressure:1, closure:'sum', intensity:'photons', mc:300, seed:12345}, opt||{});
     const warns=[], sb=opt.mode!=='boltzmann';
