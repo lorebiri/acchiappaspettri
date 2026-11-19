@@ -1,0 +1,317 @@
+{
+ "manifest": {
+  "formatVersion": 1,
+  "appVersion": "3.0.0-rc.1",
+  "title": "Prova completa v1",
+  "createdAt": "2026-11-12T10:00:00.000Z"
+ },
+ "state": {
+  "title": "Prova completa v1",
+  "S": {
+   "lang": "it",
+   "perPage": 2,
+   "orient": "landscape",
+   "order": "instr",
+   "summary": true,
+   "docTitle": "Prova completa v1",
+   "cmpPdf": "start",
+   "cmpPng": true,
+   "outPdf": true,
+   "outPng": true,
+   "pngW": 16,
+   "pngH": 10,
+   "pngDpi": 600,
+   "csvPeaks": true,
+   "csvData": false,
+   "keepFolders": true,
+   "lineW": 0.25,
+   "grid": true,
+   "colorMode": "instr",
+   "color": "#1f5fbf",
+   "showInstr": true,
+   "showPeaks": true,
+   "sens": 5,
+   "maxPeaks": 12,
+   "peakLabels": true,
+   "sample": "mat",
+   "showArea": false,
+   "shadeArea": true,
+   "showInfo": true,
+   "docAuthor": "Autore di prova",
+   "docProject": "",
+   "outSvg": false,
+   "outOrigin": false,
+   "originData": "proc",
+   "oneFile": true,
+   "showFit": true,
+   "outAnalysis": true,
+   "expert": false,
+   "sober": false,
+   "conv": {
+    "ftir": "orig",
+    "raman": "orig",
+    "uv": "orig",
+    "fluo": "orig",
+    "hplc": "orig",
+    "xrf": "orig",
+    "libs": "orig",
+    "tga": "orig",
+    "dsc": "orig",
+    "nmr": "orig",
+    "epr": "orig",
+    "gen": "orig"
+   },
+   "smooth": {
+    "ftir": 0,
+    "raman": 0,
+    "uv": 0,
+    "fluo": 0,
+    "hplc": 0,
+    "xrf": 0,
+    "libs": 0,
+    "tga": 0,
+    "dsc": 0,
+    "nmr": 0,
+    "epr": 0,
+    "gen": 0
+   },
+   "base": {
+    "ftir": "none",
+    "raman": "none",
+    "uv": "none",
+    "fluo": "none",
+    "hplc": "none",
+    "xrf": "none",
+    "libs": "none",
+    "tga": "none",
+    "dsc": "none",
+    "nmr": "none",
+    "epr": "none",
+    "gen": "none"
+   },
+   "deriv": {
+    "ftir": 0,
+    "raman": 0,
+    "uv": 0,
+    "fluo": 0,
+    "hplc": 0,
+    "xrf": 0,
+    "libs": 0,
+    "tga": 0,
+    "dsc": 0,
+    "nmr": 0,
+    "epr": 0,
+    "gen": 0
+   },
+   "logX": {
+    "ftir": false,
+    "raman": false,
+    "uv": false,
+    "fluo": false,
+    "hplc": false,
+    "xrf": false,
+    "libs": false,
+    "tga": false,
+    "dsc": false,
+    "nmr": false,
+    "epr": false,
+    "gen": false
+   },
+   "spike": {
+    "ftir": false,
+    "raman": false,
+    "uv": false,
+    "fluo": false,
+    "hplc": false,
+    "xrf": false,
+    "libs": false,
+    "tga": false,
+    "dsc": false,
+    "nmr": false,
+    "epr": false,
+    "gen": false
+   },
+   "logY": {
+    "xrf": true,
+    "ftir": false,
+    "raman": false,
+    "uv": false,
+    "fluo": false,
+    "hplc": false,
+    "libs": false,
+    "tga": false,
+    "dsc": false,
+    "nmr": false,
+    "epr": false,
+    "gen": false
+   }
+  },
+  "MV": {
+   "hplc": {
+    "mode": "cal",
+    "std": {
+     "STD1_DAD1A.csv": {
+      "c": 1.5
+     }
+    }
+   }
+  },
+  "COMPS": [
+   {
+    "id": "cmpA",
+    "name": "Confronto FTIR",
+    "instr": "ftir",
+    "mode": "stack",
+    "gap": 1.2,
+    "out": true,
+    "keys": [
+     "spectraplot.file.v1:campioni/olio_lino.csv|1748",
+     "spectraplot.file.v1:copia/olio_lino.csv|1748"
+    ]
+   }
+  ],
+  "REFS": [
+   {
+    "id": "refA",
+    "i": "ftir",
+    "n": "Riferimento sintetico",
+    "x": [
+     400,
+     800,
+     1200,
+     1600,
+     2000,
+     2400,
+     2800,
+     3200
+    ],
+    "y": [
+     0.1,
+     0.2,
+     0.5,
+     0.3,
+     0.2,
+     0.1,
+     0.4,
+     0.1
+    ]
+   }
+  ],
+  "LIB": [
+   {
+    "id": "c1",
+    "i": "hplc",
+    "a": 2.1,
+    "b": 2.4,
+    "n": "Caffeina"
+   },
+   {
+    "id": "c2",
+    "i": "ftir",
+    "a": 1735,
+    "b": 1755,
+    "n": "C=O estere"
+   },
+   {
+    "id": "c_lungo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "i": "ftir",
+    "a": 2900,
+    "b": 2950,
+    "n": "CH₂ «stretching»"
+   }
+  ],
+  "curIndex": 1
+ },
+ "spectra": [
+  {
+   "name": "olio_lino.csv",
+   "path": "campioni/olio_lino.csv",
+   "binary": false,
+   "memory": {
+    "hash": "4587d272",
+    "size": 13486,
+    "title": "Olio di lino è",
+    "desc": "Descrizione con a capo\nseconda riga",
+    "xr": [
+     600,
+     3800
+    ],
+    "labels": {
+     "1745.0000": "@c2",
+     "2925.0000": "@c_lungo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "1160.0000": "C–O"
+    },
+    "removed": [
+     1100.5
+    ],
+    "added": [
+     1650.25
+    ],
+    "include": true,
+    "sample": "mat"
+   },
+   "size": 13486,
+   "sha256": "b390b3a60c3cfa12aaec3d1fb819252abb62e9300910c0a6cc95a52afafa9716",
+   "processed": true
+  },
+  {
+   "name": "STD1_DAD1A.csv",
+   "path": "hplc/STD1_DAD1A.csv",
+   "binary": false,
+   "memory": {
+    "hash": "c7410a49",
+    "size": 42566,
+    "title": "Standard 1",
+    "desc": "",
+    "xr": null,
+    "labels": {
+     "2.2500": "@c1"
+    },
+    "removed": [],
+    "added": [],
+    "include": true
+   },
+   "size": 42566,
+   "sha256": "5ecd19e795c722a020e1a56e0f535e885663980ce108a244db5497b305ecddb4",
+   "processed": true
+  },
+  {
+   "name": "olio_lino.csv",
+   "path": "copia/olio_lino.csv",
+   "binary": false,
+   "memory": {
+    "hash": "4587d272",
+    "size": 13486,
+    "title": "Copia",
+    "desc": "",
+    "xr": null,
+    "labels": {},
+    "removed": [],
+    "added": [],
+    "include": false
+   },
+   "size": 13486,
+   "sha256": "b390b3a60c3cfa12aaec3d1fb819252abb62e9300910c0a6cc95a52afafa9716",
+   "processed": false
+  },
+  {
+   "name": "finto.spa",
+   "path": "bin/finto.spa",
+   "binary": true,
+   "memory": null,
+   "size": 600,
+   "sha256": "7eeb62713d060ab831056f9e3a27c74a053dc32830bc468eba9fe3a062567233",
+   "processed": false
+  }
+ ],
+ "results": [
+  {
+   "name": "controllo_qualita.csv",
+   "text": "file;esito\r\nolio_lino.csv;ok"
+  },
+  {
+   "name": "precedenti/vecchia.csv",
+   "text": "a;b"
+  }
+ ]
+}

@@ -9,5 +9,5 @@ Three complete examples, about 10 minutes each, with **synthetic** example files
 | 2 | [Taratura HPLC: retta, LOD, LOQ e concentrazioni](02-taratura-hplc.md) | [HPLC calibration: line, LOD, LOQ and concentrations](02-hplc-calibration.en.md) |
 | 3 | [Composizione XRF di una lega senza standard, e i suoi limiti](03-xrf-senza-standard.md) | [Standardless XRF composition of an alloy, and its limits](03-xrf-standardless.en.md) |
 
-Le immagini sono state catturate da Acchiappaspettri 2.2.0 a 1366×768, nella versione online e nell'anteprima dell'app desktop.
-Screenshots were taken from Acchiappaspettri 2.2.0 at 1366×768, in the online version and in the desktop app preview.
+Le immagini sono state catturate da Acchiappaspettri 2.2.0 a 1366×768, nella versione online e nell'anteprima dell'app desktop. Quelle della pagina Esporta (tutorial 1, passo 5) si rigenerano con `PW_CHANNEL=chrome node scripts/tutorial-esporta.js`.
+Screenshots were taken from Acchiappaspettri 2.2.0 at 1366×768, in the online version and in the desktop app preview. The Export page images (tutorial 1, step 5) are regenerated with `PW_CHANNEL=chrome node scripts/tutorial-esporta.js`.

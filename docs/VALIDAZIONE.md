@@ -1,9 +1,9 @@
 # Validazione numerica di Acchiappaspettri
 
-Documento generato da `scripts/gen-validazione.js` il 2026-11-06. **Non modificare a mano**: rigenerarlo.
+Documento generato da `scripts/gen-validazione.js` il 2026-11-18. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **2.2.0** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
-- Motore: Node v26.13.0 (V8 14.6.202.34-node.40), darwin arm64
+- Versione dell'app: **3.0.0** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Motore: Node v22.23.5 (V8 12.4.254.21-node.57), linux x64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).
 
@@ -231,4 +231,137 @@ Riferimenti: `test/fixtures/validazione/gen_fixtures.py` (Python 3.14.3, numpy 2
 | lor_2_rumore | 2 | σ area | 2.45439071543192 | 2.45439132015333 | 6.6 | 2 | ✓ |
 
 Limiti noti (test che falliscono sul codice attuale, vedi `test/validation/r3-deconvoluzione.test.js`): quando una componente va a area 0 o due componenti coincidono, la matrice JᵀJ è singolare e `fitPeaks` restituisce errore standard 0 per **tutte** le componenti (mostrato come «± 0»).
+
+## R10. Fisisorbimento (`app/sorption-core.js`)
+
+Riferimenti: soluzioni analitiche su isoterme sintetiche (parametri noti) e il report **pubblico** di Kaomi for Autosorb 2.02 «Mesopore example» (Particle Technology Labs, 2025; numeri in `test/validation/sorption/kaomi-mesopore-pubblico.json`, con la fonte). Nessun file reale del laboratorio. Test: `test/validation/r10-fisisorbimento.test.js`.
+
+| Calcolo | Riferimento | Valore di riferimento | Calcolato | LRE o scarto | Esito |
+|---|---|---|---|---|---|
+| BET, isoterma BET esatta | C (analitico) | 120 | 120 | LRE 14.9 | ✓ |
+| BET, isoterma BET esatta | pendenza (analitica) | 0.022037037037037 | 0.022037037037037 | LRE 15.0 | ✓ |
+| BET, stessi 7 punti: area (m²/g) | report Kaomi | 198.568 | 198.569211112851 | 0.0006 % (≤ 0.01 %) | ✓ |
+| BET: C | report Kaomi | 133.714 | 133.715247388166 | 0.0009 % (≤ 0.01 %) | ✓ |
+| Volume totale dei pori (cm³/g) | report Kaomi | 0.5916 | 0.591571296907441 | -0.0049 % (≤ 0.01 %) | ✓ |
+| Diametro medio 4V/S (Å) | report Kaomi | 119.17 | 119.16677184586 | -0.0027 % (≤ 0.05 %) | ✓ |
+| BJH ads: volume cumulato (cm³/g) | report Kaomi | 0.600879 | 0.600683713281717 | -0.0325 % (≤ 0.2 %) | ✓ |
+| BJH ads: area cumulata (m²/g) | report Kaomi | 226.038 | 225.87492517526 | -0.0721 % (≤ 0.2 %) | ✓ |
+| BJH ads: moda (Å) | report Kaomi | 95.972 | 95.971306417485 | -0.0007 % (≤ 0.1 %) | ✓ |
+| BJH des: volume cumulato (cm³/g) | report Kaomi | 0.642049 | 0.641849971444272 | -0.0310 % (≤ 0.2 %) | ✓ |
+| BJH des: area cumulata (m²/g) | report Kaomi | 302.698 | 302.551371729235 | -0.0484 % (≤ 0.2 %) | ✓ |
+| BJH des: moda (Å) | report Kaomi | 80.3851 | 80.3847458062765 | -0.0004 % (≤ 0.1 %) | ✓ |
+| Langmuir lineare: nₘ | analitico | 180 | 180 | LRE 15.0 | ✓ |
+| Dubinin–Astakhov: E (kJ/mol) | analitico | 14 | 14.0000000000029 | 2.1e-13 relativo | ✓ |
+| Calore isosterico (2 T): massimo scarto di Qst da 28 kJ/mol | Langmuir–Freundlich, ΔH noto | 28 | 28.0014423845114 | 0.001 kJ/mol (≤ 0,5) | ✓ |
+
+La scelta automatica dell'intervallo BET (criteri di Rouquerol a–d, la finestra più ampia, a pari merito r maggiore) coincide con un riferimento indipendente scritto nel test su 20 isoterme sintetiche, scelte in modo che ogni criterio cambi la finestra in almeno un caso. pyGAPS e BETSI non sono stati eseguiti (non installati, nessun download senza permesso): NON VERIFICATO contro di loro.
+
+## R11. Chemisorbimento (`app/sorption-core.js`, SPEC §6)
+
+Dati sintetici con parametri noti e formule pubblicate; formati Kaomi per il chemisorbimento non disponibili. Test: `test/validation/r11-chemisorbimento.test.js`.
+
+| Calcolo | Riferimento | Valore di riferimento | Calcolato | LRE o scarto | Esito |
+|---|---|---|---|---|---|
+| Pt, aₘ 0,08 nm²: d·D (nm) | 1,13 (Bergeret e Gallezot) | 1.13 | 1.13267343839351 | 0.24 % | ✓ |
+| Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 90 | 89.9846610498687 | -0.017 % (≤ 1 %) | ✓ |
+| Kissinger, 4 rampe: E (kJ/mol) | Polanyi–Wigner simulato | 140 | 139.977136508864 | -0.016 % (≤ 1 %) | ✓ |
+| Redhead, primo ordine: E (kJ/mol) | Polanyi–Wigner simulato | 100 | 99.6720606307535 | -0.328 % (≤ 2 %) | ✓ |
+
+## R12. Rimozione del fondo (`app/baseline-core.js`, `baseDefaults` in `index.html`)
+
+Spettri Raman **sintetici** con verità nota (`test/fixtures/raman-sintetici.js`): 1500 punti tra 200 e 3200 cm⁻¹, da 4 a 9 picchi lorentziani, gaussiani o misti (FWHM 6–36 cm⁻¹), sopra un fondo di fluorescenza alto da 2 a 8 volte il picco più alto (gobba gaussiana, polinomio di 3° grado o decadimento esponenziale), più rumore gaussiano. Parametri: quelli preimpostati dal programma. Errore del fondo = fondo stimato − fondo vero, in % del picco più alto; «ritrovati» = picchi veri trovati dalla ricerca automatica entro 3 cm⁻¹ dopo la correzione. Nessuno spettro Raman reale disponibile (né in `examples/` né raggiungibile): la prova su spettri reali resta da fare. Test: `test/validation/fondo-sintetici.test.js`.
+
+Rumore 1 % del picco più alto, 100 spettri:
+
+| Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
+|---|---|---|---|---|---|---|---|---|---|
+| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,6 | 1,5 / 4,0 % | ✓ |
+| ALS (Eilers & Boelens 2005) | 1,53 % | 2,30 % | 5,08 % | 8,60 % | 98,1 % | 0,09 | 0,4 | 2,5 / 4,5 % | ✓ |
+| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,4 | 1,5 / 8,0 % | ✓ |
+| ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,5 | 2,0 / 10,0 % | ✓ |
+| SNIP (Ryan 1988) | 1,16 % | 4,29 % | 3,12 % | 12,02 % | 98,1 % | 0,01 | 0,5 | 2,5 / 6,0 % | ✓ |
+| rolling ball (Kneen & Annegarn 1996) | 3,18 % | 5,55 % | 17,82 % | 34,80 % | 97,9 % | 0,28 | 0,1 | 4,5 / 8,0 % | ✓ |
+
+Rumore 0,2 % del picco più alto, 40 spettri:
+
+| Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
+|---|---|---|---|---|---|---|---|---|---|
+| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,9 | — | — |
+| ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,5 | — | — |
+| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,7 | — | — |
+| ModPoly (Lieber 2003) | 0,95 % | 5,82 % | 4,22 % | 15,27 % | 98,4 % | 0,10 | 0,4 | — | — |
+| SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,5 | — | — |
+| rolling ball (Kneen & Annegarn 1996) | 3,31 % | 6,58 % | 17,59 % | 38,19 % | 98,4 % | 0,15 | 0,1 | — | — |
+
+Rumore 0,05 % del picco più alto, 40 spettri:
+
+| Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
+|---|---|---|---|---|---|---|---|---|---|
+| arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 5,5 | — | — |
+| ALS (Eilers & Boelens 2005) | 1,46 % | 2,63 % | 5,35 % | 10,35 % | 99,0 % | 0,00 | 0,5 | — | — |
+| IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 2,5 | — | — |
+| ModPoly (Lieber 2003) | 1,03 % | 3,09 % | 4,48 % | 12,37 % | 99,0 % | 0,10 | 0,5 | — | — |
+| SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,5 | — | — |
+| rolling ball (Kneen & Annegarn 1996) | 3,33 % | 5,38 % | 17,32 % | 36,47 % | 99,0 % | 0,17 | 0,1 | — | — |
+
+Rumore 3 % del picco più alto, 40 spettri:
+
+| Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
+|---|---|---|---|---|---|---|---|---|---|
+| arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,8 | — | — |
+| ALS (Eilers & Boelens 2005) | 2,89 % | 3,38 % | 6,40 % | 9,82 % | 96,9 % | 0,00 | 0,4 | — | — |
+| IModPoly (Zhao 2007) | 0,85 % | 3,59 % | 1,88 % | 9,54 % | 96,9 % | 0,03 | 0,9 | — | — |
+| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,6 | — | — |
+| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,5 | — | — |
+| rolling ball (Kneen & Annegarn 1996) | 3,53 % | 6,21 % | 20,10 % | 40,48 % | 96,4 % | 0,03 | 0,1 | — | — |
+
+Limite noto: arPLS con la rigidità automatica storica (λ = (n/(2π·8))⁴, come nella 2.x) non segue una fluorescenza ripida sugli spettri molto puliti (rumore ≤ 0,2 % del picco): il fondo resta sotto la fluorescenza e l'errore cresce. Con un λ più basso, o con IModPoly e ALS, l'errore resta sotto il 2–3 %. Vedi `docs/LIMITAZIONI.md`.
+
+## R13. MCR-ALS (`app/mcr-core.js`, SPEC-AVANZATE §2)
+
+Dati **sintetici** con soluzione nota (il committente non ha esperimenti reali di riferimento): picchi cromatografici coeluiti con zone selettive in tempo e in λ (soluzione unica), ordine zero con chiusura, A → B → C con spettri sovrapposti (soluzione non unica). pyMCR non è eseguito: due iterazioni del suo algoritmo pubblicato (Camp, J. Res. NIST 124, 2019: regressione ordinaria e negativi a zero) sono calcolate a mano in frazioni esatte nel test. Test: `test/validation/r13-mcr.test.js`.
+
+| Prova | Riferimento | Atteso | Ottenuto | Soglia | Esito |
+|---|---|---|---|---|---|
+| Profili C e S senza rumore, partenza SIMPLISMA | C, S sintetici | 0 | 8.88178419700125e-16 · 7.77156117237610e-16 | ≤ 1 % | ✓ |
+| Profili C e S senza rumore, partenza EFA | C, S sintetici | 0 | 2.71162085840881e-12 · 5.74088519778027e-13 | ≤ 1 % | ✓ |
+| Chiusura (concentrazioni assolute) | C sintetico | 0 | 1.49857903863904e-12 | ≤ 1 % | ✓ |
+| Mancanza di adattamento con rumore 0,002 | rumore e PCA | 0.760916234907204 % (rumore), 0.739528792102405 % (PCA) | 0.747263765888415 % | entro ±20 % del rumore, ≥ PCA | ✓ |
+| Algoritmo di pyMCR, 2 iterazioni | calcolo a mano: C = [1271, 0, 451]/621 | 2.04669887278583, 0, 0.726247987117552 | 2.04669887278583, 0, 0.726247987117552 | ≤ 1e-14 | ✓ |
+| MCR-BANDS, soluzione unica | larghezza ≈ 0 | — | 1.75916837391599e-5 | < 1e-3 | ✓ |
+| MCR-BANDS, A → B → C ambiguo | ambiguità rotazionale | — | 0.0741293878288122 | > 0,02 | ✓ |
+
+La soluzione MCR-ALS in generale non è unica: l'app lo scrive sempre e MCR-BANDS (ottimizzazione locale) ne dà un'ampiezza minima. Confronto con MCR-ALS GUI 2.0 e con i dataset del gruppo Tauler non eseguito (MATLAB; licenza dei dati da chiedere).
+
+## R14. Fit globale delle cinetiche (`app/kinetics-core.js`, SPEC-AVANZATE §3)
+
+Levenberg–Marquardt di `kinetics-core.js` sui NIST StRD non lineari (https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml), dati **trascritti a mano** in `test/validation/chemo/strd-nls.js`: la trascrizione è verificata dal fit stesso, che ritrova i valori certificati. Jacobiano analitico. LRE minimo fra i parametri e fra gli errori standard. Con un pianoro (un parametro che cresce senza limite) si riparte una volta con quel parametro al valore iniziale; se resta, il risultato è dichiarato non determinato. Test: `test/validation/r14-cinetiche.test.js`.
+
+| Dataset | Partenza | LRE parametri | LRE errori standard | LRE somma dei quadrati | Ripartenze | Esito |
+|---|---|---|---|---|---|---|
+| Misra1a (difficoltà bassa) | 1 | 11.1 | 10.8 | 10.5 | 0 | ✓ |
+| Misra1a (difficoltà bassa) | 2 | 11.1 | 10.8 | 10.5 | 0 | ✓ |
+| BoxBOD (difficoltà alta) | 1 | 9.0 | 8.9 | 10.4 | 1 | ✓ |
+| BoxBOD (difficoltà alta) | 2 | 8.5 | 8.4 | 10.4 | 0 | ✓ |
+| MGH09 (difficoltà alta) | 1 | 7.0 | 7.1 | 11.6 | 0 | ✓ |
+| MGH09 (difficoltà alta) | 2 | 7.7 | 7.8 | 11.6 | 0 | ✓ |
+| Thurber (difficoltà alta) | 1 | 8.2 | 7.6 | 11.2 | 0 | ✓ |
+| Thurber (difficoltà alta) | 2 | 8.6 | 7.9 | 11.2 | 0 | ✓ |
+
+Senza ripartenza BoxBOD dalla partenza 1 si ferma sul pianoro b₂ = 114.809633306553 (somma dei quadrati 9771.5, modello costante), come molti programmi: `fitCurve` lo riconosce (`plateau`) e non restituisce errori standard.
+
+| Prova (sintetici, k note) | Atteso | Ottenuto | Soglia | Esito |
+|---|---|---|---|---|
+| ord1, senza rumore | 0.3 | 0.3 | errore relativo ≤ 1e-6 | ✓ |
+| consec, senza rumore | 0.5, 0.12 | 0.5, 0.12 | errore relativo ≤ 1e-6 | ✓ |
+| ord2, senza rumore | 0.4 | 0.4 | errore relativo ≤ 1e-6 | ✓ |
+| ord0, senza rumore | 0.1 | 0.1 | errore relativo ≤ 1e-6 | ✓ |
+| par {"nExp":2}, senza rumore | 0.8, 0.1 | 0.8, 0.1 | errore relativo ≤ 1e-6 | ✓ |
+| par {"nExp":3,"offset":true}, senza rumore | 0.8, 0.1, 0.02 | 0.8, 0.100000000000017, 0.020000000000064 | errore relativo ≤ 1e-6 | ✓ |
+| rev {"K":2}, senza rumore | 0.3 | 0.3 | errore relativo ≤ 1e-6 | ✓ |
+| Copertura dell'IC 95 %, ord1, 1000 ripetizioni (σ = 0,01) | 95 % | 93.5 % | 93–97 % | ✓ |
+| Copertura dell'IC 95 %, consec, 1000 ripetizioni (σ = 0,01) | 95 % | 94.5 % | 93–97 % | ✓ |
+| Confronto dei modelli su dati A → B → C | consec | consec (AIC) | il modello vero | ✓ |
+
+Non eseguiti qui (codice esterno): `scipy.optimize.least_squares` e pyglotaran. La copertura vale con rumore gaussiano indipendente; la funzione di risposta dello strumento (ultraveloce) è fuori dalla 3.0.0.
 

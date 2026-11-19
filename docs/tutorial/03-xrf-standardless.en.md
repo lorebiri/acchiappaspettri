@@ -12,7 +12,7 @@
 1. Open Acchiappaspettri. If the welcome window appears, press **Let's start 👻**.
 2. Press **Choose files** and pick the `.mca` file. *Desktop app:* **Add spectra** in the top bar.
 3. **XRF** appears next to the name. The program has read the anode (Rh), the voltage (40 kV) and the angles from the file header.
-4. For English numbers and plots: press **3 Download** at the top (*desktop app:* the **Export** tab), choose **🇬🇧 English** under **Plot language**, then press **2 Review** (*desktop app:* the **Plot** tab). Without this step the program uses Italian plots and decimal commas.
+4. With the menus in English, plots and numbers are in English too (decimal point: 0.5). Only if you want them in Italian, change **Plot language** on the download page (*desktop app:* the **Export** tab).
 
 ## 2. Open the standardless composition
 **Online version**
@@ -36,7 +36,7 @@ Cu 86.3 · Sn 8.3 · Pb 5.4
 
 How to notice:
 - the box at the top right of the plot says **(As?)**: arsenic is possible but not certain;
-- in the section **🩺 Spectrum check** (*desktop app:* the **Data check** tab below the plot) the program reports signals that are not in the peak list, among them one at **8.63 keV**: it is the zinc Kα line, hidden between the two copper lines.
+- in the section **🩺 Data check** (*desktop app:* the **Data check** tab below the plot) the program reports signals that are not in the peak list, among them one at **8.63 keV**: it is the zinc Kα line, hidden between the two copper lines.
 
 Add the elements: in the **Elements:** row press **Zn** and then **As**. The button turns blue and the calculation runs again.
 
@@ -79,7 +79,7 @@ With the example file tin can go from 4.78 to 17.5%, copper from 75.5 to 87.2%. 
 
 ## 6. Download the results
 - **Table only:** press **⬇️ CSV** below the notes. You get `xrf_FP_BRONZO_SIMULATO_Rh40kV_SINTETICO.csv`.
-- **Everything:** press **All good, go and download** (*desktop app:* **Export**), then **⬇️ Download everything in one ZIP file**. In the ZIP:
+- **Everything:** press **All good, go and download** (*desktop app:* **Export**), keep **PDF** and **Analysis results** ticked and press **⬇️ Download the chosen files** (*desktop app:* **Export to folder…** and choose the folder; **Collect everything in one ZIP file** gives a single file). You get:
   - `analysis/xrf_fundamental_parameters.csv`: each element with weight %, ±, anode, kV, angles and the column «Value type» = «estimate without standards, not validated»;
   - the PDF: on the page «Analysis: data check and hypotheses» there is the line «Estimate without standards, not validated (fundamental parameters)» with composition, conditions and warnings.
 

@@ -13,8 +13,8 @@ const JSZip=require(path.join(B.ROOT,'node_modules','jszip'));
 const T=Array.from({length:3000},(_,i)=>i*0.004);
 const chrom=h=>'Time (min),Signal (mAU)\n'+T.map(t=>t.toFixed(4)+','+(0.5+h*Math.exp(-0.5*Math.pow((t-5)/0.03,2))).toFixed(4)).join('\n');
 const FTIR_T=fs.readFileSync(path.join(B.ROOT,'test','corpus','c','64_ftir_T_fraction.txt')).toString('base64');
-const DOC='Relazione dell’affresco “Sala” – 5 € • 3‰ … m² cm³ ±°µ è č';
-const DOC_PDF='Relazione dell’affresco “Sala” – 5 € • 3‰ … m² cm³ ±°µ è c';   // č non è in WinAnsi: lettera senza accento (limite noto)
+const DOC='Relazione dell’affresco “Sala” – 5 € • 3‰ … m² cm³ ±°µ è';   // solo WinAnsi: i caratteri fuori WinAnsi (č, greco, CJK) caricano un font Unicode e hanno i loro test (i1-analisi-ui, i1-cjk-ui)
+const DOC_PDF=DOC;
 const toStr=b64=>Buffer.from(b64,'base64');
 
 function parseCsv(text, sep){ const rows=[]; let row=[], cell='', q=false; for (let i=0;i<text.length;i++){ const c=text[i];

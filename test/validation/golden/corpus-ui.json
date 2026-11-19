@@ -268,7 +268,7 @@
   "yMax": 1.01801,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo IR e valori %T/A): controlla che sia giusta in «Dati dello spettro».",
-   "warn: Il file contiene un secondo blocco di dati sullo stesso asse (1801 righe), probabilmente un altro canale: non è stato letto. Esportalo come file separato."
+   "warn: Il file contiene un secondo blocco di dati sullo stesso asse (1801 righe), per esempio un'altra scansione o un'altra misura: non è stato letto. Esportalo come file separato."
   ],
   "picchi": [
    [
@@ -294,7 +294,7 @@
   "xMax": 1086,
   "yMax": 8478,
   "avvisi": [
-   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007)."
   ],
   "picchi": [
    [
@@ -321,7 +321,7 @@
   "yMax": 8478,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (shift cm⁻¹ e conteggi): controlla che sia giusta in «Dati dello spettro».",
-   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007)."
   ],
   "picchi": [
    [
@@ -347,7 +347,7 @@
   "xMax": 1086,
   "yMax": 8.478,
   "avvisi": [
-   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 33% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007)."
   ],
   "picchi": [
    [
@@ -519,7 +519,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -551,7 +551,7 @@
   "yMax": 300.733,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (asse X in minuti): controlla che sia giusta in «Dati dello spettro».",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -582,7 +582,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -613,7 +613,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -644,7 +644,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -675,8 +675,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "info: Il file ha 4 colonne: Y è la colonna 2. La puoi cambiare in «Dati dello spettro».",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -708,7 +707,7 @@
   "yMax": 300.733,
   "avvisi": [
    "warn: 5 righe di numeri fuori dal blocco principale non sono state usate: sono in genere tabelle riassuntive. Controlla che non fossero altri punti.",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -739,7 +738,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -770,7 +769,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -801,7 +800,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -832,7 +831,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -863,7 +862,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -895,7 +894,7 @@
   "yMax": 300.733,
   "avvisi": [
    "warn: Tempo in secondi nell'intestazione: l'asse è stato convertito in minuti (÷ 60).",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -1010,7 +1009,7 @@
   "xMax": 9.1,
   "yMax": 300.733,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -1042,7 +1041,7 @@
   "yMax": 300.733,
   "avvisi": [
    "bad: 22 righe con numeri su 9001 non sono state lette: possono mancare punti dello spettro. Controlla il formato del file.",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -1075,7 +1074,7 @@
   "avvisi": [
    "warn: Le colonne erano invertite («mau» prima di «time (min)»): le ho scambiate.",
    "info: Tecnica dedotta solo dagli intervalli dei numeri (asse X in minuti): controlla che sia giusta in «Dati dello spettro».",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 14,00). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic."
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 14,00). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic."
   ],
   "picchi": [
    [
@@ -1310,7 +1309,7 @@
   "xMax": 9.026,
   "yMax": 150,
   "avvisi": [
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 9,04). Le percentuali di area non li contano. Abbassa «Quanti picchi cerco» o aggiungili con un clic.",
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 9,04). Le percentuali di area non lo contano. Abbassa «Quanti picchi cerco» o aggiungilo con un clic.",
    "bad: Il massimo è piatto su 75 punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.",
    "warn: Cima piatta in un picco (9,16): possono essere due composti non separati o il rivelatore saturo. L'area non è di un solo composto."
   ],
@@ -1383,7 +1382,7 @@
   "yMax": 0.8104,
   "avvisi": [
    "info: Tecnica dedotta solo dagli intervalli dei numeri (intervallo 150–1200 nm): controlla che sia giusta in «Dati dello spettro».",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 396,62). Abbassa «Quanti picchi cerco» o aggiungili con un clic.",
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 396,62). Abbassa «Quanti picchi cerco» o aggiungilo con un clic.",
    "bad: L'asse X ha un buco (399,00–461,00) senza dati. Il picco a 462 cade sul bordo del buco: la sua posizione e la sua area non sono affidabili.",
    "info: La derivata seconda mostra una banda nascosta (spalla) a 468: la deconvoluzione può separarla e misurarla."
   ],
@@ -1434,7 +1433,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -1493,7 +1492,7 @@
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (39 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
    "warn: S/N ≈ 26: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 58% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
    "info: Solo ≈3 punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine."
   ],
   "picchi": [
@@ -1551,7 +1550,7 @@
   "yMax": 5.5718,
   "avvisi": [
    "bad: Il file sembra usare un separatore delle migliaia (2201 valori, es. 12.355 o 12,355): i numeri possono essere stati letti male. Esporta dallo strumento senza separatore delle migliaia e ricarica.",
-   "warn: 1 segnali sopra il rumore non sono nell'elenco dei picchi perché più piccoli della soglia di sensibilità (per esempio a 101,21). Abbassa «Quanti picchi cerco» o aggiungili con un clic.",
+   "warn: Un segnale sopra il rumore non è nell'elenco dei picchi perché più piccolo della soglia di sensibilità (a 101,21). Abbassa «Quanti picchi cerco» o aggiungilo con un clic.",
    "info: Il passo dell'asse X non è regolare (dati uniti o filtrati?): smoothing e derivate lo assumono costante.",
    "warn: L'asse X ha 900 buchi (3,20–100,00, 100,00–101,00, 101,00–102,00) senza dati. Un picco dentro il buco non si vede."
   ],
@@ -1903,7 +1902,9 @@
   "n": 4096,
   "xMax": 335.057,
   "yMax": 3.30796,
-  "avvisi": [],
+  "avvisi": [
+   "warn: Le ali della riga (forma lorentziana) arrivano nelle finestre di base agli estremi: il doppio integrale risulta sottostimato (per una lorentziana di circa il 5%). Allarga la scansione oppure scegli zone di fondo lontane dalla riga in «Doppio integrale»."
+  ],
   "picchi": [
    [
     335.201,
@@ -1917,7 +1918,9 @@
   "n": 4096,
   "xMax": 335.057,
   "yMax": 3.30796,
-  "avvisi": [],
+  "avvisi": [
+   "warn: Le ali della riga (forma lorentziana) arrivano nelle finestre di base agli estremi: il doppio integrale risulta sottostimato (per una lorentziana di circa il 5%). Allarga la scansione oppure scegli zone di fondo lontane dalla riga in «Doppio integrale»."
+  ],
   "picchi": [
    [
     335.201,
@@ -1931,7 +1934,9 @@
   "n": 4096,
   "xMax": 3351.87,
   "yMax": 3.30709,
-  "avvisi": [],
+  "avvisi": [
+   "warn: Le ali della riga (forma lorentziana) arrivano nelle finestre di base agli estremi: il doppio integrale risulta sottostimato (per una lorentziana di circa il 2%). Allarga la scansione oppure scegli zone di fondo lontane dalla riga in «Doppio integrale»."
+  ],
   "picchi": [
    [
     3352.01,
@@ -2333,35 +2338,35 @@
  },
  "xrf/A10_bronzo_off-150eV.mca": {
   "instr": "xrf",
-  "n": 2048,
-  "xMax": 8.01251,
+  "n": 2041,
+  "xMax": 7.9,
   "yMax": 50376,
   "avvisi": [
-   "warn: La calibrazione in energia è spostata di circa 39 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
+   "warn: La calibrazione in energia è spostata di circa 151 eV (righe usate: Cu Kα, Cu Kβ, Pb Lα, Pb Lβ). Con questo errore alcuni nomi suggeriti possono essere sbagliati, per esempio l'argon dell'aria scambiato per palladio."
   ],
   "picchi": [
    [
-    3.41056,
+    3.28226,
     286.606,
     null
    ],
    [
-    8.00338,
+    7.89084,
     50244.1,
     null
    ],
    [
-    8.86362,
+    8.75404,
     7423.56,
     null
    ],
    [
-    10.5014,
+    10.3974,
     474.87,
     null
    ],
    [
-    12.5602,
+    12.4633,
     380.768,
     null
    ]
@@ -2560,7 +2565,7 @@
   "yMax": 7317.9,
   "avvisi": [
    "warn: S/N ≈ 22: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 67% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015)."
+   "warn: Il fondo pesa circa il 67% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007)."
   ],
   "picchi": [
    [
@@ -2577,7 +2582,7 @@
   "yMax": 86274.6,
   "avvisi": [
    "warn: S/N ≈ 42: va bene per riconoscere i picchi, al limite per quantificare (qui S/N = altezza/σ del rumore; il criterio S/N ≥ 10 dell'ICH Q2 usa il rumore picco-picco e corrisponde a circa 30 su questa scala).",
-   "warn: Il fondo pesa circa il 79% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base arPLS (Baek 2015).",
+   "warn: Il fondo pesa circa il 79% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base IModPoly (Zhao 2007).",
    "warn: 4 punti con un salto stretto e isolato: sembrano raggi cosmici. Possono diventare falsi picchi."
   ],
   "picchi": [

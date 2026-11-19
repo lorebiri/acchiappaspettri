@@ -23,6 +23,12 @@ Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Kl
 - Spessori: nessuna fluorescenza fra strati; lo strato deve essere uniforme.
 - Tutti i numeri di accuratezza vengono da **spettri simulati**, generati con lo stesso modello fisico anche quando perturbato. **Non c'è ancora una validazione su materiali certificati.**
 
+## Rimozione del fondo (dopo la 3.0.0-rc.5)
+- Metodi in `app/baseline-core.js`: ALS (Eilers & Boelens 2005), arPLS (Baek et al. 2015), ModPoly (Lieber & Mahadevan-Jansen 2003), IModPoly (Zhao et al. 2007; primo passo senza i punti sopra polinomio + DEV), SNIP (Ryan et al. 1988, finestra decrescente di Morháč 1997, con lisciatura preliminare), rolling ball (Kneen & Annegarn 1996: minimo, massimo e media mobile), punti di ancoraggio con PCHIP (Fritsch & Carlson 1980). Smoother di Whittaker con LDLᵀ pentadiagonale in O(n); polinomi in base di Čebyšëv con equazioni normali (Cholesky); minimi e massimi su finestra con code monotone in O(n).
+- Valori consigliati (`baseDefaults`): λ di ALS = 10⁵·(n/1000)⁴, p = 0,05; arPLS come la base automatica storica; polinomio di grado 6; SNIP e rolling ball dalla larghezza tipica dei picchi misurata su uno spettro prima appiattito con arPLS (sul dato grezzo la gobba della fluorescenza sembrerebbe il picco più grande).
+- arPLS e SNIP senza parametri danno gli stessi numeri delle versioni precedenti (test `fondo.test.js`).
+- Oltre 100 000 punti ALS e arPLS lavorano su medie a blocchi con λ/k⁴ e interpolano: 2 milioni di punti in circa un secondo.
+
 ## Limiti noti non corretti
 - XRF empirico (`xrfIntensities`): con tubo ignoto la finestra del Compton 16–21,5 keV può includere il Rayleigh del Rh; ±1 FWHM taglia parte del Compton.
 - Currie: «rilevato» sopra L_D è prudente; è dichiarato nel testo.

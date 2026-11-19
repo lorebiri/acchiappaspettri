@@ -12,17 +12,18 @@ const S=[['STD1',1],['STD2',2],['STD3',3],['INC',1.5]];
 const near=(x,v,tol,msg)=>assert.ok(x!=null && Math.abs(x-v)<tol, `${msg}: ${x}, atteso ${v}`);
 
 // nel browser: carica i file, imposta la banda e le concentrazioni, e per ogni canale legge la retta e le stime
-const PAGE=()=>{ window.R5={
+const PAGE=()=>{ const K=f=>f.path+(f.channel?'|'+chanOf(f):'');   // I3: i canali di uno stesso file hanno lo stesso percorso
+  window.R5={
   async load(L){ await addEntries(L.map(o=>({file:new File([o.data],o.name),path:o.path||o.name}))); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); },
-  setup(conc){ const c=mvCfg('hplc'); Object.assign(c,{a:4.8,b:5.2,meas:'area',model:'line'}); mvSave(); for (const [path,k] of conc){ const f=files.find(q=>q.path===path); if (!f) throw new Error('manca '+path); anSet(f,'conc',k); } },
+  setup(conc){ const c=mvCfg('hplc'); Object.assign(c,{a:4.8,b:5.2,meas:'area',model:'line'}); mvSave(); for (const [path,k] of conc){ const L=files.filter(q=>q.path===path); if (!L.length) throw new Error('manca '+path); L.forEach(f=>anSet(f,'conc',k)); } },
   async read(){ openTab('multi'); $('#secMulti').open=true; $('#mvInstr').value='hplc'; renderMulti(); await new Promise(q=>setTimeout(q,60));
     const sel=$('#mvChan'), box=!$('#mvChanBox').hidden, chans=box?[...sel.options].map(o=>o.value):[null], out=[];
     for (const ch of chans){ if (ch!=null){ sel.value=ch; sel.onchange({target:sel}); await new Promise(q=>setTimeout(q,60)); }
       const rows=mvTable('hplc')||[], cal=mvCalib(rows);
-      out.push({ch, rows:rows.map(o=>o.f.path), shown:rows.map(o=>dispTitle(o.f)), cal:!!(cal&&cal.predict), b:cal&&cal.b, pred:Object.fromEntries(cal&&cal.predict?rows.filter(o=>o.conc==null&&o.y!=null).map(o=>[o.f.path, cal.predict(o.y,1).x]):[]),
+      out.push({ch, rows:rows.map(o=>K(o.f)), shown:rows.map(o=>dispTitle(o.f)), cal:!!(cal&&cal.predict), b:cal&&cal.b, pred:Object.fromEntries(cal&&cal.predict?rows.filter(o=>o.conc==null&&o.y!=null).map(o=>[K(o.f), cal.predict(o.y,1).x]):[]),
         note:[...document.querySelectorAll('#mvOut .signote')].map(e=>e.textContent).join(' | '), sel:[...document.querySelectorAll('#mvOut select.chanin')].map(e=>files[+e.dataset.fi].path)}); }
-    return {box, chans, out, chanOf:Object.fromEntries(files.map(f=>[f.path, chanOf(f)]))}; },
-  assess(path){ const f=files.find(q=>q.path===path); return assess(f, viewOf(f)).map(o=>String(o.t).replace(/<[^>]+>/g,'')).join(' | '); },
+    return {box, chans, out, chanOf:Object.fromEntries(files.map(f=>[K(f), chanOf(f)]))}; },
+  assess(path){ const f=typeof path==='string'?files.find(q=>q.path===path):path; return assess(f, viewOf(f)).map(o=>String(o.t).replace(/<[^>]+>/g,'')).join(' | '); },
   async save(){ let out=null; const h=AcchProject.host, old=h.saveAs; h.saveAs=async b=>{ out=b; return {name:'r5.acchspettri', path:null}; }; await AcchProject.saveAs(); h.saveAs=old; let s=''; for (let i=0;i<out.length;i+=0x8000) s+=String.fromCharCode.apply(null,out.subarray(i,i+0x8000)); return btoa(s); },
   async open(b64){ await AcchProject.openBytes(Uint8Array.from(atob(b64),c=>c.charCodeAt(0)),'r5.acchspettri',null); document.querySelectorAll('dialog[open]').forEach(d=>d.close()); }
 }; window.R5_TOASTS=[]; const o=toast; toast=function(t){ R5_TOASTS.push(String(t)); return o.apply(this, arguments); }; };
@@ -43,57 +44,50 @@ test('R5 canali HPLC', async t=>{
       }
     });
 
-    await t.test('C1 (HPLC s4 a): due blocchi per file, il secondo più lungo; il canale è quello del blocco letto', async ()=>{
+    // I3: da qui i file con più canali danno un cromatogramma per canale (prima se ne leggeva uno e gli altri erano segnalati come non letti).
+    // Lo scopo dei casi resta lo stesso: ogni retta usa un solo canale e ogni incognito è stimato nel suo.
+    await t.test('C1 (HPLC s4 a): due blocchi per file, il secondo più lungo; I3: letti tutti e due, ognuno nel suo canale', async ()=>{
       const blk=(hdr,n,h)=>chrom(h, hdr+'\nTime (min),Value (mAU)', n);
       const L=S.map(([n,c])=>({name:n+'.csv', data:blk('DAD1 A, Sig=254,4 Ref=off', n==='INC'?2500:3000, 40*c)+'\n\n'+blk('DAD1 B, Sig=280,4 Ref=off', 3000, 40*c/3)}));
-      const r=await withPage(b, server, {}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.csv',1],['STD2.csv',2],['STD3.csv',3]]); const r=await R5.read(); r.assessInc=R5.assess('INC.csv'); r.assessStd=R5.assess('STD1.csv'); r.toasts=R5_TOASTS; return r; }, L));
-      assert.equal(r.chanOf['STD1.csv'], 'DAD1A 254 nm'); assert.equal(r.chanOf['INC.csv'], 'DAD1B 280 nm', 'INC.csv: si legge il blocco B, il canale deve essere B');
-      const A=byCh(r,/DAD1A/); assert.ok(A && A.cal, 'manca la retta del canale A'); assert.ok(!A.rows.includes('INC.csv'), 'il canale B dell\'incognito è finito nella retta del canale A');
-      assert.ok(!('INC.csv' in A.pred), 'stima dell\'incognito con la retta di un altro canale');
-      assert.match(r.assessInc, /canale «DAD1B 280 nm» \(blocco 2 di 2/); assert.match(r.assessStd, /canale «DAD1A 254 nm» \(blocco 1 di 2/);
-      const tt=r.toasts.join(' '); assert.match(tt, /ho letto il canale «DAD1A 254 nm»/); assert.doesNotMatch(tt, /secondo canale/);
-      // due file soli: «e un altro file», non «e altri 1 file»; in inglese «and 1 more file»
-      for (const lang of ['it','en']){ const t2=await withPage(b, server, {lang}, p=>p.evaluate(async L=>{ await R5.load(L); return R5_TOASTS.join(' '); }, [L[3],L[0]]));
-        if (lang==='it') assert.match(t2, /«INC\.csv» contiene più di un canale: ho letto il canale «DAD1B 280 nm».*\(e un altro file\)/);
-        else assert.match(t2, /«INC\.csv» contains more than one channel: I read channel «DAD1B 280 nm».*\(and 1 more file\)/); }
+      const r=await withPage(b, server, {}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.csv',1],['STD2.csv',2],['STD3.csv',3]]); const r=await R5.read(); r.assessInc=files.filter(f=>f.path==='INC.csv').map(f=>R5.assess(f)).join(' || '); r.toasts=R5_TOASTS; r.n=files.map(f=>f.xs.length); return r; }, L));
+      assert.equal(r.chanOf['STD1.csv|DAD1A 254 nm'], 'DAD1A 254 nm'); assert.equal(r.chanOf['INC.csv|DAD1B 280 nm'], 'DAD1B 280 nm'); assert.deepEqual(r.n, [3000,3000,3000,3000,3000,3000,2500,3000]);
+      assert.deepEqual(r.chans, ['DAD1A 254 nm','DAD1B 280 nm']);
+      const A=byCh(r,/DAD1A/), B=byCh(r,/DAD1B/); assert.ok(A.cal && B.cal, 'una retta per canale');
+      assert.ok(A.rows.every(x=>/DAD1A/.test(x)) && B.rows.every(x=>/DAD1B/.test(x)), 'canali mescolati');
+      near(A.pred['INC.csv|DAD1A 254 nm'], 1.5, 0.05, 'incognito, canale A (blocco corto)'); near(B.pred['INC.csv|DAD1B 280 nm'], 1.5, 0.05, 'incognito, canale B');
+      assert.doesNotMatch(r.assessInc, /non sono stati letti|blocco \d di \d/); assert.doesNotMatch(r.toasts.join(' '), /contiene più di un canale/);
     });
 
-    await t.test('C1 (HPLC s4 b, scientifico): file a 3 colonne, l\'incognito passa alla colonna B; il canale segue la colonna, anche dopo salvataggio e riapertura', async ()=>{
+    await t.test('C1 (HPLC s4 b, scientifico): file a 3 colonne; I3: le due colonne sono due canali, anche dopo salvataggio e riapertura', async ()=>{
       const L=S.map(([n,c])=>({name:n+'.csv', data:'Time (min),DAD1 A Sig=254 (mAU),DAD1 B Sig=280 (mAU)\n'+T(3000).map(t=>t.toFixed(4)+','+g(t,40*c).toFixed(4)+','+g(t,40*c/3).toFixed(4)).join('\n')}));
-      const r=await withPage(b, server, {}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.csv',1],['STD2.csv',2],['STD3.csv',3]]); const before=await R5.read();
-        const f=files.find(q=>q.name==='INC.csv'); cur=files.indexOf(f); refreshAll(); const sel=$('#ycolSel'); sel.value='2'; sel.onchange({target:sel});
-        const after=await R5.read(); return {before, after, b64:await R5.save()}; }, L));
-      assert.equal(r.before.box, false, 'prima: tutti nella colonna A, un solo canale'); near(r.before.out[0].pred['INC.csv'], 1.5, 0.05, 'incognito nella colonna A');
-      assert.equal(r.after.chanOf['INC.csv'], 'DAD1B 280 nm', 'il canale non segue la colonna Y scelta');
-      const A=byCh(r.after,/DAD1A/); assert.ok(A && A.cal && !A.rows.includes('INC.csv'), 'colonna B stimata con la retta della colonna A');
+      const r=await withPage(b, server, {}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.csv',1],['STD2.csv',2],['STD3.csv',3]]); return {r:await R5.read(), ycol:!$('#ycolBox').hidden, b64:await R5.save()}; }, L));
+      assert.deepEqual(r.r.chans, ['DAD1A 254 nm','DAD1B 280 nm']); assert.equal(r.ycol, false, 'la colonna Y non si sceglie più a mano: ogni colonna è il suo canale');
+      const A=byCh(r.r,/DAD1A/), B=byCh(r.r,/DAD1B/); assert.ok(!A.rows.some(x=>/DAD1B/.test(x)), 'colonna B nella retta della colonna A');
+      near(A.pred['INC.csv|DAD1A 254 nm'], 1.5, 0.05, 'colonna A'); near(B.pred['INC.csv|DAD1B 280 nm'], 1.5, 0.05, 'colonna B');
       const r2=await withPage(b, server, {}, p=>p.evaluate(async b64=>{ await R5.open(b64); return R5.read(); }, r.b64));
-      assert.equal(r2.chanOf['INC.csv'], 'DAD1B 280 nm', 'progetto riaperto: canale della colonna salvata'); assert.ok(!byCh(r2,/DAD1A/).rows.includes('INC.csv'));
+      assert.deepEqual(r2.chans, ['DAD1A 254 nm','DAD1B 280 nm'], 'progetto riaperto'); near(byCh(r2,/DAD1B/).pred['INC.csv|DAD1B 280 nm'], 1.5, 0.05, 'riaperto, colonna B'); assert.ok(!byCh(r2,/DAD1A/).rows.some(x=>/DAD1B/.test(x)));
     });
 
-    await t.test('QA (qa-canale-colonna): standard a 254 nm, incognito a 2 colonne 254/320; scelta la 320 l\'incognito non entra nella retta a 254', async ()=>{
+    await t.test('QA (qa-canale-colonna): standard a 254 nm, incognito a 2 colonne 254/320; I3: la 320 è un canale a sé e non entra nella retta a 254', async ()=>{
       const std=h=>'Time (min)\tmAU 254nm\n'+T(3000).map(t=>t.toFixed(4)+'\t'+g(t,h).toFixed(4)).join('\n');
       const inc=h=>'Time (min)\tmAU 254nm\tmAU 320nm\n'+T(3000).map(t=>{ const a=g(t,h); return t.toFixed(4)+'\t'+a.toFixed(4)+'\t'+(a/3).toFixed(4); }).join('\n');
       for (const desk of [true,false]){
-        const r=await withPage(b, server, {desk}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.txt',1],['STD2.txt',2],['STD3.txt',3]]); const before=await R5.read();
-          const f=files.find(q=>q.name==='INC.txt'); cur=files.indexOf(f); refreshAll(); const sel=$('#ycolSel'); sel.value='2'; sel.onchange({target:sel}); return {before, after:await R5.read()}; },
+        const r=await withPage(b, server, {desk}, p=>p.evaluate(async L=>{ await R5.load(L); R5.setup([['STD1.txt',1],['STD2.txt',2],['STD3.txt',3]]); return R5.read(); },
           [{name:'STD1.txt',data:std(40)},{name:'STD2.txt',data:std(80)},{name:'STD3.txt',data:std(120)},{name:'INC.txt',data:inc(60)}]));
-        near(r.before.out[0].pred['INC.txt'], 1.5, 0.05, 'prima, colonna 254');
-        assert.equal(r.after.chanOf['INC.txt'], '320 nm'); assert.ok(r.after.box, 'manca il menu dei canali');
-        const A=byCh(r.after,/254/); assert.ok(A.cal && !A.rows.includes('INC.txt'), (desk?'desktop':'web')+': la colonna 320 nm stimata con la retta a 254 nm');
+        assert.deepEqual(r.chans, ['254 nm','320 nm']); const A=byCh(r,/254/);
+        near(A.pred['INC.txt|254 nm'], 1.5, 0.05, 'incognito a 254'); assert.ok(A.cal && !A.rows.some(x=>/320/.test(x)), (desk?'desktop':'web')+': la colonna 320 nm stimata con la retta a 254 nm');
       }
     });
 
-    await t.test('UI/UX: file a 3 colonne 254/280/320, standard a 280 e campione a 254; poi il campione a 280', async ()=>{
+    await t.test('UI/UX: file a 3 colonne 254/280/320, standard a 280; I3: ogni colonna è un canale, il campione si stima solo a 280', async ()=>{
       const conc=[1,2,4,8,16], f3=(h)=>'Time (min)\tmAU 254nm\tmAU 280nm\tmAU 320nm\n'+Array.from({length:3001},(_,i)=>{ const t=20*i/3000, v=[1,0.4,0.1].map(k=>(0.5+0.02*rnd()+h*k*Math.exp(-0.5*((t-5)/0.08)**2)).toFixed(5)); return t.toFixed(5)+'\t'+v.join('\t'); }).join('\n');
       const L=conc.map((c,i)=>({name:`STD${i+1}.txt`, data:f3(10*c)})).concat([{name:'CAMP.txt', data:f3(50)}]);
       const r=await withPage(b, server, {}, p=>p.evaluate(async ([L,conc])=>{ await R5.load(L); const c=mvCfg('hplc'); Object.assign(c,{a:4.6,b:5.4,meas:'area',model:'line'}); mvSave();
-        files.forEach(f=>{ const m=/STD(\d)/.exec(f.name); if (m){ anSet(f,'conc',conc[+m[1]-1]); anSet(f,'ycol',2); applyYCol(f,2); persist(f); syncDerived(f); } });
-        const mixed=await R5.read(); const k=files.find(f=>f.name==='CAMP.txt'); anSet(k,'ycol',2); applyYCol(k,2); persist(k); syncDerived(k); return {mixed, same:await R5.read()}; }, [L,conc]));
-      assert.ok(r.mixed.box, 'canali misti senza menu né avviso'); assert.equal(r.mixed.chanOf['CAMP.txt'], '254 nm'); assert.equal(r.mixed.chanOf['STD1.txt'], '280 nm');
-      const m280=byCh(r.mixed,/280/); assert.ok(m280.cal && !m280.rows.includes('CAMP.txt'), 'campione a 254 nella retta a 280');
-      assert.equal(r.same.box, false); near(r.same.out[0].pred['CAMP.txt'], 5, 0.1, 'campione a 280 con gli standard a 280');
+        files.forEach(f=>{ const m=/STD(\d)/.exec(f.name); if (m && chanOf(f)==='280 nm'){ anSet(f,'conc',conc[+m[1]-1]); persist(f); } }); return R5.read(); }, [L,conc]));
+      assert.deepEqual(r.chans, ['254 nm','280 nm','320 nm']); const m280=byCh(r,/280/);
+      assert.ok(m280.cal && m280.rows.every(x=>/280/.test(x)), 'retta a 280 con altri canali'); near(m280.pred['CAMP.txt|280 nm'], 5, 0.1, 'campione a 280 con gli standard a 280');
+      assert.ok(!byCh(r,/254/).cal, 'a 254 non ci sono standard: nessuna retta');
     });
-
     await t.test('A1 (HPLC s4 c, UI/UX, architetto): file senza canale nominati e assegnabili a mano; «DAD signal» non è un canale; la scelta resta nel progetto', async ()=>{
       const L=[]; S.slice(0,3).forEach(([n,c])=>['A','B'].forEach(ch=>L.push({name:`${n}_DAD1${ch}.csv`, data:chrom(ch==='A'?40*c:40*c/3, `"Signal: DAD1 ${ch}, Sig=${ch==='A'?254:280},4 Ref=360,100"\nTime (min),Signal (mAU)`)})));
       L.push({name:'U1.csv', data:chrom(60,'Time (min),Signal (mAU)')}); L.push({name:'INCOGNITO.csv', data:chrom(60,'Time (min),DAD signal (mAU)')});

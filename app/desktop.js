@@ -6,20 +6,54 @@
   'use strict';
   const T=win.__TAURI__; if (!T) return;
   const inv=T.core.invoke, tr=s=>win.AcchI18n.lang==='en' ? win.AcchI18n.tr(s) : s, $=s=>document.querySelector(s);
-  const lsG=k=>{ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  const lsG=k=>{ try{ return JSON.parse(AcchHost.store.getItem(k)); }catch(e){ return null; } }, lsS=(k,v)=>{ try{ AcchHost.store.setItem(k,JSON.stringify(v)); }catch(e){} };
   const CHECK_EVERY=6*3600*1000, LATER_KEY='acch.update.later', RECENT='acch.recent';
   const PAGE='https://lorebiri.github.io/acchiappaspettri/';
   let info={os:'',kind:'',e2e:false}, curUpdate=null, closing=false, installing=false;
+  // la finestra parte nascosta (tauri.conf.json, visible:false) e si mostra dopo il primo disegno: niente finestra bianca all'avvio
+  requestAnimationFrame(()=>requestAnimationFrame(()=>inv('app_ready').catch(e=>console.warn(e))));   // il secondo frame arriva dopo il primo disegno
 
   async function writeTo(path, bytes){ await inv('write_file', bytes, {headers:{'x-acch-path':encodeURIComponent(path)}}); }
   async function readFrom(path){ const b=await inv('read_file',{path}); return new Uint8Array(b); }
-  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Non ho il permesso di usare questo percorso.'; if (/PermissionDenied/.test(s)) return 'Non ho il permesso di scrivere in questa cartella. Scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Non sono riuscito a leggere o scrivere il file.'; };
+  const errMsg=e=>{ const s=String(e||''); if (/not-allowed/.test(s)) return 'Accesso al percorso non consentito.'; if (/PermissionDenied/.test(s)) return 'Scrittura non consentita in questa cartella: scegline un\'altra.'; if (/NotFound/.test(s)) return 'Il file non esiste più.'; if (/unsafe-path/.test(s)) return 'Nome di file non valido.'; if (/path-too-long/.test(s)) return 'Percorso troppo lungo per Windows (oltre 260 caratteri): scegli una cartella più vicina alla radice del disco o un nome più corto.'; if (/StorageFull|QuotaExceeded/.test(s)) return 'Il disco è pieno.'; return 'Lettura o scrittura del file non riuscita.'; };
 
   /* salvataggi: finestra del sistema al posto del download del browser (che nelle webview non funziona) */
+  // risponde true solo se il file è stato scritto; false se annullato o non riuscito
   win.download=async function(blob, name){
-    try{ const ext=(/\.([\w]{1,10})$/.exec(name)||[])[1], p=await inv('pick_save',{title:tr('Salva file'), suggested:name, filterName:ext?ext.toUpperCase():null, extensions:ext?[ext]:null}); if (!p) return;
-      await writeTo(p.path, new Uint8Array(await blob.arrayBuffer())); win.toast('💾 Salvato: '+p.name); }
-    catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } };
+    try{ const ext=(/\.([\w]{1,10})$/.exec(name)||[])[1], p=await inv('pick_save',{title:tr('Salva file'), suggested:name, filterName:ext?ext.toUpperCase():null, extensions:ext?[ext]:null, kind:'export'}); if (!p) return false;
+      await writeTo(p.path, new Uint8Array(await blob.arrayBuffer())); win.toast('💾 Salvato: '+p.name); return true; }
+    catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); return false; } };
+  /* esportazione in una cartella: la sceglie il dialogo nativo (l'ultima usata per le esportazioni), poi un file alla volta
+     dentro la cartella concessa, con scrittura atomica nel lato nativo. Un file già presente non si sovrascrive senza chiedere */
+  const fmt=(t,...v)=>String(t).replace(/\{(\d+)\}/g,(_,i)=>v[+i]);
+  async function pickExportDir(){ const p=await inv('pick_export_dir',{title:tr('Scegli la cartella di destinazione'), kind:'export'}); return p||null; }
+  async function freeName(dir, rel, taken){ const m=/^(.*?)((?:\.[^./]{1,12})?)$/.exec(rel);
+    for (let n=2;n<10000;n++){ const c=m[1]+'_'+n+m[2]; if (taken.has(c)) continue; const ex=await inv('export_existing',{dir, rels:[c]}); if (!ex.length) return c; } throw 'write-failed: AlreadyExists'; }
+  // finestra di scelta della pagina con la casella «Applica a tutti i file rimanenti» (solo se ne restano)
+  async function askConflict(msg, rest){
+    const p=win.AcchUi.choice(msg, [['cancel','Annulla','ghost'],['skip','Salta','ghost'],['rename','Rinomina','ghost'],['replace','Sostituisci','primary']]);
+    let box=null; if (rest>0){ box=document.createElement('label'); box.className='check cfall'; box.innerHTML='<input type="checkbox"> <span></span>'; box.querySelector('span').textContent=fmt(tr('Applica a tutti i file rimanenti ({0})'), rest); $('#cfBtns').insertAdjacentElement('beforebegin', box); }
+    const v=await p, all=!!(box && box.querySelector('input').checked); if (box) box.parentNode.removeChild(box); return {v, all}; }
+  async function writeExport(target, list){
+    const rels=list.map(x=>x.rel), ex=new Set(await inv('export_existing',{dir:target.path, rels})), res={cancelled:false, dir:target.path, name:target.name, written:[], failed:[], skipped:[]};
+    // prima si decide per ogni file già presente (uno alla volta, oppure per tutti i rimanenti), poi si scrive: «Annulla» non lascia niente a metà
+    const conflicts=rels.filter(r=>ex.has(r)), mode=new Map(); let forAll=null;
+    for (let i=0;i<conflicts.length;i++){ const r=conflicts[i];
+      if (forAll){ mode.set(r, forAll); continue; }
+      const a=await askConflict(fmt(tr('Nella cartella «{0}» esiste già «{1}».'), target.name, r), conflicts.length-1-i);
+      if (a.v==='cancel'){ res.cancelled=true; return res; }
+      mode.set(r, a.v); if (a.all) forAll=a.v; }
+    const taken=new Set(rels), sep=target.path.includes('\\')?'\\':'/';
+    for (const it of list){ let rel=it.rel;
+      try{
+        if (ex.has(rel)){ const m=mode.get(rel); if (m==='skip'){ res.skipped.push(rel); continue; } if (m==='rename'){ rel=await freeName(target.path, rel, taken); taken.add(rel); } }
+        // Windows non apre percorsi oltre 260 caratteri: meglio dirlo prima che scrivere a metà
+        if (info.os==='windows' && (target.path.replace(/[\\/]+$/,'')+sep+rel).length>259) throw 'path-too-long';
+        await inv('write_in_dir', it.bytes, {headers:{'x-acch-dir':encodeURIComponent(target.path), 'x-acch-rel':encodeURIComponent(rel)}}); res.written.push(rel); }
+      catch(e){ console.error(e); res.failed.push({rel, msg:tr(errMsg(e))}); } }
+    return res; }
+  // «Mostra nella cartella»: Esplora risorse, Finder o il gestore dei file, con il primo file selezionato
+  async function revealExport(dir, rel){ try{ await inv('reveal_in_dir',{dir, rel:rel||null}); return true; }catch(e){ console.error(e); win.toast(tr('Impossibile aprire la cartella.')); return false; } }
   // i collegamenti ai file appena prodotti (blob) e quelli esterni non si possono seguire nella webview
   document.addEventListener('click', async e=>{ const a=e.target.closest && e.target.closest('a[href]'); if (!a) return; const h=a.getAttribute('href');
     if (a.hasAttribute('download') && h.startsWith('blob:')){ e.preventDefault(); const name=a.getAttribute('download'); try{ const r=await new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('GET',h); x.responseType='blob'; x.onload=()=>res(x.response); x.onerror=rej; x.send(); }); win.download(r, name); }catch(err){ win.toast('😕 '+tr(errMsg(err))); } return; }
@@ -31,21 +65,95 @@
   /* progetto */
   function remember(path, name){ if (!path) return; const L=(lsG(RECENT)||[]).filter(x=>x.path!==path); L.unshift({path,name}); lsS(RECENT,L.slice(0,8)); buildMenu(); }
   Object.assign(win.AcchProject.host={}, {
-    async saveAs(bytes, suggested){ const p=await inv('pick_save',{title:tr('Salva progetto con nome'), suggested, filterName:tr('Progetto di Acchiappaspettri'), extensions:['acchspettri']}); if (!p) return null; await writeTo(p.path, bytes); return {path:p.path, name:p.name}; },
+    async pickSave(suggested){ const p=await inv('pick_save',{title:tr('Salva progetto con nome'), suggested, filterName:tr('Progetto di Acchiappaspettri'), extensions:['acchspettri'], kind:'project'}); return p ? {path:p.path, name:p.name} : null; },
+    async writeTo(bytes, target){ await writeTo(target.path, bytes); return target; },
+    async saveAs(bytes, suggested){ const t=await this.pickSave(suggested); return t ? this.writeTo(bytes, t) : null; },
     async overwrite(bytes, path){ await writeTo(path, bytes); return {path, name:path.split(/[\\/]/).pop()}; },
     ask(message){ return win.AcchUi.choice(message, [['cancel','Annulla','ghost'],['discard','Non salvare','ghost'],['save','Salva','primary']]); },
     remember
   });
   win.AcchProject.onError=(m,e)=>{ if (!m && e) win.toast('😕 '+tr(errMsg(e))); };
   async function openPath(path, name){ try{ const bytes=await readFrom(path); return await win.AcchProject.openBytes(bytes, name||path.split(/[\\/]/).pop(), path); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); const L=(lsG(RECENT)||[]).filter(x=>x.path!==path); lsS(RECENT,L); buildMenu(); return false; } }
-  async function addSpectra(){ const L=await inv('pick_many',{title:tr('Aggiungi spettri')}); if (!L || !L.length) return; const ents=[]; for (const p of L){ try{ const b=await readFrom(p.path); ents.push({file:new File([b],p.name),path:p.name}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } if (ents.length) await win.addEntries(ents); }
-  async function openDialog(){ const p=await inv('pick_open',{title:tr('Apri progetto'), filterName:tr('Progetto di Acchiappaspettri'), extensions:['acchspettri','json']}); if (p) await openPath(p.path, p.name); }
+  /* scelta dei file: nel desktop nessun <input type=file> apre il selettore della webview (su Windows si riduce a una barra «Apri» e blocca la finestra).
+     Il clic va ai dialoghi nativi con i filtri di «accept»; i file scelti arrivano nell'input con DataTransfer ed evento change, così i gestori della pagina restano gli stessi. */
+  const PICK_KIND={inFiles:'spectra', inFolder:'spectra', refFiles:'spectra', openProjIn:'project', refImport:'settings', presetFile:'settings', imVis:'images', imIR:'images', imUV:'images'};
+  const IMG_EXT=['jpg','jpeg','png','tif','tiff','webp','bmp','heic','heif'];
+  function acceptExt(input){ const out=[]; for (const a of String(input.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean)){ if (a[0]==='.') out.push(a.slice(1)); else if (a==='image/*') out.push(...IMG_EXT); else if (a==='application/json') out.push('json'); else if (a==='application/zip') out.push('zip'); else return []; } return [...new Set(out)]; }
+  // file di una cartella che la pagina scarta comunque per nome: non si leggono (restano nell'elenco dei saltati, come online)
+  const wanted=name=>{ try{ return ACCEPT.test(name) || IMG_RE.test(name) || /\.(acchiappa\.json|acchspettri|acchplugin)$/i.test(name) || !!(win.AcchPlugins && win.AcchPlugins.handlesName(name)); }catch(e){ return true; } };   // I11: anche i pacchetti e i formati delle estensioni
+  /* I5: file trascinati o aperti dal sistema: per gli spettri un oggetto leggero al posto di File, con i byte ricevuti dal lato nativo
+     (nessuna copia in un Blob e nessuna seconda copia con arrayBuffer) e il percorso concesso, da cui il lettore Rust rilegge senza
+     passare i byte dalla pagina. Foto e progetti restano File veri: le foto vanno in un <img>, i progetti hanno i loro lettori */
+  const isSpectrum=n=>{ try{ return ACCEPT.test(n) && !IMG_RE.test(n) && !/\.(acchiappa\.json|acchspettri)$/i.test(n); }catch(e){ return false; } };
+  function lightFile(b, name, path){ const buf=b.byteOffset===0 && b.byteLength===b.buffer.byteLength ? b.buffer : b.slice().buffer;
+    return {name, size:buf.byteLength, type:'', lastModified:Date.now(), acchPath:path, arrayBuffer(){ return Promise.resolve(buf); }, text(){ return Promise.resolve(new TextDecoder().decode(buf)); }}; }
+  async function readPicked(L, onlyWanted, light){ const out=[]; for (const p of L){ try{ const skip=onlyWanted && !wanted(p.name), b=skip ? new Uint8Array(0) : await readFrom(p.path);
+      out.push({p, file:(light && !skip && isSpectrum(p.name)) ? lightFile(b, p.name, p.path) : new File([b], p.name)}); }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); } } return out; }
+  let picking=false;
+  async function nativePick(input){
+    if (picking) return; picking=true;   // un dialogo alla volta
+    try{
+      if (input.id==='openProjIn'){ await openDialog(); return; }   // così il progetto ricorda il suo percorso
+      const folder=input.hasAttribute('webkitdirectory'), kind=PICK_KIND[input.id]||'other', ext=acceptExt(input), filt=ext.length?{filterName:ext.map(e=>e.toUpperCase()).join(', '), extensions:ext}:{};
+      let L;
+      if (folder) L=await inv('pick_folder',{title:tr('Scegli cartella'), kind}); if (folder) tooBig(L);
+      else if (input.multiple) L=await inv('pick_many',Object.assign({title:tr('Scegli file'), kind},filt));
+      else { const p=await inv('pick_open',Object.assign({title:tr('Scegli file'), kind, filterName:'', extensions:[]},filt)); L=p?[p]:[]; }
+      if (!L || !L.length){ input.dispatchEvent(new Event('cancel')); return; }
+      const got=await readPicked(L, folder); if (!got.length){ input.dispatchEvent(new Event('cancel')); return; }
+      const dt=new DataTransfer(); got.forEach(g=>dt.items.add(g.file)); input.files=dt.files;
+      // percorso dentro la cartella, come webkitRelativePath della pagina online
+      if (folder) [...input.files].forEach((f,i)=>{ const rel=got[i] && got[i].p.rel; if (rel && f.webkitRelativePath!==rel) Object.defineProperty(f,'webkitRelativePath',{value:rel}); });
+      [...input.files].forEach((f,i)=>{ if (got[i] && got[i].p.path) Object.defineProperty(f,'acchPath',{value:got[i].p.path}); });   // I5: il lettore Rust rilegge dal percorso concesso
+      input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true}));
+    }catch(e){ console.error(e); win.toast('😕 '+tr(errMsg(e))); try{ input.dispatchEvent(new Event('cancel')); }catch(_){} }
+    finally{ picking=false; }
+  }
+  const isFileInput=t=>t instanceof HTMLInputElement && t.type==='file';
+  // clic dell'utente (anche su una <label>) e clic da programma: il selettore della webview non parte mai
+  document.addEventListener('click', e=>{ if (isFileInput(e.target)){ e.preventDefault(); nativePick(e.target); } }, true);
+  const oClick=HTMLInputElement.prototype.click, oShow=HTMLInputElement.prototype.showPicker;
+  HTMLInputElement.prototype.click=function(){ if (this.type==='file'){ nativePick(this); return; } return oClick.call(this); };
+  if (oShow) HTMLInputElement.prototype.showPicker=function(){ if (this.type==='file'){ nativePick(this); return; } return oShow.call(this); };
+  function addSpectra(){ return nativePick($('#inFiles')); }
+  async function openDialog(){ const p=await inv('pick_open',{title:tr('Apri progetto'), filterName:tr('Progetto di Acchiappaspettri'), extensions:['acchspettri','json'], kind:'project'}); if (p) await openPath(p.path, p.name); }
   let draining=Promise.resolve();   // i file aperti dal sistema si aprono uno alla volta
-  function drainPending(){ draining=draining.then(async ()=>{ while (win.AcchProject.busy) await new Promise(r=>setTimeout(r,200)); const L=await inv('take_pending_open'); for (const p of L) await openPath(p.path, p.name); }).catch(e=>console.error(e)); return draining; }
+  // file grezzi aperti dal sistema (doppio clic, «Apri con»): il percorso relativo conserva la cartella .D di ChemStation, così i canali dello stesso campione stanno sulla stessa riga
+  const relOf=path=>{ const P=String(path).split(/[\\/]/).filter(Boolean), n=P.pop()||path, d=P.pop(); return d && /\.d$/i.test(d) ? d+'/'+n : n; };
+  const isProj=n=>/\.(acchspettri|acchiappa\.json)$/i.test(n), isLib=n=>/\.(acchlib|json)$/i.test(n) && !isProj(n);
+  function drainPending(){ draining=draining.then(async ()=>{ while (win.AcchProject.busy) await new Promise(r=>setTimeout(r,200));
+      await new Promise(r=>setTimeout(r,150));   // «Apri con» su più file: su Windows e Linux arrivano uno per volta, si aspettano gli altri per mostrarli insieme
+      const L=await inv('take_pending_open'); for (const p of L.filter(p=>isProj(p.name))) await openPath(p.path, p.name);
+      // librerie dei picchi (I4): si importano, con l'unione voce per voce e i conflitti espliciti
+      for (const p of L.filter(p=>isLib(p.name))){ try{ const t=new TextDecoder().decode(await readFrom(p.path)); if (win.AcchLibUi) await win.AcchLibUi.importText(t, p.name); }catch(e){ console.error(e); win.toast(tr(errMsg(e))); } }
+      const raw=L.filter(p=>!isProj(p.name) && !isLib(p.name)); if (!raw.length) return;
+      // con un lavoro già aperto si chiede dove metterli (ROADMAP I3): nel progetto aperto o in uno nuovo
+      if (files.length && !win.ACCH_TEST){ const ans=await win.AcchUi.choice(tr('Aggiungere {0} file al progetto aperto «{1}»?').replace('{0}',raw.length).replace('{1}',win.AcchProject.displayName()), [['cancel','Annulla','ghost'],['new','Nuovo progetto','ghost'],['add','Aggiungi','primary']]);
+        if (ans==='cancel') return; if (ans==='new' && !await win.AcchProject.newProject()) return; }
+      { const got=await readPicked(raw.map(p=>({path:p.path, name:p.name, rel:relOf(p.path)})), false, true); if (got.length) await win.addEntries(got.map(g=>({file:g.file, path:g.p.rel}))); }
+    }).catch(e=>console.error(e)); return draining; }
   T.event.listen('acch-open-files', drainPending);
 
-  /* chiusura: mai perdere il lavoro senza chiedere */
-  async function requestQuit(){ if (closing) return; if (!await win.AcchProject.guard()) return; closing=true; await T.window.getCurrentWindow().destroy(); }
+  /* Analisi → «Preimpostazioni»: la sezione è in fondo a Esporta, chiusa; si apre e si porta in vista */
+  function openPresets(){ if (!files.length) return; win.go(3); const d=$('#presetFile') && $('#presetFile').closest('details'); if (!d) return; d.open=true;
+    requestAnimationFrame(()=>{ d.scrollIntoView({block:'start'}); const s=d.querySelector('summary'); if (s) s.focus({preventScroll:true}); }); }
+
+  /* trascinamento nativo (tauri.conf: dragDropEnabled): il lato nativo concede i percorsi trascinati, espande le cartelle
+     ed emette «acch-dropped» con {path, name, rel}; qui si leggono e vanno a addEntries come nel trascinamento della pagina */
+  const dropBox=()=>document.getElementById('drop');
+  try{ T.webview.getCurrentWebview().onDragDropEvent(ev=>{ const t=ev.payload && ev.payload.type, d=dropBox(); if (!d) return;
+    if (t==='enter' || t==='over') d.classList.add('over'); else d.classList.remove('over'); }); }catch(e){ console.warn(e); }
+  const MAX_TREE=20000, tooBig=L=>{ if (L && L.length>=MAX_TREE) win.toast('⚠️ '+tr('Cartella troppo grande: caricati i primi {0} file (limite di 20 000 file e 16 livelli di sottocartelle). Trascina le sottocartelle restanti una alla volta.').replace('{0}', L.length)); };
+  T.event.listen('acch-dropped', async ev=>{ const L=(ev && ev.payload)||[]; if (!L.length) return; tooBig(L);
+    try{ loader(true, 'Gino sta guardando cosa hai trascinato…', '', null); await frame();
+      const got=await readPicked(L, true, true);
+      const ents=got.map(g=>({file:g.file, path:g.p.rel||g.p.name}));
+      if (ents.length) await win.addEntries(ents); else loader(false); }
+    catch(e){ console.error(e); loader(false); win.toast('😕 '+tr(errMsg(e))); } });
+
+  /* chiusura: mai perdere il lavoro senza chiedere. Prima di chiudere si finiscono le scritture dell'archivio (al massimo 3 s) */
+  const flushStore=()=>Promise.race([Promise.resolve(win.AcchHost && win.AcchHost.store.flush()).catch(()=>{}), new Promise(r=>setTimeout(r,3000))]);
+  async function requestQuit(){ if (closing) return; if (!await win.AcchProject.guard()) return; closing=true; await flushStore(); await T.window.getCurrentWindow().destroy(); }
   T.window.getCurrentWindow().onCloseRequested(async ev=>{ if (closing) return; ev.preventDefault(); await requestQuit(); });
 
   /* titolo della finestra e barra degli strumenti */
@@ -57,15 +165,24 @@
     try{ const M=T.menu, item=(text,action,accelerator)=>M.MenuItem.new({text:tr(text),action,accelerator}), sep=()=>M.PredefinedMenuItem.new({item:'Separator'}), pre=(k,text)=>M.PredefinedMenuItem.new(text?{item:k,text:tr(text)}:{item:k});
       const recent=lsG(RECENT)||[], recItems=recent.length ? await Promise.all(recent.map(r=>M.MenuItem.new({text:r.name,action:()=>openPath(r.path,r.name)}))) : [await M.MenuItem.new({text:tr('Nessun progetto recente'),enabled:false})];
       const sub=async (text,items)=>M.Submenu.new({text:tr(text),items:await Promise.all(items)});
-      const file=await sub('File',[item('Nuovo progetto',()=>win.AcchProject.newProject(),'CmdOrCtrl+N'),item('Apri progetto…',openDialog,'CmdOrCtrl+O'),sub('Progetti recenti',recItems),sep(),item('Salva progetto',()=>win.AcchProject.save(),'CmdOrCtrl+S'),item('Salva progetto con nome…',()=>win.AcchProject.saveAs(),'CmdOrCtrl+Shift+S'),item('Chiudi progetto',()=>win.AcchProject.closeProject(),'CmdOrCtrl+W'),sep(),item('Aggiungi spettri…',addSpectra),item('Esporta (PDF, immagini, dati)…',()=>{ if (files.length) win.go(3); },'CmdOrCtrl+E'),...(info.os==='macos'?[]:[sep(),item('Esci',requestQuit,'CmdOrCtrl+Q')])]);
+      const file=await sub('File',[item('Nuovo progetto',()=>win.AcchProject.newProject(),'CmdOrCtrl+N'),item('Apri progetto…',openDialog,'CmdOrCtrl+O'),sub('Progetti recenti',recItems),sep(),item('Salva progetto',()=>win.AcchProject.save(),'CmdOrCtrl+S'),item('Salva progetto con nome…',()=>win.AcchProject.saveAs(),'CmdOrCtrl+Shift+S'),item('Chiudi progetto',()=>win.AcchProject.closeProject(),'CmdOrCtrl+W'),sep(),item('Aggiungi spettri…',addSpectra),item('Esporta (PDF, immagini, dati)…',()=>{ if (files.length) win.go(3); },'CmdOrCtrl+E'),sub('Esporta una voce',[item('Questo grafico come PNG…',()=>win.quickExport('png')),item('Questo grafico come SVG…',()=>win.quickExport('svg')),item('Picchi di questo spettro come CSV…',()=>win.quickExport('peaks')),item('Report PDF…',()=>win.quickExport('pdf'))]),...(info.os==='macos'?[]:[sep(),item('Esci',requestQuit,'CmdOrCtrl+Q')])]);
       const edit=await sub('Modifica',[pre('Undo','Annulla'),pre('Redo','Ripeti'),sep(),pre('Cut','Taglia'),pre('Copy','Copia'),pre('Paste','Incolla'),pre('SelectAll','Seleziona tutto')]);
       const Sh=win.AcchShell;
-      const view=await sub('Vista',[item('Grafico',()=>{ if (files.length){ Sh.showDoc('graph'); } },'CmdOrCtrl+1'),item('Foglio dati',()=>{ if (files.length) Sh.showDoc('sheet'); },'CmdOrCtrl+2'),item('Più campioni',()=>{ if (files.length) win.openTab('multi'); },'CmdOrCtrl+3'),sep(),item('Pannello del progetto',()=>Sh.togglePane('left')),item('Ispettore',()=>Sh.togglePane('right')),item('Risultati',()=>Sh.togglePane('bottom')),item('Solo il grafico',()=>Sh.toggleFocus(),'F11'),sep(),item('Mostra tutto',()=>{ const z=$('#zReset'); if (z) z.click(); }),item('Testo più grande o più piccolo',()=>$('#zoomTxt').click()),item('Barra dei comandi',()=>win.openCmd(),'CmdOrCtrl+K'),item('Impostazioni…',()=>win.AcchUi.openSettings(),'CmdOrCtrl+,')]);
+      // I6: tutte le scorciatoie nel menu. Quelle con Ctrl/Cmd sono acceleratori veri; i tasti singoli della pagina (che non devono
+      // scattare mentre si scrive) si mostrano accanto alla voce: su Windows nella colonna delle scorciatoie, altrove tra parentesi
+      const key=(text,k,action)=>M.MenuItem.new({text:tr(text)+(info.os==='windows'?'\t':'  (')+k+(info.os==='windows'?'':')'),action});
+      const g=fn=>()=>{ if (files.length){ Sh.showDoc('graph'); fn(); } };
+      const view=await sub('Vista',[item('Grafico',()=>{ if (files.length){ Sh.showDoc('graph'); } },'CmdOrCtrl+1'),item('Foglio dati',()=>{ if (files.length) Sh.showDoc('sheet'); },'CmdOrCtrl+2'),item('Più campioni',()=>{ if (files.length) win.openTab('multi'); },'CmdOrCtrl+3'),sep(),item('Pannello del progetto',()=>Sh.togglePane('left')),item('Ispettore',()=>Sh.togglePane('right')),item('Risultati',()=>Sh.togglePane('bottom')),item('Solo il grafico',()=>Sh.toggleFocus(),'F11'),sep(),
+        item('Ingrandisci il grafico',g(()=>win.zoomBy(0.6)),'CmdOrCtrl+='),item('Riduci il grafico',g(()=>win.zoomBy(1.6)),'CmdOrCtrl+-'),item('Mostra tutto',()=>{ const z=$('#zReset'); if (z) z.click(); },'CmdOrCtrl+0'),key('Ingrandisci una zona','R',g(()=>win.setLasso(!lassoOn))),key('Grafico grande','F',g(()=>win.setBig(!$('.preview').classList.contains('big')))),
+        key('Confronto / uno alla volta','C',g(()=>win.setView(viewMode==='cmp'?'one':'cmp'))),key('Spettro precedente','←',()=>{ const b=$('#prevF'); if (b) b.click(); }),key('Spettro successivo','→',()=>{ const b=$('#nextF'); if (b) b.click(); }),sep(),
+        item('Testo più grande o più piccolo',()=>$('#zoomTxt').click()),item('Barra dei comandi',()=>win.openCmd(),'CmdOrCtrl+K'),item('Impostazioni…',()=>win.AcchUi.openSettings(),'CmdOrCtrl+,')]);
+      const finestra=await sub('Finestra',[item('Stacca il grafico',()=>win.AcchViste && win.AcchViste.open('grafico'),'CmdOrCtrl+Shift+G'),item('Apri il confronto in una finestra',()=>win.AcchViste && win.AcchViste.open('confronto'),'CmdOrCtrl+Shift+M')]);
       const insp=t=>()=>{ if (files.length){ Sh.showDoc('graph'); win.openTab(t); } };
       const res=t=>()=>{ if (files.length){ Sh.showPane('bottom',true); Sh.showRes(t); } };
-      const ana=await sub('Analisi',[item('Picchi',insp('peaks')),item('Elaborazione (linea di base, smoothing, derivate)',insp('proc')),item('Dati dello spettro e strumento',insp('zone')),item('Riferimenti e miscele',insp('refs')),sep(),item('Deconvoluzione e parametri',insp('an')),item('Controllo del dato',res('qual')),item('Ipotesi',res('hyp')),sep(),item('Confronta gli spettri',()=>{ if (files.length) win.setView('cmp'); }),item('Taratura, PLS, PCA, composizione',()=>{ if (files.length) win.openTab('multi'); }),item('Composizione XRF e spessori',()=>{ if (files.length){ Sh.showDoc('graph'); win.openTab('an'); const d=$('#secCult'); if (d){ d.open=true; d.scrollIntoView&&d.scrollIntoView({block:'start'}); } } }),item('Parametri per tecnica',res('tech')),item('Preimpostazioni',()=>{ if (files.length) win.go(3); }),item('Falso colore da foto',()=>$('#imgBtn').click())]);
-      const help=await sub('Aiuto',[item('Giro guidato',()=>win.startTour&&win.startTour()),item('A cosa serve Acchiappaspettri',()=>$('#aboutBtn').click()),item('Scorciatoie da tastiera',()=>win.showKeys&&win.showKeys()),item('Novità di questa versione',()=>win.showNews&&win.showNews()),sep(),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Documentazione',()=>T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri#readme').catch(e=>console.warn(e))),sep(),item('Informazioni',()=>win.AcchUi.openSettings())]);
-      const items=[file,edit,view,ana,help];
+      const ana=await sub('Analisi',[key('Picchi','1',insp('peaks')),key('Elaborazione (linea di base, smoothing, derivate)','2',insp('proc')),key('Dati dello spettro e strumento','3',insp('zone')),key('Riferimenti e miscele','4',insp('refs')),sep(),key('Deconvoluzione e parametri','5',insp('an')),
+        key('Accetta i nomi suggeriti','A',g(()=>{ const b=$('#acceptAll'); if (b && viewMode==='one') b.click(); })),key('Deconvolvi la zona visibile','D',g(()=>{ const f=files[cur]; if (f && viewMode==='one') win.ctxFit(f, win.visibleRange(f)); })),key('Togli il picco selezionato',info.os==='macos'?'⌫':'Canc',g(()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Delete'})))),sep(),item('Controllo del dato',res('qual')),item('Ipotesi',res('hyp')),sep(),item('Confronta gli spettri',()=>{ if (files.length) win.setView('cmp'); }),item('Taratura, PLS, PCA, composizione',()=>{ if (files.length) win.openTab('multi'); }),item('Composizione XRF e spessori',()=>{ if (files.length){ Sh.showDoc('graph'); win.openTab('an'); const d=$('#secCult'); if (d){ d.open=true; d.scrollIntoView&&d.scrollIntoView({block:'start'}); } } }),item('Parametri per tecnica',res('tech')),item('Preimpostazioni',openPresets),item('Falso colore da foto',()=>$('#imgBtn').click())]);
+      const help=await sub('Aiuto',[item('Guida rapida',()=>win.startTour&&win.startTour()),item('A cosa serve Acchiappaspettri',()=>$('#aboutBtn').click()),key('Scorciatoie da tastiera','?',()=>win.showKeys&&win.showKeys()),item('Novità di questa versione',()=>win.showNews&&win.showNews()),sep(),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Documentazione',()=>T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri#readme').catch(e=>console.warn(e))),item('Sito di Acchiappaspettri',()=>T.opener.openUrl(PAGE+'scarica/').catch(e=>console.warn(e))),item('Segnala un problema…',()=>win.AcchSegnala&&win.AcchSegnala.open()),sep(),item('Informazioni',()=>win.AcchUi.openSettings())]);
+      const items=[file,edit,view,ana,finestra,help];
       if (info.os==='macos') items.unshift(await sub('Acchiappaspettri',[item('Informazioni su Acchiappaspettri',()=>win.AcchUi.openSettings()),item('Controlla aggiornamenti…',()=>checkUpdate(true)),item('Impostazioni…',()=>win.AcchUi.openSettings()),sep(),pre('Hide','Nascondi Acchiappaspettri'),pre('HideOthers','Nascondi gli altri'),sep(),item('Esci da Acchiappaspettri',requestQuit,'CmdOrCtrl+Q')]));
       const menu=await M.Menu.new({items}); await menu.setAsAppMenu(); win.AcchDesktop.menuBuilt=true;
     }catch(e){ console.error('menu',e); }
@@ -77,13 +194,13 @@
   const SETTINGS_KEY='acch.update.auto';
   const autoOn=()=>lsG(SETTINGS_KEY)!==false;
   const canSelfUpdate=()=>info.kind!=='system-package';
-  function showUpdate(version, notes, manual){ const d=$('#dlgUpdate'); $('#upCur').textContent=APP_VERSION_FULL(); $('#upNew').textContent=version; $('#upNotes').textContent=notes||''; $('#upMsg').textContent=manual?tr('Questa installazione (pacchetto di sistema) non si aggiorna da sola: scarica il nuovo pacchetto dalla pagina ufficiale.'):''; $('#upBarBox').hidden=true; $('#upGo').disabled=false; $('#upGo').textContent=tr(manual?'Apri la pagina di download':'Scarica e aggiorna'); $('#upLater').disabled=false;
+  function showUpdate(version, notes, manual){ const d=$('#dlgUpdate'); $('#upCur').textContent=APP_VERSION_FULL(); $('#upNew').textContent=version; $('#upNotes').textContent=notes||''; $('#upMsg').textContent=manual?tr('Questa installazione (pacchetto di sistema) non si aggiorna da sola: installa il nuovo pacchetto dalla pagina delle versioni.'):''; $('#upBarBox').hidden=true; $('#upGo').disabled=false; $('#upGo').textContent=tr(manual?'Apri la pagina delle versioni':'Installa l\'aggiornamento'); $('#upLater').disabled=false;
     $('#upGo').onclick=manual ? ()=>{ T.opener.openUrl('https://github.com/lorebiri/acchiappaspettri/releases/latest'); d.close(); } : installUpdate;
     $('#upLater').onclick=()=>{ lsS(LATER_KEY,{v:version,t:Date.now()}); d.close(); }; if (!d.open) d.showModal(); }
   async function checkUpdate(manual){ const msg=$('#stCheckMsg'), say=t=>{ if (msg) msg.textContent=tr(t); if (manual) win.toast(tr(t)); };
     if (manual) say('Controllo in corso…');
     try{ const up=await T.updater.check({timeout:20000}); curUpdate=up||null;
-      if (!up){ if (manual) say('Hai già l\'ultima versione.'); return null; }
+      if (!up){ if (manual) say('Nessun aggiornamento disponibile: la versione installata è la più recente.'); return null; }
       if (msg) msg.textContent='';
       const later=lsG(LATER_KEY); if (!manual && later && later.v===up.version && Date.now()-later.t<24*3600*1000) return up;
       showUpdate(up.version, up.body, !canSelfUpdate()); return up;
@@ -93,11 +210,36 @@
     // prima di riavviare: l'utente salva o decide
     $('#dlgUpdate').close(); const okSave=await win.AcchProject.guard(); $('#dlgUpdate').showModal(); if (!okSave) return;
     installing=true; win.AcchProject.lock(true);   // da qui il lavoro è salvato o volutamente scartato: niente modifiche fino al riavvio
-    go.disabled=true; lt.disabled=true; box.hidden=false; bar.style.width='0'; m.textContent=tr('Scarico l\'aggiornamento…'); let total=0, got=0;
+    go.disabled=true; lt.disabled=true; box.hidden=false; bar.style.width='0'; m.textContent=tr('Ricezione dell\'aggiornamento…'); let total=0, got=0;
     try{ await up.download(ev=>{ if (ev.event==='Started') total=ev.data.contentLength||0; else if (ev.event==='Progress'){ got+=ev.data.chunkLength; if (total) bar.style.width=Math.min(100,100*got/total)+'%'; } else if (ev.event==='Finished') bar.style.width='100%'; });
-      m.textContent=tr('Firma verificata. Installo e riavvio…'); await up.install(); closing=true; await T.process.relaunch();
+      m.textContent=tr('Firma verificata. Installo e riavvio…'); await flushStore(); await up.install(); closing=true; await T.process.relaunch();
     }catch(e){ console.error(e); m.textContent=tr('Aggiornamento non riuscito: il pacchetto non è stato installato e la versione attuale resta intatta. Riprova più tardi.'); go.disabled=false; lt.disabled=false; box.hidden=true; installing=false; win.AcchProject.lock(false); try{ curUpdate=await T.updater.check({timeout:20000}); }catch(_){} } }
-  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog };
+  win.AcchDesktop={ syncSettings(){ const c=$('#stAuto'); c.checked=autoOn(); c.onchange=()=>lsS(SETTINGS_KEY,c.checked); $('#stCheck').onclick=()=>checkUpdate(true); $('#stCheckMsg').textContent=''; $('#stSetSave').onclick=settingsSave; $('#stSetLoad').onclick=settingsLoad; $('#stSetMsg').textContent=''; }, checkUpdate, get info(){ return info; }, openPath, openDialog, addSpectra, pickExportDir, writeExport, revealExport };
+
+  /* I6: impostazioni su file. Oltre all'archivio dell'app (app/host.js) l'utente può copiarle in un suo file JSON e ricaricarle.
+     Si ricaricano solo le chiavi note, con il tipo giusto; prima di sostituire le attuali si chiede conferma */
+  const SET_FMT='acchiappaspettri-impostazioni';
+  async function settingsSave(){ const m=$('#stSetMsg'); try{
+      const body=JSON.stringify({format:SET_FMT, version:1, app:APP_VERSION_FULL(), saved:new Date().toISOString(), settings:S, presets:(typeof presets==='function' ? presets() : {})}, null, 1);
+      const p=await inv('pick_save',{title:tr('Salva le impostazioni'), suggested:'impostazioni-acchiappaspettri.json', filterName:'JSON', extensions:['json'], kind:'export'}); if (!p) return;
+      await writeTo(p.path, new TextEncoder().encode(body)); m.textContent=tr('Impostazioni salvate in')+' '+p.name+'.'; }
+    catch(e){ console.error(e); m.textContent=tr(errMsg(e)); } }
+  function cleanSettings(o){ const out={}; if (!o || typeof o!=='object') return out;
+    for (const k of Object.keys(DEFAULTS)){ if (!(k in o)) continue; const d=DEFAULTS[k], v=o[k];
+      if (d && typeof d==='object' && !Array.isArray(d)){ if (v && typeof v==='object' && !Array.isArray(v)){ out[k]={}; for (const q of Object.keys(v)) if (typeof v[q]===typeof (d[q]!==undefined ? d[q] : v[q]) && ['string','number','boolean'].includes(typeof v[q])) out[k][q]=v[q]; } }
+      else if (typeof v===typeof d && (typeof v!=='number' || isFinite(v))) out[k]=v; }
+    return out; }
+  async function settingsLoad(){ const m=$('#stSetMsg'); try{
+      const p=await inv('pick_open',{title:tr('Carica le impostazioni'), filterName:'JSON', extensions:['json'], kind:'export'}); if (!p) return;
+      let o=null; try{ o=JSON.parse(new TextDecoder().decode(await readFrom(p.path))); }catch(e){ o=null; }
+      if (!o || o.format!==SET_FMT){ m.textContent=tr('Questo file non contiene impostazioni di Acchiappaspettri.'); return; }
+      const c=cleanSettings(o.settings); if (!Object.keys(c).length){ m.textContent=tr('Nel file non ci sono impostazioni utilizzabili.'); return; }
+      if (!await win.uiConfirm(tr('Sostituire le impostazioni attuali con quelle del file?'))) return;
+      for (const k of Object.keys(c)) S[k]=(c[k] && typeof c[k]==='object') ? Object.assign({}, S[k], c[k]) : c[k];
+      saveS(); if (o.presets && typeof o.presets==='object' && typeof presets==='function'){ const P=presets(); for (const [n,v] of Object.entries(o.presets)) if (typeof n==='string' && n.length<=120 && v && typeof v==='object') P[n]=Object.assign(clone(DEFAULTS), cleanSettings(v)); lsSet(LS_PRESETS, P); }
+      if (win.AcchUi && win.AcchUi.setLang && S.lang) win.AcchUi.setLang(S.lang);
+      refreshAll(); m.textContent=tr('Impostazioni caricate da')+' '+p.name+'.'; }
+    catch(e){ console.error(e); m.textContent=tr(errMsg(e)); } }
 
   /* lingua al primo avvio: dall'installer di Windows se c'è, altrimenti si chiede */
   async function firstRunLanguage(){ if (win.AcchI18n.isChosen) return; const fromInstaller=await inv('installer_language').catch(()=>null);

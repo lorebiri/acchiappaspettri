@@ -7,7 +7,7 @@
   'use strict';
   if (!win.ACCH_SHELL) return;
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], el=(t,a,...k)=>{ const e=document.createElement(t); for (const n in (a||{})){ if (n==='on') continue; if (n==='html') e.innerHTML=a[n]; else e.setAttribute(n,a[n]); } if (a&&a.on) e.addEventListener('click',a.on); k.forEach(x=>x!=null&&e.append(x)); return e; };
-  const lsG=(k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?d:v; }catch(e){ return d; } }, lsS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  const lsG=(k,d)=>{ try{ const v=JSON.parse(AcchHost.store.getItem(k)); return v==null?d:v; }catch(e){ return d; } }, lsS=(k,v)=>{ try{ AcchHost.store.setItem(k,JSON.stringify(v)); }catch(e){} };
   const tr=s=>win.AcchI18n&&win.AcchI18n.lang==='en'?win.AcchI18n.tr(s):s;
 
   /* icone a tratto: griglia 16, colore del testo */
@@ -100,7 +100,7 @@
   function bindSplit(s,k,axis,sign){ const p=PANES[k]; s.addEventListener('pointerdown',e=>{ e.preventDefault(); s.setPointerCapture(e.pointerId); const c0=axis==='x'?e.clientX:e.clientY, v0=sizeOf(k); let v=v0;
       const mv=ev=>{ v=fitPane(k,Math.max(p.min,Math.min(p.max,v0+sign*((axis==='x'?ev.clientX:ev.clientY)-c0)))); root.style.setProperty(p.v,v+'px'); };
       const up=()=>{ s.removeEventListener('pointermove',mv); s.removeEventListener('pointerup',up); lsS('acch.sh.'+k,Math.round(v)); resize(); }; s.addEventListener('pointermove',mv); s.addEventListener('pointerup',up); });
-    s.addEventListener('dblclick',()=>{ try{ localStorage.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
+    s.addEventListener('dblclick',()=>{ try{ AcchHost.store.removeItem('acch.sh.'+k); }catch(e){} applySizes(); }); }
   win.addEventListener('resize',applySizes);
   win.document.querySelectorAll('.shrt').forEach(b=>{ const box=win.document.querySelector(`.shres[data-res="${b.dataset.res}"]`); if (box){ box.id=box.id||'shres-'+b.dataset.res; box.setAttribute('role','tabpanel'); b.setAttribute('aria-controls',box.id); } });
   { const fix=[['«Dati dello spettro»','«Dati»'],['«Ritocca lo spettro»','«Ritocca»']], walk=n=>{ for (const c of n.childNodes){ if (c.nodeType===3){ let v=c.nodeValue; for (const [a,b] of fix) v=v.split(a).join(b); if (v!==c.nodeValue) c.nodeValue=v; } else if (c.nodeType===1 && !/SCRIPT|STYLE/.test(c.tagName)) walk(c); } }; walk(win.document.body); new MutationObserver(ms=>{ for (const m of ms) for (const n of m.addedNodes) if (n.nodeType===1) walk(n); else if (n.nodeType===3) walk(n.parentNode||win.document.body); }).observe(win.document.body,{childList:true,subtree:true}); }
@@ -117,7 +117,8 @@
   /* ---- messaggi: nella barra di stato, con storia; gli avvisi restano anche visibili ---- */
   /* nella barra di stato i messaggi sono brevi e neutri: niente mascotte né esclamazioni */
   const TONE=[[/\s*Gino[^.!?]*[.!?]?/g,''],[/^(?:Preso|Acchiappat[oi])!?\s*/i,''],[/^Ultimo passo!\s*/i,''],[/pulsante blu/g,'pulsante principale'],[/blue button/g,'main button'],[/^Last step!\s*/i,''],[/^Tocca\b/,'Fai clic su'],[/^Tap\b/,'Click'],[/\btap\b/g,'click'],[/\btocca\b/g,'fai clic su'],[/^(\d+) spettr[io]!/,'$1 spettri caricati.'],[/^(\d+) spectra caught!/,'$1 spectra loaded.'],[/^Fatto!\s*/,''],[/^Done!\s*/,'']];
-  const cleanMsg=t=>{ let c=tr(String(t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
+  // prima i testi del desktop (app/testi-desktop.js), poi la rete di sicurezza TONE per ciò che non è ancora in tabella
+  const cleanMsg=t=>{ let c=tr(String(win.ACCH_DESK?win.ACCH_DESK.pro(t):t)).replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim(); for (const [re,b] of TONE) c=c.replace(re,b); c=c.replace(/\s+/g,' ').trim(); return c ? c[0].toUpperCase()+c.slice(1) : c; };
   win.addEventListener('acch-lang',()=>{ for (const r of log.children){ if (r._orig) r.lastChild.textContent=cleanMsg(r._orig); } if (log.firstChild&&log.firstChild._orig){ lastMsg=cleanMsg(log.firstChild._orig); stMsg.textContent=lastMsg; stMsg.title=lastMsg; } });
   const isWarnMsg=t=>/😕|⚠️|⛔/.test(String(t)) || /(^|\s)(non (è|riesco|si può|c'è|ho)|manca|impossibile|errore|cannot|can't|is not|not (a|an|found|possible|accepted))(?=\s|$|[.,:;!?])/i.test(String(t));
   let lastMsg='', lastWarn='', sticky=null, impErr=null; function pushMsg(t, forCur){ if (!t) return; const clean=cleanMsg(t); if (!clean||clean===lastMsg) return; lastMsg=clean;
@@ -135,11 +136,15 @@
   /* ---- dopo ogni disegno ---- */
   const oPrev=win.renderPreview; let aT=null;
   win.renderPreview=function(){ const r=oPrev.apply(this,arguments); updateStatus(); $$('#pkTable input[placeholder]').forEach(i=>{ const v=i.placeholder.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim(); if (v!==i.placeholder) i.placeholder=v; }); clearTimeout(aT); aT=setTimeout(()=>{ qualBadge(); refreshResults(); if (docNow==='sheet') renderSheet(); },80); return r; };
-  function qualBadge(){ const f=files[cur]; let n=0; if (f&&viewMode!=='cmp'){ try{ n=assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){} } RES.qual.b.dataset.n=n||''; }
+  // I5: con spettri grandi il conteggio arriva dal controllo fatto a pezzi (AcchEngine.prefetch): la finestra non si ferma
+  function qualBadge(){ const f=files[cur], set=n=>{ RES.qual.b.dataset.n=n||''; }, count=()=>{ try{ return assess(f,viewOf(f)).filter(o=>o.lv==='warn'||o.lv==='bad').length; }catch(e){ return 0; } };
+    if (!f || viewMode==='cmp') return set(0);
+    if (win.AcchEngine && win.AcchEngine.prefetch && f.xs && f.xs.length>=200000){ win.AcchEngine.prefetch(count).then(n=>{ if (files[cur]===f) set(n); }, ()=>{}); return; }
+    set(count()); }
   function saveState(){ const P=win.AcchProject; if (!P) return; const dirty=P.isDirty(), has=files.length>0; stSave.textContent=has?(dirty?tr('Modificato'):tr('Salvato')):''; stSave.classList.toggle('warn',dirty); const n=$('#shProject'); if (n){ n.textContent=(dirty?'● ':'')+P.displayName(); n.title=dirty?tr('Modificato'):''; } }
   function updateStatus(){ saveState(); const f=files[cur]; stIncl.textContent=files.length?tr('{0} di {1} inclusi').replace('{0}',files.filter(g=>g.include).length).replace('{1}',files.length):''; mark();
     if (!f||viewMode==='cmp'){ stChain.textContent=''; stRange.textContent=''; return; }
-    const it=f.instr; stChain.textContent=[NOME_IT[it]||it, S.conv[it]&&S.conv[it]!=='orig'?S.conv[it]:null, S.base[it]&&S.base[it]!=='none'?S.base[it]:null, +S.smooth[it]?'SG'+S.smooth[it]:null, +S.deriv[it]?'d'+S.deriv[it]:null, S.spike[it]?'despike':null].filter(Boolean).join(' · ');
+    const it=f.instr; stChain.textContent=[NOME_IT[it]||it, S.conv[it]&&S.conv[it]!=='orig'?S.conv[it]:null, (()=>{ const b=typeof win.pBase==='function'?win.pBase(f):S.base[it]; return b&&b!=='none'?b:null; })(), +S.smooth[it]?'SG'+S.smooth[it]:null, +S.deriv[it]?'d'+S.deriv[it]:null, S.spike[it]?'despike':null].filter(Boolean).join(' · ');
     const z=f._zoom; stRange.textContent=z?`${tr('Vista')}: ${fmtV(z[0])} – ${fmtV(z[1])} (${tr('solo anteprima')})`:''; }
   win.AcchProject.onChange(i=>{ stSave.textContent=i.hasFiles||i.path?(i.dirty?tr('Modificato'):(i.path?tr('Salvato'):tr('Non salvato'))):''; stSave.classList.toggle('warn',i.dirty); const n=$('#shProject'); if (n){ n.textContent=(i.dirty?'● ':'')+i.name; n.title=i.dirty?tr('Modificato'):''; n.title=i.path||''; } });
   $('#filesCard').prepend(el('div',{class:'shhead'},'Progetto'),el('div',{id:'shProject','data-noi18n':''}));
@@ -169,4 +174,6 @@
   win.AcchShell={showDoc,showRes,showPane,togglePane,toggleFocus,pushMsg,clearErr,get doc(){ return docNow; },act};
   /* avvio */
   applySizes(); mark(); showRes(lsG('acch.sh.res','peaks')); updateStatus(); pushMsg('Pronto');
+  // I6: il codice del grafico veloce si compila prima del primo spettro grande (a pezzi di pochi ms, dopo la prima schermata)
+  setTimeout(()=>{ if (win.AcchPlot) win.AcchPlot.warmup(); }, 1200);
 })(window);

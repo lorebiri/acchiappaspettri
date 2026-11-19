@@ -8,6 +8,10 @@
 |---|---|---|
 | `ftir-polietilene-sintetico/` | 6 spettri FTIR-ATR di polietilene, 0–1000 h · 6 ATR-FTIR spectra of polyethylene | carbonile che cresce con il tempo · carbonyl growing with time |
 | `hplc-taratura-sintetico/` | 6 standard, bianco, controllo, 2 incogniti · 6 standards, blank, control, 2 unknowns | standard 0,5–20 mg/L; controllo 8; A 3,7; B 12,4 mg/L |
+| `librerie/` | bozza di libreria HPLC dalla letteratura (non sintetica: valori pubblicati), importabile · draft HPLC library from the literature (published values, not synthetic), importable | Agilent 1260 · DAD, 220 nm; vedi `docs/SPEC-TARATURA-SALVATA.md` |
+| `plugins/punto-e-virgola/` | estensione d'esempio **dichiarativa**, senza codice (GPL-3.0-or-later), con un file SINTETICO a 2 canali; guida in `docs/ESTENSIONI.md` · **declarative** example extension, no code | `node scripts/plugin-pack.js examples/plugins/punto-e-virgola` |
+| `plugins/binario-wasm/` | estensione d'esempio **WebAssembly** (GPL-3.0-or-later) per il binario AWB1, con file SINTETICO · **WebAssembly** example extension | `node examples/plugins/binario-wasm/genera.js`, poi `plugin-pack.js` |
+| `plugins/colonne-fisse/` | estensione d'esempio **JavaScript** (GPL-3.0-or-later) per file a colonne fisse, con un file SINTETICO a 2 canali · **JavaScript** example extension for fixed-width files | `node scripts/plugin-pack.js examples/plugins/colonne-fisse` |
 | `xrf-lega-sintetico/` | 1 spettro XRF, tubo Rh 40 kV · 1 XRF spectrum, Rh tube 40 kV | Cu 84, Sn 8, Pb 5, Zn 2,5, As 0,5 % |
 
 Lo spettro XRF è calcolato con il modello a parametri fondamentali dello stesso programma: l'accordo con il risultato è quindi più stretto che su un oggetto reale.

@@ -9,7 +9,8 @@
     'not-a-project':'Questo file non è un progetto di Acchiappaspettri.', 'empty':'Il file del progetto è vuoto.', 'corrupted':'Il file del progetto è danneggiato e non si può aprire. I dati già caricati non sono stati toccati.',
     'integrity':'Il file del progetto è danneggiato: un dato non corrisponde alla sua impronta di controllo. Non l\'ho aperto per non mostrarti numeri sbagliati.', 'missing-entry':'Nel file del progetto manca una parte necessaria: è incompleto o danneggiato.',
     'invalid-json':'Il file del progetto contiene dati illeggibili.', 'invalid-schema':'Il file del progetto contiene dati non validi.', 'unsafe-path':'Il file contiene percorsi non sicuri e non è stato aperto.',
-    'too-large':'Il file del progetto è troppo grande per essere aperto in sicurezza.', 'newer-format':'Questo progetto è stato salvato con una versione più recente di Acchiappaspettri: aggiorna l\'applicazione per aprirlo.', 'no-migration':'Non riesco a convertire questo progetto dalla sua versione del formato.', 'no-zip':'Manca la libreria per leggere i progetti: ricarica la pagina.'
+    'too-large':'Il file del progetto è troppo grande per essere aperto in sicurezza.', 'newer-format':'Questo progetto è stato salvato con una versione più recente di Acchiappaspettri: aggiorna l\'applicazione per aprirlo.', 'no-migration':'Non riesco a convertire questo progetto dalla sua versione del formato.', 'no-zip':'Manca la libreria per leggere i progetti: ricarica la pagina.',
+    'no-spectra':'Il progetto è integro, ma nessuno dei suoi spettri si può leggere: i file originali che contiene non sono in un formato riconosciuto o hanno troppo pochi punti. I dati già caricati non sono stati toccati.'
   };
   let name=null, path=null, createdAt=null, baseline=null, busy=false, sigTimer=null;
   const listeners=[];
@@ -32,13 +33,16 @@
 
   function processedCsv(f){ try{ const P=processed(f), I=INSTR[f.instr]||{}, n=P.xs.length, lines=[`# ${f.name}`, `# x: ${I.xPdf||''}`, `# y: ${P.kind||''}`, '# dati come visualizzati, con le elaborazioni scelte; gli originali sono in data/', 'x,y'];
       for (let i=0;i<n;i++) lines.push(P.xs[i]+','+P.ys[i]); return lines.join('\r\n'); }catch(e){ return null; } }
-  let prevResults=[];
+  let prevResults=[], kept=[];
   async function build(){
     files.forEach(persist);
-    const missing=files.filter(f=>!f.raw), spectra=files.filter(f=>f.raw).map(f=>({name:f.name, path:f.path, bytes:new Uint8Array(f.raw), binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f)}));
+    // formato 2: canale (sampleKey, channel) e dati propri dello spettro (series, cube, iso) se il modulo che lo ha letto li ha messi su f
+    const missing=files.filter(f=>!f.raw && !(f.series||f.cube||f.iso)), spectra=files.filter(f=>f.raw || f.series || f.cube || f.iso).map(f=>({name:f.name, path:f.path, bytes:f.raw?new Uint8Array(f.raw):null, binary:!!f.rawBin, memory:memoryOf(f), processedCsv:processedCsv(f), sampleKey:f.sampleKey||null, channel:f.channel||null, origin:f.origin||undefined, plugin:f.plugin||undefined, series:f.series||undefined, cube:f.cube||undefined, iso:f.iso||undefined}));
+    // spettri del progetto aperto che questa versione non sa ricostruire (per esempio solo series/cube/iso): si riscrivono come erano
+    for (const r of kept) spectra.push(r);
     let results=[]; try{ results=analysisFiles().map(([n,t])=>({name:n, text:t})); }catch(e){ console.warn(e); }
     { const have=new Set(results.map(r=>r.name)); for (const r of prevResults){ const nm=r.name.startsWith('precedenti/')?r.name:'precedenti/'+r.name; if (!have.has(r.name) && !have.has(nm)){ have.add(nm); results.push({name:nm,text:r.text}); } } }   // calcolati in una sessione precedente e non rifatti: non si perdono
-    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, results}, win.JSZip);
+    const bytes=await F().encode({appVersion:APP_VERSION_FULL(), title:S.docTitle||'', createdAt:createdAt||undefined, state:stateObj(), spectra, libraries:api.libraries, results}, win.JSZip, win.AcchEngine && win.AcchEngine.zipper);   // desktop: ZIP in Rust (I7), altrimenti JSZip
     return {bytes, count:spectra.length, missing:missing.length};
   }
   /* dopo aver scritto, rilegge ciò che ha prodotto: un salvataggio non verificato non conta come salvato */
@@ -48,13 +52,16 @@
     saveAs(bytes, suggested){ return hostDefault.save(bytes, suggested); },
     ask(message){ if (win.ACCH_TEST) return Promise.resolve('discard'); return win.AcchUi.choice(message, [['cancel','Annulla','ghost'],['discard','Non salvare','ghost'],['save','Salva','primary']]); }
   };
-  const api={ host:hostDefault };
+  const api={ host:hostDefault, libraries:[] };
   async function doSave(as){
     if (!files.length){ toast('Non c\'è ancora niente da salvare: carica qualche spettro. 🙂'); return false; }
     if (busy){ toast('Sto già salvando il progetto: un momento…'); return false; } busy=true;
-    try{ loader(true,'Gino sta salvando il progetto…','',0.5); await frame();
-      const b=await buildVerified(), suggested=stampName();
-      const r=(as || !path || !api.host.overwrite) ? await api.host.saveAs(b.bytes, suggested) : await api.host.overwrite(b.bytes, path);
+    try{ const suggested=stampName(), pick=as || !path || !api.host.overwrite;
+      // desktop: prima si sceglie dove salvare, poi si prepara il file (l'attesa non compare dietro al dialogo, né se si annulla)
+      let target=null; if (pick && api.host.pickSave){ target=await api.host.pickSave(suggested); if (!target) return false; }
+      loader(true,'Gino sta salvando il progetto…','',0.5); await frame();
+      const b=await buildVerified();
+      const r=target ? await api.host.writeTo(b.bytes, target) : pick ? await api.host.saveAs(b.bytes, suggested) : await api.host.overwrite(b.bytes, path);
       if (!r) return false;   // annullato
       name=r.name||suggested; path=r.path||null; createdAt=createdAt||new Date().toISOString();
       busy=false; markSaved();
@@ -65,7 +72,9 @@
     }catch(e){ console.error(e); showErr(e); return false; }
     finally{ busy=false; loader(false); notify(); }
   }
-  function showErr(e){ api.lastError=e; const code=e && e.code, m=MSG[code]; toast('😕 '+(m || 'Non sono riuscito a completare l\'operazione sul progetto. I tuoi dati non sono stati toccati.')); if (api.onError) api.onError(m||null, e); }
+  function showErr(e){ api.lastError=e; const code=e && e.code;
+    // troppo grande: quanto è il limite e dove (online 1 GB, nell'app desktop 4 GB di dati decompressi)
+    const m = code==='too-large' && e.limitBytes ? (e.desktop ? `Il progetto contiene più di ${Math.round(e.limitBytes/1073741824)} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro.` : `Il progetto contiene più di ${Math.round(e.limitBytes/1073741824)} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.`) : MSG[code]; toast('😕 '+(m || 'Non sono riuscito a completare l\'operazione sul progetto. I tuoi dati non sono stati toccati.')); if (api.onError) api.onError(m||null, e); }
   /* true se si può proseguire: nessuna modifica, oppure salvate o volutamente scartate */
   async function guard(){ if (busy){ toast('Un momento: sto finendo un\'operazione sul progetto.'); return false; } if (!isDirty()) return true; const ans=await api.host.ask(`Il progetto «${displayName()}» ha modifiche non salvate. Vuoi salvarle?`); if (ans==='cancel') return false; if (ans==='save') return doSave(false); autosave.clear(); return true; }
   function clearAll(){
@@ -73,13 +82,17 @@
     files.length=0; cur=-1; curCmpId=null; COMPS.length=0; saveCmps();
     for (const k of Object.keys(MV)) delete MV[k]; mvSave();
     for (const k of Object.keys(MVres||{})) delete MVres[k]; for (const k of Object.keys(MVpls||{})) delete MVpls[k];
-    name=null; path=null; createdAt=null; prevResults=[];
+    name=null; path=null; createdAt=null; prevResults=[]; kept=[]; api.libraries=[];
   }
   /* copia di sicurezza in memoria: se l'apertura si interrompe dopo aver svuotato, il lavoro torna com'era */
-  function snapshot(){ return {files:files.slice(), cur, comps:COMPS.slice(), mv:JSON.parse(JSON.stringify(MV)), S:JSON.parse(JSON.stringify(S)), name, path, createdAt}; }
-  function restore(o){ files.length=0; files.push(...o.files); cur=o.cur; COMPS.length=0; COMPS.push(...o.comps); saveCmps(); for (const k of Object.keys(MV)) delete MV[k]; Object.assign(MV,o.mv); mvSave(); S=merge(DEFAULTS,o.S); saveS(); name=o.name; path=o.path; createdAt=o.createdAt; files.forEach(persist); syncControls(); resetCaches(); refreshAll(); }
+  function snapshot(){ return {files:files.slice(), cur, comps:COMPS.slice(), mv:JSON.parse(JSON.stringify(MV)), S:JSON.parse(JSON.stringify(S)), name, path, createdAt, kept:kept.slice(), libraries:api.libraries.slice()}; }
+  function restore(o){ files.length=0; files.push(...o.files); cur=o.cur; COMPS.length=0; COMPS.push(...o.comps); saveCmps(); for (const k of Object.keys(MV)) delete MV[k]; Object.assign(MV,o.mv); mvSave(); S=merge(DEFAULTS,o.S); saveS(); name=o.name; path=o.path; createdAt=o.createdAt; kept=o.kept||[]; api.libraries=o.libraries||[]; files.forEach(persist); syncControls(); resetCaches(); refreshAll(); }
   async function newProject(){ if (!await guard()) return false; clearAll(); S.docTitle=DEFAULTS.docTitle; saveS(); busy=true; refreshAll(); go(1); busy=false; markSaved(); return true; }
   const closeProject=newProject;
+  /* i rimandi «@id» dei picchi seguono la voce della libreria anche quando l'unione le ha dato un altro id (libMerge, map) */
+  function remapLabels(list, map){ if (!map || !Object.keys(map).length) return; const own=Object.prototype.hasOwnProperty;
+    for (const s of list){ const L=s && s.memory && s.memory.labels; if (!L || typeof L!=='object') continue;
+      for (const k of Object.keys(L)){ const v=L[k]; if (typeof v==='string' && v[0]==='@' && own.call(map, v.slice(1))) L[k]='@'+map[v.slice(1)]; } } }
   /* apre byte già letti. Prima verifica tutto: se il file non è valido, il lavoro corrente resta com'è */
   async function openBytes(bytes, fileName, filePath){
     let P; const legacy=/\.json$/i.test(fileName||'') || (bytes[0]===0x7b);
@@ -92,16 +105,32 @@
       const st=P.state||{}, okId=x=>typeof x==='string' && x.length<200, hasI=i=>typeof i==='string' && Object.prototype.hasOwnProperty.call(INSTR,i);
       if (st.S){ S=merge(DEFAULTS, st.S); saveS(); }
       if (st.MV && typeof st.MV==='object'){ for (const k of Object.keys(st.MV)) if (hasI(k) && st.MV[k] && typeof st.MV[k]==='object') MV[k]=st.MV[k]; mvSave(); }
-      if (Array.isArray(st.LIB)){ const L=st.LIB.filter(e=>e && okId(e.id) && hasI(e.i)); if (typeof win.libMerge==='function'){ const r=win.libMerge(L); if (r.rinominate && typeof win.toast==='function') win.toast('⚠️ '+win.libMergeMsg(r)); } else { const have=new Set(LIB.map(e=>e.id)); L.filter(e=>!have.has(e.id) && typeof e.n==='string' && isFinite(+e.a) && isFinite(+e.b)).forEach(e=>LIB.push(e)); if (typeof saveLib==='function') saveLib(); } }
+      if (Array.isArray(st.LIB)){ const L=st.LIB.filter(e=>e && okId(e.id) && hasI(e.i)); if (typeof win.libMerge==='function'){ const r=win.libMerge(L); if (r.rinominate && typeof win.toast==='function') win.toast('⚠️ '+win.libMergeMsg(r)); remapLabels(P.spectra, r.map); } else { const have=new Set(LIB.map(e=>e.id)); L.filter(e=>!have.has(e.id) && typeof e.n==='string' && isFinite(+e.a) && isFinite(+e.b)).forEach(e=>LIB.push(e)); if (typeof saveLib==='function') saveLib(); } }
       if (Array.isArray(st.REFS)){ const have=new Set(REFS.map(r=>r.id)); const add=st.REFS.filter(r=>r && okId(r.id) && !have.has(r.id) && hasI(r.i) && typeof r.n==='string' && Array.isArray(r.x) && Array.isArray(r.y) && r.x.length===r.y.length && r.x.length<=200000 && r.x.every(Number.isFinite) && r.y.every(Number.isFinite)); if (add.length){ REFS=REFS.concat(add); saveRefs(); } }
       if (Array.isArray(st.COMPS)) st.COMPS.filter(c=>c && okId(c.id) && Array.isArray(c.keys) && c.keys.every(k=>typeof k==='string')).forEach(c=>COMPS.push(Object.assign({mode:'stack',gap:1.1,out:true},c))); saveCmps();
       // la memoria di ogni spettro torna prima di ricaricarlo; va riconosciuta anche se la chiave interna dipende dal numero di punti
-      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>win.ACCH_PENDING_MEM.set(s.path, s.memory||null));
-      const ents=P.spectra.map(s=>({file:new File([s.bytes], s.name), path:s.path}));
+      // formato 2: la memoria si cerca per percorso, e per percorso + sampleKey per i canali di un file multicanale
+      // I3: chiave percorso + campione + canale (AcchChannels.memKey); restano anche le chiavi della I2 (percorso + sampleKey) e il solo percorso
+      const mk=(p,k,c)=>win.AcchChannels ? win.AcchChannels.memKey(p,k,c) : p;
+      win.ACCH_PENDING_MEM=new Map(); P.spectra.forEach(s=>{ if (!s.bytes) return; const M=win.ACCH_PENDING_MEM; M.set(mk(s.path, s.sampleKey, s.channel), s.memory||null); if (s.sampleKey!=null && !M.has(s.path+'\u0000'+s.sampleKey)) M.set(s.path+'\u0000'+s.sampleKey, s.memory||null); if (!M.has(s.path)) M.set(s.path, s.memory||null); });
+      // un file si rilegge una volta sola anche se ne derivano più spettri (canali): stessa sorgente e stesso percorso; «want» dice quali canali c'erano
+      // I11: un file letto da un'estensione si rilegge solo con quella; se manca o è disattivata non passa dal lettore dell'app
+      // (darebbe altri numeri) e i suoi byte restano nel progetto così come sono (plMissing → kept)
+      const PL=win.AcchPlugins, plMissing=[], plEnts=new Map();
+      const seen=new Map(), ents=[]; for (const s of P.spectra){ if (!s.bytes) continue; if (s.plugin && !(PL && PL.available(s.plugin.id))){ plMissing.push(s); continue; } const k=(s.source||'')+'\u0000'+s.path; let e=seen.get(k); if (!e){ e={file:new File([s.bytes], s.name), path:s.path, want:[]}; if (s.plugin) e.plugin=s.plugin.id; seen.set(k,e); ents.push(e); } e.want.push({sampleKey:s.sampleKey==null?null:s.sampleKey, channel:s.channel==null?null:s.channel}); if (s.plugin){ if (!plEnts.has(e)) plEnts.set(e,[]); plEnts.get(e).push(s); } }
+      const keepRec=s=>({name:s.name, path:s.path, bytes:s.bytes||null, binary:!!s.binary, memory:s.memory||null, sampleKey:s.sampleKey||null, channel:s.channel||null, origin:s.origin||undefined, plugin:s.plugin||undefined, series:s.series, cube:s.cube, iso:s.iso});
+      // spettri senza file originale (solo series, cube o iso): li ricostruisce il modulo che li conosce, altrimenti si conservano intatti
+      kept=P.spectra.filter(s=>!s.bytes).filter(s=>!(typeof api.restoreDerived==='function' && api.restoreDerived(s))).map(keepRec).concat(plMissing.map(keepRec));
+      api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
-      if (ents.length && !files.length) throw new (F().ProjectError)('corrupted','nessuno spettro leggibile');
-      const lost=ents.length-files.length;
+      // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
+      const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced);
+      // I11: un file di un'estensione che non si rilegge più (estensione cambiata o che dà errore) non si perde: torna nel progetto com'era
+      const plLost=[]; for (const [e,L] of plEnts) if (!got.has(e.path)) for (const s of L){ kept.push(keepRec(s)); plLost.push(s); }
+      // contenitore valido (impronte verificate) ma nessuno spettro leggibile: non è un file danneggiato, e il messaggio lo dice
+      if (ents.length && !files.length && !kept.length) throw new (F().ProjectError)('no-spectra', ents.map(e=>e.path).join(', '));
+      const lost=ents.filter(e=>!got.has(e.path) && !plEnts.has(e)).length, lostCh=last.missing||0;
       const k=Number.isInteger(st.curIndex)?st.curIndex: (st.curKey ? files.findIndex(f=>fkey(f)===st.curKey) : 0);
       if (files.length) cur=Math.max(0, Math.min(files.length-1, k));
       syncControls(); resetCaches(); refreshAll(); if (files.length) go(2);
@@ -109,7 +138,9 @@
       if (legacy){ name=null; path=null; } else { name=fileName||null; path=filePath||null; }
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
-      if (lost>0) toast(`⚠️ ${lost} file del progetto non sono stati riconosciuti.`);
+      if (lost>0) toast(lost===1 ? '⚠️ Un file del progetto non è stato riconosciuto.' : `⚠️ ${lost} file del progetto non sono stati riconosciuti.`);   // singolare: prima «1 file … non sono stati»
+      if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
+      pluginNotes(plMissing, plLost, new Map([...plEnts].map(([e,L])=>[e.path, L[0].plugin.version])));
       if (P.warnings.includes('newer-format-compatible')) toast('⚠️ Progetto salvato con una versione più recente: alcune informazioni potrebbero non essere mostrate. Aggiorna l\'applicazione.');
       if (legacy) toast('Progetto nel vecchio formato: con «Salva» diventerà un file .acchspettri; l\'originale resta intatto.');
       if (api.host.remember && path) api.host.remember(path, name);
@@ -117,6 +148,14 @@
     }catch(e){ console.error(e); win.ACCH_PENDING_MEM=null; try{ restore(before); }catch(e2){ console.error(e2); } showErr(e); return false; }
     finally{ win.ACCH_PENDING_MEM=null; busy=false; loader(false); notify(); }
   }
+  /* I11: spettri di estensioni mancanti o che non rileggono il file: avviso con nome e versione; i byte restano nel progetto */
+  function pluginNotes(missing, failed, savedVer){ const who=s=>'«'+(s.plugin.name||s.plugin.id)+'» '+s.plugin.version+' ('+s.plugin.id+')';
+    const names=L=>[...new Set(L.map(who))].join(', ');
+    api.pluginMissing=missing.map(s=>({path:s.path, plugin:s.plugin})); api.pluginFailed=failed.map(s=>({path:s.path, plugin:s.plugin}));
+    if (missing.length) win.toast(`⚠️ Spettri letti da un'estensione non installata o disattivata: ${missing.length} (${names(missing)}). Non si vedono, ma i file originali restano nel progetto e si salvano con lui. Installa o attiva l'estensione e riapri il progetto.`);
+    if (failed.length) win.toast(`⚠️ L'estensione ${names(failed)} non ha riletto ${failed.length} spettri salvati: i file originali restano nel progetto.`);
+    const changed=files.filter(f=>f.plugin && savedVer.has(f.path) && savedVer.get(f.path)!==f.plugin.version); changed.forEach(f=>{ f._plSaved=savedVer.get(f.path); });
+    if (changed.length) win.toast(`⚠️ File riletti con un'altra versione dell'estensione «${changed[0].plugin.name}»: ${changed.length} (salvati con la ${changed[0]._plSaved}, ora la ${changed[0].plugin.version}). Controlla i dati.`); }
   function init(){
     if (win.indexedDB && !win.ACCH_TEST){ let lastPut=null, nextAt=0; win.setInterval(()=>{ if (busy || !files.length || !isDirty() || Date.now()<nextAt) return; const q=sig(); if (q===lastPut) return; lastPut=q; const t0=Date.now(); autosave.put().catch(e=>console.error(e)).finally(()=>{ nextAt=Date.now()+20*(Date.now()-t0); }); },30000); win.setTimeout(()=>{ offerRecovery().catch(e=>console.error(e)); },800); }
     const hook=n=>{ const o=win[n]; if (typeof o==='function') win[n]=function(){ const r=o.apply(this,arguments); touch(); return r; }; };
@@ -126,6 +165,8 @@
     win.addEventListener('beforeunload', e=>{ if (api.host===hostDefault && isDirty()){ e.preventDefault(); e.returnValue=''; } });
   }
   Object.assign(api,{prevResults:()=>prevResults, autosave, offerRecovery, init, isDirty, guard, newProject, closeProject, save:()=>doSave(false), saveAs:()=>doSave(true), openBytes, async openFile(file){ return openBytes(new Uint8Array(await file.arrayBuffer()), file.name, null); }, onChange(fn){ listeners.push(fn); }, displayName, _build:build, _sig:sig, MSG});
+  // esportazione con la voce «Progetto»: stessi byte verificati del salvataggio, senza cambiare nome, percorso o stato di «salvato»
+  api.buildBytes=async ()=>(await buildVerified()).bytes; api.stampName=stampName;
   api.lock=v=>{ busy=!!v; };
   Object.defineProperty(api,'path',{get:()=>path}); Object.defineProperty(api,'busy',{get:()=>busy});
   win.AcchProject=api;

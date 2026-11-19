@@ -1,0 +1,9 @@
+Kaomi for Autosorb
+Pulse chemisorption
+Col A;Col B
+1;0
+2;300
+3;900
+4;1200
+5;1201
+6;1200

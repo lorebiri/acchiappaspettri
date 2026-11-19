@@ -3,11 +3,20 @@
 version = 3
 
 [[package]]
-name = "acchiappaspettri"
-version = "2.2.0"
+name = "acch-core"
+version = "3.0.0"
 dependencies = [
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
+name = "acchiappaspettri"
+version = "3.0.0"
+dependencies = [
+ "acch-core",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

@@ -1,0 +1,10 @@
+Strumento: Spettrometro SINTETICO X-100
+Campione: Standard SINTETICO
+Data: 2026-11-14
+Lunghezza d'onda (nm);Assorbanza A;Assorbanza B
+400,0;0,1000;0,0200
+410,0;0,2500;0,0400
+420,0;0,4000;0,0900
+430,0;0,3000;0,1600
+440,0;0,1500;0,2500
+450,0;0,0500;0,1800

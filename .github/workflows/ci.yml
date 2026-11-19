@@ -5,8 +5,9 @@ on:
     branches: ["**"]
     tags-ignore: ["**"]
     # i soli documenti non fanno girare la CI, tranne CHANGELOG.md (lo leggono check-version.js e la pubblicazione)
-    # e THIRD-PARTY-NOTICES.md (va dentro i pacchetti, che check-packages.js controlla)
-    paths: ["**", "!**.md", "!docs/**", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md"]
+    # e THIRD-PARTY-NOTICES.md (va dentro i pacchetti, che check-packages.js controlla); il sito di presentazione (scarica/)
+    # ha il suo workflow, sito.yml (i suoi test unitari girano comunque qui con npm test quando cambia il resto)
+    paths: ["**", "!**.md", "!docs/**", "!scarica/**", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md"]
   pull_request:
   workflow_dispatch:
   workflow_call:
@@ -89,27 +90,39 @@ jobs:
       - run: node scripts/prepare-desktop.js
       - name: Test del codice nativo (non su Windows, tauri#13419; lì vale il collaudo dentro l'app)
         if: matrix.name != 'windows'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --workspace --manifest-path src-tauri/Cargo.toml
         shell: bash
+      - name: Test incrociati del motore, Rust contro JS per lettura, picchi e aree, ZIP (ACCH_DUAL=1, acch-core-cli sul corpus)
+        run: node --test test/unit/dual.test.js test/unit/dual-calc.test.js test/unit/dual-zip.test.js
+        shell: bash
+        env: { ACCH_DUAL: "1" }
       - name: Compila l'app di collaudo
         shell: bash
         run: |
           ACCH_E2E_PAGE=1 npx tauri build --debug --features e2e --no-bundle
       - name: Collaudo dentro l'app vera (Linux)
         if: matrix.name == 'linux'
-        run: xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+        run: |
+          xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+          xvfb-run -a node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
       - name: Collaudo dentro l'app vera (Windows)
         if: matrix.name == 'windows'
-        run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
+        run: |
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe full
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri.exe apri-grezzi
       - name: Collaudo dentro l'app vera (macOS)
         if: startsWith(matrix.name, 'macos')
-        run: node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+        run: |
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri full
+          node test/e2e/run-e2e.js src-tauri/target/debug/acchiappaspettri apri-grezzi
       - name: Costruisce gli installer veri e li controlla
         shell: bash
         # niente chiave di firma qui: la CI gira su ogni ramo e non pubblica; i pacchetti firmati si costruiscono e controllano in release.yml
         # nuovi tentativi solo per gli errori passeggeri noti (hdiutil «Resource busy», download falliti per la rete), con ::warning::
         run: |
           node .github/scripts/tauri-build.js build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          # come in release.yml: nelle versioni di prova la versione Debian del .deb diventa «X~rc.N» prima del controllo
+          for d in src-tauri/target/release/bundle/deb/*.deb; do if [ -f "$d" ]; then node scripts/deb-version.js "$d" "$(node -p "require('./package.json').version")"; fi; done
           node scripts/check-packages.js
       - name: Installa, avvia e disinstalla l'installer vero (Windows)
         if: matrix.name == 'windows'

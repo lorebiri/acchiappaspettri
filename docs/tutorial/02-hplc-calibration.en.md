@@ -19,7 +19,7 @@ The files (names are in Italian: BIANCO = blank, CONTROLLO = control, INCOGNITO 
 1. Open Acchiappaspettri. If the welcome window appears, press **Let's start 👻**.
 2. Press **Choose files** and select the 10 files. *Desktop app:* **Add spectra** in the top bar.
 3. **HPLC** appears next to each name: the program has recognised the chromatograms.
-4. For English numbers (0.5 instead of 0,5) and English plots: press **3 Download** at the top (*desktop app:* the **Export** tab), choose **🇬🇧 English** under **Plot language**, then press **2 Review** (*desktop app:* the **Plot** tab) to come back. Without this step the program uses Italian plots and decimal commas.
+4. With the menus in English, plots and numbers are in English too (decimal point: 0.5). Only if you want them in Italian, change **Plot language** on the download page (*desktop app:* the **Export** tab).
 
 ![The 10 chromatograms loaded: the peak to measure is at 4.19 min](img/t2-en-1-caricati.png)
 
@@ -82,7 +82,7 @@ How to read them:
 
 ## 6. Download the results
 - **Table only:** press **⬇️ CSV** below the table. You get `misure_hplc.csv` for Excel: areas, estimated concentrations, interval, status of each row, and at the end the line, LOD, LOQ and Mandel test. Its column names follow the plot language.
-- **Everything:** press **All good, go and download** (*desktop app:* **Export**), then **⬇️ Download everything in one ZIP file**. The last page of the PDF is «Calibration line · HPLC» with line, LOD, LOQ, control, blank and unknowns. The ZIP also contains `analysis/band_measurements_hplc.csv`.
+- **Everything:** press **All good, go and download** (*desktop app:* **Export**), keep **PDF** and **Analysis results** ticked and press **⬇️ Download the chosen files** (*desktop app:* **Export to folder…** and choose the folder). If you want a single file, first tick **Collect everything in one ZIP file**. The last page of the PDF is «Calibration line · HPLC» with line, LOD, LOQ, control, blank and unknowns. The analysis results also include `analysis/band_measurements_hplc.csv`.
 
 ## If something goes wrong
 - **⚠️ «region edges far from the baseline: widen the region or interferent» appears next to the area:** the region cuts the peak. Widen it (for example 3.8–4.6) while looking at the plot.

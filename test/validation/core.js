@@ -10,6 +10,8 @@ if (a<0 || b<0) throw new Error('marcatori CORE-START/CORE-END non trovati in '+
 const src=html.slice(a,b);
 const ctx={console, Float64Array, Math, TextDecoder, Uint8Array, DataView, ArrayBuffer};
 vm.createContext(ctx);
+// il fisisorbimento è un modulo del nucleo (app/sorption-core.js): nella pagina si carica prima del blocco CORE
+vm.runInContext(fs.readFileSync(path.join(ROOT,'app','sorption-core.js'),'utf8'), ctx, {filename:'app/sorption-core.js'});
 vm.runInContext(src, ctx, {filename:'index.html#core'});
 // le dichiarazioni «function» di primo livello diventano proprietà del contesto
 const need=['linReg','quadReg','calibrate','calibrateW','tInv','fInv','tCDF','fCDF','fitPeaks','deconvolve','fitEval','parseText','detectInstrument','mixResponse','fpCalibrate','findPeaks','peakAreas','bandMeasure','noiseSigma','parseBinary','decodeBuffer'];

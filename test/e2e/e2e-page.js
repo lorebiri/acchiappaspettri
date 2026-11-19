@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 /* Collaudo dentro l'app vera (solo con la feature «e2e», mai negli installer pubblicati): usa i veri comandi nativi per scrivere e leggere i file */
+/* I3: la finestra «Canali trovati» può aprirsi già all'avvio, se il sistema ha passato file grezzi (scenario «apri-grezzi»): si registra e si conferma */
+window.ACCH_E2E_CANALI=[];
+setInterval(()=>{ const d=document.getElementById('dlgChan'); if (d && d.open){ window.ACCH_E2E_CANALI.push({rows:[...d.querySelectorAll('tbody th.chrow label')].map(l=>l.textContent.trim()), cols:[...d.querySelectorAll('thead th label')].map(l=>l.textContent.trim()), text:d.innerText}); document.getElementById('chOk').click(); } }, 100);
 window.AcchE2E=async function(info){
   const T=window.__TAURI__, inv=T.core.invoke, res={os:info.os, kind:info.kind, version:APP_VERSION_FULL(), checks:{}}; let ok=true;
   const pageErrors=[]; window.addEventListener('error',e=>pageErrors.push(String(e.message))); window.addEventListener('unhandledrejection',e=>pageErrors.push(String(e.reason)));
@@ -8,6 +11,63 @@ window.AcchE2E=async function(info){
   try{
     const cfg=await inv('e2e_config'), sep=info.os==='windows'?'\\':'/', dir=cfg.dir, sleep=ms=>new Promise(r=>setTimeout(r,ms)), until=async(f,ms=5000)=>{ for (let t=0;t<ms;t+=50){ try{ if (f()) return true; }catch(e){} await sleep(50); } return !!f(); };
     window.ACCH_TEST=true;
+    // I3: doppio clic e «Apri con» sui file grezzi: run-e2e.js passa i file sulla riga di comando, come fanno Windows e Linux (macOS, doppio clic dal Finder: RunEvent::Opened, prova a mano nel collaudo I3)
+    if (cfg.scenario==='apri-grezzi'){ await until(()=>files.length>=6, 20000);
+      const L=files.map(f=>(f.path+' '+(f.channel||'')).trim()); res.files=L; res.dialogs=window.ACCH_E2E_CANALI.map(d=>({rows:d.rows, cols:d.cols}));
+      check('file grezzi aperti dal sistema: tutti i canali', files.length===6, L.join(' | '));
+      check('cartella .D: i due segnali dello stesso campione sulla stessa riga', res.dialogs.length===1 && JSON.stringify(res.dialogs[0].rows)===JSON.stringify(['STD1','MIX1','MIX1']), JSON.stringify(res.dialogs));
+      check('canali Agilent riconosciuti', L.includes('STD1.D/DAD1A.ch DAD1A 254/4 nm ref 360/100 nm') && L.includes('STD1.D/DAD1B.ch DAD1B 280/4 nm ref 360/100 nm'));
+      check('finestra dei canali sobria', res.dialogs.length===1 && !/Gino|!|[\u{1F300}-\u{1FAFF}]/u.test(window.ACCH_E2E_CANALI[0].text));
+      const path=dir+sep+'grezzi.acchspettri'; await inv('e2e_grant',{path}); const host=AcchProject.host, oldPick=host.pickSave; host.pickSave=async ()=>({path, name:'grezzi.acchspettri'});
+      check('salva i canali nel progetto', await AcchProject.saveAs()); host.pickSave=oldPick; await AcchProject.closeProject();
+      check('riapre: stessi canali, senza finestra', await AcchDesktop.openPath(path,'grezzi.acchspettri') && files.length===6 && window.ACCH_E2E_CANALI.length===1, files.length+' spettri, '+window.ACCH_E2E_CANALI.length+' finestre');
+    }
+    // I5, misure (scripts/misura-motore.js): file grandi nella cartella del collaudo, letti come se fossero trascinati (percorsi concessi,
+    // lettore Rust o worker JS secondo ACCH_RUST). Per ogni file: lettura (AcchEngine), clic → grafico disegnato, blocco più lungo della finestra.
+    // elenco dei file in ACCH_E2E_UPDATE_URL (il campo libero di e2e_config), con «grafico» per misurare anche clic → grafico
+    if (cfg.scenario==='misura'){ res.misure=[]; res.engine=await AcchEngine.config(); const full=/(^|,)grafico(,|$)/.test(cfg.updateUrl||'');
+      for (const n of (cfg.updateUrl||'').split(',').filter(x=>x && x!=='grafico' && x!=='g123')){ const pth=dir+sep+n; await inv('e2e_grant',{path:pth});
+        // blocchi: un timer ogni 10 ms; il ritardo più lungo è il blocco più lungo della finestra (WKWebView non ha «longtask»)
+        let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10);
+        // dove c'è (WebView2, Chromium) anche l'API dei blocchi lunghi: non dipende dal rallentamento dei timer delle finestre in secondo piano (App Nap su macOS)
+        const LT=[]; let ob=null; try{ if ((PerformanceObserver.supportedEntryTypes||[]).includes('longtask')){ ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(e.duration))); ob.observe({type:'longtask'}); } }catch(e){ ob=null; }
+        const b=await inv('read_file',{path:pth}), buf=b instanceof ArrayBuffer ? b : new Uint8Array(b).buffer, t0=performance.now();
+        const R=await AcchEngine.read(buf, n, {}, {acchPath:pth}); const tRead=performance.now()-t0, how=AcchEngine.stats.last; await sleep(50); clearInterval(iv);
+        if (ob) ob.disconnect();
+        const m={file:n, MB:+(buf.byteLength/1e6).toFixed(1), kind:R.kind, engine:how&&how.engine, why:how&&how.why, readMs:Math.round(tRead), worstStallMs:Math.round(worst), longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null, readFileIncluded:true};
+        if (full){ let drawn=0; const od=window.drawPlot; window.drawPlot=function(){ const r=od.apply(this,arguments); if (!drawn) drawn=performance.now(); return r; };
+          let worst2=0, last2=performance.now(); const iv2=setInterval(()=>{ const t=performance.now(); worst2=Math.max(worst2,t-last2); last2=t; },10);
+          const t1=performance.now(); T.event.emit('acch-dropped',[{path:pth, name:n, rel:n}]); await until(()=>drawn && files.length, 600000); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          m.clickToGraphMs=Math.round(performance.now()-t1); m.firstDrawMs=Math.round(drawn-t1); m.readInGraph=Object.assign({}, AcchEngine.stats.last); clearInterval(iv2); m.worstStallFullMs=Math.round(worst2); window.drawPlot=od; }
+        res.misure.push(m); }
+      // I6: criteri G1–G3 (scripts/misura-motore.js --grafico-g), con le stesse prove del browser (test/validation/grafico-dati.js)
+      if (/(^|,)g123(,|$)/.test(cfg.updateUrl||'') && window.I6){ const LT=[]; let ob=null; try{ if ((PerformanceObserver.supportedEntryTypes||[]).includes('longtask')){ ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>LT.push(e.duration))); ob.observe({type:'longtask'}); } }catch(e){ ob=null; }
+        const g3=I6.g3(), g3ok=g3.filter(x=>x.gl!=='ingenua' && !x.skip); await sleep(200);
+        const g12=await I6.g12(20, 1e6); if (ob) ob.disconnect();
+        res.grafico={g1Fps:Math.round(g12.fps*10)/10, g1DrawMedMs:Math.round(g12.draw), g1DrawMaxMs:Math.round(g12.drawMax), g1DrawP95Ms:Math.round(g12.drawP95), colonneNuove:Math.round(g12.scrMiss), colonneRiusate:Math.round(g12.scrHit), g2CmpMs:Math.round(g12.g2), gl:g12.gl, glReason:(typeof PV_GL!=='undefined' && PV_GL ? PV_GL.reason||'' : 'nessun WebGL'),
+          g3WorstPx:Math.max(...g3ok.map(x=>Math.max(x.worst, x.spk))), g3Miss:g3ok.reduce((a,x)=>a+x.miss,0), g3Gl:g3ok.some(x=>x.gl===true), g3Naive:(g3.find(x=>x.gl==='ingenua')||{}).spk, g3Det:g3ok.map(x=>[x.cw,x.dpr,x.gl?'gl':'2d',x.worst,x.spk].join(':')), longTaskMaxMs:ob?Math.round(Math.max(0,...LT)):null};
+        check('G1–G3 misurati', true); }
+      check('misure eseguite', res.misure.length>0 || !!res.grafico); }
+    // I7, misure dei calcoli e dello ZIP (scripts/misura-calc.js --app): Rust (IPC compreso) contro il worker JS e contro JSZip, 3 prove
+    // ciascuno, con il controllo che i risultati coincidano. Spettro sintetico di 1M punti generato qui (nessun file di laboratorio).
+    if (cfg.scenario==='calcolo'){ const N=1e6, xs=new Float64Array(N), ys=new Float64Array(N); let sd=3; const rn=()=>{ sd=(sd*16807)%2147483647; return sd/2147483647-0.5; }, g=(x,c,w)=>Math.exp(-0.5*((x-c)/w)**2);
+      for (let i=0;i<N;i++){ const x=400+i*3600/(N-1); xs[i]=x; ys[i]=g(x,1000,4)+0.6*g(x,2500,6)+0.4*g(x,3300,5)+0.01*rn(); }
+      const pk=findPeaks(xs, ys, 1, 1, 60).map(p=>p.x), med=a=>a.slice().sort((p,q)=>p-q)[a.length>>1];
+      const stall=async f=>{ let worst=0, last=performance.now(); const iv=setInterval(()=>{ const t=performance.now(); worst=Math.max(worst,t-last); last=t; },10); const t0=performance.now(); const r=await f(); const ms=performance.now()-t0; clearInterval(iv); return {r, ms, worst}; };
+      res.calcolo=[];
+      for (const [fn,args] of [['findPeaks',[xs,ys,1,2,20]], ['peakAreas',[xs,ys,pk]], ['sgSmooth',[ys,401]], ['sgSmooth',[ys,11]], ['derivLS',[xs,ys,5000]], ['derivLS',[xs,ys,8]], ['noiseSigma',[ys]]]){
+        const R=[], J=[]; let same=null;
+        for (let k=0;k<3;k++){ const a=await stall(()=>AcchEngine.calcRust(fn,args)), b=await stall(()=>AcchEngine.call(fn,...args)); R.push(a.ms); J.push(b.ms); same=a.r ? AcchCalc.same(a.r.r, b.r, 0) : 'decline'; }
+        res.calcolo.push({fn, args:args.filter(v=>typeof v==='number').join(','), rustMs:R.map(Math.round), workerMs:J.map(Math.round), rustMed:Math.round(med(R)), workerMed:Math.round(med(J)), same:same||'identici'}); }
+      check('calcoli Rust identici al JS', res.calcolo.every(c=>c.same==='identici'), JSON.stringify(res.calcolo.map(c=>c.same)));
+      const lines=['x,y']; for (let i=0;i<N;i++) lines.push(xs[i].toFixed(4)+','+ys[i].toFixed(6)); const csv=lines.join('\r\n'), bin=new Uint8Array(30e6); for (let i=0;i<bin.length;i++) bin[i]=(i*31+(i>>9))&255;
+      // lo ZIP di Esporta (STORE) resta a JSZip: nella misura I7 il Rust, IPC compreso, non era più veloce (840 contro 729 ms)
+      const mk={'progetto (DEFLATE)':()=>{ const z=new JSZip(); z.file('mimetype','application/x',{compression:'STORE'}); for (let k=0;k<3;k++) z.file('data/00000'+k+'.dat', k===2 ? bin : new TextEncoder().encode(csv), {binary:true}); return [z, {type:'uint8array', compression:'DEFLATE', compressionOptions:{level:6}}]; }};
+      res.zip=[];
+      for (const [k,f] of Object.entries(mk)){ const R=[], J=[], RW=[], JW=[];
+        for (let r=0;r<3;r++){ const [z,gen]=f(); const a=await stall(()=>AcchEngine.zipper(z,gen)), b=await stall(()=>z.generateAsync(gen)); R.push(a.ms); J.push(b.ms); RW.push(a.worst); JW.push(b.worst); if (!a.r) R[r]=NaN; }
+        res.zip.push({kind:k, rustMs:R.map(Math.round), jszipMs:J.map(Math.round), rustMed:Math.round(med(R)), jszipMed:Math.round(med(J)), rustWorstStallMs:Math.round(med(RW)), jszipWorstStallMs:Math.round(med(JW))}); }
+      res.stats=Object.assign({}, AcchEngine.stats); check('misure eseguite', res.zip.every(z=>Number.isFinite(z.rustMed))); }
     if (cfg.scenario==='version'){ res.reported=APP_VERSION_FULL(); check('versione',true); }
     if (cfg.scenario==='update-bad' || cfg.scenario==='update-good' || cfg.scenario==='update-none'){
       try{ const r=await inv('e2e_check_update',{url:cfg.updateUrl, install:cfg.scenario==='update-good'}); res.update=r;
@@ -27,7 +87,7 @@ window.AcchE2E=async function(info){
       for (const [n,f] of [['updater.check',T.updater&&T.updater.check],['process.relaunch',T.process&&T.process.relaunch],['opener.openUrl',T.opener&&T.opener.openUrl],['menu.Menu',T.menu&&T.menu.Menu]]) check('API '+n, typeof f==='function');
       await T.window.getCurrentWindow().setTitle('Prova').then(()=>check('titolo finestra',true),e=>check('titolo finestra',false,String(e)));
       const up=await T.updater.check({timeout:15000}).then(r=>'ok',e=>String(e)); check('permesso di controllare gli aggiornamenti', !/not allowed|permission/i.test(up), up); res.updateCheck=up;
-      check('librerie locali', !!window.jspdf && !!window.JSZip);
+      check('jsPDF non caricato all\'avvio', !window.jspdf); await ensurePdfLib().catch(e=>{}); check('librerie locali', !!window.jspdf && !!window.JSZip);
       check('menu nativo costruito', AcchDesktop.menuBuilt===true);
       // spettri: XRF sintetico
       let txt='# Tube Anode: Rh\n# Tube Voltage: 40\n# Incident beam angle: 68\n# Fluorescence beam: 63,5\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'; for (let i=0;i<2048;i++){ const E=i*0.02; txt+=Math.round(20+5000*Math.exp(-0.5*((E-8.04)/0.07)**2)+700*Math.exp(-0.5*((E-8.9)/0.07)**2))+'\n'; }
@@ -37,8 +97,8 @@ window.AcchE2E=async function(info){
       check('modifiche non salvate', AcchProject.isDirty());
       // salvataggio vero su disco, con il comando nativo
       const path=dir+sep+'prova e2e è.acchspettri'; await inv('e2e_grant',{path});
-      const host=AcchProject.host, oldAs=host.saveAs; host.saveAs=async b=>{ await inv('write_file', b, {headers:{'x-acch-path':encodeURIComponent(path)}}); return {path, name:'prova e2e è.acchspettri'}; };
-      check('salva', await AcchProject.saveAs()); host.saveAs=oldAs; check('nessuna modifica dopo il salvataggio', !AcchProject.isDirty());
+      const host=AcchProject.host, oldPick=host.pickSave; host.pickSave=async ()=>({path, name:'prova e2e è.acchspettri'});   // il dialogo nativo non si può guidare: il percorso è già concesso
+      check('salva', await AcchProject.saveAs()); host.pickSave=oldPick; check('nessuna modifica dopo il salvataggio', !AcchProject.isDirty());
       files[0].title='Prova 2'; persist(files[0]); check('salva di nuovo sullo stesso file', await AcchProject.save());
       await AcchProject.closeProject(); check('chiudi', files.length===0);
       check('riapri dal disco', await AcchDesktop.openPath(path,'prova e2e è.acchspettri')); check('stato ritrovato', files[0] && files[0].title==='Prova 2' && files[0].instr==='xrf', files[0]&&files[0].title);

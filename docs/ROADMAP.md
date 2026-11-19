@@ -37,26 +37,32 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 | Lavoro perso | generale | Copia di recupero locale ogni 30 s, che si cancella solo su richiesta. |
 | Versione online | web lead | Più leggera: le funzioni di studio si aprono con «Mostra qui». Picchi e assegnazioni sono identici al desktop ([WEB-LEGGERA.md](WEB-LEGGERA.md)). |
 
-## Versioni decise dal Capo Progetto (7 novembre 2026)
+## Versione 3.0.0 (decisione del committente, 12 novembre 2026)
 
-### 2.2.1: caricamento multicanale HPLC
-- Riconoscimento dei canali dal nome e dall'intestazione (DAD1 A, Sig=254, VWD, FLD Ex/Em, UV_VIS_1, Detector A-Ch1, «254 nm»); lettura dei file a più colonne e a più blocchi (Shimadzu); Empower `.arw`.
-- Finestra «Canali trovati»: griglia campioni × canali con lunghezza d'onda e sigla; predefinito tutto tranne fluorescenza e canali sconosciuti; un canale non riconosciuto non viene mai scartato senza dirlo; «ricorda la scelta».
-- Ogni canale diventa uno spettro con il suo canale (`f.channel`) e il campione (`f.sampleKey`); i byte originali si salvano una volta sola.
+La prossima versione pubblica è la **3.0.0** e contiene **tutto** ciò che è stato discusso: non escono 2.2.1 né 2.3 pubbliche. Lo sviluppo procede per tappe interne I1–I8, ognuna chiusa da una pre-release `3.0.0-rc.N` collaudata e non proposta agli utenti. Prima del tag della 3.0.0 il committente riceve l'elenco di ciò che c'è e di ciò che manca e dà il suo ok. Progetto: `PROGETTO-DESKTOP` dell'architetto; decisioni: Capo Progetto, 12 novembre 2026.
+
+- **Correzioni dei collaudi** (Windows 11, cicli 25 e 26): tappa I1.
+- **Desktop professionale**: niente mascotte, emoji, battute né testi da browser; l'online resta con Gino. Tappa I1.
+- **Desktop vero**: calcoli in un worker, Rust per la lettura dei file, i picchi, le aree e lo ZIP (solo se identico al JS), grafico veloce, più finestre. Tappe I5, I6, I7.
+- **HPLC multicanale** (sotto): tappa I3.
+- **Librerie dei picchi per strumento e tipo di campione, con le pendenze HPLC** (sotto): tappa I4. Software per tutti: nessuna libreria di un settore installata di serie.
+- **Oltre i programmi a pagamento** (sotto): mappe e dati iperspettrali, MCR-ALS, fit globale delle cinetiche, ricetta esportata come script Python, estensioni per nuovi formati, importazione dei progetti Origin (.opj). Decisione del committente del 13 novembre 2026.
+- **Collaudo completo e aggiornamento firmato provato dalla 2.2.0 alla 3.0.0**: tappa I8.
+
+Le sezioni seguenti, scritte prima di questa decisione, restano come dettaglio dei contenuti: sono tutte nella 3.0.0.
+
+### Nella 3.0.0: caricamento multicanale HPLC
 - Libreria dei nomi: campi facoltativi (tecnica, tipo di campione, canale, unità, fonte, data), provenienza del nome visibile (📚) e nel CSV, avviso quando due voci si sovrappongono.
-- Desktop, apertura dei file grezzi dal sistema (decisione del committente, 8 novembre 2026): doppio clic e «Apri con» per i file degli strumenti. Formati propri (JCAMP `.jdx`/`.dx`, `.spc`, Empower `.arw`) proposti come predefiniti; formati generici (`.csv`, `.txt`, `.tsv`, `.xy`, `.dat`) solo come programma alternativo, senza togliere Excel o l'editor. Il filtro in `src-tauri/src/lib.rs` (`accept_args`, `RunEvent::Opened`) accetta queste estensioni oltre ai progetti; l'app apre più file insieme in una sola finestra (istanza singola) e chiede se aggiungerli al progetto aperto. Prove su Windows, macOS e Linux (registrazione, doppio clic, file con spazi e accenti, file molto grandi, disinstallazione che toglie le associazioni) nella pipeline e nella lista di controllo di Windows.
+- Desktop, apertura dei file grezzi dal sistema (decisione del committente, 8 novembre 2026): doppio clic e «Apri con» per i file degli strumenti. Formati propri (Agilent `.ch` e `.uv`, JCAMP `.jdx`/`.dx`) proposti come predefiniti; formati generici (`.csv`, `.txt`, `.tsv`, `.xy`, `.dat`) ed Empower `.arw` (stessa estensione delle foto RAW Sony; decisione del coordinatore, I3) solo come programma alternativo, senza togliere Excel o l'editor. Il filtro in `src-tauri/src/lib.rs` (`accept_args`, `RunEvent::Opened`) accetta queste estensioni oltre ai progetti; l'app apre più file insieme in una sola finestra (istanza singola) e chiede se aggiungerli al progetto aperto. Prove su Windows, macOS e Linux (registrazione, doppio clic, file con spazi e accenti, file molto grandi, disinstallazione che toglie le associazioni) nella pipeline e nella lista di controllo di Windows.
 
-### 2.3: libreria dei picchi completa e pendenza per picco
-- Modulo `app/library.js`, file aperto `.acchlib.json` con schema versionato, tre livelli (sistema, utente, condivise), import con i conflitti esplicitati, progetto `.acchspettri` versione 2 con le librerie incorporate e migrazione provata dalla versione 1.
+### Nella 3.0.0: librerie dei picchi per strumento e tipo di campione, con la pendenza per picco
 - Scheda «Libreria dei picchi» con filtri per strumento, tipo di campione, metodo e canale; «Aggiungi alla libreria» dal clic destro sul picco.
-- HPLC: per ogni picco tempo di ritenzione, finestra, RRT rispetto allo standard interno, canale e λ, metodo e colonna, taratura (pendenza o fattore di risposta, intercetta, unità, intervallo, n, R², s_y/x, LOD, LOQ, data, strumento, lotto dello standard) con lo storico.
-- Regole della taratura salvata decise dal Capo Progetto il 7 novembre 2026 (su incarico del committente, dopo i pareri degli agenti scienziati): profili per tipo di analisi, aggiornamento con uno o due controlli del giorno, carta di controllo, incertezza estesa, messaggi ed esportazioni, prove di accettazione. Specifica completa in [SPEC-TARATURA-SALVATA.md](SPEC-TARATURA-SALVATA.md).
 - Validazione prima del rilascio: prove HPLC T1–T6, migrazione dei progetti, R4–R8 estesi alla libreria, test di usabilità con SUS ≥ 75.
 - Anche nella 2.3 (piano del Capo Progetto, 8 novembre 2026): fit con funzioni scritte dall'utente; polinomi e regressione multipla; statistica validata su NIST; ricette applicate in serie a una cartella. Prestazioni con grandi dati e accessibilità diventano obbligatorie. Ogni funzione nuova va confrontata sui benchmark pubblici con i programmi di riferimento (criterio in AGENTI.md).
 
-### 2.2.1, in più
-- Dopo il ciclo 25: importare ogni blocco o colonna HPLC come cromatogramma separato; corpus con esportazioni vere ChemStation/OpenLab multicanale e file .arw multicanale; integrazione HPLC oltre l'1% dell'altezza; riconoscere l'inversione dell'asse con x ripetute; testo del controllo per due scansioni FTIR; base del doppio integrale EPR con finestre lontane dalla riga; avviso NMR sul picco negativo; «2H» nel nome letto come nucleo; GIAO con scala negativa (δ = σref − σ); bastoncini DFT con avviso; versioni .deb delle prove come «2.2.1~rc.N»; elenco delle librerie Linux filtrato con `dpkg -S`; «cm⁻¹» e font incorporato per CJK nel PDF; note delle misure di banda tradotte nelle esportazioni inglesi; XRF: file .mca con Calibration1 negativa (spostamento di +100 eV visto come circa 20 eV).
-- Dopo il ciclo 26 (BASSI rinviati): HPLC: due segnali nell'intestazione con un solo blocco senza avviso; conflitto fra canale nel nome e nell'intestazione non segnalato; «(1)/(5)» per nomi uguali in due sequenze; secondo canale corto contato come canale; «Coda > 2» con un picco solo. XRF: tutorial EN passo 1.4; «1 warnings»; «aria/elio/vuoto» da tradurre; ⚠️ perso sul desktop. Generale: riga di Mandel in italiano nell'interfaccia inglese; numero di pagine; cella «'-0,15 / 0,024»; LOD = 0 senza avviso con una retta perfetta. Windows: file da scaricare in cima alla pagina della release; avvisi del browser nella release; ultima riga tagliata a 720 px; solo ZIP; licenze in `.md`. Interfaccia: «Controllo del dato» / «Controllo dello spettro»; «Piatti teorici» nei metodi in inglese; toast a 360 px; nomi dei file spezzati online; «S/N ≈ >»; «plots» nel riepilogo inglese; doppio caricamento contemporaneo dello stesso file; «Mostrami» per il desktop nelle Novità del desktop; test di `checkNews`. Progetti: voci della libreria duplicate a ogni riapertura; fixture `progetto-v1.acchspettri` rifiutata; margine di tempo del test R8. Rilascio: mirror locale per i tester da aggiornare. Interfaccia: a 360 px il menu «Canale di …» con un nome lungo esce dal riquadro. Windows 11: con Smart App Control attivo un installer non firmato può essere bloccato senza «Esegui comunque»; spiegarlo in INSTALLAZIONE (la soluzione vera è la firma del codice). XRF: avviso «non distinguibile da Pb» anche quando As resta da solo con pochi conteggi. Test R6 del PDF indipendente dal carico della macchina.
+### Nella 3.0.0: correzioni rinviate dai cicli 25 e 26 (quelle ancora aperte)
+- Dopo il ciclo 25: corpus con esportazioni vere ChemStation/OpenLab multicanale e file .arw multicanale; integrazione HPLC oltre l'1% dell'altezza; base del doppio integrale EPR con finestre lontane dalla riga; avviso NMR sul picco negativo; «2H» nel nome letto come nucleo; GIAO con scala negativa (δ = σref − σ); bastoncini DFT con avviso; versioni .deb delle prove come «2.2.1~rc.N»; elenco delle librerie Linux filtrato con `dpkg -S`; «cm⁻¹» nel PDF; note delle misure di banda tradotte nelle esportazioni inglesi.
+- Dopo il ciclo 26 (BASSI rinviati): XRF: tutorial EN passo 1.4; «1 warnings»; «aria/elio/vuoto» da tradurre; ⚠️ perso sul desktop. Generale: riga di Mandel in italiano nell'interfaccia inglese; numero di pagine; cella «'-0,15 / 0,024»; LOD = 0 senza avviso con una retta perfetta. Windows: file da scaricare in cima alla pagina della release; avvisi del browser nella release; ultima riga tagliata a 720 px; solo ZIP; licenze in `.md`. Interfaccia: «Controllo del dato» / «Controllo dello spettro»; «Piatti teorici» nei metodi in inglese; toast a 360 px; nomi dei file spezzati online; «S/N ≈ >»; «plots» nel riepilogo inglese; doppio caricamento contemporaneo dello stesso file; «Mostrami» per il desktop nelle Novità del desktop; test di `checkNews`. Progetti: voci della libreria duplicate a ogni riapertura; fixture `progetto-v1.acchspettri` rifiutata; margine di tempo del test R8. Rilascio: mirror locale per i tester da aggiornare. Interfaccia: a 360 px il menu «Canale di …» con un nome lungo esce dal riquadro. Windows 11: con Smart App Control attivo un installer non firmato può essere bloccato senza «Esegui comunque»; spiegarlo in INSTALLAZIONE (la soluzione vera è la firma del codice). XRF: avviso «non distinguibile da Pb» anche quando As resta da solo con pochi conteggi. Test R6 del PDF indipendente dal carico della macchina.
 - Misura di base del tempo per arrivare al risultato su 5 compiti tipo (indice FTIR, taratura HPLC, deconvoluzione, XRF, NMR), da confrontare poi con i ricercatori pilota.
 
 ### Aspetto dell'applicazione (requisiti V1–V6 e G1–G5 in AGENTI.md)
@@ -65,7 +71,7 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 - 2.3: nuovo aspetto per gradi, una zona alla volta (barra degli strumenti, pannelli, finestre, benvenuto, grafico), con i 39 test dell'interfaccia e R5/R6 verdi e il ritorno all'aspetto precedente; grafico fluido con 1 milione di punti (WebGL o OffscreenCanvas con ritorno al canvas 2D); mirino, cursori, viste collegate, spettri a cascata; animazione didattica. Voce separata a priorità più bassa: figure per la pubblicazione (vettoriali, stili delle riviste, palette per chi distingue male i colori).
 - 3.0: mappe, contorni, 3D, serie nel tempo animate.
 
-### 3.0: oltre i programmi a pagamento
+### Nella 3.0.0 (decisione del committente, 13 novembre 2026: «voglio tutto nella 3.0.0»): oltre i programmi a pagamento
 - Mappe e dati iperspettrali; MCR-ALS; fit globale delle cinetiche; ricetta esportata come script Python; estensioni per nuovi formati; importazione dei progetti Origin (.opj).
 
 ### Le capacità per cui sceglierlo (visione del committente)
@@ -84,7 +90,7 @@ Ventitré cicli fino al 6 novembre 2026, poi il ciclo 24 con regole più severe 
 |---|---|---|---|---|
 | 1 | Regioni d'integrazione NMR con numero di nuclei (riusa la misura di banda) | NMR | O | giorni |
 | 2 | Lettura BES3T 1D e Bruker `1r` con `procs`, conservando guadagno e potenza | NMR/EPR | P | giorni ciascuno |
-| 3 | Incertezza del doppio integrale da zone di fondo; controllo delle ali e della deriva | EPR | O | 1–2 settimane |
+| 3 | Incertezza del doppio integrale dalle zone di fondo | EPR | O | 1–2 settimane |
 | 4 | Integrazione manuale HPLC (inizio, fine, taglio) | HPLC, analitica | O | settimane |
 | 5 | Sequenze con repliche, diluizioni e più analiti per iniezione; bianco confrontato con il LOD | HPLC, analitica | O | settimane |
 | 6 | Avviso se standard e campioni hanno elaborazioni diverse | analitica | O | giorni |
@@ -113,7 +119,7 @@ Separare il ricalcolo dei numeri dalla ricostruzione dei campi in «Più campion
 ## Rilascio
 
 - I pacchetti pubblicati vengono ricostruiti dalla pipeline di pubblicazione dopo i test: non sono gli stessi file installati e provati in CI. Dopo ogni pubblicazione si scaricano e si installano almeno Windows e un Mac.
-- L'aggiornamento firmato si prova davvero solo da una versione pubblicata alla successiva: pubblicare una 2.2.1 entro due settimane dalla 2.2.0.
+- L'aggiornamento firmato si prova da una versione all'altra con il mirror locale (`scripts/mirror-aggiornamento.js`, [AGGIORNAMENTI.md](AGGIORNAMENTI.md)) prima della pubblicazione; resta da eseguire davvero dalla 2.2.0 alla 3.0.0.
 - La chiave privata di firma degli aggiornamenti va custodita anche fuori dal Mac di sviluppo: senza di essa le app installate non possono più aggiornarsi.
 
 ## Prossimo passo

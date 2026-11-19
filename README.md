@@ -2,7 +2,7 @@
 
 Turns spectra and chromatograms saved as files (FTIR/ATR-FTIR, Raman, UV-Vis, fluorescence, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR) into clean plots and scientific analysis. Italian and English. Your data stay on your computer.
 
-**▶ [Use it online](https://lorebiri.github.io/acchiappaspettri/)** · **🖥️ [Download the desktop app](https://github.com/lorebiri/acchiappaspettri/releases/latest)** (Windows, macOS, Linux: works offline, offers updates when a new version is published)
+**▶ [Use it online](https://lorebiri.github.io/acchiappaspettri/)** · **🖥️ [Download the desktop app](https://lorebiri.github.io/acchiappaspettri/scarica/#scarica)** (Windows, macOS, Linux: works offline, offers updates when a new version is published) · **[Website](https://lorebiri.github.io/acchiappaspettri/scarica/en/)** · [Sito](https://lorebiri.github.io/acchiappaspettri/scarica/)
 
 | | |
 |---|---|
@@ -79,12 +79,13 @@ In step 2 the tools sit in five tabs named after what you want to do (Picchi, Ri
     - hovering a row highlights that peak on the plot;
     - ⋯ opens all the options, including the XRF cross-check and the library;
   - **✓ Accetta i suggerimenti** puts the first suggestion on every unnamed peak in one click, and Ctrl+Z undoes it;
+  - **Aggiungi picchi per posizione**: type one or more positions in axis units (`1086; 712; 282` or one per line), with optional FWHM and shape (`1500 w=10 lor`), optionally snapped to the nearest local maximum within a tolerance; typed peaks count like automatic ones for names, areas, deconvolution (width and shape are the starting values) and quantitation, can be edited (✎), deleted and undone, and are saved in the project and noted in the peak CSV;
   - other buttons: «Rivedi i suggerimenti…», «Togli i nomi», «↺ Picchi automatici».
 - **X-axis range** for each file, for example the 1800–600 cm⁻¹ fingerprint region, with a button to apply it to every file from the same instrument.
 - **Peak-name database by sample type**: choose 🏛️ cultural heritage, 🧬 biological, ⚗️ organic & organometallic chemistry or 🧱 materials, polymers & catalysis, globally or per file. General functional groups are always proposed; names go on the plot only after the user approves them. A personal library adds your own bands or HPLC retention times.
 - **Data processing**, set for each instrument:
   - %T ↔ absorbance conversion (A = 2 − log₁₀ %T) or 0–1 normalization;
-  - baseline correction: rubber band, **arPLS** (asymmetrically reweighted penalised least squares, Baek et al. 2015, which follows curved backgrounds such as fluorescence in Raman), **SNIP** for XRF and LIBS counts (Ryan et al. 1988, with LLS transform and decreasing window, Morháč et al. 1997), or linear;
+  - baseline correction: rubber band, **arPLS** (asymmetrically reweighted penalised least squares, Baek et al. 2015, which follows curved backgrounds such as fluorescence in Raman), **ALS** (Eilers & Boelens 2005), **IModPoly/ModPoly** iterative polynomials (Zhao et al. 2007; Lieber & Mahadevan-Jansen 2003), **SNIP** for XRF, LIBS and Raman (Ryan et al. 1988, with LLS transform and decreasing window, Morháč et al. 1997), **rolling ball** (Kneen & Annegarn 1996), linear, or **hand-picked anchor points** (PCHIP or straight segments). The «Rimozione del fondo» box shows the estimated baseline over the spectrum while you move the parameters, applies to one spectrum, to all spectra of a technique or to every loaded spectrum, can be undone, and is saved in the project with its parameters (validation on synthetic Raman spectra: docs/VALIDAZIONE.md, R12);
   - **cosmic-ray removal** for Raman, fluorescence and generic CCD data (modified z-scores of first differences, Whitaker & Hayes 2018): only narrow (1–3 point) isolated spikes are replaced;
   - Savitzky–Golay smoothing (light, medium or strong).
 - **Large plot** (⛶ Grafico grande) that fills the screen, with **zoom** (mouse wheel or 🔍 buttons) and **pan** (drag), for placing peaks precisely. The zoom only affects the preview, not the output.

@@ -1,11 +1,34 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copia in dist-desktop/ solo ciò che serve all'app: pagina, librerie, moduli. Niente test né sorgenti nativi.
-const fs=require('fs'), path=require('path'); const root=path.join(__dirname,'..'), out=path.join(root,'dist-desktop');
-fs.rmSync(out,{recursive:true,force:true}); fs.mkdirSync(out,{recursive:true});
-for (const f of ['index.html','apple-touch-icon.png','THIRD-PARTY-NOTICES.md']) fs.copyFileSync(path.join(root,f), path.join(out,f));
-if (fs.existsSync(path.join(root,'LICENSE'))) fs.copyFileSync(path.join(root,'LICENSE'), path.join(out,'LICENSE'));
-for (const d of ['vendor','app']) fs.cpSync(path.join(root,d), path.join(out,d), {recursive:true});
-fs.mkdirSync(path.join(out,'i18n')); fs.copyFileSync(path.join(root,'i18n/en.js'), path.join(out,'i18n/en.js'));
-if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h); }
-console.log('dist-desktop pronto');
+const fs=require('fs'), path=require('path'), crypto=require('crypto'), {extractCore, coreModules, workerSource, extractPlot}=require('./core-extract.js'); const root=path.join(__dirname,'..'), OUT=path.join(root,'dist-desktop');
+// pagina del desktop: jsPDF non si carica all'avvio ma alla prima esportazione PDF (ensurePdfLib in index.html), così la prima schermata arriva prima
+const JSPDF_TAG=/<script src="vendor\/jspdf\.umd\.min\.js"><\/script>\r?\n/;
+function desktopHtml(h){ if (!JSPDF_TAG.test(h) || !h.includes('function ensurePdfLib')) throw new Error('prepare-desktop: jsPDF o ensurePdfLib non trovati in index.html'); return h.replace(JSPDF_TAG,''); }
+function main(out){
+  out=out||OUT;
+  fs.rmSync(out,{recursive:true,force:true}); fs.mkdirSync(out,{recursive:true});
+  for (const f of ['index.html','apple-touch-icon.png','THIRD-PARTY-NOTICES.md']) fs.copyFileSync(path.join(root,f), path.join(out,f));
+  if (fs.existsSync(path.join(root,'LICENSE'))) fs.copyFileSync(path.join(root,'LICENSE'), path.join(out,'LICENSE'));
+  // copie .txt (a capo di Windows) per i pacchetti: su Windows LICENSE senza estensione e .md non si aprono con un doppio clic
+  fs.mkdirSync(path.join(out,'licenze'));
+  for (const [f,t] of [['LICENSE','LICENSE.txt'],['THIRD-PARTY-NOTICES.md','THIRD-PARTY-NOTICES.txt']]) fs.writeFileSync(path.join(out,'licenze',t), fs.readFileSync(path.join(root,f),'utf8').replace(/\r?\n/g,'\r\n'));
+  for (const d of ['vendor','app']) fs.cpSync(path.join(root,d), path.join(out,d), {recursive:true});
+  fs.writeFileSync(path.join(out,'index.html'), desktopHtml(fs.readFileSync(path.join(root,'index.html'),'utf8')));
+  // nucleo estratto, identico byte per byte al blocco di index.html (test/unit/core-estratto.test.js): servirà al worker del desktop
+  fs.writeFileSync(path.join(out,'core.js'), extractCore(fs.readFileSync(path.join(root,'index.html'))));
+  // moduli puri del nucleo, nell'ordine della pagina: il worker li carica prima di core.js (copie identiche, impronte nel manifesto)
+  { const html=fs.readFileSync(path.join(root,'index.html')), mods=coreModules(html).map(m=>({file:m, sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,m))).digest('hex')}));
+    mods.push({file:'core.js', sha256:crypto.createHash('sha256').update(extractCore(html)).digest('hex')});
+    fs.writeFileSync(path.join(out,'core-modules.json'), JSON.stringify(mods, null, 1)+'\n');
+    fs.writeFileSync(path.join(out,'core-worker.js'), workerSource(html)); }   // I5: il worker del nucleo (app/engine.js)
+  // I6: finestre aggiuntive (grafico staccato, confronto): pagina propria con il nucleo e il blocco del disegno della pagina
+  fs.writeFileSync(path.join(out,'plot.js'), extractPlot(fs.readFileSync(path.join(root,'index.html'))));
+  fs.copyFileSync(path.join(root,'app','vista.html'), path.join(out,'vista.html'));
+  fs.mkdirSync(path.join(out,'i18n')); fs.copyFileSync(path.join(root,'i18n/en.js'), path.join(out,'i18n/en.js'));
+  if (process.env.ACCH_E2E_PAGE) { let h=fs.readFileSync(path.join(out,'index.html'),'utf8'); fs.copyFileSync(path.join(root,'test/e2e/e2e-page.js'), path.join(out,'app/e2e-page.js')); h=h.replace('<script src="app/desktop.js"></script>','<script src="app/e2e-page.js"></script>\n<script src="app/e2e-grafico.js"></script>\n<script src="app/desktop.js"></script>'); fs.writeFileSync(path.join(out,'index.html'),h);
+    fs.writeFileSync(path.join(out,'app','e2e-grafico.js'), '/* generato da scripts/prepare-desktop.js (test/validation/grafico-dati.js): dati SINTETICI per le misure G1–G3 */\n('+require('../test/validation/grafico-dati.js').I6_SETUP.toString()+')();\n'); }
+  console.log('dist-desktop pronto');
+}
+if (require.main===module) main();
+module.exports={desktopHtml, main};

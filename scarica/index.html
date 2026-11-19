@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; img-src 'self' data:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Acchiappaspettri: spettri e cromatogrammi, dal file al grafico e all'analisi. Gratis, online o desktop</title>
+<meta name="description" content="Acchiappaspettri legge spettri e cromatogrammi (FTIR, Raman, UV-Vis, fluorescenza, HPLC, XRF, LIBS, TGA, DSC, NMR, EPR, adsorbimento), trova i picchi, toglie il fondo, controlla il dato e prepara PDF, immagini e tabelle. Gratuito e open source, in italiano e inglese. Online nel browser o per Windows, macOS e Linux.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+<meta property="og:title" content="Acchiappaspettri: spettri e cromatogrammi, dal file al grafico e all'analisi">
+<meta property="og:description" content="Gratuito e open source, in italiano e inglese. Online nel browser o per Windows, macOS e Linux. I dati restano sul tuo computer.">
+<meta property="og:url" content="https://lorebiri.github.io/acchiappaspettri/scarica/">
+<meta property="og:image" content="https://lorebiri.github.io/acchiappaspettri/scarica/img/desktop-spazio.webp">
+<link rel="canonical" href="https://lorebiri.github.io/acchiappaspettri/scarica/">
+<link rel="icon" href="icona.svg" type="image/svg+xml">
+<link rel="alternate" hreflang="it" href="https://lorebiri.github.io/acchiappaspettri/scarica/">
+<link rel="alternate" hreflang="en" href="https://lorebiri.github.io/acchiappaspettri/scarica/en/">
+<link rel="stylesheet" href="stile.css">
+<script src="tema.js"></script>
+<script type="module" src="avvio.js"></script>
+</head>
+<body>
+<a class="salta" href="#contenuto">Vai al contenuto</a>
+
+<header class="testata">
+  <div class="wrap testata-riga">
+    <a class="marchio" href="#contenuto"><img src="icona.svg" alt="" width="34" height="34"> <span>Acchiappaspettri</span></a>
+    <nav aria-label="Sezioni della pagina">
+      <ul>
+        <li><a href="#scegli">Online o desktop</a></li>
+        <li class="nav-ampia"><a href="#tecniche">Tecniche e formati</a></li>
+        <li class="nav-ampia"><a href="#funzioni">Funzioni</a></li>
+        <li class="nav-ampia"><a href="#affidabilita">Affidabilità</a></li>
+        <li class="nav-ampia"><a href="#domande">Domande</a></li>
+        <li><a class="nav-scarica" href="#scarica">Scarica</a></li>
+      </ul>
+    </nav>
+    <div class="strumenti">
+      <a class="lingua" href="en/" hreflang="en" lang="en" title="English version">EN</a>
+      <button class="tema" id="tema" type="button" hidden aria-label="Tema: come il sistema">
+        <svg class="t-auto" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+        <svg class="t-chiaro" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="t-scuro" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="contenuto" tabindex="-1">
+
+  <!-- 1. In alto: che cos'è, i due pulsanti, i vantaggi -->
+  <section class="hero" aria-labelledby="titolo">
+    <div class="wrap hero-griglia">
+      <div>
+        <p class="occhiello">Spettroscopia e cromatografia · software libero</p>
+        <h1 id="titolo">Dal file dello strumento al grafico pulito e all'analisi. <span class="accento">Gratis, sul tuo computer.</span></h1>
+        <p class="sottotitolo">Acchiappaspettri legge spettri e cromatogrammi (<strong>FTIR, Raman, UV-Vis, HPLC, XRF, NMR</strong> e altre tecniche), trova i picchi, toglie il fondo, controlla la qualità del dato e prepara <strong>PDF, immagini e tabelle</strong> pronti per relazioni, tesi e articoli.</p>
+        <p class="avviso-versione" id="nota-versione" hidden></p>
+        <div class="cta">
+          <div>
+            <a class="btn secondario" href="../"><span>Usa online</span><small>nel browser, senza installare</small></a>
+          </div>
+          <div id="scarica-principale" aria-live="polite">
+            <a class="btn primario" href="https://github.com/lorebiri/acchiappaspettri/releases/latest"><span>Scarica il programma</span><small>Windows, macOS, Linux</small></a>
+          </div>
+        </div>
+        <ul class="vantaggi" aria-label="I vantaggi in breve">
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M15 8.5a3.5 3.5 0 1 0 0 7M8 11h5M8 13.5h5"/></svg>
+            <span><strong>Gratis e open source</strong>nessun abbonamento, nessun account</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span><strong>I dati restano sul computer</strong>niente viene caricato su un server</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg>
+            <span><strong>Funziona senza internet</strong>il programma desktop, sempre</span>
+          </li>
+          <li>
+            <svg class="icona" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c0 4-3 7-7 8"/><path d="M13 21l4-10 4 10M14.5 17.5h5"/></svg>
+            <span><strong>Italiano e inglese</strong>interfaccia, PDF e bozza dei metodi</span>
+          </li>
+        </ul>
+      </div>
+      <figure class="cornice">
+        <img src="img/desktop-spazio.webp" width="1440" height="900" alt="Il programma desktop con sei spettri FTIR sintetici di polietilene nell'elenco a sinistra; nel grafico lo spettro a 1000 ore con i picchi etichettati, sotto la tabella dei picchi con i nomi, a destra il pannello Picchi." fetchpriority="high">
+      </figure>
+    </div>
+  </section>
+
+  <!-- 2. Online o desktop -->
+  <section id="scegli" class="alt" aria-labelledby="t-scegli">
+    <div class="wrap">
+      <h2 id="t-scegli">Online o desktop?</h2>
+      <p class="intro">Sono lo stesso programma: <strong>stessi lettori dei file, stessi calcoli, stessi numeri</strong>. Ogni versione viene provata confrontando le due sugli stessi file (picchi, aree, suggerimenti, ipotesi e controlli devono coincidere). Cambia il modo di lavorare.</p>
+      <div class="confronto-wrap">
+        <table class="confronto">
+          <caption class="vh">Confronto tra la versione online e il programma desktop</caption>
+          <thead><tr><th scope="col">Che cosa</th><th scope="col">Online</th><th scope="col">Desktop</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Lettura dei file, picchi, nomi proposti, fondo, controllo del dato</th><td data-l="Online"><span class="si">Sì</span>, identici</td><td data-l="Desktop"><span class="si">Sì</span>, identici</td></tr>
+            <tr><th scope="row">Deconvoluzione, tarature, statistica, XRF, adsorbimento, esportazioni, progetti</th><td data-l="Online"><span class="si">Sì</span>; le funzioni di studio si aprono con «Mostra qui»</td><td data-l="Desktop"><span class="si">Sì</span>, tutte in vista</td></tr>
+            <tr><th scope="row">Installazione</th><td data-l="Online">Nessuna: si apre una pagina</td><td data-l="Desktop">Un pacchetto di pochi MB per Windows, macOS o Linux (l'AppImage per Linux è più grande perché include le librerie)</td></tr>
+            <tr><th scope="row">Dove restano i dati</th><td data-l="Online">Nel browser, sul tuo computer</td><td data-l="Desktop">Sul tuo computer, nei file che scegli</td></tr>
+            <tr><th scope="row">Senza internet</th><td data-l="Online">Serve la connessione per aprire la pagina; poi i calcoli sono locali</td><td data-l="Desktop"><span class="si">Sempre</span></td></tr>
+            <tr><th scope="row">Spazio di lavoro</th><td data-l="Online">Pagina guidata in tre passi, con una mascotte che spiega</td><td data-l="Desktop">Professionale: menu, barra degli strumenti, documenti a schede (grafico, foglio dati, più campioni), risultati sotto il grafico, proprietà a destra, barra di stato</td></tr>
+            <tr><th scope="row">Motore di calcolo</th><td data-l="Online">JavaScript nella pagina</td><td data-l="Desktop">Lettore nativo in Rust e calcoli pesanti in un processo separato: la finestra non si blocca, con numeri identici a quelli online</td></tr>
+            <tr><th scope="row">File molto grandi</th><td data-l="Online">Bene fino a centinaia di migliaia di punti</td><td data-l="Desktop">Grafico WebGL per milioni di punti; 1 milione di punti dal clic al grafico in circa un secondo</td></tr>
+            <tr><th scope="row">Finestre</th><td data-l="Online">Una pagina</td><td data-l="Desktop">Grafici staccabili in finestre separate («Stacca», «Confronto»), anche su un secondo schermo</td></tr>
+            <tr><th scope="row">Aprire i file</th><td data-l="Online">Trascinarli nella pagina o sceglierli</td><td data-l="Desktop">Anche con un doppio clic sui file degli strumenti, dei progetti e delle librerie, o con «Apri con»</td></tr>
+            <tr><th scope="row">Impostazioni, librerie, lavoro in corso</th><td data-l="Online">Nella memoria del browser</td><td data-l="Desktop">Su file, nella cartella dell'app, con scrittura sicura</td></tr>
+            <tr><th scope="row">Esportazione</th><td data-l="Online">Download dal browser (ZIP oltre 3 file, se vuoi)</td><td data-l="Desktop">Direttamente in una cartella, con nomi a scelta e riepilogo dei file scritti</td></tr>
+            <tr><th scope="row">Aggiornamenti</th><td data-l="Online">Sempre l'ultima versione</td><td data-l="Desktop">Il programma avvisa quando ne esce una nuova; gli aggiornamenti sono firmati e verificati</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="coppia spazio-sopra">
+        <figure class="cornice"><img src="img/online.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La versione online, secondo passo: spettro Raman di calcite con i picchi a 280, 712 e 1086 cm⁻¹ etichettati e il pannello Picchi a destra."><figcaption>La versione online: pagina guidata, nel browser.</figcaption></figure>
+        <figure class="cornice telefono"><img src="img/online-mobile.webp" width="390" height="844" loading="lazy" decoding="async" alt="La versione online su un telefono: i tre passi in alto, lo spettro Raman con i picchi etichettati e le schede degli strumenti."><figcaption>Anche sul telefono.</figcaption></figure>
+      </div>
+      <div class="scelta">
+        <div class="carta">
+          <h3>Scegli online se…</h3>
+          <ul>
+            <li>vuoi guardare al volo un file, su un computer qualsiasi;</li>
+            <li>non puoi installare programmi (computer dell'istituto, aula, biblioteca);</li>
+            <li>vuoi provare prima di decidere.</li>
+          </ul>
+        </div>
+        <div class="carta">
+          <h3>Scegli il desktop se…</h3>
+          <ul>
+            <li>lavori ogni giorno con gli spettri o con serie di molti campioni;</li>
+            <li>hai file grandi (mappe, cromatogrammi lunghi, milioni di punti);</li>
+            <li>lavori senza connessione, in laboratorio o in campagna di misura;</li>
+            <li>vuoi aprire i file degli strumenti con un doppio clic ed esportare direttamente in una cartella.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Tecniche e formati -->
+  <section id="tecniche" aria-labelledby="t-tecniche">
+    <div class="wrap">
+      <h2 id="t-tecniche">Tecniche e formati supportati</h2>
+      <p class="intro">Lo strumento si riconosce da solo, dall'intestazione del file, dal nome o dall'asse. Se il file ha un problema (righe illeggibili, separatori ambigui, unità sospette) il programma lo dice in parole semplici, invece di disegnare un grafico sbagliato.</p>
+      <ul class="tecniche" aria-label="Tecniche">
+        <li><strong>Infrarosso (FTIR, ATR-FTIR)</strong>trasmittanza e assorbanza, cm⁻¹ o µm, indice di carbonile</li>
+        <li><strong>Raman</strong>spostamento in cm⁻¹ o lunghezza d'onda in nm, raggi cosmici, fluorescenza</li>
+        <li><strong>UV-Visibile</strong>nm, eV o cm⁻¹, band gap di Tauc</li>
+        <li><strong>Fluorescenza</strong>emissione ed eccitazione, Rayleigh e Raman dell'acqua, spostamento di Stokes</li>
+        <li><strong>Cromatografia HPLC</strong>uno o più canali, piatti teorici, coda, risoluzione, S/N, tarature</li>
+        <li><strong>Fluorescenza X (XRF)</strong>calibrazione dell'energia, elementi, composizione con o senza standard</li>
+        <li><strong>LIBS</strong>righe atomiche di 41 elementi e bande molecolari</li>
+        <li><strong>Termogravimetria (TGA)</strong>massa %, DTG, T₅%, residuo, gradini</li>
+        <li><strong>Calorimetria (DSC)</strong>endo/exo, ΔH in J/g, onset, possibile Tg, segmenti</li>
+        <li><strong>NMR</strong>¹H e ¹³C, ppm, integrali, riferimento</li>
+        <li><strong>EPR</strong>campo in G, mT o T, valore g, doppio integrale</li>
+        <li><strong>Fisisorbimento</strong>isoterme, BET, Langmuir, t-plot, BJH, DR, DFT con un kernel tuo</li>
+        <li><strong>Chemisorbimento</strong>TPR, TPO, TPD, impulsi, dispersione e area metallica</li>
+      </ul>
+      <div class="formati" data-marchi="formati">
+        <div class="carta">
+          <h3>File di testo e tabelle</h3>
+          <dl>
+            <dt>Testo a colonne</dt><dd><code>.txt</code> <code>.csv</code> <code>.tsv</code> <code>.asc</code> <code>.dat</code> <code>.dpt</code> <code>.prn</code> <code>.xy</code> <code>.exp</code>, con virgola o punto decimale, separatori qualsiasi, più blocchi e più colonne</dd>
+            <dt>JCAMP-DX</dt><dd><code>.jdx</code> <code>.dx</code> <code>.jcamp</code>, semplici e compressi (SQZ, DIF, DUP)</dd>
+            <dt>Fogli Excel</dt><dd><code>.xlsx</code> per l'adsorbimento; per le altre tecniche si esportano in CSV</dd>
+          </dl>
+        </div>
+        <div class="carta">
+          <h3>Formati degli strumenti</h3>
+          <dl>
+            <dt>Infrarosso</dt><dd>Thermo OMNIC <code>.spa</code>, Bruker OPUS (<code>.0</code>, <code>.1</code>…), PerkinElmer <code>.sp</code> e <code>.asc</code>, JASCO</dd>
+            <dt>Cromatografia</dt><dd>Agilent ChemStation/OpenLab <code>.ch</code> e <code>.uv</code> con tutti i canali, Waters <code>.arw</code>, Shimadzu (più blocchi e più campioni)</dd>
+            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code></dd>
+            <dt>Adsorbimento</dt><dd>Anton Paar Autosorb (Kaomi, ASiQwin) e AIF</dd>
+            <dt>Progetti Origin</dt><dd><code>.opju</code> e <code>.opj</code>: si sceglie quali coppie X/Y importare</dd>
+          </dl>
+        </div>
+        <div class="carta">
+          <h3>File del programma</h3>
+          <dl>
+            <dt>Progetti</dt><dd><code>.acchspettri</code>: dati originali, lavoro e risultati in un solo file</dd>
+            <dt>Librerie dei picchi</dt><dd><code>.acchlib</code>, per strumento e tipo di campione</dd>
+            <dt>Estensioni</dt><dd><code>.acchplugin</code>: lettori per nuovi formati, isolati senza rete né accesso ai dati, verificati sui file d'esempio prima dell'installazione</dd>
+          </dl>
+          <p class="nota">Un formato non viene letto? <a href="#contatti">Mandalo</a>: è il modo più rapido per aggiungerlo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Come si lavora -->
+  <section id="come" class="alt" aria-labelledby="t-come">
+    <div class="wrap">
+      <h2 id="t-come">Come si lavora: carica, controlla, scarica</h2>
+      <p class="intro">Tre passi, sia online sia nel programma desktop. Ogni scelta si può annullare e il file originale non viene mai modificato.</p>
+      <ol class="passi">
+        <li>
+          <h3>Carica</h3>
+          <p>Trascina file singoli, molti file o una cartella intera. Lo strumento si riconosce da solo e il grafico è subito pronto; un progetto salvato riporta tutto il lavoro.</p>
+          <figure class="cornice"><img src="img/passo-carica.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il primo passo della versione online: l'area «Trascina qui file o cartelle», i formati letti e il riquadro per riaprire un progetto salvato."></figure>
+        </li>
+        <li>
+          <h3>Controlla</h3>
+          <p>Picchi trovati, nomi proposti, controllo del dato con rimedi a un clic, ritocchi dello spettro e analisi. Ogni opzione dice se vale per lo spettro, per lo strumento o per tutti i grafici.</p>
+          <figure class="cornice"><img src="img/passo-controlla.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il secondo passo online: spettro Raman con tre picchi stretti e isolati; il controllo del dato avvisa che sembrano raggi cosmici e propone il rimedio a un clic «Togli i raggi cosmici»."></figure>
+        </li>
+        <li>
+          <h3>Scarica</h3>
+          <p>Spunta quello che ti serve (PDF, immagini, picchi, dati elaborati, tabelle di analisi, tracciabilità, progetto) e scegli i nomi dei file: un solo pulsante.</p>
+          <figure class="cornice"><img src="img/passo-scarica.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il terzo passo online: che cosa scaricare, con il PDF per consultare, le immagini PNG a 600 dpi e le voci per Origin."></figure>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 5. Funzioni -->
+  <section id="funzioni" aria-labelledby="t-funzioni">
+    <div class="wrap">
+      <h2 id="t-funzioni">Che cosa fa, funzione per funzione</h2>
+      <p class="intro">Le schermate qui sotto sono del programma vero, su dati sintetici o di prova distribuiti con il codice.</p>
+      <ul class="indice-funzioni" aria-label="Vai a una funzione">
+        <li><a href="#f-picchi">Picchi</a></li>
+        <li><a href="#f-fondo">Ritocchi e fondo</a></li>
+        <li><a href="#f-qualita">Qualità del dato</a></li>
+        <li><a href="#f-deconvoluzione">Deconvoluzione</a></li>
+        <li><a href="#f-tarature">Tarature e HPLC</a></li>
+        <li><a href="#f-riferimenti">Miscele e riferimenti</a></li>
+        <li><a href="#f-statistica">Statistica</a></li>
+        <li><a href="#f-xrf">XRF</a></li>
+        <li><a href="#f-adsorbimento">BET e adsorbimento</a></li>
+        <li><a href="#f-esportazioni">Esportazioni</a></li>
+        <li><a href="#f-progetti">Progetti</a></li>
+        <li><a href="#f-desktop">Desktop</a></li>
+      </ul>
+
+      <article class="funzione" id="f-picchi" aria-labelledby="t-f-picchi">
+        <div class="funzione-testo">
+          <p class="etichetta">Picchi</p>
+          <h3 id="t-f-picchi">Picchi automatici, per posizione e con un nome</h3>
+          <p>I picchi si trovano da soli, con una soglia regolabile da «tanti, anche i piccoli» a «pochi, solo i grandi». Un clic su un punto vuoto ne aggiunge uno, un clic su un picco gli dà un nome.</p>
+          <ul class="punti">
+            <li><span class="etichetta novita">Novità</span> <strong>Per posizione</strong>: scrivi una o più posizioni nell'unità dell'asse (<code>1086; 712; 282</code>), con larghezza e forma facoltative (<code>1500 w=10 lor</code>), e aggancio al massimo più vicino. Un'anteprima dice come è stato capito il testo.</li>
+            <li><strong>Nomi dalle librerie</strong>: proposte da banche dati per tipo di campione (beni culturali, biologico, chimica, materiali) e dalle tue librerie per strumento. Sono sempre ipotesi da confermare.</li>
+            <li>Modifica, eliminazione, Ctrl+Z per annullare; tutto si salva nel progetto e finisce nel CSV dei picchi.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/picchi.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La scheda Picchi del desktop: in «Aggiungi picchi per posizione» è scritto «1086; 712 w=8 lor; 282» con l'anteprima di come è stato capito; sotto, la tabella con i nomi suggeriti dalle librerie."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-fondo" aria-labelledby="t-f-fondo">
+        <div class="funzione-testo">
+          <p class="etichetta novita">Novità · Ritocca lo spettro</p>
+          <h3 id="t-f-fondo">Ritocchi e rimozione del fondo, con l'anteprima</h3>
+          <p>Conversioni (trasmittanza e assorbanza, unità dell'asse), smoothing, raggi cosmici, derivate, normalizzazioni e scale. E ora la <strong>rimozione del fondo</strong> con i metodi riconosciuti in letteratura.</p>
+          <ul class="punti">
+            <li><strong>Metodi</strong>: arPLS, ALS, polinomio iterativo (IModPoly, ModPoly), SNIP, rolling ball, inviluppo convesso, retta, oppure punti di ancoraggio scelti sul grafico o scritti.</li>
+            <li><strong>Anteprima dal vivo</strong>: mentre muovi i cursori vedi lo spettro prima della correzione e il fondo stimato; i valori consigliati sono calcolati sullo spettro.</li>
+            <li>Per uno spettro o per tutti quelli della tecnica; annulla e «Ripristina l'originale». Il file originale non cambia mai.</li>
+            <li>Metodo e parametri nel progetto, nella tracciabilità e nella bozza dei metodi, con la bibliografia.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/fondo.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La rimozione del fondo con il metodo ALS e l'anteprima attiva: lo spettro originale grigio su una grande gobba di fluorescenza, il fondo stimato arancione tratteggiato e lo spettro corretto in rosso."></figure>
+      </article>
+
+      <article class="funzione" id="f-qualita" aria-labelledby="t-f-qualita">
+        <div class="funzione-testo">
+          <p class="etichetta">Controllo del dato</p>
+          <h3 id="t-f-qualita">La qualità del dato, prima dei numeri</h3>
+          <p>Prima di qualunque analisi il programma guarda il dato e dice che cosa non va: rumore, saturazione, raggi cosmici, punti mancanti, asse irregolare, deriva, unità sospette, righe non lette.</p>
+          <ul class="punti">
+            <li><strong>Rimedi a un clic</strong> quando esistono, con la spiegazione di che cosa cambia.</li>
+            <li>Avvisi specifici per tecnica (per esempio HPLC con cima tagliata, EPR con la base curva, XRF con pochi conteggi).</li>
+            <li>Gli avvisi restano nel PDF e nelle tabelle esportate.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/qualita.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il controllo del dato su un cromatogramma HPLC di prova: banda rossa «Dati da controllare» e otto avvisi, tra cui separatore delle migliaia, righe non lette, buchi nell'asse, picchi asimmetrici e cime piatte."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-deconvoluzione" aria-labelledby="t-f-deconvoluzione">
+        <div class="funzione-testo">
+          <p class="etichetta">Analisi</p>
+          <h3 id="t-f-deconvoluzione">Deconvoluzione delle bande sovrapposte</h3>
+          <p>Separa le bande che si sovrappongono in componenti gaussiane, lorentziane o pseudo-Voigt, sulla zona che scegli o con un clic destro sul grafico.</p>
+          <ul class="punti">
+            <li><strong>Incertezza di ogni numero</strong>: posizione, larghezza, area e frazione con il loro errore.</li>
+            <li>Numero di componenti proposto e verificato; la stessa deconvoluzione su più spettri <span class="solo-desktop">desktop</span>.</li>
+            <li>Validata su casi sintetici: numero di componenti giusto in 197 casi su 200, errore mediano dell'area +0,02 %.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/deconvoluzione.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La deconvoluzione di tre bande Raman sintetiche sovrapposte: componenti colorate e fit nel grafico, sotto la tabella con centro, larghezza, altezza e area con le incertezze."></figure>
+      </article>
+
+      <article class="funzione" id="f-tarature" aria-labelledby="t-f-tarature">
+        <div class="funzione-testo">
+          <p class="etichetta">Quantificazione</p>
+          <h3 id="t-f-tarature">Tarature e librerie HPLC</h3>
+          <p>Rette di taratura semplici o pesate (1/x, 1/x²), con limiti di rilevabilità e quantificazione, test di Mandel, intervalli di confidenza e stato di ogni stima (estrapolata, sotto LOD o LOQ, cima tagliata, coeluita…).</p>
+          <ul class="punti">
+            <li><strong>Standard, bianco e controllo</strong> con il recupero; modelli PLS per bande sovrapposte.</li>
+            <li><strong>HPLC multicanale</strong>: tutti i canali dei file dello strumento, un cromatogramma per canale.</li>
+            <li><strong>Librerie per strumento e tipo di campione</strong> che ricordano le tarature (pendenza, intercetta, intervallo, LOD, LOQ, data e lotto): la concentrazione si calcola senza rifare la retta, con la provenienza accanto a ogni numero.</li>
+            <li>Carta di controllo, idoneità del sistema e manutenzioni nella libreria.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/taratura.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Una taratura HPLC sintetica con sei standard, bianco, controllo e incogniti: retta con R², pendenza e intercetta con l'intervallo al 95 %, LOD, LOQ, test di Mandel e grafico."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-riferimenti" aria-labelledby="t-f-riferimenti">
+        <div class="funzione-testo">
+          <p class="etichetta">Confronto</p>
+          <h3 id="t-f-riferimenti">Miscele e spettri di riferimento</h3>
+          <p>Confronta uno spettro con i tuoi riferimenti (indice di somiglianza) e scomponilo in una miscela di riferimenti, con le frazioni e il residuo.</p>
+          <ul class="punti">
+            <li>Riferimenti caricati da file o presi dagli spettri aperti; libreria personale da esportare e importare.</li>
+            <li>Spettri differenza, confronti sovrapposti o sfalsati con la legenda.</li>
+            <li>Validato: frazioni entro 0,02 punti (mediana), nessun componente falso in 1200 casi.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/riferimenti.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La scheda Riferimenti: una miscela Raman sintetica scomposta in due riferimenti (65 % e 35 %, R² = 0,995), con l'elenco dei riferimenti salvati."></figure>
+      </article>
+
+      <article class="funzione" id="f-statistica" aria-labelledby="t-f-statistica">
+        <div class="funzione-testo">
+          <p class="etichetta">Più campioni</p>
+          <h3 id="t-f-statistica">Statistica: PCA, gruppi, MCR-ALS e cinetiche</h3>
+          <p>Quando i campioni sono tanti: <strong>PCA</strong> con grafico degli score e dei loading, <strong>gruppi</strong> con dendrogramma e numero di gruppi suggerito, andamento di una banda nel tempo o con la dose.</p>
+          <ul class="punti">
+            <li><strong>MCR-ALS</strong> sulle serie di spettri (nel tempo, con la dose, con la temperatura): SIMPLISMA, EFA, non negatività, chiusura, unimodalità, spettri noti.</li>
+            <li><strong>Fit globale delle cinetiche</strong>: ordine 0, 1 e 2, A → B → C, A ⇌ B, reazioni parallele, con errori standard, residui e confronto AIC/BIC/F.</li>
+            <li>Risultati nelle tabelle di analisi e nel PDF; impostazioni nel progetto.</li>
+          </ul>
+        </div>
+        <div class="funzione-immagini">
+          <figure class="cornice"><img src="img/pca.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La PCA di 15 spettri Raman sintetici: grafico degli score PC1–PC2 con tre gruppi separati, dendrogramma di Ward e loading."></figure>
+          <figure class="cornice"><img src="img/mcr.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il fit globale delle cinetiche A → B → C su 14 spettri UV-Vis sintetici: costanti con errori standard e intervalli, concentrazioni del modello, spettri delle specie e residui."></figure>
+        </div>
+      </article>
+
+      <article class="funzione inversa" id="f-xrf" aria-labelledby="t-f-xrf">
+        <div class="funzione-testo">
+          <p class="etichetta">Fluorescenza X</p>
+          <h3 id="t-f-xrf">XRF: elementi e composizione</h3>
+          <p>Calibrazione dell'energia controllata e corretta, elementi riconosciuti con le righe coincidenti dichiarate (per esempio Pb Lα e As Kα), aree nette con il fondo SNIP.</p>
+          <ul class="punti">
+            <li><strong>Composizione senza standard</strong> con i parametri fondamentali, sempre presentata come <em>stima</em> con le ipotesi usate e l'intervallo di sensibilità.</li>
+            <li>Con i tuoi standard, concentrazioni e spessori.</li>
+            <li>Per i beni culturali: elementi probabili e pigmenti compatibili, come ipotesi.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/xrf.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Spettro XRF sintetico di un bronzo in scala logaritmica con le righe etichettate e, a destra, la stima della composizione senza standard (Cu 84 %, Sn 8,1 %, Pb 4,7 %, Zn 2,5 %, As 0,6 %) con le incertezze e gli avvisi."></figure>
+      </article>
+
+      <article class="funzione" id="f-adsorbimento" aria-labelledby="t-f-adsorbimento">
+        <div class="funzione-testo">
+          <p class="etichetta">Materiali porosi</p>
+          <h3 id="t-f-adsorbimento">BET e adsorbimento</h3>
+          <p>Isoterme di fisisorbimento con i due rami, <strong>superficie BET con i criteri di Rouquerol</strong> (ISO 9277), Langmuir, volume dei pori, t-plot e αs, BJH e Dollimore–Heal, DR e DA, calore isosterico, DFT con un kernel tuo.</p>
+          <ul class="punti">
+            <li><strong>Chemisorbimento</strong>: TPR, TPO e TPD con Kissinger e Redhead, impulsi, chemisorbimento statico, dispersione e area metallica.</li>
+            <li>Importazione guidata quando le colonne del file non sono certe.</li>
+            <li>Risultati nel CSV e nel PDF, impostazioni nel progetto.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/bet.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Un'isoterma di fisisorbimento di azoto e, sotto, la scheda BET con il grafico, l'intervallo scelto con i criteri di Rouquerol e i risultati (183 m²/g)."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-esportazioni" aria-labelledby="t-f-esportazioni">
+        <div class="funzione-testo" data-marchi="esportazioni">
+          <p class="etichetta">Risultati</p>
+          <h3 id="t-f-esportazioni">Esportazioni: PDF, immagini, tabelle, metodi</h3>
+          <p>Una finestra sola: scegli le voci, il nome di ogni file e gli spettri inclusi. Le preimpostazioni ricordano le scelte.</p>
+          <ul class="punti">
+            <li><strong>PDF</strong> pronto da leggere, con più grafici per pagina, pagine di confronto e pagine di analisi.</li>
+            <li><strong>Immagini</strong> PNG a 600 dpi e SVG vettoriali, con le misure delle riviste.</li>
+            <li><strong>CSV</strong> per Excel: picchi, dati elaborati, dati originali, tabelle di analisi; cartella di lavoro per Origin e progetti <code>.opj</code>/<code>.opju</code>.</li>
+            <li><strong>Bozza del paragrafo «Metodi»</strong>, in italiano o in inglese, con le elaborazioni davvero usate e la bibliografia.</li>
+            <li><strong>Tracciabilità</strong>: l'impronta di ogni file e ogni elaborazione, per rifare ogni numero.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/esporta.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La scheda Esporta del desktop: l'elenco delle voci (PDF, immagini, picchi, dati elaborati e originali, risultati delle analisi, tracciabilità, Origin, progetto) e il riepilogo con «Esporta nella cartella…»."></figure>
+      </article>
+
+      <article class="funzione" id="f-progetti" aria-labelledby="t-f-progetti">
+        <div class="funzione-testo">
+          <p class="etichetta">Progetti</p>
+          <h3 id="t-f-progetti">Un file conserva dati e lavoro</h3>
+          <p>Il progetto <code>.acchspettri</code> contiene i <strong>dati originali</strong> di ogni spettro (anche i formati binari) e tutto il lavoro: nomi, picchi, elaborazioni, deconvoluzioni, tarature, riferimenti, librerie, confronti, impostazioni.</p>
+          <ul class="punti">
+            <li>Da riaprire su un altro computer, online o nel desktop, o da passare a un collega.</li>
+            <li>Controllato a ogni apertura; formato documentato e aperto.</li>
+            <li>Nel desktop: salvataggio in un file, progetti recenti, doppio clic per aprirli.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/progetto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il desktop subito dopo aver riaperto un progetto: nome del progetto a sinistra, sei spettri con i nomi dei picchi ripristinati e la barra di stato «Progetto aperto: 6 spettri»."></figure>
+      </article>
+
+      <article class="funzione inversa" id="f-desktop" aria-labelledby="t-f-desktop">
+        <div class="funzione-testo">
+          <p class="etichetta">Programma desktop</p>
+          <h3 id="t-f-desktop">Confronti, finestre staccabili, tema scuro</h3>
+          <p>Nel desktop i grafici si confrontano sovrapposti o sfalsati e si staccano in finestre separate («Stacca», «Confronto»), anche su un secondo schermo. Il grafico veloce in WebGL resta fluido con milioni di punti.</p>
+          <ul class="punti">
+            <li>Menu con tutte le scorciatoie, barra di comando (<kbd>Ctrl</kbd>+<kbd>K</kbd>), multiselezione.</li>
+            <li>Barra di stato con la catena di elaborazione dello spettro attivo.</li>
+            <li>Tema chiaro o scuro; i grafici esportati restano bianchi.</li>
+          </ul>
+        </div>
+        <div class="funzione-immagini">
+          <figure class="cornice"><img src="img/confronto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La vista Confronto del desktop: sei spettri FTIR sintetici di polietilene invecchiato, sfalsati con la legenda colorata."></figure>
+          <figure class="cornice"><img src="img/desktop-scuro.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Lo spazio di lavoro del desktop con il tema scuro: spettro FTIR sintetico di polietilene con i nomi dei picchi, tabella dei picchi in basso e proprietà a destra."></figure>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 6. Affidabilità -->
+  <section id="affidabilita" class="alt" aria-labelledby="t-affidabilita">
+    <div class="wrap">
+      <h2 id="t-affidabilita">Affidabilità: numeri che si possono controllare</h2>
+      <p class="intro">Un programma scientifico deve dire quanto si può fidare dei suoi numeri. Acchiappaspettri lo fa così.</p>
+      <div class="griglia tre">
+        <div class="carta">
+          <h3>Validato su riferimenti pubblici</h3>
+          <p>Ogni calcolo è confrontato con una verità nota: i problemi di riferimento del NIST per le regressioni, spettri sintetici generati con verità nota, dati pubblici. Le prove girano automaticamente a ogni modifica, centinaia per versione.</p>
+        </div>
+        <div class="carta">
+          <h3>Documenti aperti</h3>
+          <p>I risultati della validazione, le scelte scientifiche, i limiti noti e il formato dei progetti sono pubblici, insieme al codice: <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/VALIDAZIONE.md">validazione</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/SCIENZA.md">scienza</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/LIMITAZIONI.md">limitazioni</a>, <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/FORMATO-ACCHSPETTRI.md">formato dei progetti</a>.</p>
+        </div>
+        <div class="carta">
+          <h3>«Ipotesi» e «stime» dichiarate</h3>
+          <p>Le identificazioni automatiche sono presentate come <em>ipotesi</em> da confermare; le concentrazioni senza standard come <em>stime</em>, con le ipotesi usate. Una banda sola è inconclusiva, e il programma lo dice.</p>
+        </div>
+      </div>
+      <ul class="numeri" aria-label="Alcuni risultati della validazione">
+        <li><b>−0,3 %</b>errore mediano dell'area dei picchi lorentziani con il fit (contro −17,4 % da valle a valle)</li>
+        <li><b>197 / 200</b>deconvoluzioni con il numero giusto di componenti, su bande distanti 0,7–1,5 larghezze</li>
+        <li><b>0,56 %</b>errore mediano del fondo con IModPoly su 100 spettri Raman sintetici con fluorescenza</li>
+        <li><b>94,9 %</b>degli intervalli di confidenza al 95 % della pendenza contengono il valore vero</li>
+      </ul>
+      <p class="nota">Le prove sui materiali certificati non sono ancora state fatte: le tarature restano responsabilità di chi misura, come per ogni software.</p>
+    </div>
+  </section>
+
+  <!-- 7. Download -->
+  <section id="scarica" aria-labelledby="t-scarica">
+    <div class="wrap">
+      <h2 id="t-scarica">Scarica il programma desktop</h2>
+      <p class="intro"><span id="versione">I pacchetti di ogni versione sono sulla pagina delle versioni su GitHub.</span> Tutti gratuiti, per sempre. Preferisci non installare nulla? <a href="../">Usa la versione online</a>.</p>
+      <div class="sistemi" data-marchi="download">
+        <div class="carta carta-sistema" data-sistema="windows">
+          <h3>Windows</h3>
+          <ul class="file">
+            <li data-file="win"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Installer per Windows 10 e 11 (64 bit)</a><span class="file-info">Acchiappaspettri_…_x64-setup.exe</span></li>
+          </ul>
+        </div>
+        <div class="carta carta-sistema" data-sistema="mac">
+          <h3>macOS</h3>
+          <ul class="file">
+            <li data-file="mac-arm"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Mac con chip Apple (M1, M2, M3, M4…)</a><span class="file-info">Acchiappaspettri_…_aarch64.dmg</span></li>
+            <li data-file="mac-intel"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Mac con processore Intel</a><span class="file-info">Acchiappaspettri_…_x64.dmg</span></li>
+          </ul>
+        </div>
+        <div class="carta carta-sistema" data-sistema="linux">
+          <h3>Linux</h3>
+          <ul class="file">
+            <li data-file="linux-appimage"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">AppImage (x86_64), si aggiorna da sola</a><span class="file-info">Acchiappaspettri_…_amd64.AppImage</span></li>
+            <li data-file="linux-deb"><a href="https://github.com/lorebiri/acchiappaspettri/releases/latest">Pacchetto .deb (Debian, Ubuntu)</a><span class="file-info">Acchiappaspettri_…_amd64.deb</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="nota">Accanto a ogni file compare la sua <strong>impronta SHA-256</strong>, letta da GitHub: confrontala con quella del file scaricato (<a href="#d-impronta">come si fa</a>). Gli altri file della pagina delle versioni (<code>.sig</code>, <code>.app.tar.gz</code>, <code>latest.json</code>) servono agli aggiornamenti automatici; «Source code» è il codice sorgente.</p>
+
+      <div class="avvisi" data-marchi="avvisi">
+        <div class="riquadro">
+          <p><strong>Perché il sistema mostra degli avvisi.</strong> Il programma è gratuito e non è firmato con un certificato di Microsoft o di Apple, che costa ogni anno: per questo browser e sistema avvisano che non lo conoscono. Non vuol dire che ci sia un problema. Gli <strong>aggiornamenti</strong>, invece, sono firmati e il programma li verifica prima di installarli. Se preferisci, controlla l'impronta SHA-256 del file.</p>
+        </div>
+        <div class="griglia spazio-sopra">
+          <div class="carta">
+            <h3>Windows</h3>
+            <ol>
+              <li><strong>Edge</strong>, durante il download («non viene scaricato comunemente»): <em>⋯</em> accanto al file → <em>Mantieni</em> → <em>Mostra altro</em> → <em>Mantieni comunque</em>. In Chrome: <em>Conserva</em>.</li>
+              <li><strong>SmartScreen</strong> (finestra blu «Windows ha protetto il PC»): <em>Ulteriori informazioni</em> → <em>Esegui comunque</em>.</li>
+              <li><strong>Avviso di sicurezza</strong> (autore sconosciuto): <em>Esegui</em>.</li>
+            </ol>
+            <p class="nota"><strong>Smart App Control</strong> (Windows 11), se è attivo, blocca i programmi non firmati senza offrire «Esegui comunque»: usa la versione online, oppure chiedi al servizio informatico. <strong>Avast e AVG</strong> possono avviare l'app nella loro sandbox: aggiungi un'eccezione per <code>%LOCALAPPDATA%\Acchiappaspettri\acchiappaspettri.exe</code>.</p>
+          </div>
+          <div class="carta">
+            <h3>macOS</h3>
+            <ol>
+              <li>Apri il file <code>.dmg</code> e trascina Acchiappaspettri in <em>Applicazioni</em>.</li>
+              <li>Al primo avvio, se il Mac dice che l'app non si può aprire: <em>Impostazioni di Sistema</em> → <em>Privacy e sicurezza</em> → <em>Apri comunque</em>.</li>
+              <li>Dalla volta successiva si apre normalmente.</li>
+            </ol>
+          </div>
+          <div class="carta">
+            <h3>Linux</h3>
+            <ol>
+              <li><strong>AppImage</strong>: rendila eseguibile (<em>Proprietà</em> → <em>Permessi</em>, oppure <code>chmod +x</code>) e aprila. Si aggiorna da sola.</li>
+              <li><strong>.deb</strong>: <code>sudo apt install ./Acchiappaspettri_…_amd64.deb</code>; si aggiorna scaricando la versione nuova.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="nota">Istruzioni passo passo, con tutti i casi: <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/INSTALLAZIONE.md">guida all'installazione</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Domande frequenti -->
+  <section id="domande" class="alt" aria-labelledby="t-domande">
+    <div class="wrap">
+      <h2 id="t-domande">Domande frequenti</h2>
+      <div class="domande">
+        <details id="d-costo"><summary>Quanto costa? C'è una versione a pagamento?</summary>
+          <p>Niente, ed è così per tutti: università, enti di ricerca, aziende, scuole. Non c'è una versione a pagamento né un abbonamento. È software libero con licenza GNU GPL 3 o successiva: puoi usarlo, ridistribuirlo e modificarlo.</p></details>
+        <details id="d-dati"><summary>I miei dati vengono caricati da qualche parte?</summary>
+          <p>No. Anche online, i file si leggono e si elaborano nel tuo browser, sul tuo computer: non vengono inviati a nessun server. Il programma desktop si collega a internet solo per controllare se ci sono aggiornamenti.</p></details>
+        <details id="d-numeri"><summary>Online e desktop danno gli stessi risultati?</summary>
+          <p>Sì: usano gli stessi lettori e gli stessi calcoli. Dove il desktop usa il motore nativo in Rust, i numeri sono identici a quelli di riferimento (bit per bit o entro 1·10⁻¹² della scala), e ogni versione lo verifica con prove automatiche.</p></details>
+        <details id="d-impronta"><summary>Come controllo l'impronta SHA-256 del file scaricato?</summary>
+          <ul>
+            <li><strong>Windows</strong> (PowerShell): <code>Get-FileHash .\nome-del-file.exe</code></li>
+            <li><strong>macOS</strong> (Terminale): <code>shasum -a 256 nome-del-file.dmg</code></li>
+            <li><strong>Linux</strong>: <code>sha256sum nome-del-file</code></li>
+          </ul>
+          <p>Il risultato deve essere uguale all'impronta mostrata accanto al file nella sezione <a href="#scarica">Scarica</a>.</p></details>
+        <details id="d-firma"><summary>Perché il programma non è firmato?</summary>
+          <p>Il certificato per firmare i programmi costa ogni anno e il progetto non ha budget: preferisce restare gratuito per tutti. Il codice è pubblico, i pacchetti si costruiscono automaticamente dal codice su GitHub, le impronte sono pubblicate e gli aggiornamenti sono firmati e verificati dal programma.</p></details>
+        <details id="d-aggiornamenti"><summary>Come si aggiorna?</summary>
+          <p>Il programma desktop controlla se c'è una versione nuova e la propone: si installa con un clic, dopo averne verificato la firma. La versione online è sempre l'ultima.</p></details>
+        <details id="d-formato"><summary>Il mio strumento non è nell'elenco: posso usarlo lo stesso?</summary>
+          <p>Quasi sempre sì: quasi tutti gli strumenti esportano in testo a colonne (CSV, TXT) o in JCAMP-DX, che il programma legge. Se il formato proprietario non viene letto, <a href="#contatti">manda un file d'esempio</a>; chi sa programmare può anche scrivere un'estensione <code>.acchplugin</code> senza codice.</p></details>
+        <details id="d-identificazione"><summary>Posso fidarmi dei nomi proposti per i picchi?</summary>
+          <p>Sono ipotesi basate sulla posizione delle bande, utili per orientarsi: vanno confermate con altre bande, altre tecniche o campioni di riferimento. Per questo il programma le chiama ipotesi e le distingue dai nomi che confermi tu.</p></details>
+        <details id="d-citare"><summary>Come lo cito in un articolo o in una tesi?</summary>
+          <p>Nel repository c'è il file <a href="https://github.com/lorebiri/acchiappaspettri/blob/main/CITATION.cff">CITATION.cff</a> con la citazione. La bozza del paragrafo «Metodi» esportata dal programma descrive le elaborazioni usate, con la bibliografia dei metodi.</p></details>
+        <details id="d-requisiti"><summary>Di che cosa ha bisogno il computer?</summary>
+          <p>Online: un browser aggiornato. Desktop: Windows 10 o 11 a 64 bit, macOS su Mac con chip Apple o Intel, Linux a 64 bit (x86_64). Non servono runtime, terminale o configurazioni.</p></details>
+        <details id="d-preferiti"><summary>Avevo l'indirizzo della versione online nei preferiti: cambia qualcosa?</summary>
+          <p>No: la versione online resta allo stesso indirizzo, <a href="../">lorebiri.github.io/acchiappaspettri</a>. Questa pagina di presentazione è in una sezione a parte.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Privacy e contatti -->
+  <section id="contatti" aria-labelledby="t-contatti">
+    <div class="wrap">
+      <h2 id="t-contatti">Privacy, contatti e segnalazioni</h2>
+      <div class="griglia tre">
+        <div class="carta" id="privacy">
+          <h3>Privacy</h3>
+          <p>Nessun account, nessun cookie, nessun sistema di statistiche. I dati degli spettri non lasciano il computer. Questa pagina chiede a GitHub soltanto l'elenco dei file dell'ultima versione. GitHub, che ospita le pagine, registra come ogni sito gli accessi tecnici.</p>
+        </div>
+        <div class="carta">
+          <h3>Segnala un problema</h3>
+          <p>Nel programma: <em>Aiuto → Segnala un problema…</em> prepara nel tuo programma di posta un messaggio con i dati tecnici e uno screenshot che puoi oscurare. Non spedisce nulla da solo e non include dati degli spettri senza il tuo consenso.</p>
+          <p>Oppure apri una <a href="https://github.com/lorebiri/acchiappaspettri/issues">segnalazione su GitHub</a>.</p>
+        </div>
+        <div class="carta">
+          <h3>Contatti</h3>
+          <p>Lorenzo Birindelli, CNR-ICCOM, Pisa.<br><a href="mailto:lorenzo.birindelli@cnr.it">lorenzo.birindelli@cnr.it</a></p>
+          <p>Idee, formati da aggiungere, collaborazioni: scrivi pure.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="piede">
+  <div class="wrap piede-griglia">
+    <div>
+      <p><strong>Acchiappaspettri</strong> · © 2026 Lorenzo Birindelli · software libero con licenza GNU GPL 3 o successiva, fornito senza alcuna garanzia.</p>
+      <p>Le identificazioni automatiche sono ipotesi da confermare; le concentrazioni dipendono dal modello e dalle condizioni di misura.</p>
+    </div>
+    <ul>
+      <li><a href="../">Versione online</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri">Codice sorgente</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri/blob/main/LICENSE">Licenza</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri/blob/main/docs/GUIDA.md">Guida</a></li>
+      <li><a href="https://github.com/lorebiri/acchiappaspettri/blob/main/CHANGELOG.md">Novità</a></li>
+      <li><a href="en/" hreflang="en" lang="en">English</a></li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>

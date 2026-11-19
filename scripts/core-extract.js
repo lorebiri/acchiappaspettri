@@ -1,0 +1,28 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Nucleo scientifico condiviso da online e desktop: il blocco /*CORE-START*/…/*CORE-END*/ di index.html, che resta la fonte unica.
+// Lavora sui byte (Buffer), non sulle stringhe: il file estratto deve essere identico byte per byte al blocco di index.html.
+'use strict';
+const START=Buffer.from('/*CORE-START*/'), END=Buffer.from('/*CORE-END*/');
+function coreRange(buf){
+  const a=buf.indexOf(START), b=buf.indexOf(END);
+  if (a<0 || b<0 || b<a) throw new Error('nucleo: marcatori /*CORE-START*/ e /*CORE-END*/ non trovati');
+  // un solo blocco: due marcatori renderebbero ambiguo che cosa è il nucleo
+  if (buf.indexOf(START, a+1)>=0 || buf.indexOf(END, b+1)>=0) throw new Error('nucleo: marcatori ripetuti');
+  return [a, b+END.length];
+}
+function extractCore(buf){ if (typeof buf==='string') buf=Buffer.from(buf,'utf8'); const [a,b]=coreRange(buf); return buf.subarray(a,b); }
+// moduli puri del nucleo (app/<nome>-core.js): file propri, caricati dalla pagina prima del blocco CORE e dal worker prima di core.js.
+// Si copiano byte per byte; l'elenco in ordine di caricamento è quello degli <script> della pagina.
+function coreModules(html){ if (Buffer.isBuffer(html)) html=html.toString('utf8'); const a=html.indexOf('/*CORE-START*/'); if (a<0) throw new Error('nucleo: marcatori /*CORE-START*/ e /*CORE-END*/ non trovati');
+  return [...html.slice(0,a).matchAll(/<script src="(app\/[\w-]+-core\.js)"><\/script>/g)].map(m=>m[1]); }
+// I5: core-worker.js, il worker del nucleo nel desktop: carica i moduli puri elencati dalla pagina (anche quelli aggiunti dopo),
+// poi core.js e infine app/worker.js, che risponde alla pagina. I file restano copie identiche: nessun codice scientifico qui.
+function workerSource(html){ const mods=coreModules(html).concat(['core.js']);
+  return '// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli\n// SPDX-License-Identifier: GPL-3.0-or-later\n// Generato da scripts/prepare-desktop.js (workerSource in scripts/core-extract.js): non modificare.\n'
+    +'importScripts('+mods.map(m=>JSON.stringify(m)).join(', ')+');\nimportScripts("app/worker.js");\n'; }
+// I6: il blocco del disegno (/*PLOT-START*/…/*PLOT-END*/, drawPlot e le sue funzioni) per le finestre aggiuntive del desktop (vista.html):
+// stesso codice della pagina, copiato byte per byte. Usa il nucleo (niceTicks, fmtTick, T_), caricato prima.
+function extractPlot(buf){ if (typeof buf==='string') buf=Buffer.from(buf,'utf8'); const S=Buffer.from('/*PLOT-START*/'), E=Buffer.from('/*PLOT-END*/'), a=buf.indexOf(S), b=buf.indexOf(E);
+  if (a<0 || b<a || buf.indexOf(S,a+1)>=0 || buf.indexOf(E,b+1)>=0) throw new Error('disegno: marcatori /*PLOT-START*/ e /*PLOT-END*/ mancanti o ripetuti'); return buf.subarray(a, b+E.length); }
+module.exports={extractCore, coreRange, coreModules, workerSource, extractPlot};

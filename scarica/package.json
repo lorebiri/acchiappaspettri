@@ -1,0 +1,5 @@
+{
+  "//": "I moduli del sito (scarica.js, avvio.js) sono ES module: serve ai test di Node, che li importano.",
+  "type": "module",
+  "private": true
+}
