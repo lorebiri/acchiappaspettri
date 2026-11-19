@@ -29,6 +29,9 @@ Fluorescenza primaria e secondaria (anche contro Monte Carlo, entro lo 0,1%), Kl
 - arPLS e SNIP senza parametri danno gli stessi numeri delle versioni precedenti (test `fondo.test.js`).
 - Oltre 100 000 punti ALS e arPLS lavorano su medie a blocchi con λ/k⁴ e interpolano: 2 milioni di punti in circa un secondo.
 
+## CF-LIBS (sperimentale, dopo la 3.0.0)
+Analisi LIBS senza taratura secondo Ciucci, Palleschi et al. (1999): aree con fit di Voigt e deconvoluzione di Olivero, n_e da Hα/Hβ (Gigosos 2003) o da una riga con w noto, grafico di Boltzmann e di Saha–Boltzmann con regressione pesata, Saha–Eggert, chiusura a 100 % o standard interno, correzione facoltativa dell'autoassorbimento (El Sherbini 2005, Palleschi 2022), controllo di McWhirter (necessario, non sufficiente). Dati atomici dal NIST ASD 5.12 (`app/libs-data.js`), algoritmo in `app/libs-cf-core.js`. Metodo, formule con le fonti, validazione e limiti: [CF-LIBS.md](CF-LIBS.md). **Validata solo su spettri sintetici generati con lo stesso modello**; sull'unico spettro reale pubblico provato non dà risultati utili.
+
 ## Limiti noti non corretti
 - XRF empirico (`xrfIntensities`): con tubo ignoto la finestra del Compton 16–21,5 keV può includere il Rayleigh del Rh; ±1 FWHM taglia parte del Compton.
 - Currie: «rilevato» sopra L_D è prudente; è dichiarato nel testo.
