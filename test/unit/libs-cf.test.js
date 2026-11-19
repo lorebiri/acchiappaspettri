@@ -67,7 +67,7 @@ test('n_e da Stark (w noto) e da Hα/Hβ (Gigosos 2003): formule e inverse', ()=
   assert.ok(Math.abs(C.fwhmHbeta(1e17)-4.8)<1e-12); assert.ok(Math.abs(C.fwhmHalpha(1e17)-1.098)<1e-12);
 });
 test('neFromHydrogen: n_e ritrovata entro il 10 % da Hα e Hβ su spettri sintetici di solo idrogeno', ()=>{
-  for (const ne of [3e16, 1e17]){ const S=C.synth(D,{comp:{Ar:1}, ambient:{H:1e17}, T:10000, ne, wl:[420,700], peakCounts:1e5, seed:11});
+  for (const ne of [3e16, 1e17]){ const S=C.synth(D,{comp:{Ar:1}, ambient:{H:2e17}, T:10000, ne, wl:[420,700], peakCounts:1e5, seed:11});
     const a=C.neFromHydrogen(S.x,S.y,'alpha',{fwhmG:0.05}), b=C.neFromHydrogen(S.x,S.y,'beta',{fwhmG:0.05});
     assert.ok(a.ok && rel(a.ne,ne)<0.1, 'Hα '+a.ne); assert.ok(b.ok && rel(b.ne,ne)<0.1, 'Hβ '+b.ne);
     REPORT.push(['n_e da Hα (solo H)', ne.toExponential(1), a.ne.toExponential(3), (100*(a.ne/ne-1)).toFixed(1)+' %']);
@@ -96,7 +96,8 @@ function exactLines(comp, T, ne, basis){   // intensità integrate del modello L
   return {lines:out, mol}; }
 test('boltzmannPlot e jointFit: T esatta da punti senza rumore, pendenza comune a più specie', ()=>{
   const {lines}=exactLines({Fe:1, Cr:1}, 9000, 1e17, 'molar'); const b=C.boltzmannPlot(lines.map(l=>Object.assign(l,{I:l.area, sy:0.1})));
-  assert.ok(rel(b.T, 9000)<1e-9, b.T); assert.ok(b.sT>0 && b.sT<500, b.sT);   // σ_y = 0,1 dichiarato: σ_T dai pesi, non dai residui (nulli) assert.strictEqual(b.groups.length, 4);
+  assert.ok(rel(b.T, 9000)<1e-9, b.T); assert.ok(b.sT>0 && b.sT<500, b.sT);   // σ_y = 0,1 dichiarato: σ_T dai pesi, non dai residui (nulli)
+  assert.strictEqual(b.groups.length, 4);   // Fe I, Fe II, Cr I, Cr II (l'asserzione era finita nel commento)
   assert.strictEqual(C.jointFit([{g:'a',x:1,y:1,sy:1}]), null);
 });
 test('cf: concentrazioni esatte in Saha-Boltzmann e in Boltzmann per specie; standard interno; n_e di Saha', ()=>{
@@ -134,7 +135,7 @@ const CASES={
   'bronzo Cu–Sn–Zn–Pb':{comp:{Cu:85, Sn:8, Zn:4, Pb:3}},
   'acciaio Fe–Cr–Ni–Mn':{comp:{Fe:70, Cr:18, Ni:10, Mn:2}},
   'vetro Si–Na–Ca–K–Al (+O)':{comp:{Si:33, Na:10, Ca:7, K:3, Al:2, O:45}} };
-function runCase(name, extra, aopt){ const c=CASES[name], S=C.synth(D, Object.assign({T:10000, ne:1e17, ambient:{H:1e17}, peakCounts:1e6, seed:3}, c, extra));
+function runCase(name, extra, aopt){ const c=CASES[name], S=C.synth(D, Object.assign({T:10000, ne:1e17, ambient:{H:2e17}, peakCounts:1e6, seed:3}, c, extra));
   const r=C.analyze(D, S.x, S.y, Object.assign({elements:Object.keys(c.comp), fwhmG:0.05, neFrom:'Halpha'}, aopt)); return {S, r}; }
 const errs=(r, S)=>r.elements.map(e=>({el:e.el, wt:e.wt, s:e.sWt, truth:S.truth.wt[e.el], err:rel(e.wt, S.truth.wt[e.el])}));
 for (const name of Object.keys(CASES)) test('validazione sintetica, otticamente sottile: '+name, ()=>{
@@ -175,13 +176,23 @@ test('multipletti non risolti della stessa specie (Zn I 330,26/330,29 nm): una r
   const r=C.candidates(D, ['Zn','Cu'], 300, 345, {fwhmG:0.1}), z=r.lines.filter(l=>l.el==='Zn' && l.merged);
   assert.ok(z.length>=1, 'multipletto di Zn unito'); const m=z.find(l=>Math.abs(l.wl-330.27)<0.03); assert.ok(m && m.parts.length===2 && m.gk===1 && m.A>0);
   assert.ok(!r.blended.some(l=>l.el==='Zn' && Math.abs(l.wl-330.27)<0.05), 'non più fra le righe scartate');
-  const S=C.synth(D, {comp:{Cu:90, Zn:10}, T:10000, ne:1e17, ambient:{H:1e17}, wl:[300,540], fwhmG:0.1, peakCounts:3e5, seed:2}), a=C.analyze(D, S.x, S.y, {elements:['Cu','Zn'], fwhmG:0.1, neFrom:'Halpha'});
+  const S=C.synth(D, {comp:{Cu:90, Zn:10}, T:10000, ne:1e17, ambient:{H:2e17}, wl:[300,540], fwhmG:0.1, peakCounts:3e5, seed:2}), a=C.analyze(D, S.x, S.y, {elements:['Cu','Zn'], fwhmG:0.1, neFrom:'Halpha'});
   assert.ok(a.ok, a.why); const zn=a.elements.find(e=>e.el==='Zn'); assert.ok(zn && zn.wt>0.05, 'Zn misurato: '+(zn&&zn.wt));
 });
 test('revisione 3.1: standard interno senza righe e n_e non positiva sono segnalati, non ignorati in silenzio', ()=>{
-  const S=C.synth(D, {comp:{Cu:90, Sn:10}, T:10000, ne:1e17, ambient:{H:1e17}, wl:[300,540], fwhmG:0.05, peakCounts:3e5, seed:4});
+  const S=C.synth(D, {comp:{Cu:90, Sn:10}, T:10000, ne:1e17, ambient:{H:2e17}, wl:[300,540], fwhmG:0.05, peakCounts:3e5, seed:4});
   const a=C.analyze(D, S.x, S.y, {elements:['Cu','Sn'], fwhmG:0.05, neFrom:'Halpha', closure:{el:'Zn', wt:0.05}});
   assert.ok(a.warnings.some(w=>w.code==='closureRefMissing' && w.el==='Zn'), JSON.stringify(a.warnings.map(w=>w.code)));
   const b=C.analyze(D, S.x, S.y, {elements:['Cu','Sn'], fwhmG:0.05, neFrom:'Halpha', ne:-5});
   assert.ok(b.warnings.some(w=>w.code==='neInvalid'), JSON.stringify(b.warnings.map(w=>w.code)));
+});
+test('debug 3.1 indipendente: elemento scelto senza righe (Sb, assente dalla banca dati) segnalato; un λ NaN non rende indeterminata la pendenza; gA di Balmer come nel NIST', ()=>{
+  const S=C.synth(D, {comp:{Cu:90, Sn:10}, T:10000, ne:1e17, ambient:{H:2e17}, wl:[300,540], fwhmG:0.05, peakCounts:3e5, seed:4});
+  const a=C.analyze(D, S.x, S.y, {elements:['Cu','Sn','Sb'], fwhmG:0.05, neFrom:'Halpha'});
+  const w=a.warnings.find(q=>q.code==='noLines'); assert.ok(w && w.els.includes('Sb') && w.noData.includes('Sb') && !w.els.includes('Cu'), JSON.stringify(a.warnings));
+  const {lines}=exactLines({Fe:1, Cr:1}, 9000, 1e17, 'molar'); lines.forEach(l=>{ l.area/=l.wl; }); lines[3].wl=NaN;   // intensità in energia: Ī ∝ g·A·e^(−E/kT)/λ
+  const r=C.cf(D, lines, {ne:1e17, intensity:'energy', mc:0}); assert.ok(r.ok && Math.abs(r.T/9000-1)<1e-6, r.why||r.T);
+  // Hα 4,41·10⁷ s⁻¹ (g_k 18) e Hβ 8,42·10⁶ s⁻¹ (g_k 32), NIST ASD: prima componenti e riga totale erano sommate (valori doppi)
+  const H=C.linesOf(D, 'H', 'I'), ha=H.find(l=>Math.abs(l.wl-656.28)<0.01), hb=H.find(l=>Math.abs(l.wl-486.13)<0.01);
+  assert.ok(Math.abs(ha.A/4.41e7-1)<0.002 && Math.abs(hb.A/8.42e6-1)<0.002, ha.A+' '+hb.A);
 });

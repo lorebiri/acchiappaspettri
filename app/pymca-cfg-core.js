@@ -82,14 +82,17 @@
       opt=m[1].trim(); optIndent=indent; cur.opts.set(opt, [m[2]]);
     }
     const def=byName.get('DEFAULT'), out={};
-    const interp=(v, sec)=>v.replace(/%\(([^)]+)\)s|%%/g, (all, k)=>{ if (!k) return '%'; const src=(sec.opts.has(k)?sec:def&&def.opts.has(k)?def:null); return src ? src.opts.get(k).join('\n').trim() : all; });
+    // tetto alle sostituzioni: ogni chiave di [DEFAULT] va in ogni sezione e %(x)s si espande ogni volta; un file di 28 kB arrivava a 4 GB
+    // di memoria (debug 3.1 indipendente). Nome della chiave limitato e senza a capo: «%(» ripetuto senza «)» era quadratico
+    let budget=Math.max(4e6, 20*text.length); const spend=n=>{ budget-=n; if (budget<0) throw new Error('file .cfg troppo grande dopo le sostituzioni di [DEFAULT] e %(…)s'); };
+    const interp=(v, sec)=>v.replace(/%\(([^)\r\n]{1,200})\)s|%%/g, (all, k)=>{ if (!k) return '%'; const src=(sec.opts.has(k)?sec:def&&def.opts.has(k)?def:null); if (!src) return all; const r=src.opts.get(k).join('\n').trim(); spend(r.length); return r; });
     // nomi che in JavaScript toccano il prototipo: una sezione [__proto__] scriveva su Object.prototype (revisione 3.1). Si scartano, sezioni e chiavi
     const BAD=new Set(['__proto__','constructor','prototype']);
     for (const s of secs){ if (s.name==='DEFAULT') continue;
       const parts=s.name.split('.').map(part=>part.split('_|_').join('.')); if (parts.some(k=>BAD.has(k))) continue;
       let d=out; for (const k of parts){ if (!Object.prototype.hasOwnProperty.call(d,k) || !isObj(d[k])) d[k]={}; d=d[k]; }
       const keys=new Map(def ? def.opts : []); for (const [k,v] of s.opts) keys.set(k,v);
-      for (const [k,v] of keys){ if (BAD.has(k)) continue; const val=v.join('\n').replace(/\s+$/,''); d[k]=pyData(interp(val, s)); }
+      for (const [k,v] of keys){ if (BAD.has(k)) continue; const val=v.join('\n').trimEnd(); spend(val.length+k.length+1); d[k]=pyData(interp(val, s)); }   // trimEnd: la regex /\s+$/ era quadratica su spazi interni lunghi
     }
     return out;
   }
@@ -453,8 +456,8 @@ CompoundList = H1, C1, O1
   const DET_RHO={Si:2.33, Ge:5.323};
   const r6=v=>+(+v).toPrecision(12);
   // nome valido per una sezione [materials.Nome] e per gli attenuatori (niente virgole, punti né spazi ai bordi)
-  const matName=s=>String(s||'').replace(/[,.\[\]=:%\s]+/g,'_').replace(/^_+|_+$/g,'') || 'Matrice_Acch';
-  function compFromAny(c){ if (!c) return null; if (typeof c==='string'){ const m=formulaMass(c); if (m) return m; const o={}; String(c).replace(/([A-Z][a-z]?)\s*[:=]?\s*([\d.,]+)/g, (_,s,v)=>{ if (AW[s]) o[s]=(o[s]||0)+parseFloat(v.replace(',','.')); return ''; }); return Object.keys(o).length ? o : null; } return isObj(c) ? c : null; }
+  const matName=s=>String(s||'').slice(0,200).replace(/[,.\[\]=:%\s]+/g,'_').replace(/^_+|_+$/g,'') || 'Matrice_Acch';
+  function compFromAny(c){ if (!c) return null; if (typeof c==='string'){ const m=formulaMass(c); if (m) return m; const o={}; String(c).replace(/([A-Z][a-z]?)\s*(?:[:=]\s*)?([\d.,]+)/g, (_,s,v)=>{ if (AW[s]) o[s]=(o[s]||0)+parseFloat(v.replace(',','.')); return ''; }); return Object.keys(o).length ? o : null; } return isObj(c) ? c : null; }
   function putMaterial(cfg, name, comp, rho, thick, comment){
     const els=Object.keys(comp).filter(s=>comp[s]>0), t=els.reduce((a,s)=>a+comp[s],0);
     cfg.materials[name]={Comment:comment||'scritto da Acchiappaspettri', Density:rho!=null?rho:1.0, Thickness:thick!=null?thick:1.0,

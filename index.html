@@ -1981,20 +1981,30 @@ function parseLine(l, yc){
    Maestro/Ortec .spe ($DATA:/$ENER_FIT:), e in generale ≥ 256 righe con un solo numero dopo un'intestazione. */
 function parseXRF(text){
   const lines=text.split(/\r\n|\n|\r/), one=/^[-+]?\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?$/;
-  const amptek=/<<\s*DATA\s*>>/i.test(text), spt=/^\s*\[DATA\]\s*$/mi.test(text), spe=/^\s*\$DATA:\s*$/m.test(text);
+  // [ \t]* e non \s*: con il flag m \s* attraversa gli a capo, e 60 000 righe vuote bloccavano l'apertura di qualunque file di testo per 30 s (debug 3.1 indipendente)
+  const amptek=/<<[ \t]*DATA[ \t]*>>/i.test(text), spt=/^[ \t]*\[DATA\][ \t]*$/mi.test(text), spe=/^[ \t]*\$DATA:[ \t]*$/m.test(text), specA=/^@A[ \t]/m.test(text) && /^#@(CHANN|CALIB)\b/m.test(text);
   const hashMca=/^#\s*(MCA Channels|Calibration\d|Tube Anode)\b/mi.test(text);
   const meta=[], counts=[], cal=[]; let poly=null, fmt='', start=0, sec='', badCh=0;
   const pair=l=>{ const t=l.trim().split(/[\s;\t]+/).map(toNum); return t.length>=2 && isFinite(t[0]) && isFinite(t[1]) ? [t[0],t[1]] : null; };
   if (amptek){
     fmt='Amptek MCA';
     for (const raw of lines){ const l=raw.trim(); if (!l) continue;
-      const m=/^<<\s*(.+?)\s*>>$/.exec(l); if (m){ sec=m[1].toUpperCase(); continue; }
+      if (l.length>4 && l.startsWith('<<') && l.endsWith('>>')){ sec=l.slice(2,-2).trim().toUpperCase(); continue; }   // senza la regex /^<<\s*(.+?)\s*>>$/, cubica su «<<» seguito da molti spazi
       if (sec==='DATA'){ if (one.test(l)) counts.push(toNum(l)); else { counts.push(null); badCh++; } }
       else if (sec==='CALIBRATION'){ const q=pair(l); if (q) cal.push(q); else meta.push(l); }
       else if (meta.length<200) meta.push(l);
     }
     // un canale illeggibile non è uno zero: nel fit pesa come ventimila conteggi. Prende la media dei vicini, e la cosa viene detta
-    for (let i=0;i<counts.length;i++) if (counts[i]==null){ let a=i-1, b=i+1; while (b<counts.length && counts[b]==null) b++; counts[i]=((a>=0?counts[a]:0)+(b<counts.length?counts[b]:0))/2; }
+    for (let i=0, b=0;i<counts.length;i++) if (counts[i]==null){ const a=i-1; if (b<=i) b=i+1; while (b<counts.length && counts[b]==null) b++; counts[i]=((a>=0?counts[a]:0)+(b<counts.length?counts[b]:0))/2; }   // b ricordato: prima ogni canale illeggibile riscandiva tutta la serie (quadratico)
+  } else if (specA){
+    fmt='SPEC MCA (.mca)'; let inA=false;   // prima letto come tabella generica: un conteggio diventava la X e il successivo la Y (debug 3.1 indipendente)
+    for (const raw of lines){ const l=raw.trim(); if (!l) continue;
+      if (inA || l.startsWith('@A')){ if (counts.length && !inA) break;   // più spettri nel file: si legge il primo
+        const body=(inA ? l : l.slice(2)).replace(/\\$/,''); inA=/\\$/.test(l); for (const t of body.trim().split(/\s+/)) if (t){ if (one.test(t)) counts.push(toNum(t)); else { counts.push(null); badCh++; } } continue; }
+      const ch=/^#@CHANN\s+(\d+)\s+(\d+)/.exec(l); if (ch){ start=+ch[2]; if (meta.length<200) meta.push(l); continue; }
+      const cb=/^#@CALIB\s+(\S+)\s+(\S+)(?:\s+(\S+))?/.exec(l); if (cb){ const v=[cb[1],cb[2],cb[3]||'0'].map(toNum); if (v.every(isFinite) && !(v[0]===0 && v[1]===1 && v[2]===0)) poly=v; if (meta.length<200) meta.push(l); continue; }   // «0 1 0»: asse in canali, non tarato
+      if (meta.length<200) meta.push(l); }
+    for (let i=0, b=0;i<counts.length;i++) if (counts[i]==null){ const a=i-1; if (b<=i) b=i+1; while (b<counts.length && counts[b]==null) b++; counts[i]=((a>=0?counts[a]:0)+(b<counts.length?counts[b]:0))/2; }
   } else if (spt){
     fmt='LIDAQ (.spt)';
     for (const raw of lines){ const l=raw.trim(); if (!l) continue;
@@ -2018,7 +2028,7 @@ function parseXRF(text){
     for (const raw of lines){ const l=raw.trim(); if (!l) continue;
       if (one.test(l)){ counts.push(toNum(l)); continue; }
       if (counts.length) { if (meta.length<200) meta.push(l); continue; }
-      if (/[\d.,]+\s*[\t;, ]\s*[-+]?\d/.test(l) && !/^[#;!*%]/.test(l) && !/[a-z]{2}/i.test(l.replace(/[eE][-+]?\d/g,''))) return null;  // tabella a 2 colonne: non è un MCA
+      if (/[\d.,]+\s*[\t;, ]\s*[-+]?\d/.test(l.slice(0,256)) && !/^[#;!*%]/.test(l) && !/[a-z]{2}/i.test(l.replace(/[eE][-+]?\d/g,''))) return null;  // tabella a 2 colonne: non è un MCA
       const c=/^#?\s*Calibration\d*\s*[:=]\s*([-+\d.,]+)\s+([-+\d.,]+)/i.exec(l); if (c){ const a=toNum(c[1]), b=toNum(c[2]); if (isFinite(a)&&isFinite(b)) cal.push([a,b]); }
       meta.push(l);
     }
@@ -4033,6 +4043,16 @@ function xrfFPAuto(xs, ys, els, S, opt){ opt=opt||{}; if (!opt.confirm || els.le
   const same=C.kept.length===els.length, R=same ? C.R : xrfFP(xs, ys, C.kept, C.R.S||S, Object.assign({}, opt, {fix:C.fix, autoGeom:false})); if (!R) return null;   // parametri del picco già trovati: niente secondo Levenberg–Marquardt
   R.conf={kept:C.kept, dropped:C.dropped, ambiguous:C.ambiguous, delta:C.delta, thr:C.thr}; return R;
 }
+/* calibrazione per canale da scrivere nel .cfg di PyMca: E(k) = zero + gain·k + quad·k² sui canali del FILE (k = 0 è il primo canale del file,
+   anche se il lettore ha tolto i canali iniziali vuoti o a energia negativa). Composizione di calibrazione del file (cal: a + b·k + c·k², keV),
+   allineamento sulle righe note (ecal: a + b·E) e correzioni del fit (E·(1 + gain) + off + quad·E²); quadratica esatta per il primo, il centrale
+   e l'ultimo canale (kmax). Prima l'export scriveva come «zero» la sola correzione del fit e lasciava il guadagno dell'esempio di PyMca
+   (0,0174 keV/canale): intervallo del fit e righe nel posto sbagliato in PyMca. */
+function fpCfgCal(cal, ecal, F, kmax){ if (!cal || !(+cal.b>0 || +cal.c>0)) return null; F=F||{}; const e=ecal||{a:0, b:1}, g=+F.gain||0, off=+F.off||0, q=+F.quad||0;
+  const E=k=>{ const x0=+cal.a+(+cal.b)*k+(+cal.c||0)*k*k, x=(+e.a||0)+(e.b!=null ? +e.b : 1)*x0; return x*(1+g)+off+q*x*x; };
+  const k2=Math.max(4, Math.round(+kmax)||4095), k1=k2>>1, e0=E(0), e1=E(k1), e2=E(k2); if (![e0,e1,e2].every(Number.isFinite)) return null;
+  const quad=((e2-e0)/k2-(e1-e0)/k1)/(k2-k1), gain=(e1-e0)/k1-quad*k1;
+  return {zero:e0, gain, quad:Math.abs(quad*k2*k2)<1e-9*Math.max(1e-9, Math.abs(e2-e0)) ? 0 : quad}; }
 /* misure per la quantificazione: area della riga analitica di ogni elemento dall'adattamento per famiglie */
 function fpMeasure(fit, els, S){ const out={};
   for (const e of els){ const l=fpLine(e,S); if (!l) continue; const A=fit.area[e]; const I=A&&A[l], sI=fit.sArea[e]&&fit.sArea[e][l];
@@ -8937,14 +8957,16 @@ function fpImportCfg(c, text, name){ const P=window.PymcaCfg; if (!P) throw new 
   c.cfgWarn=(n.warnings||[]).map(w=>typeof w==='string'?w:w.msg).filter(Boolean).slice(0,40);
   if (n.peaks && typeof n.peaks==='object'){ const els=Object.keys(n.peaks).filter(e=>Object.prototype.hasOwnProperty.call(FP.el, e)); if (els.length) c.els=els; }
   return n; }
-function fpExportCfg(f, R){ const P=window.PymcaCfg; if (!P) throw new Error('modulo PymcaCfg assente'); const S=(R&&R.S)||fpSetupOf(f), F=R&&R.fit, els=(R&&R.els)||[];
+function fpExportCfg(f, R){ const P=window.PymcaCfg; if (!P) throw new Error('modulo PymcaCfg assente'); const S=(R&&R.S)||fpSetupOf(f), F=R&&R.fit, els=(R&&R.els)||[], cal=fpCfgCalOf(f, F)||{};   // calibrazione per canale del file, con allineamento e correzioni del fit
   const n={setup:{anode:S.anode, kv:S.kv, psi1:S.psi1, psi2:S.psi2, beT:S.beT, eps:S.eps, ae:S.ae||75, d1:S.d1, d2:S.d2, atm:S.atm, beD:S.beD, si:S.si, det:S.det||'Si', trans:S.trans||0, tT:S.tT||0,
       filt:S.filt?{comp:S.filt.comp, rho:S.filt.rho, um:S.filt.um}:null, exc:S.exc||null},
-    fit:F?{xminE:F.lo, xmaxE:F.hi, zero:F.off||0, gain:null, noise:F.noise||null, fano:F.fano||null, quad:F.quad||0, hypermet:F.peakModel==='hypermet'?{gauss:1, st:1, lt:1, step:1}:{gauss:1, st:0, lt:0, step:0},
-      st:F.shape?F.shape.st:null, lt:F.shape?F.shape.lt:null, stepH:F.shape?F.shape.step:null, escape:true, detEl:S.det||'Si', pileup:!!F.pile}:{},
+    fit:F?{xminE:F.lo, xmaxE:F.hi, zero:cal.zero, gain:cal.gain, noise:F.noise||null, fano:F.fano||null, quad:cal.quad||0, hypermet:F.peakModel==='hypermet'?{gauss:1, st:1, lt:1, step:1}:{gauss:1, st:0, lt:0, step:0},
+      st:F.shape?F.shape.st:null, lt:F.shape?F.shape.lt:null, stepH:F.shape?F.shape.step:null, escape:true, detEl:S.det||'Si', pileup:fpCfg(f).pileup!==false}:{zero:cal.zero, gain:cal.gain, quad:cal.quad||0},   // picchi somma: l'impostazione, non l'esito (senza picchi somma nello spettro F.pile è vuoto)
     peaks:Object.fromEntries(els.map(e=>[e, [fpLine(e,S)==='La'?'L':'K']])),
     matrix:R&&R.Q&&R.Q.comp?{name:'Acchiappaspettri', comp:R.Q.comp, rho:null, thickness:null}:null};
   const cfg=P.fromAcch(n); return {text:P.stringify(cfg), warn:cfg.warnings||[]}; }
+function fpCfgCalOf(f, F){ const c=f.xrf&&f.xrf.cal, x0=f.xs0||f.xs; if (!c || !x0 || !x0.length) return null; const b=+c.b, last=x0[x0.length-1];
+  const kmax=!(+c.c) && b>0 ? (last-(+c.a))/b : 4095; return fpCfgCal(c, f.ecal, F, kmax); }
 /* atmosfera nella lingua dell'esportazione (nel CSV e nel PDF italiani «air» restava in inglese) */
 function fpAtmName(a, en){ const m={air:['aria','air'], he:['elio','helium'], vac:['vuoto','vacuum']}[a]; return m ? m[en?1:0] : (a||''); }
 // nella colonna Note gli avvisi hanno «! » davanti, come nel PDF: prima il ⚠️ si toglieva senza nulla al suo posto

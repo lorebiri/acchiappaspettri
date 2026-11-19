@@ -7,7 +7,7 @@
 const test=require('node:test'), assert=require('node:assert');
 const B=require('./browser.js'), C=require('../../app/libs-cf-core.js'), D=require('../../app/libs-data.js');
 
-function csv(){ const S=C.synth(D,{comp:{Cu:85, Sn:8, Zn:4, Pb:3}, T:10000, ne:1e17, ambient:{H:1e17}, peakCounts:1e6, seed:3, wl:[240,700], step:0.02});
+function csv(){ const S=C.synth(D,{comp:{Cu:85, Sn:8, Zn:4, Pb:3}, T:10000, ne:1e17, ambient:{H:2e17}, peakCounts:1e6, seed:3, wl:[240,700], step:0.02});
   return '# LIBS laser-induced breakdown, spettro SINTETICO\nwavelength_nm,counts\n'+Array.from(S.x).map((x,i)=>x.toFixed(2)+','+S.y[i]).join('\n')+'\n'; }
 
 for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang+')', async ()=>{

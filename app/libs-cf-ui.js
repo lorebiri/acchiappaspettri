@@ -13,6 +13,9 @@
   const g=(v,d)=>v==null||!Number.isFinite(+v)?'—':String(+(+v).toPrecision(d||3)).replace('.',dec());
   const ex=v=>!Number.isFinite(+v)?'—':(+v).toExponential(2).replace('.',dec()).replace(/e\+?(-?)(\d+)/,(m,s,n)=>'·10'+(s?'⁻':'')+String(n).split('').map(c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c]).join(''));
   const num=s=>{ const v=parseFloat(String(s==null?'':s).replace(',','.')); return Number.isFinite(v)?v:null; };
+  // n_e scritta come 1e17, 1,5e17, 10^17, 1,5·10^17 o 1.5x10^17 (prima «10^17» diventava 10 cm⁻³)
+  const neNum=s=>{ const t=String(s==null?'':s).replace(/\s+/g,'').replace(',','.').replace(/^10\^/,'1e').replace(/(?:[x×·*])10\^/i,'e').replace(/[⁻]/g,'-');
+    return /^[+]?\d+(\.\d*)?(e[+-]?\d+)?$/i.test(t) ? +t : null; };
 
   function warnText(w){ const L=a=>(a||[]).slice(0,6).join(', ')+((a||[]).length>6?'…':'');
     switch (w.code){
@@ -30,7 +33,8 @@
       case 'Toutside': return T('Temperatura fuori dalla griglia delle funzioni di partizione (3000–30000 K).', 'Temperature outside the partition-function grid (3000–30000 K).');
       case 'noConvergence': return T('L\'iterazione su T e n_e non è arrivata a convergenza.', 'The T and n_e iteration did not converge.');
       case 'closureRefMissing': return T('Lo standard interno '+w.el+' non ha righe misurate: chiusura a 100 % al suo posto.', 'The internal standard '+w.el+' has no measured lines: closure to 100% used instead.');
-      case 'neInvalid': return T('La densità elettronica data non è positiva: ignorata, n_e ricavata dallo spettro.', 'The given electron density is not positive: ignored, n_e derived from the spectrum.');
+      case 'neInvalid': return T('La densità elettronica data non è valida (serve un numero in cm⁻³ fra 10¹³ e 10²¹, per esempio 1e17): ignorata, n_e ricavata per iterazione (ipotesi: 1 atm).', 'The given electron density is not valid (a number in cm⁻³ between 10¹³ and 10²¹ is needed, e.g. 1e17): ignored, n_e estimated by iteration (assumption: 1 atm).');
+      case 'noLines': return T('Elementi scelti senza righe misurabili, quindi assenti dal risultato: '+L(w.els)+'. La chiusura a 100 % è fatta senza di loro e gli altri risultano più alti.', 'Selected elements with no measurable lines, hence missing from the result: '+L(w.els)+'. The 100% closure is made without them, so the others come out higher.');
       case 'selfAbsNoW': return T('Correzione dell\'autoassorbimento non applicata: mancano i coefficienti Stark w delle righe.', 'Self-absorption correction not applied: line Stark coefficients w are missing.');
       case 'lowSA': return T('Righe scartate per autoassorbimento forte: '+L(w.lines), 'Lines discarded for strong self-absorption: '+L(w.lines));
       case 'noH': return T('Riga dell\'idrogeno non trovata o troppo debole: n_e è stata stimata per iterazione (ipotesi: 1 atm).', 'Hydrogen line not found or too weak: n_e was estimated by iteration (assumption: 1 atm).');
@@ -69,9 +73,9 @@
   function render(box, f, d, els){
     const D=win.LIBS_DATA, C=win.LibsCf; if (!D || !C || !box) return;
     const st=f._cf||(f._cf={els:null, fwhm:'', ne:'Halpha', neVal:'', mode:'saha-boltzmann', noRes:true, open:false, res:null});
-    const avail=C.elementsIn(D).filter(e=>e!=='H'); if (!st.els) st.els=(els||[]).filter(e=>avail.includes(e));
+    const avail=C.elementsIn(D).filter(e=>e!=='H' && C.linesOf(D, e, 'I').length+C.linesOf(D, e, 'II').length>0);   // senza righe in banca dati (Sb) l'elemento non si può misurare: non si offre if (!st.els) st.els=(els||[]).filter(e=>avail.includes(e));
     const wrap=doc.createElement('div'); wrap.className='libscf'; wrap.style.marginTop='10px';
-    const paint=()=>{ wrap.innerHTML=`<h4 class="anh">CF-LIBS <small>(${T('sperimentale','experimental')})</small></h4>`+(!st.open ? `<p class="why" style="margin:2px 0">${T('Analisi quantitativa senza taratura (Ciucci et al. 1999): temperatura dal grafico di Boltzmann, densità elettronica da Stark, concentrazioni per chiusura a 100 %. Sperimentale: richiede plasma in equilibrio, otticamente sottile e risposta spettrale nota.','Calibration-free quantitative analysis (Ciucci et al. 1999): temperature from the Boltzmann plot, electron density from Stark broadening, concentrations by closure to 100%. Experimental: needs a plasma in equilibrium, optically thin, and a known spectral response.')}</p><button class="btn small" data-cf="open">${T('CF-LIBS (sperimentale)…','CF-LIBS (experimental)…')}</button>` :
+    const paint=()=>{ wrap.innerHTML=`<h4 class="anh">CF-LIBS <small>(${T('sperimentale','experimental')})</small></h4>`+(!st.open ? `<p class="why" style="margin:2px 0">${T('Analisi quantitativa senza taratura (Ciucci et al. 1999): temperatura dal grafico di Boltzmann, densità elettronica da Stark, concentrazioni per chiusura a 100 %. Sperimentale: richiede plasma in equilibrio, otticamente sottile e risposta spettrale nota. Provata solo su spettri sintetici: non usarla per dichiarare concentrazioni.','Calibration-free quantitative analysis (Ciucci et al. 1999): temperature from the Boltzmann plot, electron density from Stark broadening, concentrations by closure to 100%. Experimental: needs a plasma in equilibrium, optically thin, and a known spectral response. Tested only on synthetic spectra: do not use it to report concentrations.')}</p><button class="btn small" data-cf="open">${T('CF-LIBS (sperimentale)…','CF-LIBS (experimental)…')}</button>` :
       `<div class="elrow"><b>${T('Elementi','Elements')}:</b> ${avail.map(e=>`<button class="pill ${st.els.includes(e)?'on':''}" data-cfel="${e}">${e}</button>`).join(' ')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:6px 0">
         <label>${T('Larghezza strumentale FWHM (nm)','Instrument FWHM (nm)')} <input data-cf="fwhm" size="6" value="${h(st.fwhm)}" placeholder="${h(T('stima','estimate'))}"></label>
@@ -93,7 +97,7 @@
       if (q('run')) q('run').onclick=()=>{ const out=q('out'); out.innerHTML=`<p class="why">${T('Calcolo…','Computing…')}</p>`;
         setTimeout(()=>{ try{
           const fw=num(st.fwhm), opt={elements:st.els, fwhmG:fw>0?fw:undefined, mode:st.mode, excludeResonance:st.noRes};
-          if (st.ne==='Halpha'||st.ne==='Hbeta') opt.neFrom=st.ne; else if (st.ne==='given'){ const v=num(st.neVal); if (v>0) opt.ne=v; }
+          if (st.ne==='Halpha'||st.ne==='Hbeta') opt.neFrom=st.ne; else if (st.ne==='given'){ const v=neNum(st.neVal); opt.ne=v>=1e13 && v<=1e21 ? v : -1; }   // valore assente o assurdo: -1 fa comparire l'avviso neInvalid (prima si passava in silenzio all'iterazione)
           st.res=C.analyze(D, Array.from(f.xs), Array.from(f.ys), opt);
           if ((st.ne==='Halpha'||st.ne==='Hbeta') && st.res.neSource==='iterated' && st.res.warnings) st.res.warnings.unshift({code:'noH'});
         }catch(e){ console.error(e); st.res={ok:false, why:String(e&&e.message||e)}; } out.innerHTML=resultHtml(st.res); }, 20); };

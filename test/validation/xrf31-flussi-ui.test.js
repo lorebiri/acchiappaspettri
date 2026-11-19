@@ -20,6 +20,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
       document.querySelector('#secCult').open=true; renderCult(f); o.panel=!!document.querySelector('#fpModel') && !!document.querySelector('#fpCfgIn');
       // .cfg: esportato e reimportato su una copia delle impostazioni
       const ex=fpExportCfg(f, R); o.cfgLen=ex.text.length; const c2={}; fpImportCfg(c2, ex.text, 'esportato.cfg'); o.imp={anode:c2.S.anode, kv:c2.S.kv, psi1:c2.S.psi1, psi2:c2.S.psi2, model:c2.model, els:c2.els};
+      { const pc=PymcaCfg.parse(ex.text), c=f.xrf.cal, e=f.ecal||{a:0,b:1}; o.cal={zero:+pc.detector.zero, gain:+pc.detector.gain, want0:(e.a+e.b*c.a)*(1+R.fit.gain)+R.fit.off, wantG:e.b*c.b*(1+R.fit.gain), sum:+pc.fit.sumflag}; }
       // .cfg ostile: chiavi __proto__ e constructor, righe enormi, valori assurdi; nessun inquinamento del prototipo, nessun HTML eseguito
       const bad='[__proto__]\npolluted = 1\n[constructor]\nprototype = 2\n[detector]\nzero = 1e999\ngain = -5\ndetele = <img src=x onerror=window.__xss=1>\n[tube]\nanode = <script>\nvoltage = 99999\n[peaks]\nCu = K\n__proto__ = K\n[fit]\nenergy = '+'1, '.repeat(20000)+'\n';
       const c3=Object.assign({}, fpCfg(f)); let err=null; try{ fpImportCfg(c3, bad, '<b>ostile</b>.cfg'); }catch(e){ err=String(e.message||e); }
@@ -42,6 +43,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
     assert.equal(r.model, 'hypermet', 'file nuovo: modello 3.1'); assert.ok(r.panel, 'controlli del modello e del .cfg nel pannello');
     for (const [e,w] of [['Cu',84],['Sn',8],['Pb',5],['Zn',2.5]]) assert.ok(Math.abs(r.r1[e]/w-1)<0.12, `3.1 ${e}: ${r.r1[e]}`);
     assert.deepEqual(r.imp, {anode:'Rh', kv:40, psi1:45, psi2:45, model:'hypermet', els:r.imp.els}, JSON.stringify(r.imp)); assert.ok(['Sn','Cu','Pb','Zn','As'].every(e=>r.imp.els.includes(e)), 'elementi dal .cfg');
+    assert.ok(Math.abs(r.cal.zero-r.cal.want0)<1e-6 && Math.abs(r.cal.gain/r.cal.wantG-1)<1e-6 && r.cal.sum===1, '.cfg esportato: calibrazione per canale dello spettro e picchi somma come impostati '+JSON.stringify(r.cal));
     assert.ok(!r.bad.polluted && !r.bad.proto, 'prototipo inquinato'); assert.ok(!r.bad.xss && !r.bad.html, 'HTML del .cfg eseguito o non protetto'); assert.ok(!r.bad.run, 'calcolo con il .cfg ostile: '+r.bad.run);
     assert.deepEqual(r.peaksEls, ['Cu'], 'elementi da [peaks]: '+JSON.stringify(r.peaksEls)); assert.ok(r.excLen<=400 && r.excWarn, 'eccitazione: '+r.excLen);
     assert.equal(r.reopen.model, 'hypermet'); assert.deepEqual(r.reopen.r, r.r1, 'progetto riaperto: stessi numeri');

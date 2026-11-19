@@ -187,7 +187,7 @@
     // la pendenza è determinata solo se c'è un intervallo di E_k in almeno un gruppo
     const spread=groups.map(g=>{ const xx=pts.filter(p=>p.g===g).map(p=>p.x); return Math.max(...xx)-Math.min(...xx); });
     return {m:sol[0], q:Object.fromEntries(groups.map((g,i)=>[g,sol[1+i]])), groups, cov, chi2r, dof, scaled:sc>1, spread:Math.max(...spread)}; }
-  function boltzmannPlot(lines, opt){ opt=opt||{}; const pts=lines.filter(l=>l.I>0).map(l=>({g:l.g||(l.el+' '+l.st), x:l.Ek, y:Math.log(l.I*(opt.intensity==='energy'?l.wl:1)/(l.gk*l.A)), sy:l.sy||0.1, line:l}));
+  function boltzmannPlot(lines, opt){ opt=opt||{}; const pts=lines.filter(l=>l.I>0).map(l=>({g:l.g||(l.el+' '+l.st), x:l.Ek, y:Math.log(l.I*(opt.intensity==='energy'?l.wl:1)/(l.gk*l.A)), sy:l.sy||0.1, line:l})).filter(p=>fin(p.x) && fin(p.y));
     const f=jointFit(pts); if (!f) return null; const T=-1/(KB*f.m), sT=Math.sqrt(f.cov[0])/(KB*f.m*f.m); return Object.assign(f, {T, sT, points:pts}); }
 
   /* ---------------- CF-LIBS ----------------
@@ -206,6 +206,7 @@
     const wOf=l=>{ const s=opt.selfAbs; if (!s || !s.w) return null; return typeof s.w==='function' ? s.w(l) : s.w[l.key]; };
     const neSA=opt.selfAbs ? (opt.selfAbs.ne||opt.ne) : null;
     let L=[]; for (const m0 of meas){ const m=Object.assign({}, m0); if (!(m.area>0) || !species(D, m.el, m.st)) continue; m.key=m.key||(m.el+' '+m.st+' '+(+m.wl).toFixed(2));
+      if (!fin(Math.log(m.area*(opt.intensity==='energy'?m.wl:1)/(m.gk*m.A))) || !fin(m.Ek)) continue;   // λ, g·A o E_k mancanti: la riga non può stare sul grafico (prima un solo NaN rendeva indeterminata la pendenza)
       m.I=m.area; m.resonance=m.Ei===0; m.lowLevel=m.Ei>0 && m.Ei<0.5;
       if (opt.selfAbs){ const w=wOf(m); if (w>0 && neSA>0 && m.fL>0){ const r=selfAbsCorrect(m.area, m.fL, w, neSA, opt.selfAbs.method); if (r){ m.I=r.I0; m.SA=r.SA; } } else m.noW=true; }
       const rel=accRel(D, m.acc), sI=m.sArea>0 ? m.sArea/m.area : 0; m.sy=Math.sqrt(sI*sI+rel*rel+Math.pow(opt.sysRel||0,2)); if (!(m.sy>0)) m.sy=0.05;
@@ -303,6 +304,7 @@
     const selfAbs=opt.selfAbs ? Object.assign({}, opt.selfAbs, {ne:opt.selfAbs.ne||ne}) : null;
     const res=cf(D, meas, Object.assign({}, opt, {ne, sne, neSource, selfAbs}));
     if (neBad){ res.warnings=res.warnings||[]; res.warnings.push({code:'neInvalid'}); }
+    { const noL=(opt.elements||[]).filter(e=>e!=='H' && !meas.some(m=>m.el===e)); if (noL.length){ res.warnings=res.warnings||[]; res.warnings.push({code:'noLines', els:noL, noData:noL.filter(e=>!species(D, e, 'I') || !linesOf(D, e, 'I').concat(linesOf(D, e, 'II')).length)}); } }
     return Object.assign(res, {lines:meas, rejected, blended:C.blended, neInfo, ms:Date.now()-t0}); }
 
   /* ---------------- spettri LIBS sintetici (stesso modello) ----------------

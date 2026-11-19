@@ -149,3 +149,22 @@ test('revisione 3.1: righe lunghe senza separatore e formule annidate non blocca
   assert.deepStrictEqual(P.formulaAtoms('(Cu(Sn)2)3'), {Cu:3, Sn:6});
   assert.deepStrictEqual(P.parse('[s]\nk : v = w\n').s, {k:'v = w'}, 'primo separatore, come configparser');
 });
+
+test('debug 3.1 indipendente: il .cfg esportato porta la calibrazione per canale del file (con allineamento e correzioni del fit), non quella dell\'esempio di PyMca', ()=>{
+  const C=require('./load-core.js');
+  // export Bruker ELIO: primi 30 canali vuoti e scostamento negativo; il lettore toglie i canali iniziali, ma i canali del .cfg sono quelli del file
+  const counts=Array.from({length:4096},(_,i)=>i<30?0:(i===758?9000:i===2032?700:5+(i%3)));
+  const p=C.parseXRF('# Tube Anode: Rh\n# MCA Channels: 4096\n# Calibration1: 758 8,046\n# Calibration2: 2032 22,163\n# Calibration3: 0 0\n#\n'+counts.join('\n'));
+  assert.ok(p.xs.length<4096, 'canali iniziali tolti dal lettore');
+  const F={off:0.01, gain:0.002, quad:0}, ec={a:-0.02, b:1.001}, cal=C.fpCfgCal(p.xrf.cal, ec, F, 4095);
+  const Et=k=>(ec.a+ec.b*(p.xrf.cal.a+p.xrf.cal.b*k))*1.002+0.01;
+  for (const k of [0, 758, 2032, 4095]) assert.ok(Math.abs(cal.zero+cal.gain*k+cal.quad*k*k-Et(k))<1e-9, `canale ${k}`);
+  const cfg=P.parse(P.stringify(P.fromAcch({setup:{anode:'Rh', kv:40}, fit:{xminE:1, xmaxE:38.8, zero:cal.zero, gain:cal.gain, quad:cal.quad}, peaks:{Cu:['K']}})));
+  const E=k=>+cfg.detector.zero+ +cfg.detector.gain*k;
+  assert.ok(Math.abs(E(758)-Et(758))<1e-9, 'Fe/Cu nello stesso canale del file');
+  assert.ok(Math.abs(Et(+cfg.fit.xmin)-1)<0.02 && Math.abs(Et(+cfg.fit.xmax)-38.8)<0.02, `intervallo del fit ${Et(+cfg.fit.xmin)}–${Et(+cfg.fit.xmax)} keV invece di 1–38,8`);
+  // calibrazione quadratica del file e del fit: ricostruita sui tre canali di riferimento, vicina altrove
+  const cq={a:-0.1, b:0.02, c:2e-7}, q=C.fpCfgCal(cq, null, {quad:1e-4}, 4095), Eq=k=>{ const x=cq.a+cq.b*k+cq.c*k*k; return x+1e-4*x*x; };
+  for (const k of [0, 2047, 4095]) assert.ok(Math.abs(q.zero+q.gain*k+q.quad*k*k-Eq(k))<1e-9); for (let k=0;k<4096;k+=13) assert.ok(Math.abs(q.zero+q.gain*k+q.quad*k*k-Eq(k))<0.005, 'entro un quarto di canale');   // composizione di due quadratiche: resta un termine di 4° grado di pochi eV
+  assert.strictEqual(C.fpCfgCal(null, null, F, 100), null);
+});

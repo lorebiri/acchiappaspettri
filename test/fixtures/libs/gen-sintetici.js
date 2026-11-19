@@ -14,7 +14,7 @@ const CASI={
   'bronzo_autoassorbito_L0.1cm':{comp:{Cu:85, Sn:8, Zn:4, Pb:3}, L:0.1} };
 fs.mkdirSync(out, {recursive:true});
 for (const [nome, c] of Object.entries(CASI)){
-  const S=C.synth(D, Object.assign({T:10000, ne:1e17, ambient:{H:1e17}, peakCounts:1e6, seed:3, step:0.02}, c));
+  const S=C.synth(D, Object.assign({T:10000, ne:1e17, ambient:{H:2e17}, peakCounts:1e6, seed:3, step:0.02}, c));
   const head=`# LIBS laser-induced breakdown, spettro SINTETICO (app/libs-cf-core.js synth, seme 3)\n# T = 10000 K, n_e = 1e17 cm-3, FWHM strumentale 0,05 nm${c.L?', L = '+c.L+' cm':''}; % in peso: ${Object.entries(S.truth.wt).map(([e,v])=>e+' '+(100*v).toFixed(2)).join(', ')}\nwavelength_nm,counts\n`;
   const f=path.join(out, 'libs-sintetico_'+nome+'.csv');
   fs.writeFileSync(f, head+Array.from(S.x).map((x,i)=>x.toFixed(2)+','+S.y[i]).join('\n')+'\n'); console.log(f); }

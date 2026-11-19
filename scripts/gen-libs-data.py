@@ -140,6 +140,11 @@ def merge_hydrogen(L):
         groups.setdefault((ni, nk), []).append(l)
     out = []
     for (ni, nk), G in groups.items():
+        # il NIST elenca sia le componenti di struttura fine (conf «2p», «3d»…) sia la riga totale (conf «2», «3»): sommarle tutte
+        # raddoppiava g·A (Hα 8,82·10⁷ invece di 4,41·10⁷ s⁻¹). Se ci sono le componenti si usano solo quelle.
+        comp = [l for l in G if not (l['ci'].isdigit() and l['ck'].isdigit())]
+        if comp:
+            G = comp
         gA = sum(l['gk'] * l['A'] for l in G)
         wl = sum(l['wl'] * l['gk'] * l['A'] for l in G) / gA
         Ek = sum(l['Ek'] * l['gk'] * l['A'] for l in G) / gA
