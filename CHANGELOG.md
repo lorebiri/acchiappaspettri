@@ -1,5 +1,18 @@
 # Novità delle versioni
 
+## In preparazione (3.1, non pubblicata)
+
+Ramo `claude/xrf-libs-3.1`. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md.
+
+- XRF, modello 3.1 (predefinito per le analisi nuove): picchi con code e gradino (ipermetro, come PyMca), fughe Kα e Kβ del silicio o del germanio per tutte le righe, picchi somma facoltativi, Noise e Fano liberi o fissati, termine quadratico dell'asse dell'energia, parametri adattati con Levenberg–Marquardt; spettro del tubo di Ebel (1999) con anodo, kV, angoli e finestra configurabili e 14 anodi; fluorescenza terziaria approssimata; eccitazione monocromatica o a lista di energie; rivelatore al germanio. Sull'acciaio NIST SRM 1155 distribuito con PyMca il χ² ridotto scende da 15,2 a 8,2 (PyMca 13,1).
+- XRF, verifica degli elementi con il fit: un elemento proposto entra nel calcolo solo se la sua riga analitica è significativa e se migliora davvero il fit. Spariscono Sb e I falsi nelle leghe di stagno e Pb al posto di As; gli elementi tolti sono elencati negli avvisi.
+- Progetti e impostazioni salvati con la 3.0: le stime XRF restano col modello 3.0, con un avviso; il 3.1 si sceglie nel pannello.
+- File .cfg di PyMca: importazione (condizioni di misura, eccitazione, rivelatore, fit) ed esportazione; ciò che non ha equivalente è elencato.
+- Banche dati XRF: righe Lγ e M, rese di fluorescenza, Coster–Kronig, righe per sottoguscio degli anodi (xraylib), con il controllo di coerenza.
+- Confronto automatico con PyMca 5.9.7 in CI (docs/VALIDAZIONE-PYMCA.md, sezione R15 di VALIDAZIONE.md) e cartella `validazione/certificati/` pronta per gli spettri dei materiali certificati.
+- LIBS: analisi senza taratura (CF-LIBS, sperimentale) con dati atomici del NIST ASD, grafico di Boltzmann e di Saha–Boltzmann, densità elettronica da Hα/Hβ, autoassorbimento; validata solo su spettri sintetici.
+- Citazioni del calcolo degli spessori corrette (Cesareo e Brunetti 2008, Cesareo et al. 2009, Trojek et al. 2010).
+
 ## 3.0.0 — 18 novembre 2026
 
 Versione pubblicata per tutti. Chi arriva dalla 2.2 trova:
