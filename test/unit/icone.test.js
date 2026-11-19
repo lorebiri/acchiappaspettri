@@ -23,7 +23,13 @@ test('una sola icona SVG: brand/, desktop, sito scarica/ (anche en/) e PWA sono 
   for (const f of ['src-tauri/icons/icona.svg','scarica/icona.svg','icone/icona.svg']) assert.ok(R(f).equals(ref), f);
   assert.ok(!fs.existsSync(path.join(ROOT,'src-tauri/icons/icona-3.0.svg')), 'la vecchia icona 3.0 non deve più esserci');
   for (const f of ['scarica/index.html','scarica/en/index.html']){ const h=R(f).toString(); const pre=f.includes('/en/')?'../':'';
-    assert.ok(h.includes(`<link rel="icon" href="${pre}icona.svg"`), f+': favicon'); assert.ok(h.includes(`<img src="${pre}icona.svg"`), f+': marchio'); }
+    assert.ok(h.includes(`<link rel="icon" href="${pre}icona.svg"`), f+': favicon'); assert.ok(h.includes(`<img src="${pre}icona.svg"`), f+': marchio');
+    assert.ok(h.includes(`<link rel="icon" href="${pre}icona-32.png" type="image/png" sizes="32x32">`), f+': favicon PNG');
+    assert.ok(h.includes(`<link rel="apple-touch-icon" href="${pre}apple-touch-icon.png">`), f+': apple-touch');
+    assert.ok(h.includes('<meta property="og:image" content="https://lorebiri.github.io/acchiappaspettri/scarica/anteprima.jpg">'), f+': anteprima social'); }
+  // stessi PNG dell'app online: favicon 32 px e apple-touch
+  assert.strictEqual(ST.file['scarica/icona-32.png'], ST.favicon32); assert.strictEqual(ST.file['scarica/apple-touch-icon.png'], ST.file['apple-touch-icon.png']);
+  assert.ok(ST.file['scarica/anteprima.jpg'], 'anteprima del sito generata da scripts/icone.js con l\'icona');
 });
 
 test('app online: favicon SVG e PNG, marchio nell\'intestazione e apple-touch sono quelli di brand/', ()=>{

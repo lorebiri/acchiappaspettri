@@ -37,7 +37,8 @@ Mockup: [`mockup-online.png`](mockup-online.png), [`mockup-desktop.png`](mockup-
 - **Script**: `node scripts/icone.js` (Playwright con Chromium) rigenera tutto e scrive le impronte in `brand/icone.json`:
   - `src-tauri/icons/`: 32x32, 128x128, 128x128@2x, icon.png, `icon.ico` (16-256), `icon.icns` (16-1024 con le @2x), `icona.svg`. Da qui Tauri prende finestra, installer NSIS, .app/.dmg, AppImage e .deb (`bundle.icon` in `tauri.conf.json`);
   - app online: favicon PNG e SVG in data URI e marchio nell'intestazione di `index.html`, `apple-touch-icon.png`, `manifest.webmanifest` e `icone/` (PWA, con icona mascherabile), meta Open Graph con `icone/og.jpg`;
-  - sito: `scarica/icona.svg` (lo usano anche `scarica/en/`), `404.html` del sito con icona e Gino in linea.
+  - sito: `scarica/icona.svg`, `scarica/icona-32.png`, `scarica/apple-touch-icon.png` (li usano anche `scarica/en/`), `scarica/anteprima.jpg` per i social (icona e nome sopra la schermata `scarica/img/desktop-spazio.webp`: se rifai quella schermata, rilancia lo script), `404.html` del sito con icona e Gino in linea;
+  - le schermate dell'app online nel sito (`scarica/img/online*.webp`, `passo-*.webp`) sono state rifatte con `scripts/sito-schermate.js` e mostrano il nuovo marchio.
 - **Test**: `test/unit/icone.test.js` verifica che i disegni in `brand/` siano quelli generati, che ogni file coincida con la sua impronta, che `.ico` e `.icns` contengano le stesse immagini dei PNG, che app online, PWA, sito, 404, Open Graph e README usino la stessa icona.
 - **Gino**: le pose sono in `app/gino.js` (`saluta`, `acchiappa`, `contento`, `preoccupato`, `perso`).
   - online: nell'avviso in basso, preoccupato per errori e avvisi, contento per le conferme (nessun Gino per i messaggi neutri); «Sobrio» lo nasconde. Restano il fumetto, il caricamento e il giro guidato di prima;

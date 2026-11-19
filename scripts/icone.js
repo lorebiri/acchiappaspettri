@@ -9,7 +9,8 @@
      (sono le icone di finestra, installer NSIS, .app/.dmg, AppImage e .deb: Tauri le prende da tauri.conf.json → bundle.icon)
    - app online: favicon PNG 32 px e SVG in data URI dentro index.html, apple-touch-icon.png (180), manifest.webmanifest e icone/ per la PWA,
      icone/og.jpg (Open Graph 1200×630) con i meta og: in index.html, marchio nell'intestazione
-   - scarica/icona.svg (sito, anche en/) e la pagina 404.html del sito (icona e Gino in linea)
+   - scarica/: icona.svg, icona-32.png e apple-touch-icon.png (anche per en/), anteprima.jpg per i social (icona e nome sopra la schermata vera)
+   - la pagina 404.html del sito (icona e Gino in linea)
    test/unit/icone.test.js verifica che le icone coincidano ovunque con le impronte di brand/icone.json. */
 'use strict';
 const fs=require('fs'), path=require('path'), crypto=require('crypto');
@@ -71,6 +72,13 @@ const MANIFEST=()=>({ name:'Acchiappaspettri', short_name:'Acchiappaspettri', de
           {src:'icone/icona-maskable-512.png', sizes:'512x512', type:'image/png', purpose:'maskable'},
           {src:'icone/icona.svg', sizes:'any', type:'image/svg+xml', purpose:'any'} ] });
 
+// anteprima per i social del sito scarica/ (IT ed EN): icona e nome sopra la schermata vera del programma (scarica/img/desktop-spazio.webp)
+function ogSitoHtml(svgIcona, webp){ return `<!doctype html><meta charset="utf-8"><style>body{margin:0;width:1200px;height:630px;overflow:hidden;box-sizing:border-box;padding:44px 70px 0;
+  background:linear-gradient(160deg,#1d3557 0%,#23477a 60%,#2563c9 100%);color:#fff;font-family:Nunito,system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:22px;margin-bottom:34px}h1{font-size:60px;margin:0;font-weight:800;letter-spacing:-.5px}
+  .shot{width:1060px;border-radius:14px 14px 0 0;box-shadow:0 18px 50px #0007;display:block}</style>
+  <header><img src="${dataUri('image/svg+xml',svgIcona)}" width="104" height="104"><h1>Acchiappaspettri</h1></header>
+  <img class="shot" src="data:image/webp;base64,${Buffer.from(webp).toString('base64')}">`; }
 function ogHtml(svgIcona){ return `<!doctype html><meta charset="utf-8"><style>body{margin:0;width:1200px;height:630px;display:flex;align-items:center;gap:56px;padding:0 90px;box-sizing:border-box;
   background:linear-gradient(160deg,#1d3557 0%,#23477a 60%,#2563c9 100%);color:#fff;font-family:Nunito,system-ui,sans-serif}
   h1{font-size:76px;margin:0 0 14px;font-weight:800;letter-spacing:-.5px}p{font-size:31px;margin:0;opacity:.92;line-height:1.3}</style>
@@ -119,10 +127,14 @@ async function main(){
 
   // sito scarica/ (anche en/, che punta a ../icona.svg)
   W('scarica/icona.svg', svg.icona);
+  W('scarica/icona-32.png', fav32);
+  W('scarica/apple-touch-icon.png', await png('piena',180));
 
   // Open Graph
   await page.setViewportSize({width:1200,height:630}); await page.setContent(ogHtml(svg.icona)); await page.waitForFunction(()=>document.images[0].complete);
   W('icone/og.jpg', await page.screenshot({type:'jpeg', quality:88}));
+  await page.setContent(ogSitoHtml(svg.icona, fs.readFileSync(P('scarica/img/desktop-spazio.webp')))); await page.waitForFunction(()=>[...document.images].every(i=>i.complete));
+  W('scarica/anteprima.jpg', await page.screenshot({type:'jpeg', quality:86}));
   await browser.close();
 
   // impronte: sorgenti, file prodotti, immagini dentro .ico/.icns e i data URI di index.html
