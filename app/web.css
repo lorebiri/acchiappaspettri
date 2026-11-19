@@ -86,3 +86,76 @@ html.web #mvOut .areatab th,html.web #mvOut .areatab td{white-space:normal;paddi
 html.web #mvOut .areatab td:first-child{overflow-wrap:break-word;min-width:8.5em}   /* break-word, non anywhere: si va a capo ai <wbr> di escName, non a metà del nome */
 html.web #mvOut .areatab .concin{width:5.5em}
 html.web #mvOut .areatab .rolein{display:block;margin:3px 0 0 auto}
+
+/* ===== Revisione online «immediatezza e chiarezza» (docs/revisione-online/LEGGIMI.md) =====
+   Solo aspetto: testi brevi e ordine dei pannelli in app/web.js (blocco finale), nessuna funzione nuova. Il desktop non ha la classe web e non vede nulla di questo. */
+/* contrasto: testo secondario più scuro sul tema chiaro (≈7:1 sul bianco invece di ≈5,4:1) */
+html.web:not([data-theme=dark]){--muted:#4c5767}
+/* intestazione: i comandi di servizio sono più quieti dei tre passi, che restano il riferimento */
+html.web .brand .infobtn{color:var(--muted)}
+html.web .brand .infobtn:hover,html.web .brand .infobtn:focus-visible{color:var(--ink)}
+html.web .brand .infobtn.primary{color:#fff}
+/* passo 1: l'area di caricamento è il primo e più evidente invito */
+html.web #v1 .hero{grid-template-columns:210px minmax(0,1fr)}
+html.web #v1 .drop{padding:36px 22px 26px;border-color:#94b3e6;background:#f6f9ff}
+html.web[data-theme=dark] #v1 .drop{border-color:#3d5a8a;background:var(--panel)}
+html.web #v1 .drop:hover,html.web #v1 .drop:focus-visible{border-color:var(--accent)}
+html.web #v1 .drop .big{font-size:24px;margin:6px 0 4px}
+html.web #v1 .webor{color:var(--muted);margin:0 0 16px;font-size:15px}
+html.web #v1 .drop .formats{font-size:12px;line-height:1.5;max-width:680px;margin:16px auto 0}
+/* il percorso in tre passi al posto delle tre liste lunghe; sparisce, come quelle, quando ci sono spettri */
+html.web #howto{display:none!important}
+html.web .webpath{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+html.web #howto[style*="none"] + .webpath{display:none}
+html.web .webstep{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+html.web .webn{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+html.web[data-theme=dark] .webn{color:#0f1622}
+html.web .webstep b{display:block;font-size:15.5px;line-height:1.3}
+html.web .webstep small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:3px}
+/* «Ti serve anche senza internet?»: una nota sotto, non un secondo invito in cima */
+html.web #entryBox.webentry{margin:14px 0 0;padding:10px 16px;background:transparent;border-style:dashed}
+html.web #entryBox.webentry .entrytxt b{font-size:14.5px}
+html.web #entryOnline{display:none}
+/* benvenuto più corto: passi, strumenti e il pulsante per iniziare; il resto è nella pagina e in «Cos'è» */
+html.web #dlgWelcome .wcwhy,html.web #dlgWelcome .wclist{display:none}
+html.web #dlgWelcome .wcinstr{margin-top:12px}
+html.web #dlgWelcome .actions{margin-top:16px}
+/* passo 2: schede come pulsanti che vanno a capo in modo ordinato; «Analisi» subito dopo «Picchi» (solo l'ordine a vista) */
+html.web #tabs.webtabs{gap:6px;padding:4px 0 10px;border-bottom:1px solid var(--line)}
+html.web #tabs.webtabs .tab{order:5;border:1px solid var(--line);border-radius:10px;margin:0;padding:7px 12px;font-size:14px;background:var(--panel);color:var(--ink)}
+html.web #tabs.webtabs .tab:hover{background:var(--accent-soft)}
+html.web #tabs.webtabs .tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+html.web[data-theme=dark] #tabs.webtabs .tab.on{color:#0f1622}
+html.web #tabs.webtabs .tab[data-tab="peaks"]{order:1}
+html.web #tabs.webtabs .tab[data-tab="an"]{order:2}
+html.web #tabs.webtabs .tab[data-tab="refs"]{order:3}
+html.web #tabs.webtabs .tab[data-tab="proc"]{order:4}
+html.web #tabs.webtabs .spacer{order:6}
+html.web #tabs.webtabs .advtog{order:7}
+/* titoli delle sezioni di «Analisi»: il titolo non si stringe più a una parola per riga accanto al riassunto */
+html.web details.ansec>summary>b{flex:1 1 14em}
+/* errori: riconoscibili a colpo d'occhio, non uguali agli avvisi di servizio */
+html.web #toast.err{background:#fdecea;color:#5c140f;border-left:5px solid #b3261e}
+html.web[data-theme=dark] #toast.err{background:#3b1714;color:#ffdcd8;border-left-color:#ef7f77}
+/* tablet: i comandi dell'intestazione vanno a capo invece di uscire dallo schermo (tra 561 e 899 px la pagina scorreva di lato) */
+@media (min-width:561px) and (max-width:899px){
+html.web .brand{flex-wrap:wrap;row-gap:4px;min-width:0;max-width:100%}
+html.web .brand .infobtn{margin-left:4px}
+}
+@media (max-width:900px){
+html.web .webpath{grid-template-columns:1fr}
+html.web #v1 .hero{grid-template-columns:1fr}
+}
+/* telefono: l'area di caricamento entra nella prima schermata; Gino resta, più piccolo, accanto al fumetto */
+@media (max-width:560px){
+html.web #v1 .buddy>svg{display:none}
+html.web #v1 .buddy{flex-direction:row;align-items:center;gap:8px}
+html.web #v1 .buddy .gino{position:static;order:2;flex:none;width:46px}
+html.web #v1 .buddy .gino svg{width:46px!important}
+html.web #v1 .buddy .bubble{margin:0;font-size:14px}
+html.web #v1 .drop{padding:24px 14px 18px}
+html.web #v1 .drop .big{font-size:21px}
+html.web #v1 .drop .btn.big{width:100%;margin:0}
+html.web #v1 .drop .row{flex-direction:column;gap:10px}
+html.web #tabs.webtabs .tab{padding:7px 10px;font-size:13.5px}
+}
