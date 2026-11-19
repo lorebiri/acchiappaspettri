@@ -8,8 +8,9 @@ const test = require('node:test'), assert = require('node:assert'), fs = require
 const ROOT = path.join(__dirname, '..', '..');
 const leggi = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
 const PKG0 = JSON.parse(leggi('package.json'));
-// versione mostrata dal sito: quella di package.json, o l'ultima stabile del CHANGELOG se package.json ha una versione di prova (rc)
-const VS = /-/.test(PKG0.version) ? [...leggi('CHANGELOG.md').matchAll(/^## (\d+\.\d+\.\d+)(?![-\w.])/gm)].map((m) => m[1])[0] : PKG0.version;
+// versione mostrata dal sito: quella di package.json, o l'ultima stabile del CHANGELOG se package.json ha una versione di prova (rc);
+// una sezione «## X.Y.Z — in preparazione» (le novità che una rc rimanda alla stabile) non è ancora pubblicata e si salta
+const VS = /-/.test(PKG0.version) ? [...leggi('CHANGELOG.md').matchAll(/^## (\d+\.\d+\.\d+)(?![-\w.])(?![^\n]*(?:in preparazione|in preparation))/gim)].map((m) => m[1])[0] : PKG0.version;
 const PKG = { ...PKG0, version: VS };
 const PAGINE = { it: 'scarica/index.html', en: 'scarica/en/index.html' };
 const AIUTO = 'esegui «npm run sito» e fai il commit di scarica/';
