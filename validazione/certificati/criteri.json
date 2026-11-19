@@ -1,0 +1,18 @@
+{
+ "_commento": "Criteri di accettazione di scripts/valida-certificati.js. Le chiavi che iniziano con _ sono note. Valori in % in peso.",
+ "fasce": [
+  {"da": 1, "a": null, "errore_rel_max": 10},
+  {"da": 0.1, "a": 1, "errore_rel_max": 25},
+  {"da": 0, "a": 0.1, "segnala": true}
+ ],
+ "_fasce": "errore relativo massimo (%) secondo il valore certificato; «segnala»: sotto 0,1% il risultato è solo riportato",
+ "zeta_max": 2,
+ "_zeta_max": "ζ = |trovato − certificato| / √(u² + (U/k)²); 2 corrisponde a E_n ≤ 1 con k = 2",
+ "combinazione": "e",
+ "_combinazione": "\"e\": servono errore relativo e ζ; \"o\": basta uno dei due; \"errore\": conta solo l'errore relativo",
+ "incertezza_modello_rel": 5,
+ "_incertezza_modello_rel": "incertezza tipo del modello FP (% relativa) sommata a quella di conteggio dell'app, che da sola è troppo piccola per uno spettro di milioni di conteggi; 0 = solo conteggio",
+ "k_predefinito": 2,
+ "tipi_valutati": ["certificato"],
+ "_tipi_valutati": "aggiungere \"indicativo\" per valutare anche i valori di riferimento non certificati"
+}

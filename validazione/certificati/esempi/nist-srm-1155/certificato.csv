@@ -1,0 +1,25 @@
+# NIST SRM 1155, acciaio inossidabile AISI 316 (Cr 18 - Ni 12 - Mo 2)
+# Fonte: NIST, Certificate of Analysis, Standard Reference Material 1155, data di emissione 9 novembre 2012
+#   https://tsapps.nist.gov/srmext/certificates/archives/1155.pdf (scaricato e controllato il 19/11/2026)
+# Valori trascritti dalle tabelle 1 (certificati), 2 (di riferimento: qui «indicativo») e 3 (informativi, senza incertezza).
+# U = incertezza estesa al 95%, k = fattore di copertura del certificato. Frazioni in massa (%).
+# Fe NON è nel certificato: la riga Fe è calcolata qui per differenza (100 meno la somma di tutti i valori elencati) e non entra nei criteri.
+# Bi (< 0,0005%) è solo un limite.
+elemento,valore,incertezza,unita,tipo,k,nota
+C,0.0445,0.0014,%,certificato,3.20,tabella 1
+Co,0.1052,0.0057,%,certificato,2.36,tabella 1
+Cr,18.37,0.21,%,certificato,4.30,tabella 1
+Cu,0.1734,0.0075,%,certificato,2.26,tabella 1
+Mn,1.619,0.075,%,certificato,3.20,tabella 1
+Mo,2.386,0.024,%,certificato,2.23,tabella 1
+Ni,12.35,0.22,%,certificato,4.30,tabella 1
+S,0.0175,0.0032,%,certificato,4.30,tabella 1
+V,0.0508,0.0034,%,certificato,2.36,tabella 1
+As,0.01067,0.00045,%,indicativo,2.6,tabella 2 (reference value)
+P,0.0200,0.0012,%,indicativo,2.4,tabella 2 (reference value)
+Si,0.5093,0.0049,%,indicativo,2.6,tabella 2 (reference value)
+N,0.04,,%,informativo,,tabella 3 (information value)
+Pb,0.001,,%,informativo,,tabella 3 (information value)
+W,0.11,,%,informativo,,tabella 3 (information value)
+Bi,<0.0005,,%,informativo,,tabella 3 (information value)
+Fe,64.19,,%,per differenza,,NON certificato: 100 - somma dei valori sopra

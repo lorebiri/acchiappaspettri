@@ -1,0 +1,15 @@
+{
+ "tecnica": "xrf",
+ "campione": "NIST SRM 1155, acciaio inossidabile AISI 316",
+ "fonte": "spettro e configurazione d'esempio di PyMca 5.9.7 (MIT, © ESRF): test/fixtures/pymca/Steel.spe e Steel.cfg",
+ "strumento": "non dichiarato nei file di PyMca (fascio monocromatico)",
+ "spettro": "../../../../test/fixtures/pymca/Steel.spe",
+ "cfg": "../../../../test/fixtures/pymca/Steel.cfg",
+ "eccitazione": [{"E": 16.0, "peso": 1}],
+ "intervallo_keV": [4.5, 15.0],
+ "elementi": ["Cr", "Mn", "Fe", "Ni", "Cu", "Co", "V"],
+ "fissi_dal_certificato": true,
+ "modo": "norm",
+ "modello_picco": "ipermetro",
+ "_note": "Le condizioni di misura (angoli 45°/45°, 5 cm d'aria, Be 20 µm, Si 350 µm, filtro Al 1,1 mm) vengono dal .cfg di PyMca; l'eccitazione è monocromatica a 16 keV (la sezione [tube] del .cfg è solo un promemoria). Mo, Si, C, S, P, N, W, As, Pb non si misurano in questo intervallo: entrano con il valore del certificato."
+}
