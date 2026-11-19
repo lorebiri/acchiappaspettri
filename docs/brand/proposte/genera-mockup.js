@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 'use strict';
 // node docs/brand/proposte/genera-mockup.js : scrive i mockup docs/brand/mockup-*.png (Playwright + Chromium)
 const path=require('path'); const { chromium } = require('playwright');
@@ -5,7 +7,7 @@ const { svg } = require('./varianti.js'); const { gino } = require('./gino-pose.
 const uri = s => 'data:image/svg+xml;base64,' + Buffer.from(s).toString('base64');
 const G = (posa, tono, w) => `<img src="${uri(gino(posa,tono))}" width="${w}" alt="">`;
 const ICO = (k,s,f='quadrato') => `<img src="${uri(svg(k,f,s<=32))}" width="${s}" height="${s}" alt="">`;
-const K = process.env.VARIANTE || 'A';   // l'icona mostrata nei mockup; i tocchi di Gino valgono per tutte e tre
+const K = process.env.VARIANTE || 'C';   // variante scelta da Lorenzo (C); le altre restano solo come archivio
 
 // spettro IR finto ma plausibile, sobrio: per far vedere che i grafici restano puliti
 function grafico(w=560,h=230,col='#2563c9'){ const pk=[[2920,.55,40],[2850,.35,30],[1720,.9,22],[1460,.3,25],[1240,.5,35],[1050,.7,45],[720,.25,15]];

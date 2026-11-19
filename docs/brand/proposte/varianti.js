@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 'use strict';
 /* Proposte di icona ibrida (fase 1). Ogni variante ha:
    - bg: colore del fondo; body(): il disegno su tela 1024×1024, area utile circa 200..824;

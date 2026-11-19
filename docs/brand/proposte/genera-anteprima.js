@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 'use strict';
 // node docs/brand/proposte/genera-anteprima.js : scrive docs/brand/anteprima-icona-ibrida.png (serve Playwright con Chromium)
 const fs=require('fs'), path=require('path'); const { V, svg } = require('./varianti.js');

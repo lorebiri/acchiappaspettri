@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Acchiappaspettri: icona a tutta tela per iOS e Android mascherabile (curva dello spettro con il picco-Gino). Sorgente: rigenera con node scripts/icone.js -->
+  <rect width="1024" height="1024" fill="#1d3557"/>
+  <path d="M200 760 H824" fill="none" stroke="#8fa8c8" stroke-width="28" stroke-linecap="round"/>
+  <path d="M380 620 C406 530 432 292 512 292 C592 292 618 530 644 620 L644 712 L611.0 672 L578.0 712 L545.0 672 L512.0 712 L479.0 672 L446.0 712 L413.0 672 L380.0 712 Z" fill="#2563c9"/>
+  <path d="M200 712 C320 712 352 700 380 620 C406 530 432 292 512 292 C592 292 618 530 644 620 C672 700 704 712 824 712" fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="474" cy="470" r="30" fill="#ffffff"/><circle cx="550" cy="470" r="30" fill="#ffffff"/>
+  <circle cx="480" cy="478" r="14" fill="#1c2230"/><circle cx="556" cy="478" r="14" fill="#1c2230"/>
+</svg>

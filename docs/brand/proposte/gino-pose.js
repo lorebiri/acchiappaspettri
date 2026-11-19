@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
+// SPDX-License-Identifier: GPL-3.0-or-later
 'use strict';
 /* Gino nelle sue pose, per i tocchi simpatici nell'interfaccia (stato vuoto, caricamento, successo, errore, 404).
    Disegno piatto, tela 120×130. tono 'colore' per l'app online, 'linea' per il desktop (solo contorno, grigio-blu, discreto). */

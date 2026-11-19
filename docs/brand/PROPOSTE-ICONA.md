@@ -1,6 +1,8 @@
-# Identità ibrida: proposte di icona (fase 1)
+# Identità ibrida: icona e Gino
 
-Lorenzo ha scelto l'identità **ibrida**: un'unica icona che unisce Gino (il fantasmino dell'app online) e la curva dello spettro (l'icona 3.0 del desktop). Qui ci sono tre proposte da cui scegliere. Niente è ancora applicato all'app.
+**Scelta di Lorenzo: variante C, «Il 3.0 con l'occhiolino».** È applicata ovunque (vedi «Come è fatta» in fondo). Le varianti A e B restano qui solo come archivio delle proposte e non si usano da nessuna parte.
+
+Lorenzo ha scelto l'identità **ibrida**: un'unica icona che unisce Gino (il fantasmino dell'app online) e la curva dello spettro (l'icona 3.0 del desktop). Sotto, le tre proposte della fase 1.
 
 | | Idea | Fondo |
 |---|---|---|
@@ -8,7 +10,7 @@ Lorenzo ha scelto l'identità **ibrida**: un'unica icona che unisce Gino (il fan
 | **B · Gino afferra la curva** | Gino stringe con le manine un tracciato giallo con un picco. Il più «simpatico». | blu scuro desktop `#1d3557` |
 | **C · Il 3.0 con l'occhiolino** | L'icona 3.0 di oggi, ma il picco ha il corpo e gli occhi di Gino. Da lontano sobria, da vicino sorride. | blu scuro desktop `#1d3557` |
 
-Consiglio: **A**. È la più leggibile a 16 e 32 px (una sola sagoma bianca), è nuova e unica, e il blu online la lega all'app più usata. **C** è la scelta più prudente se il desktop deve restare molto «da laboratorio».
+Consiglio dato in fase 1: **A**. È la più leggibile a 16 e 32 px (una sola sagoma bianca), è nuova e unica, e il blu online la lega all'app più usata. **C** è la scelta più prudente se il desktop deve restare molto «da laboratorio».
 
 ## File
 
@@ -29,6 +31,16 @@ Regola: **Gino accompagna i momenti di servizio, mai i risultati.**
 
 Mockup: [`mockup-online.png`](mockup-online.png), [`mockup-desktop.png`](mockup-desktop.png), [`mockup-sito-404.png`](mockup-sito-404.png) (mostrano la variante A; i tocchi di Gino valgono uguali per tutte e tre).
 
-## Fase 2 (dopo la scelta)
+## Come è fatta (fase 2)
 
-Uno script ripetibile genera dall'SVG scelto tutte le icone (src-tauri/icons con .icns e .ico, installer e .deb, favicon e apple-touch dell'app online, manifest e PWA, `scarica/`, immagini Open Graph, README), più un test che verifica che coincidano ovunque. La logica scientifica non si tocca.
+- **Sorgente unico**: `brand/icona.svg` (quadrato arrotondato), `brand/icona-piccola.svg` (16-32 px), `brand/icona-tonda.svg`, `brand/icona-piena.svg` (tutta tela: iOS e PWA mascherabile). Si modificano solo questi.
+- **Script**: `node scripts/icone.js` (Playwright con Chromium) rigenera tutto e scrive le impronte in `brand/icone.json`:
+  - `src-tauri/icons/`: 32x32, 128x128, 128x128@2x, icon.png, `icon.ico` (16-256), `icon.icns` (16-1024 con le @2x), `icona.svg`. Da qui Tauri prende finestra, installer NSIS, .app/.dmg, AppImage e .deb (`bundle.icon` in `tauri.conf.json`);
+  - app online: favicon PNG e SVG in data URI e marchio nell'intestazione di `index.html`, `apple-touch-icon.png`, `manifest.webmanifest` e `icone/` (PWA, con icona mascherabile), meta Open Graph con `icone/og.jpg`;
+  - sito: `scarica/icona.svg` (lo usano anche `scarica/en/`), `404.html` del sito con icona e Gino in linea.
+- **Test**: `test/unit/icone.test.js` verifica che i disegni in `brand/` siano quelli generati, che ogni file coincida con la sua impronta, che `.ico` e `.icns` contengano le stesse immagini dei PNG, che app online, PWA, sito, 404, Open Graph e README usino la stessa icona.
+- **Gino**: le pose sono in `app/gino.js` (`saluta`, `acchiappa`, `contento`, `preoccupato`, `perso`).
+  - online: nell'avviso in basso, preoccupato per errori e avvisi, contento per le conferme (nessun Gino per i messaggi neutri); «Sobrio» lo nasconde. Restano il fumetto, il caricamento e il giro guidato di prima;
+  - desktop: a contorno grigio-blu nella zona vuota «Trascina qui file o cartelle» e accanto agli errori di lettura; nessun testo che lo nomina, avvisi e barra di stato restano neutri;
+  - mai su grafici, tabelle, PDF, esportazioni e testi scientifici.
+- **Schermate reali** dopo le modifiche: `docs/brand/schermate/` (si rifanno con `node docs/brand/schermate.js`).
