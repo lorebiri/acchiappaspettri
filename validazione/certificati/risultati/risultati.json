@@ -1,0 +1,385 @@
+{
+ "generato": {
+  "data": "2026-11-19",
+  "versione": "Acchiappaspettri 3.0.0"
+ },
+ "criteri": {
+  "fasce": [
+   {
+    "da": 1,
+    "a": null,
+    "errore_rel_max": 10
+   },
+   {
+    "da": 0.1,
+    "a": 1,
+    "errore_rel_max": 25
+   },
+   {
+    "da": 0,
+    "a": 0.1,
+    "segnala": true
+   }
+  ],
+  "zeta_max": 2,
+  "combinazione": "e",
+  "incertezza_modello_rel": 5,
+  "k_predefinito": 2,
+  "tipi_valutati": [
+   "certificato"
+  ]
+ },
+ "campioni": [
+  {
+   "nome": "esempi/nist-srm-1155",
+   "tecnica": "xrf",
+   "esito": "non superato",
+   "errore": null,
+   "dettagli": {
+    "formato": "SPE",
+    "calibrazione": {
+     "zero": -0.00612446976449,
+     "gain": 0.0119281593146,
+     "quad": 0,
+     "da": "cfg"
+    },
+    "eccitazione": "nucleo",
+    "setup": {
+     "anode": "Ag",
+     "kv": 16,
+     "psi1": 45,
+     "psi2": 45,
+     "d1": 0,
+     "d2": 5,
+     "beT": 125,
+     "beD": 20,
+     "si": 350,
+     "eps": 90,
+     "atm": "air",
+     "charF": 1,
+     "cexp": 1,
+     "filt": {
+      "comp": "Al",
+      "compW": {
+       "Al": 1
+      },
+      "rho": 2.72,
+      "um": 1100,
+      "name": "Al1"
+     },
+     "exc": [
+      [
+       16,
+       1,
+       1
+      ]
+     ]
+    },
+    "intervallo_keV": [
+     4.5,
+     15
+    ],
+    "modello_picco": "ipermetro",
+    "chi2r": 9.585748729603194,
+    "somma": 100.00000000000001,
+    "ms": 1105
+   },
+   "fissi": {
+    "C": 0.0445,
+    "Mo": 2.386,
+    "S": 0.0175,
+    "As": 0.01067,
+    "P": 0.02,
+    "Si": 0.5093,
+    "N": 0.04,
+    "Pb": 0.001,
+    "W": 0.11
+   },
+   "righe": [
+    {
+     "el": "C",
+     "tipo": "certificato",
+     "ref": 0.0445,
+     "U": 0.0014,
+     "k": 3.2,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "Co",
+     "tipo": "certificato",
+     "ref": 0.1052,
+     "U": 0.0057,
+     "k": 2.36,
+     "x": 0.3822973743485829,
+     "u": 0.025983380487633594,
+     "uConteggio": 0.017599939076047587,
+     "errRel": 263.40054595872897,
+     "zeta": 10.618632134327523,
+     "En": 5.300414993272005,
+     "limiteErr": 25,
+     "esito": "non superato",
+     "motivo": "errore oltre 25%, ζ oltre 2"
+    },
+    {
+     "el": "Cr",
+     "tipo": "certificato",
+     "ref": 18.37,
+     "U": 0.21,
+     "k": 4.3,
+     "x": 18.591041884685623,
+     "u": 0.9313136688299948,
+     "uConteggio": 0.057254291142647906,
+     "errRel": 1.2032764544671863,
+     "zeta": 0.2370185265376644,
+     "En": 0.11792497558474409,
+     "limiteErr": 10,
+     "esito": "superato",
+     "motivo": ""
+    },
+    {
+     "el": "Cu",
+     "tipo": "certificato",
+     "ref": 0.1734,
+     "U": 0.0075,
+     "k": 2.26,
+     "x": 0.17101898381207217,
+     "u": 0.011168733521862557,
+     "uConteggio": 0.007184836561961019,
+     "errRel": -1.3731350564751015,
+     "zeta": 0.20435565326570548,
+     "En": 0.10104917131597708,
+     "limiteErr": 25,
+     "esito": "superato",
+     "motivo": ""
+    },
+    {
+     "el": "Mn",
+     "tipo": "certificato",
+     "ref": 1.619,
+     "U": 0.075,
+     "k": 3.2,
+     "x": 1.6238145532035761,
+     "u": 0.08634273566078567,
+     "uConteggio": 0.029379137894073478,
+     "errRel": 0.2973782089917329,
+     "zeta": 0.053813596945712,
+     "En": 0.02557271470320469,
+     "limiteErr": 10,
+     "esito": "superato",
+     "motivo": ""
+    },
+    {
+     "el": "Mo",
+     "tipo": "certificato",
+     "ref": 2.386,
+     "U": 0.024,
+     "k": 2.23,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "Ni",
+     "tipo": "certificato",
+     "ref": 12.35,
+     "U": 0.22,
+     "k": 4.3,
+     "x": 11.207317795079115,
+     "u": 0.5625539689734199,
+     "uConteggio": 0.04956851428079078,
+     "errRel": -9.25248748923793,
+     "zeta": 2.0228912811213315,
+     "En": 0.996743743713912,
+     "limiteErr": 10,
+     "esito": "non superato",
+     "motivo": "ζ oltre 2"
+    },
+    {
+     "el": "S",
+     "tipo": "certificato",
+     "ref": 0.0175,
+     "U": 0.0032,
+     "k": 4.3,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "V",
+     "tipo": "certificato",
+     "ref": 0.0508,
+     "U": 0.0034,
+     "k": 2.36,
+     "x": 0.007190576622467059,
+     "u": 0.009950576205524114,
+     "uConteggio": 0.009944078933794408,
+     "errRel": -85.8453216093168,
+     "zeta": 4.337378051411612,
+     "En": 2.160005234192211,
+     "limiteErr": null,
+     "esito": "segnalato",
+     "motivo": "sotto 0,1%: riportato, non valutato"
+    },
+    {
+     "el": "As",
+     "tipo": "indicativo",
+     "ref": 0.01067,
+     "U": 0.00045,
+     "k": 2.6,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "P",
+     "tipo": "indicativo",
+     "ref": 0.02,
+     "U": 0.0012,
+     "k": 2.4,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "Si",
+     "tipo": "indicativo",
+     "ref": 0.5093,
+     "U": 0.0049,
+     "k": 2.6,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "N",
+     "tipo": "informativo",
+     "ref": 0.04,
+     "U": null,
+     "k": 2,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "Pb",
+     "tipo": "informativo",
+     "ref": 0.001,
+     "U": null,
+     "k": 2,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "W",
+     "tipo": "informativo",
+     "ref": 0.11,
+     "U": null,
+     "k": 2,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "fisso",
+     "motivo": "non misurato: preso dal certificato e tolto dalla normalizzazione"
+    },
+    {
+     "el": "Bi",
+     "tipo": "limite",
+     "ref": 0.0005,
+     "U": null,
+     "k": 2,
+     "x": null,
+     "u": null,
+     "uConteggio": null,
+     "errRel": null,
+     "zeta": null,
+     "En": null,
+     "limiteErr": null,
+     "esito": "informazione",
+     "motivo": "il certificato dà solo un limite (<)"
+    },
+    {
+     "el": "Fe",
+     "tipo": "per_differenza",
+     "ref": 64.19,
+     "U": null,
+     "k": 2,
+     "x": 64.87834883224858,
+     "u": 3.245747646369579,
+     "uConteggio": 0.10898355800916239,
+     "errRel": 1.0723614772528103,
+     "zeta": 0.21207712590302827,
+     "En": 0.10603856295151413,
+     "limiteErr": null,
+     "esito": "informazione",
+     "motivo": "valore per differenza: non entra nei criteri"
+    }
+   ],
+   "avvisi": [
+    "cfg [attenuators] atmosphere: PyMca non descrive l'aria fra tubo e campione: d1 = 0; l'atmosfera (5 cm) è il cammino campione–rivelatore (d2)",
+    "cfg [fit] energy: eccitazione monocromatica a 16 keV: è quella che PyMca usa per il calcolo; la sezione [tube] (Ag, 30 kV) serve solo a generare la lista e qui non conta. Il modello del tubo dell'app non la descrive: passa al nucleo come lista di energie (setup.exc)",
+    "cfg [fit] stripflag: fondo strip iterativo: nell'app corrisponde al fondo «SNIP» (larghezza in keV), non identico",
+    "cfg [concentrations] reference: elemento di riferimento «Fe» (standard interno): l'app normalizza a 100% (modo «leghe») oppure usa il Compton",
+    "cfg [xrfmc]: impostazioni di XMI-MSIM (Monte Carlo): l'app non le usa",
+    "cfg [detector] ignoreinputcalibration, nthreshold: senza equivalente nell'app (soglie di raggruppamento delle righe e opzioni di calibrazione)",
+    "cfg [fit] stripwidth, stripfilterwidth, exppolorder, strategy, fitweight, stripanchorsflag, use_limit, stripiterations, linpolorder, deltaonepeak, stripconstant, strategyflag, stripanchorslist: senza equivalente nell'app (opzioni dell'algoritmo di PyMca)",
+    "cfg [tube] anodedensity, anodethickness, deltaplotting, filter1thickness, filter1density, filter1: senza equivalente nell'app (dettagli dello spettro del tubo di Ebel)",
+    "cfg [concentrations] usexrfmc, useautotime: senza equivalente nell'app"
+   ]
+  }
+ ]
+}
