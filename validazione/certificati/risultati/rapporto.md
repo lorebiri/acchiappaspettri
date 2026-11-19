@@ -26,13 +26,13 @@ Elementi non misurati, presi dal certificato: C 0,0445%, Mo 2,39%, S 0,0175%, As
 |---|---|---|---|---|---|---|---|---|---|---|
 | C | certificato | 0,0445 | 0,0014 (3,2) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | Co | certificato | 0,1052 | 0,0057 (2,36) | 0,3784 | 0,026 | +259,7% | 10,6 | 5,27 | ±25% | **non superato** (errore oltre 25%, ζ oltre 2) |
-| Cr | certificato | 18,37 | 0,21 (4,3) | 18,45 | 0,92 | +0,4% | 0,0831 | 0,0414 | ±10% | **superato** |
-| Cu | certificato | 0,1734 | 0,0075 (2,26) | 0,1729 | 0,011 | -0,3% | 0,0427 | 0,0211 | ±25% | **superato** |
-| Mn | certificato | 1,619 | 0,075 (3,2) | 1,628 | 0,086 | +0,6% | 0,1 | 0,0477 | ±10% | **superato** |
+| Cr | certificato | 18,37 | 0,21 (4,3) | 18,45 | 0,92 | +0,4% | 0,0853 | 0,0424 | ±10% | **superato** |
+| Cu | certificato | 0,1734 | 0,0075 (2,26) | 0,1729 | 0,011 | -0,3% | 0,0435 | 0,0215 | ±25% | **superato** |
+| Mn | certificato | 1,619 | 0,075 (3,2) | 1,628 | 0,086 | +0,6% | 0,0998 | 0,0474 | ±10% | **superato** |
 | Mo | certificato | 2,386 | 0,024 (2,23) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
-| Ni | certificato | 12,35 | 0,22 (4,3) | 11,25 | 0,56 | -8,9% | 1,94 | 0,956 | ±10% | **superato** |
+| Ni | certificato | 12,35 | 0,22 (4,3) | 11,25 | 0,56 | -8,9% | 1,94 | 0,957 | ±10% | **superato** |
 | S | certificato | 0,0175 | 0,0032 (4,3) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
-| V | certificato | 0,0508 | 0,0034 (2,36) | 0,008487 | 0,0097 | -83,3% | 4,3 | 2,14 | — | **segnalato** (sotto 0,1%: riportato, non valutato) |
+| V | certificato | 0,0508 | 0,0034 (2,36) | 0,008488 | 0,0097 | -83,3% | 4,3 | 2,14 | — | **segnalato** (sotto 0,1%: riportato, non valutato) |
 | As | indicativo | 0,01067 | 0,00045 (2,6) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | P | indicativo | 0,02 | 0,0012 (2,4) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | Si | indicativo | 0,5093 | 0,0049 (2,6) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |

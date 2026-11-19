@@ -210,6 +210,7 @@
       if (opt.selfAbs){ const w=wOf(m); if (w>0 && neSA>0 && m.fL>0){ const r=selfAbsCorrect(m.area, m.fL, w, neSA, opt.selfAbs.method); if (r){ m.I=r.I0; m.SA=r.SA; } } else m.noW=true; }
       const rel=accRel(D, m.acc), sI=m.sArea>0 ? m.sArea/m.area : 0; m.sy=Math.sqrt(sI*sI+rel*rel+Math.pow(opt.sysRel||0,2)); if (!(m.sy>0)) m.sy=0.05;
       L.push(m); }
+    if (opt.closure && typeof opt.closure==='object' && !L.some(l=>l.el===opt.closure.el)) warns.push({code:'closureRefMissing', el:opt.closure.el});   // standard interno senza righe misurate: si torna alla somma a 100% e lo si dice (revisione 3.1)
     if (opt.excludeResonance){ const keep=L.filter(l=>!l.resonance); if (keep.length<L.length) warns.push({code:'resonanceExcluded', n:L.length-keep.length}); L=keep; }
     else if (L.some(l=>l.resonance)) warns.push({code:'resonance', lines:L.filter(l=>l.resonance).map(l=>l.key)});
     if (opt.selfAbs && L.some(l=>l.noW)) warns.push({code:'selfAbsNoW', lines:L.filter(l=>l.noW).map(l=>l.key)});
@@ -240,7 +241,8 @@
       const dT=Math.abs(Tn-T)/T, dn=Math.abs(neN-ne)/ne; T=sb||!neFixed?0.5*T+0.5*Tn:Tn; if (!neFixed) ne=Math.sqrt(ne*neN);
       if (dT<1e-7 && dn<1e-6){ T=Tn; conv=true; break; } }
     if (!conv) warns.push({code:'noConvergence'});
-    const pts=project(T, ne); fit=jointFit(pts); T=-1/(KB*fit.m); conc=concentrations(fit.q, T, ne); const cl=closure(conc);
+    const pts=project(T, ne); fit=jointFit(pts); if (!fit || !(fit.m<0)) return {ok:false, why:'pendenza del grafico di Boltzmann non negativa alla fine delle iterazioni', warnings:warns, points:pts};   // revisione 3.1: T negativa impossibile
+    T=-1/(KB*fit.m); conc=concentrations(fit.q, T, ne); const cl=closure(conc);
     const sT=Math.sqrt(fit.cov[0])/(KB*fit.m*fit.m);
     if (fit.spread<1) warns.push({code:'narrowEk', spread:fit.spread});
     if (T<(D.Tgrid?D.Tgrid[0]:3000) || T>(D.Tgrid?D.Tgrid[D.Tgrid.length-1]:30000)) warns.push({code:'Toutside'});
@@ -294,11 +296,13 @@
     C.lines.forEach((l,i)=>{ const f=fits[i]; const m=Object.assign({}, l, f||{}); if (!f || !(f.area>0) || f.snr<opt.snrMin || f.atBound){ m.why=!f?'fit':f.atBound?'bound':'snr'; rejected.push(m); } else meas.push(m); });
     // righe molto più larghe della mediana: di solito una riga non elencata sotto il profilo (o un fit sbagliato), si scartano
     { const med=meas.map(m=>m.fL).sort((a,b)=>a-b)[meas.length>>1]||0; for (let i=meas.length-1;i>=0;i--) if (med>0 && meas[i].fL>(opt.wideFactor||4)*med+0.01){ meas[i].why='wide'; rejected.push(meas[i]); meas.splice(i,1); } }
+    const neBad=opt.ne!=null && !(opt.ne>0); if (neBad) opt=Object.assign({}, opt, {ne:null});   // n_e data ma non positiva: si ignora e lo si dice
     let ne=opt.ne||null, sne=opt.sne||null, neInfo=null, neSource=opt.ne?'given':null;
     if (!ne && (opt.neFrom==='Halpha' || opt.neFrom==='Hbeta')){ neInfo=neFromHydrogen(xs, ys, opt.neFrom==='Hbeta'?'beta':'alpha', {fwhmG:opt.fwhmG}); if (neInfo.ok){ ne=neInfo.ne; sne=neInfo.sne; neSource=opt.neFrom; } }
     if (!ne && opt.neFrom==='line' && opt.neLine){ const f=fitLines(xs, ys, [opt.neLine.wl], {fwhmG:opt.fwhmG, maxShift:opt.maxShift})[0]; if (f && f.area>0){ ne=neFromStark(f.fL, opt.neLine.w); sne=ne*(f.sfL/f.fL); neSource='line'; neInfo={ok:true, ne, sne, line:opt.neLine, fit:f}; } }
     const selfAbs=opt.selfAbs ? Object.assign({}, opt.selfAbs, {ne:opt.selfAbs.ne||ne}) : null;
     const res=cf(D, meas, Object.assign({}, opt, {ne, sne, neSource, selfAbs}));
+    if (neBad){ res.warnings=res.warnings||[]; res.warnings.push({code:'neInvalid'}); }
     return Object.assign(res, {lines:meas, rejected, blended:C.blended, neInfo, ms:Date.now()-t0}); }
 
   /* ---------------- spettri LIBS sintetici (stesso modello) ----------------

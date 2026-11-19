@@ -33,3 +33,15 @@ test('fluorescenza terziaria (3.1): rinforza Cr in un acciaio Fe–Cr–Ni di qu
   const two=C.fpIntensities([{comp:{Cr:0.2, Fe:0.8}, t:Infinity}], S, L), two0=C.fpIntensities([{comp:{Cr:0.2, Fe:0.8}, t:Infinity}], S, L, {tert:false});
   assert.equal(two['Cr Ka'], two0['Cr Ka'], 'con due elementi non c\'è terziaria');
 });
+test('revisione 3.1: tubo a trasmissione con anodo più sottile della profondità di generazione, intensità finite e limitate', ()=>{
+  const thick=C.fpTube(C.fpSetup({anode:'Rh', kv:50, phys:'3.1'})), sum=T=>T.N.reduce((a,b)=>a+b,0);
+  for (const [an,tT,eps] of [['Rh',1,90],['Rh',5,90],['Cu',0.5,90],['Cu',0.5,5],['W',1,20]]){
+    const T=C.fpTube(C.fpSetup({anode:an, kv:50, phys:'3.1', trans:true, tT, eps})), s=sum(T);
+    assert.ok(Number.isFinite(s) && T.N.every(v=>Number.isFinite(v) && v>=0), `${an} ${tT} µm: somma ${s}`); assert.ok(s<5*sum(thick), `${an} ${tT} µm: ${s} contro ${sum(thick)} del tubo spesso`); }
+});
+test('revisione 3.1: angoli e spessori impossibili tornano ai valori tipici (prima davano NaN)', ()=>{
+  for (const o of [{eps:-10},{eps:200},{si:-10},{beT:-5},{beD:-1}]){ const S=C.fpSetup(Object.assign({anode:'Rh', kv:40, phys:'3.1'}, o));
+    assert.ok(S.eps>3 && S.eps<=90 && S.si>0 && S.beT>=0 && S.beD>=0, JSON.stringify(o)+' → '+S.key);
+    const I=C.fpIntensities([{comp:{Cu:0.9, Sn:0.1}, t:Infinity}], S, [['Cu','Ka'],['Sn','Ka']]); assert.ok(Number.isFinite(I['Cu Ka']) && Number.isFinite(I['Sn Ka']), JSON.stringify(o)); }
+  assert.strictEqual(C.fpSetup({anode:'Rh', kv:40, eps:30}).eps, 30, 'un valore valido resta');
+});

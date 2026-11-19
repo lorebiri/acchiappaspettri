@@ -29,6 +29,8 @@
       case 'narrowEk': return T('Le energie dei livelli superiori coprono meno di 1 eV: la temperatura è poco determinata.', 'Upper-level energies span less than 1 eV: the temperature is poorly determined.');
       case 'Toutside': return T('Temperatura fuori dalla griglia delle funzioni di partizione (3000–30000 K).', 'Temperature outside the partition-function grid (3000–30000 K).');
       case 'noConvergence': return T('L\'iterazione su T e n_e non è arrivata a convergenza.', 'The T and n_e iteration did not converge.');
+      case 'closureRefMissing': return T('Lo standard interno '+w.el+' non ha righe misurate: chiusura a 100 % al suo posto.', 'The internal standard '+w.el+' has no measured lines: closure to 100% used instead.');
+      case 'neInvalid': return T('La densità elettronica data non è positiva: ignorata, n_e ricavata dallo spettro.', 'The given electron density is not positive: ignored, n_e derived from the spectrum.');
       case 'selfAbsNoW': return T('Correzione dell\'autoassorbimento non applicata: mancano i coefficienti Stark w delle righe.', 'Self-absorption correction not applied: line Stark coefficients w are missing.');
       case 'lowSA': return T('Righe scartate per autoassorbimento forte: '+L(w.lines), 'Lines discarded for strong self-absorption: '+L(w.lines));
       case 'noH': return T('Riga dell\'idrogeno non trovata o troppo debole: n_e è stata stimata per iterazione (ipotesi: 1 atm).', 'Hydrogen line not found or too weak: n_e was estimated by iteration (assumption: 1 atm).');

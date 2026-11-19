@@ -95,3 +95,7 @@ test('export Bruker ELIO: .mca (con «Calibration3: 0 0») e .spt LIDAQ (Coeffic
   assert.strictEqual(a.xs.length, b.xs.length); assert.ok(Math.abs(a.xs[0]-b.xs[0])<1e-12);
   assert.ok(Math.abs(parseFloat(a.xrf.live.replace(',','.'))-84.894)<1e-9 && b.xrf.liveMs && +b.xrf.live===84894, 'tempo vivo in s (.mca) e in ms (.spt)');
 });
+test('revisione 3.1: nel fit completo le righe del tubo diffuse non finiscono fra le aree degli elementi (chiave «null»)', ()=>{
+  const sp=synth({Fe:5e5}, {seed:9}), R=C.xrfFitLines(sp.xs, sp.ys, ['Fe'], C.fpSetup({anode:'Mo', kv:20, exc:[[17.48,1,1]]}), {model:'hypermet', lo:3, hi:18, pileup:false});
+  assert.deepStrictEqual(Object.keys(R.area), ['Fe']);
+});

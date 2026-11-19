@@ -275,20 +275,20 @@ Rumore 1 % del picco più alto, 100 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,4 | 1,5 / 4,0 % | ✓ |
+| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,6 | 1,5 / 4,0 % | ✓ |
 | ALS (Eilers & Boelens 2005) | 1,53 % | 2,30 % | 5,08 % | 8,60 % | 98,1 % | 0,09 | 0,4 | 2,5 / 4,5 % | ✓ |
-| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,2 | 1,5 / 8,0 % | ✓ |
-| ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,4 | 2,0 / 10,0 % | ✓ |
-| SNIP (Ryan 1988) | 1,16 % | 4,29 % | 3,12 % | 12,02 % | 98,1 % | 0,01 | 0,6 | 2,5 / 6,0 % | ✓ |
+| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,3 | 1,5 / 8,0 % | ✓ |
+| ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,5 | 2,0 / 10,0 % | ✓ |
+| SNIP (Ryan 1988) | 1,16 % | 4,29 % | 3,12 % | 12,02 % | 98,1 % | 0,01 | 0,5 | 2,5 / 6,0 % | ✓ |
 | rolling ball (Kneen & Annegarn 1996) | 3,18 % | 5,55 % | 17,82 % | 34,80 % | 97,9 % | 0,28 | 0,1 | 4,5 / 8,0 % | ✓ |
 
 Rumore 0,2 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,5 | — | — |
+| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,6 | — | — |
 | ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,4 | — | — |
-| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,4 | — | — |
+| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,5 | — | — |
 | ModPoly (Lieber 2003) | 0,95 % | 5,82 % | 4,22 % | 15,27 % | 98,4 % | 0,10 | 0,4 | — | — |
 | SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,31 % | 6,58 % | 17,59 % | 38,19 % | 98,4 % | 0,15 | 0,1 | — | — |
@@ -299,7 +299,7 @@ Rumore 0,05 % del picco più alto, 40 spettri:
 |---|---|---|---|---|---|---|---|---|---|
 | arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 4,7 | — | — |
 | ALS (Eilers & Boelens 2005) | 1,46 % | 2,63 % | 5,35 % | 10,35 % | 99,0 % | 0,00 | 0,4 | — | — |
-| IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 2,0 | — | — |
+| IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 1,9 | — | — |
 | ModPoly (Lieber 2003) | 1,03 % | 3,09 % | 4,48 % | 12,37 % | 99,0 % | 0,10 | 0,4 | — | — |
 | SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,33 % | 5,38 % | 17,32 % | 36,47 % | 99,0 % | 0,17 | 0,1 | — | — |
@@ -311,8 +311,8 @@ Rumore 3 % del picco più alto, 40 spettri:
 | arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,7 | — | — |
 | ALS (Eilers & Boelens 2005) | 2,89 % | 3,38 % | 6,40 % | 9,82 % | 96,9 % | 0,00 | 0,4 | — | — |
 | IModPoly (Zhao 2007) | 0,85 % | 3,59 % | 1,88 % | 9,54 % | 96,9 % | 0,03 | 0,9 | — | — |
-| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,5 | — | — |
-| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,4 | — | — |
+| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,6 | — | — |
+| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,5 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,53 % | 6,21 % | 20,10 % | 40,48 % | 96,4 % | 0,03 | 0,1 | — | — |
 
 Limite noto: arPLS con la rigidità automatica storica (λ = (n/(2π·8))⁴, come nella 2.x) non segue una fluorescenza ripida sugli spettri molto puliti (rumore ≤ 0,2 % del picco): il fondo resta sotto la fluorescenza e l'errore cresce. Con un λ più basso, o con IModPoly e ALS, l'errore resta sotto il 2–3 %. Vedi `docs/LIMITAZIONI.md`.
@@ -404,7 +404,7 @@ Condizioni dal `.cfg` di `PyMca5/tests/XrfTest.py`; aree in unità dello spettro
 | Ti K | 15334,8687 | 14836,3565 | +3,4% | sì |
 | V K | 19731,5033 | 18856,2495 | +4,6% | sì |
 | Cr K | 26436,5108 | 25084,0118 | +5,4% | sì |
-| Mn K | 33448,7037 | 31587,5719 | +5,9% | sì |
+| Mn K | 33448,7038 | 31587,5719 | +5,9% | sì |
 | Fe K | 42754,1949 | 39996,6964 | +6,9% | sì |
 | Co K | 50528,0302 | 46933,8383 | +7,7% | sì |
 | Ni K | 62327,5876 | 58119,2601 | +7,2% | sì |
@@ -415,13 +415,13 @@ Condizioni dal `.cfg` di `PyMca5/tests/XrfTest.py`; aree in unità dello spettro
 | As L | 1021,7244 | 447,4769 | +128,3% | no (< 1% del totale) |
 | Se K | 114456,8878 | 108113,0960 | +5,9% | sì |
 | Se L | 1331,6432 | 971,9866 | +37,0% | no (< 1% del totale) |
-| Sr K | 136785,4782 | 123927,7256 | +10,4% | sì |
+| Sr K | 136785,4783 | 123927,7256 | +10,4% | sì |
 | Sr L | 3824,9201 | 3093,3100 | +23,7% | no (< 1% del totale) |
 | Cd L | 2621,6683 | 3113,6104 | -15,8% | no (< 1% del totale) |
 | Sb L | 5023,4202 | 6205,6459 | -19,1% | no (< 1% del totale) |
 | Tl L | 95713,3611 | 98831,5287 | -3,2% | sì |
 | Tl M | 11016,0949 | 15018,4209 | -26,6% | no (righe M) |
-| Pb L | 97671,4551 | 99445,3070 | -1,8% | sì |
+| Pb L | 97671,4552 | 99445,3070 | -1,8% | sì |
 | Pb M | 13602,4577 | 13455,3309 | +1,1% | no (righe M) |
 
 ### R15.3 Bronzo SINTETICO di `examples/` (tubo Rh 40 kV)

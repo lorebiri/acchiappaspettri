@@ -2855,5 +2855,8 @@
 "germanio": "germanium",
 "silicio": "silicon",
 "ALS (Eilers 2005)": "ALS (Eilers 2005)",
-"I file .xga sono progetti del software Bruker ELIO (formato binario .NET, non leggibile qui): esporta gli spettri dal software ELIO in .mca o .spt, che l'app legge con calibrazione, tubo e tempo vivo.": "The .xga files are Bruker ELIO software projects (binary .NET format, not readable here): export the spectra from the ELIO software as .mca or .spt, which the app reads with calibration, tube and live time."
+"I file .xga sono progetti del software Bruker ELIO (formato binario .NET, non leggibile qui): esporta gli spettri dal software ELIO in .mca o .spt, che l'app legge con calibrazione, tubo e tempo vivo.": "The .xga files are Bruker ELIO software projects (binary .NET format, not readable here): export the spectra from the ELIO software as .mca or .spt, which the app reads with calibration, tube and live time.",
+"): è il limite dei progetti": "): it is the project limit",
+"energie di eccitazione oltre 50 keV ignorate: le tabelle fisiche dell'app arrivano a 50 keV": "excitation energies above 50 keV ignored: the app's physical tables go up to 50 keV",
+"lista di energie di eccitazione troncata a 400 (ne aveva": "excitation energy list truncated to 400 (it had"
 }

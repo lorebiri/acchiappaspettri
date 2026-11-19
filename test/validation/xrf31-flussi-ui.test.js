@@ -25,6 +25,9 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
       const c3=Object.assign({}, fpCfg(f)); let err=null; try{ fpImportCfg(c3, bad, '<b>ostile</b>.cfg'); }catch(e){ err=String(e.message||e); }
       o.bad={err, polluted:({}).polluted, proto:Object.prototype.polluted, anode:c3.S&&c3.S.anode};
       if (!err){ const g=files[0], keep=JSON.stringify(g.an.fp); fpSaveCfg(g, c3); g._fpKey=null; try{ fpRun(g); document.querySelector('#secCult').open=true; renderCult(g); }catch(e){ o.bad.run=String(e); } o.bad.xss=!!window.__xss; o.bad.html=document.querySelector('#anCult').innerHTML.includes('<b>ostile</b>'); g.an.fp=JSON.parse(keep); g._fpKey=null; }
+      // [peaks] con chiavi ereditate (toString…) e lista di eccitazione lunga: elementi veri soltanto, lista troncata a 400 con avviso
+      { const c4={}; const big='[peaks]\ntoString = K\nhasOwnProperty = K\nCu = K\n[fit]\nenergy = '+Array.from({length:450},(_,i)=>(5+i*0.1).toFixed(2)).join(', ')+'\nenergyweight = '+Array(450).fill('1').join(', ')+'\nenergyflag = '+Array(450).fill('1').join(', ')+'\nenergyscatter = '+Array(450).fill('0').join(', ')+'\n';
+        fpImportCfg(c4, big, 'lungo.cfg'); o.peaksEls=c4.els; o.excLen=c4.S.exc?c4.S.exc.length:0; o.excWarn=(c4.cfgWarn||[]).some(t=>/troncata a 400/.test(t)); }
       // progetto salvato e riaperto
       let saved=null; const h=AcchProject.host, old=h.saveAs; h.saveAs=async (b,s)=>{ saved=b; return {name:s,path:null}; }; await AcchProject.saveAs(); h.saveAs=old;
       await AcchProject.closeProject(); await AcchProject.openBytes(saved,'p.acchspettri',null); const F=files[0]; F._fpKey=null; o.reopen={model:fpCfg(F).model, r:res(fpRun(F))};
@@ -40,6 +43,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
     for (const [e,w] of [['Cu',84],['Sn',8],['Pb',5],['Zn',2.5]]) assert.ok(Math.abs(r.r1[e]/w-1)<0.12, `3.1 ${e}: ${r.r1[e]}`);
     assert.deepEqual(r.imp, {anode:'Rh', kv:40, psi1:45, psi2:45, model:'hypermet', els:r.imp.els}, JSON.stringify(r.imp)); assert.ok(['Sn','Cu','Pb','Zn','As'].every(e=>r.imp.els.includes(e)), 'elementi dal .cfg');
     assert.ok(!r.bad.polluted && !r.bad.proto, 'prototipo inquinato'); assert.ok(!r.bad.xss && !r.bad.html, 'HTML del .cfg eseguito o non protetto'); assert.ok(!r.bad.run, 'calcolo con il .cfg ostile: '+r.bad.run);
+    assert.deepEqual(r.peaksEls, ['Cu'], 'elementi da [peaks]: '+JSON.stringify(r.peaksEls)); assert.ok(r.excLen<=400 && r.excWarn, 'eccitazione: '+r.excLen);
     assert.equal(r.reopen.model, 'hypermet'); assert.deepEqual(r.reopen.r, r.r1, 'progetto riaperto: stessi numeri');
     assert.equal(r.old.model, 'gauss', 'progetto della 3.0: modello 3.0'); assert.ok(r.old.was30 && r.old.note, 'avviso nel pannello'); assert.ok(r.old.toast, 'avviso all\'apertura');
     assert.deepEqual(['Cu','Sn','Pb'].map(e=>r.old.r[e].toFixed(2)), ['86.28','8.34','5.38'], 'numeri della 3.0: '+JSON.stringify(r.old.r));

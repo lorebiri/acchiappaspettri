@@ -178,3 +178,10 @@ test('multipletti non risolti della stessa specie (Zn I 330,26/330,29 nm): una r
   const S=C.synth(D, {comp:{Cu:90, Zn:10}, T:10000, ne:1e17, ambient:{H:1e17}, wl:[300,540], fwhmG:0.1, peakCounts:3e5, seed:2}), a=C.analyze(D, S.x, S.y, {elements:['Cu','Zn'], fwhmG:0.1, neFrom:'Halpha'});
   assert.ok(a.ok, a.why); const zn=a.elements.find(e=>e.el==='Zn'); assert.ok(zn && zn.wt>0.05, 'Zn misurato: '+(zn&&zn.wt));
 });
+test('revisione 3.1: standard interno senza righe e n_e non positiva sono segnalati, non ignorati in silenzio', ()=>{
+  const S=C.synth(D, {comp:{Cu:90, Sn:10}, T:10000, ne:1e17, ambient:{H:1e17}, wl:[300,540], fwhmG:0.05, peakCounts:3e5, seed:4});
+  const a=C.analyze(D, S.x, S.y, {elements:['Cu','Sn'], fwhmG:0.05, neFrom:'Halpha', closure:{el:'Zn', wt:0.05}});
+  assert.ok(a.warnings.some(w=>w.code==='closureRefMissing' && w.el==='Zn'), JSON.stringify(a.warnings.map(w=>w.code)));
+  const b=C.analyze(D, S.x, S.y, {elements:['Cu','Sn'], fwhmG:0.05, neFrom:'Halpha', ne:-5});
+  assert.ok(b.warnings.some(w=>w.code==='neInvalid'), JSON.stringify(b.warnings.map(w=>w.code)));
+});

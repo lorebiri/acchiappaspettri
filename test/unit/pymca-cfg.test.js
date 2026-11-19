@@ -143,3 +143,9 @@ test('sicurezza: un .cfg con sezioni o chiavi __proto__, constructor, prototype 
   assert.deepStrictEqual(Object.keys(c).sort(), ['peaks']); assert.deepStrictEqual(Object.keys(c.peaks), ['Cu']);
   const n=P.toAcch(c); assert.strictEqual(({}).polluted, undefined); assert.deepStrictEqual(Object.keys(n.peaks), ['Cu']);
 });
+test('revisione 3.1: righe lunghe senza separatore e formule annidate non bloccano né fanno esplodere la ricorsione', ()=>{
+  const t0=Date.now(); assert.throws(()=>P.parse('[a]\nx'+' '.repeat(40000)+'y\n'), /chiave = valore/); assert.ok(Date.now()-t0<300, 'tempo '+(Date.now()-t0)+' ms');
+  assert.strictEqual(P.formulaAtoms('('.repeat(20000)+'Cu'+')'.repeat(20000)), null);
+  assert.deepStrictEqual(P.formulaAtoms('(Cu(Sn)2)3'), {Cu:3, Sn:6});
+  assert.deepStrictEqual(P.parse('[s]\nk : v = w\n').s, {k:'v = w'}, 'primo separatore, come configparser');
+});

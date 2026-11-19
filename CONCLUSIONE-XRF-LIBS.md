@@ -117,6 +117,38 @@ Lo Zn ambiguo di uno standard (0,3 o 0,003%) è 0,3%: lo dicono le aree dei picc
 - **Lettore dei file a una colonna.** Durante il confronto è emerso che `parseXRF` scarta la prima riga di un file `.mca` a una colonna senza intestazione (come `XRFSpectrum.mca` di PyMca): lo spettro risulta spostato di un canale. Non corretto qui (tocca il lettore di tutti i formati); segnalato.
 - **Da leggere a mano**: l'articolo di Ebel 2003 sulle righe L (costanti prese da XMI-MSIM) e quello di Gigosos 2003 per Hα e Hβ (coefficienti da fonti secondarie).
 
+## Debug finale
+
+Fase chiesta da Lorenzo dopo i punti 1–8: revisione indipendente, prove d'uso, confronto prima e dopo, correzione di ogni bug confermato con il suo test.
+
+**Revisione indipendente** (un agente che non aveva scritto il codice, su tutto il ramo). Nessuna regressione del modello 3.0: con il modello 3.0 i numeri sono identici alla 3.0.0 (esempio del bronzo e 15 spettri di collaudo, modi «leghe» e «Compton», con e senza geometria dal Compton: differenza massima 0). Bug confermati e corretti, ognuno con un test:
+
+| Gravità | Problema | Correzione | Test |
+|---|---|---|---|
+| alta | un `.cfg` con una sezione `[__proto__]` scriveva sul prototipo di tutti gli oggetti della pagina | sezioni e chiavi `__proto__`, `constructor`, `prototype` scartate | `pymca-cfg.test.js`, `xrf31-flussi-ui.test.js` |
+| media | i progetti salvati da questo ramo (versione ancora 3.0.0), riaperti, passavano al modello 3.0 | contrassegno `xrfModel` nello stato del progetto | `xrf31-flussi-ui.test.js` |
+| media | tubo a trasmissione con anodo di 1–2 µm: intensità enormi o infinite | profondità di generazione limitata allo spessore dell'anodo | `xrf-tubo-ebel.test.js` |
+| media | angolo d'uscita fuori 3–90° o spessori negativi: composizione tutta NaN | valori impossibili riportati ai tipici | `xrf-tubo-ebel.test.js` |
+| media | tempi nella versione online (il calcolo gira nella pagina): fino a 4 s per spettro da 4096 canali | code esponenziali senza erfc lontano dal picco, colonne pesate senza callback, analisi di sensibilità che riusa la forma del picco: 2,6 → 1,6 s. Resta lento sui file molto grandi (vedi sotto) | numeri invariati (rapporti rigenerati: cambia solo l'ultima cifra) |
+| bassa | un `return` finito in un commento: le righe del tubo diffuse comparivano fra le aree sotto la chiave «null» | riga separata | `xrf-fit-completo.test.js` |
+| bassa | `[peaks]` con chiavi come `toString`: elemento fasullo e calcolo in errore | solo elementi veri (`hasOwnProperty`), anche nei progetti | `xrf31-flussi-ui.test.js` |
+| bassa | espressione regolare quadratica nel lettore `.cfg` (2 s su una riga di 40 000 spazi) e ricorsione senza limite nelle formule | ricerca del separatore senza espressione regolare; massimo 64 livelli di parentesi | `pymca-cfg.test.js` |
+| bassa | eccitazione oltre 400 energie troncata solo alla riapertura del progetto, senza avviso; energie oltre 50 keV fuori dalle tabelle | troncata e filtrata subito all'importazione, con avviso | `xrf31-flussi-ui.test.js` |
+| bassa | CF-LIBS: standard interno senza righe e n_e non positiva ignorati in silenzio; T negativa possibile dopo iterazioni non convergenti | avvisi `closureRefMissing` e `neInvalid`; controllo della pendenza alla fine | `libs-cf.test.js` |
+| bassa | due energie di eccitazione uguali alla seconda cifra: componenti di diffusione con lo stesso nome | un solo picco | — |
+
+Sospetti del revisore rimasti aperti, perché non riprodotti o con effetto piccolo: la memoria della fluorescenza terziaria con più strati (chiave sulla sola composizione del supporto) e l'unione a catena di multipletti LIBS molto fitti.
+
+**Export reali dello strumento (indicazione di Lorenzo).** Il difetto dello Sn era nella lettura dell'export, non nei dati: l'ELIO scrive uno slot vuoto «Calibration3: 0 0» che il lettore usava (corretto). Ora `.mca` e `.spt` dello stesso standard danno la stessa calibrazione e gli stessi picchi; il tempo vivo è letto in entrambi; aria ed elio danno composizioni coerenti. I `.xga` (progetti ELIO, DataSet .NET binario) non si leggono: l'app lo dice e spiega come esportare gli spettri.
+
+**Prove d'uso nel programma vero** (Playwright, web e anteprima desktop, italiano e inglese): file XRF nuovo col modello 3.1, elementi aggiunti, `.cfg` esportato e reimportato, `.cfg` ostile, progetto salvato e riaperto (stessi numeri, stesso modello), progetto della 3.0 riaperto (modello 3.0 e avviso), pannello in inglese; CF-LIBS nel pannello delle ipotesi in italiano e in inglese; stagno puro nell'anteprima desktop (Sb e I tolti, 0,7 s). Nuovo test `test/validation/xrf31-flussi-ui.test.js` nella validazione dell'interfaccia.
+
+**Prima e dopo su tutti gli esempi di `examples/`** (la pagina della 3.0.0 contro quella del ramo, nel browser): i 6 spettri FTIR e i 10 cromatogrammi HPLC danno picchi, aree, ipotesi e avvisi identici. L'unica differenza è la stima XRF del bronzo, voluta: con il modello 3.1, predefinito per le analisi nuove, Sn 8,34 → 8,74% e Pb 5,38 → 5,55% (tubo di Ebel invece di Kramers su uno spettro costruito con Kramers); con il modello 3.0 i numeri sono quelli di prima. Il tutorial 3 è stato aggiornato con i numeri del 3.1 (le schermate mostrano ancora quelli della 3.0).
+
+**Esito delle suite** (in locale, ultima esecuzione): test unitari 372 su 378 (6 saltati come prima), validazione numerica 77/77, validazione nell'interfaccia 212/212 più la nuova prova d'uso, collaudo dell'interfaccia 39/39, benchmark 36/36. CI su GitHub: vedi il messaggio finale.
+
+**Limiti noti rimasti.** Nella versione online, senza processo separato, un file XRF molto grande (16 000 canali) col modello 3.1 e la verifica degli elementi richiede ancora alcuni secondi; sul desktop il calcolo gira nel processo separato. Zn sottostimato del 10% sui bronzi veri; CF-LIBS fragile con autoassorbimento forte.
+
 ## Riferimenti principali
 
 Solé et al. 2007 (PyMca), doi:10.1016/j.sab.2006.12.002 · Van Gysel, Lemberge, Van Espen 2003 (ipermetro), doi:10.1002/xrs.666 · Ebel 1999 (tubo), doi:10.1002/(SICI)1097-4539(199907/08)28:4<255::AID-XRS347>3.0.CO;2-Y · Ebel 2003 (righe L), doi:10.1002/xrs.610 · Schoonjans et al. 2011 (xraylib), doi:10.1016/j.sab.2011.09.011 · Krause 1979 (rese), doi:10.1063/1.555594 · Ciucci et al. 1999 (CF-LIBS), doi:10.1366/0003702991947612 · El Sherbini et al. 2005, doi:10.1016/j.sab.2005.10.011 · Palleschi 2022, doi:10.56530/spectroscopy.xq8876v9 · Cristoforetti et al. 2010, doi:10.1016/j.sab.2009.11.005 · Kramida et al., NIST ASD, doi:10.18434/T4W30F · Cesareo e Brunetti 2008, doi:10.3233/XST-2008-00196 · Cesareo et al. 2009, doi:10.1016/j.nimb.2009.06.119 · Trojek et al. 2010, doi:10.1016/j.apradiso.2009.09.054.

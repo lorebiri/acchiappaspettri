@@ -76,7 +76,8 @@
       const h=/^\[(.+)\]/.exec(strip);
       if (h){ const name=h[1]; cur=byName.get(name); if (!cur){ cur={name, opts:new Map()}; byName.set(name,cur); secs.push(cur); } opt=null; continue; }
       if (!cur) throw new Error('riga '+(ln+1)+': manca l\'intestazione di sezione [nome] prima di «'+strip.slice(0,40)+'»');
-      const m=/^(.*?)\s*[=:]\s*(.*)$/.exec(strip);
+      // prima «=» o «:» senza espressione regolare (quella pigra era quadratica su righe lunghe senza separatore: revisione 3.1)
+      const iq=strip.indexOf('='), ic=strip.indexOf(':'), is=iq<0 ? ic : ic<0 ? iq : Math.min(iq, ic), m=is>0 ? [strip, strip.slice(0,is).trim(), strip.slice(is+1).trim()] : null;
       if (!m || !m[1]) throw new Error('riga '+(ln+1)+': atteso «chiave = valore», trovato «'+strip.slice(0,40)+'»');
       opt=m[1].trim(); optIndent=indent; cur.opts.set(opt, [m[2]]);
     }
@@ -131,9 +132,9 @@
   function formulaAtoms(f){
     f=String(f).trim(); if (!f || !/^[A-Z(]/.test(f)) return null; let i=0;
     const numAt=()=>{ const m=/^\d*\.?\d+/.exec(f.slice(i)); if (!m) return 1; i+=m[0].length; return +m[0]; };
-    const grp=()=>{ const o={};
+    let depth=0; const grp=()=>{ if (++depth>64) return null; const o={};   // parentesi annidate oltre 64 livelli: formula rifiutata (prima RangeError)
       while (i<f.length && f[i]!==')'){
-        if (f[i]==='('){ i++; const g=grp(); if (f[i]!==')') return null; i++; const k=numAt(); for (const s in g) o[s]=(o[s]||0)+g[s]*k; continue; }
+        if (f[i]==='('){ i++; const g=grp(); depth--; if (!g || f[i]!==')') return null; i++; const k=numAt(); for (const s in g) o[s]=(o[s]||0)+g[s]*k; continue; }
         const m=/^[A-Z][a-z]?/.exec(f.slice(i)); if (!m || !AW[m[0]]) return null; i+=m[0].length; const k=numAt(); o[m[0]]=(o[m[0]]||0)+k;
       } return o; };
     const o=grp(); if (!o || i!==f.length || !Object.keys(o).length) return null; return o;
