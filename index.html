@@ -3685,7 +3685,8 @@ function fpIntensities(layers, S, lines, opt){
   /* fluorescenza terziaria (modello fisico 3.1), approssimata: la riga j che eccita i è a sua volta rinforzata dalla secondaria nella stessa matrice
      (k → j → i); il contributo di j si moltiplica per (1 + S_j/P_j), con S_j/P_j il rinforzo secondario di j. Presume che i fotoni j secondari abbiano
      la stessa distribuzione in profondità dei primari: è il termine principale negli acciai (Ni → Fe → Cr). */
-  const tf={}; if (S.phys==='3.1' && opt.tert!==false && opt.sec!==false){ const Lb=layers.find(L=>!isFinite(L.t)); if (Lb && Object.keys(Lb.comp).length>=3){
+  let tf={}; if (S.phys==='3.1' && opt.tert!==false && opt.sec!==false){ const Lb=layers.find(L=>!isFinite(L.t)); const tk=Lb && JSON.stringify(Object.entries(Lb.comp).map(([k,v])=>[k,+v.toPrecision(2)])), TM=P.tert||(P.tert=new Map());
+    if (tk && TM.has(tk)) tf=TM.get(tk); else if (Lb && Object.keys(Lb.comp).length>=3){ if (TM.size>200) TM.clear(); TM.set(tk, tf);
     const l2=[]; for (const j in Lb.comp) if (FP.el[j]) for (const lj of FP_ENH) if (fpLineE(j,lj)) l2.push([j,lj]);
     const R2=fpIntensities(layers, S, l2, {split:true, tert:false}); for (const [j,lj] of l2){ const t=R2[j+' '+lj], sc=R2[j+' '+lj+' sec']||0; tf[j+lj]=t>sc && sc>0 ? sc/(t-sc) : 0; } } }
   for (const [s, l] of lines){
@@ -3781,6 +3782,8 @@ function erfcA(x){ const t=1/(1+0.5*Math.abs(x)), r=t*Math.exp(-x*x-1.26551223+t
 /* forma dell'ipermetro per area gaussiana 1 (conteggi per keV) a distanza z = x − E₀ (keV); sh = {st, sts, lt, lts, step, flags} come in PyMca */
 function xrfHyperAt(z, sg, sh){ const s2=sg*Math.SQRT2, u=z/s2; let v=0; const fl=sh.flags==null?15:sh.flags;
   if (fl&1 && Math.abs(u)<26) v+=Math.exp(-u*u)/(sg*2.5066282746310002);
+  if (u<-6){ let t=0; if (fl&2 && sh.st>0 && sh.sts>0) t+=sh.st/sh.sts*Math.exp(z/sh.sts+0.5*(sg/sh.sts)**2); if (fl&4 && sh.lt>0 && sh.lts>0) t+=sh.lt/sh.lts*Math.exp(z/sh.lts+0.5*(sg/sh.lts)**2);
+    return v+t+(fl&8 && sh.step>0 ? sh.step/(sg*2.5066282746310002) : 0); }   // lontano sotto il picco erfc vale 2: code esponenziali pure e gradino piatto
   const tail=(r, be)=>{ if (!(r>0) || !(be>0)) return 0; const a=u+sg/(be*Math.SQRT2);
     return r/be*(a>=0 ? 0.5*erfcxA(a)*Math.exp(-u*u) : (z/be+0.5*(sg/be)**2 < -700 ? 0 : 0.5*erfcA(a)*Math.exp(z/be+0.5*(sg/be)**2))); };
   if (fl&2) v+=tail(sh.st, sh.sts); if (fl&4) v+=tail(sh.lt, sh.lts);
@@ -3848,7 +3851,7 @@ function xrfFitHyper(c){
   let lm=null;
   if (free.length){
     if (hasC && opt.autoGeom){ let bt=p.th, bc=Infinity; for (const th of [70,80,90,100,110,120,130,140,150,160,170]){ const R=solve(build(Object.assign({}, p, {th}))); if (R.chi<bc){ bc=R.chi; bt=th; } } p.th=bt; }
-    lm=lmBox(resid, vec(), Float64Array.from(free, f=>f[1]), Float64Array.from(free, f=>f[2]), {maxIter:opt.maxIter||12, tol:1e-4}); put(lm.p); }
+    lm=lmBox(resid, vec(), Float64Array.from(free, f=>f[1]), Float64Array.from(free, f=>f[2]), {maxIter:opt.maxIter||10, tol:1e-3}); put(lm.p); }   // arresto come PyMca (deltachi 0,001)
   // picchi somma: autoconvoluzione del modello dei picchi (come SpecfitFuns.pileup di PyMca), ampiezza non negativa adattata come le altre
   let R=solve(build(p));
   if (opt.pileup!==false){ const nc=comps.length, B=build(p), pk2=new Float64Array(m); for (let j=0;j<nc;j++) if (R.x[j]) for (let i=0;i<m;i++) pk2[i]+=R.x[j]*B[j][i];
@@ -3916,11 +3919,12 @@ function xrfFitLines(xs, ys, els, S, opt){
           for (let i=0;i<m;i++){ const x=Xc[i]; if (x<lo2) continue; if (x>hi2) break; const dx=i+1<m?Xc[i+1]-Xc[i]:Xc[i]-Xc[i-1]; col[i]+=amp*dx*Math.exp(-0.5*((x-Ec)/sg)**2)/(sg*2.5066283); } };
         if (c.scat==='C') add(E/(1+E/511*ct), rel, wc); else add(E, rel, 0); const e=esc(E); if (e>0 && !c.scat) add(E-1.74, rel*e, 0); }
       return col; }).concat(spl); };
+  const WCC=new Map(), GCC=new Map(), wb=Float64Array.from(net,(v,i)=>v*w[i]);   // colonne del fondo (sempre le stesse): pesate e prodotti calcolati una volta sola
+  const wcol=c=>{ let e=WCC.get(c); if (e) return e; const wc=Float64Array.from(c,(v,i)=>v*w[i]); let s0=0; while (s0<m && !wc[s0]) s0++; let e0=m-1; while (e0>s0 && !wc[e0]) e0--; e={wc, rg:[s0,e0]}; if (spl.includes(c)) WCC.set(c,e); return e; };
   const solve=(cols)=>{ const p=cols.length, Gm=Array.from({length:p},()=>new Float64Array(p)), h=new Float64Array(p);
-    const Wc=cols.map(c=>Float64Array.from(c,(v,i)=>v*w[i])), wb=Float64Array.from(net,(v,i)=>v*w[i]);
-    const rg=Wc.map(c=>{ let s0=0; while (s0<m && !c[s0]) s0++; let e0=m-1; while (e0>s0 && !c[e0]) e0--; return [s0,e0]; });   // colonne locali: prodotti solo dove si sovrappongono
+    const E=cols.map(wcol), Wc=E.map(e=>e.wc), rg=E.map(e=>e.rg);   // colonne locali: prodotti solo dove si sovrappongono
     for (let j=0;j<p;j++){ const cj=Wc[j], [sj,ej]=rg[j]; let t=0; for (let i=sj;i<=ej;i++) t+=cj[i]*wb[i]; h[j]=t;
-      for (let q=j;q<p;q++){ const cq=Wc[q], s1=Math.max(sj,rg[q][0]), e1=Math.min(ej,rg[q][1]); let u=0; for (let i=s1;i<=e1;i++) u+=cj[i]*cq[i]; Gm[j][q]=Gm[q][j]=u; } }
+      for (let q=j;q<p;q++){ const cq=Wc[q]; let u; const both=WCC.has(cols[j]) && WCC.has(cols[q]), kk=both ? j+','+q : null; if (both && GCC.has(kk)) u=GCC.get(kk); else { const s1=Math.max(sj,rg[q][0]), e1=Math.min(ej,rg[q][1]); u=0; for (let i=s1;i<=e1;i++) u+=cj[i]*cq[i]; if (both) GCC.set(kk,u); } Gm[j][q]=Gm[q][j]=u; } }
     const x=nnlsGram(Gm, h); let chi=0; const mod=new Float64Array(m);
     for (let j=0;j<p;j++) if (x[j]) for (let i=0;i<m;i++) mod[i]+=x[j]*cols[j][i];
     for (let i=0;i<m;i++) chi+=((net[i]-mod[i])*w[i])**2;
@@ -4000,7 +4004,13 @@ function xrfConfirm(xs, ys, els, S, opt){
   const near=(a,b)=>linesOf(a).some(x=>linesOf(b).some(y=>Math.abs(x-y)<=0.12)), ambiguous=[];
   for (const {el} of dropped) for (const k of cur){ if (!near(el,k)) continue; const d=(chiOf(cur.filter(x=>x!==k).concat(el))-c0)/red; if (d<T) ambiguous.push({el, with:k, d}); }
   for (const e of cur) delta[e]=(chiOf(cur.filter(x=>x!==e))-c0)/red;
-  return {kept:cur, dropped, ambiguous, delta, chi2r:f.chi2r, thr:T, model:f.peakModel||'gauss'};
+  return {kept:cur, dropped, ambiguous, delta, chi2r:f.chi2r, thr:T, model:f.peakModel||'gauss', R, fix};
+}
+/* analisi FP con la verifica degli elementi (3.1): opt.confirm → xrfConfirm sugli elementi proposti, poi l'analisi solo su quelli confermati */
+function xrfFPAuto(xs, ys, els, S, opt){ opt=opt||{}; if (!opt.confirm || els.length<2) return xrfFP(xs, ys, els, S, opt);
+  const C=xrfConfirm(xs, ys, els, S, opt); if (!C) return xrfFP(xs, ys, els, S, opt);
+  const same=C.kept.length===els.length, R=same ? C.R : xrfFP(xs, ys, C.kept, C.R.S||S, Object.assign({}, opt, {fix:C.fix, autoGeom:false})); if (!R) return null;   // parametri del picco già trovati: niente secondo Levenberg–Marquardt
+  R.conf={kept:C.kept, dropped:C.dropped, ambiguous:C.ambiguous, delta:C.delta, thr:C.thr}; return R;
 }
 /* misure per la quantificazione: area della riga analitica di ogni elemento dall'adattamento per famiglie */
 function fpMeasure(fit, els, S){ const out={};
@@ -7875,7 +7885,13 @@ function cleanFp(v){ const o={}, str=(x,n)=>typeof x==='string'?x.slice(0,n||200
   if (FP_MODES.some(m=>m[0]===v.mode)) o.mode=v.mode;
   setIf(o,'bal',str(v.bal,20)); setIf(o,'balTxt',str(v.balTxt)); if (v.openS===true) o.openS=true;
   if (Array.isArray(v.els)) o.els=v.els.filter(e=>typeof e==='string' && FP.el[e]);
-  if (v.S && typeof v.S==='object'){ const s={}; if (FP_ANODES.includes(v.S.anode)) s.anode=v.S.anode; if (['air','he','vac'].includes(v.S.atm)) s.atm=v.S.atm; for (const k of ['kv','psi1','psi2','d1','d2','beD','beT','si','filtUm']) setIf(s,k,num(v.S[k])); if (typeof v.S.filtEl==='string' && FP_FILTERS[v.S.filtEl]) s.filtEl=v.S.filtEl; o.S=s; }
+  if (v.S && typeof v.S==='object'){ const s={}; if (FP_ANODES.includes(v.S.anode)) s.anode=v.S.anode; if (['air','he','vac'].includes(v.S.atm)) s.atm=v.S.atm; for (const k of ['kv','psi1','psi2','d1','d2','beD','beT','si','filtUm','ae','eps','tT']) setIf(s,k,num(v.S[k])); if (typeof v.S.filtEl==='string' && FP_FILTERS[v.S.filtEl]) s.filtEl=v.S.filtEl;
+    if (v.S.det==='Ge') s.det='Ge'; if (v.S.trans===true||v.S.trans===1) s.trans=1;
+    if (Array.isArray(v.S.exc)){ const ex=v.S.exc.filter(q=>Array.isArray(q) && q.length>=2 && q.slice(0,3).every(x=>typeof x==='number' && isFinite(x))).slice(0,400).map(q=>[q[0], q[1], q[2]?1:0]); if (ex.length) s.exc=ex; }
+    o.S=s; }
+  // 3.1: modello del picco e modello fisico; un'impostazione salvata senza «model» viene dalla 3.0 e resta col modello 3.0 (fpCfg)
+  if (v.model==='hypermet'||v.model==='gauss') o.model=v.model; if (v.phys==='3.1'||v.phys==='3.0') o.phys=v.phys; for (const k of ['pileup','quad','was30']) if (typeof v[k]==='boolean') o[k]=v[k];
+  if (Array.isArray(v.cfgWarn)) o.cfgWarn=v.cfgWarn.filter(t=>typeof t==='string').slice(0,40).map(t=>t.slice(0,300)); setIf(o,'cfgName',str(v.cfgName,120));
   if (v.layer && typeof v.layer==='object'){ const L=v.layer, l={}; if (L.on===true) l.on=true; if (typeof L.el==='string' && FP.el[L.el]) l.el=L.el; if (L.method==='ratio'||L.method==='atten') l.method=L.method; for (const k of ['cover','sub','coverTxt','subTxt']) setIf(l,k,str(L[k])); setIf(l,'coverRho',num(L.coverRho)); if (Array.isArray(L.lines) && L.lines.every(x=>/^(Ka|Kb|La|Lb)$/.test(x))) l.lines=L.lines; if (L.ref!=null) setIf(l,'ref',String(L.ref).slice(0,20)); o.layer=l; }
   return o; }
 function cleanAn(v){
@@ -8729,15 +8745,22 @@ const FP_MODES=[['norm','Lega metallica (somma = 100%)','bronzi, ottoni, argenti
   ['oxides','Vetro, ceramica, pietra (ossidi = 100%)','ogni elemento è contato come il suo ossido più comune; Na, Mg, Al, Si in aria si vedono male'],
   ['compton','Strato pittorico o preparazione (scala dal Compton)','la parte invisibile ai raggi X (legante, carbonati, acqua) è calcolata dal picco Compton del tubo; adatto a matrici leggere']];
 const fpNum=v=>{ const x=parseFloat(String(v==null?'':v).replace(',','.')); return isFinite(x) ? x : undefined; };
-function fpCfg(f){ return Object.assign({mode:'norm', bal:'org'}, (f.an&&f.an.fp)||{}); }
+function fpCfg(f){ const s=(f.an&&f.an.fp)||null, c=Object.assign({mode:'norm', bal:'org', model:'hypermet', phys:'3.1'}, s||{});
+  if (s && !s.model){ c.model='gauss'; c.phys='3.0'; c.was30=true; }   // impostazioni salvate dalla 3.0: stessi risultati di prima, con un avviso (fpNotes)
+  return c; }
+/* progetti salvati prima della 3.1: le stime XRF restano col modello 3.0 (gaussiane, tubo di Kramers), con un avviso; si passa al 3.1 dal pannello */
+function fpProjectCompat(list, appVersion){ const m=/^(\d+)\.(\d+)/.exec(String(appVersion||'')), old=!m || +m[1]<3 || (+m[1]===3 && +m[2]<1); if (!old) return 0; let n=0;
+  for (const f of list){ if (f.instr!=='xrf') continue; const s=(f.an&&f.an.fp)||{}; if (s.model) continue; anSet(f, 'fp', Object.assign({mode:'norm', bal:'org'}, s, {model:'gauss', phys:'3.0', was30:true})); f._fpKey=null; n++; }
+  return n; }
 function fpSaveCfg(f, c){ anSet(f, 'fp', c); f._fpKey=null; }
 function fpSetupOf(f){ const x=f.xrf||{}, o=(f.an&&f.an.fp&&f.an.fp.S)||{};
-  return fpSetup({anode:o.anode||x.tube||'Rh', kv:o.kv!=null?o.kv:fpNum(x.kv), psi1:o.psi1!=null?o.psi1:fpNum(x.psi1), psi2:o.psi2!=null?o.psi2:fpNum(x.psi2), d2:o.d2!=null?o.d2:fpNum(x.dist), d1:o.d1, atm:o.atm, beD:o.beD, si:o.si, beT:o.beT, filt:o.filtEl&&o.filtUm>0&&FP_FILTERS[o.filtEl]?{comp:o.filtEl, rho:FP_FILTERS[o.filtEl], um:o.filtUm}:null}); }
+  return fpSetup({anode:o.anode||x.tube||'Rh', kv:o.kv!=null?o.kv:fpNum(x.kv), psi1:o.psi1!=null?o.psi1:fpNum(x.psi1), psi2:o.psi2!=null?o.psi2:fpNum(x.psi2), d2:o.d2!=null?o.d2:fpNum(x.dist), d1:o.d1, atm:o.atm, beD:o.beD, si:o.si, beT:o.beT, filt:o.filtEl&&o.filtUm>0&&FP_FILTERS[o.filtEl]?{comp:o.filtEl, rho:FP_FILTERS[o.filtEl], um:o.filtUm}:null,
+    phys:fpCfg(f).phys, ae:o.ae, eps:o.eps, det:o.det, trans:o.trans, tT:o.tT, exc:o.exc}); }
 const FP_FILTERS={Al:2.70, Ti:4.51, Ni:8.91, Cu:8.96, Zr:6.51, Mo:10.28, Ag:10.49};   // densità in g/cm³
 /* quanto cambia la stima con condizioni diverse da quelle presunte. Non è un'accuratezza: vale se il modello è giusto */
-async function fpSensitivity(f){ const R0=await fpRunAsync(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt}, runs=[];
+async function fpSensitivity(f){ const R0=await fpRunAsync(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt,phys:S0.phys,ae:S0.ae,eps:S0.eps,det:S0.det,trans:S0.trans,tT:S0.tT,exc:S0.exc}, runs=[], mo=c.model==='hypermet'?{model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad}:{};
   const vary=[{kv:Math.max(5,S0.kv-5)},{kv:Math.min(50,S0.kv+5)},{psi1:Math.max(10,R0.S.psi1-10)},{psi1:Math.min(90,R0.S.psi1+10)},{psi2:Math.max(10,R0.S.psi2-10)},{psi2:Math.min(90,R0.S.psi2+10)},{si:S0.si*0.6},{si:S0.si*2}];
-  for (const v of vary){ try{ const r=await coreAsync('xrfFP', D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),{mode:c.mode,balance:fpBalance(c)}); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
+  for (const v of vary){ try{ const r=await coreAsync('xrfFP', D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),Object.assign({mode:c.mode,balance:fpBalance(c)}, mo)); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
   const out={}; for (const e of Object.keys(R0.Q.res)){ const a=runs.map(q=>q[e]&&q[e].w).filter(v=>v!=null&&isFinite(v)); out[e]={w:R0.Q.res[e].w, lo:Math.min(R0.Q.res[e].w,...a), hi:Math.max(R0.Q.res[e].w,...a)}; } return {res:out, n:runs.length}; }
 /* l'elemento dell'anodo resta se le sue righe sono forti (oltre la sola diffusione del tubo): una lega d'argento misurata con un tubo ad argento */
 function fpAnodeKeep(q, S){ return !!(q && q.els.includes(S.anode) && (q.strong||[]).includes(S.anode)); }
@@ -8748,16 +8771,17 @@ function fpPlan(f){
   if (f.instr!=='xrf' || f.uncal) return null; const c=fpCfg(f), els=(c.els||fpDefaultEls(f)).filter(e=>FP.el[e]), S=fpSetupOf(f);
   const key=[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', JSON.stringify(c), S.key, els.join(',')].join('|');
   const x=f.xrf||{}, so=c.S||{}, autoGeom = so.psi1==null && so.psi2==null && !fpNum(x.psi1) && !fpNum(x.psi2);
-  return {c, els, S, key, autoGeom, args:()=>{ const D=fpData(f); return [D.xs, D.ys, els, S, {mode:c.mode, balance:fpBalance(c), autoGeom}]; }}; }
-function fpStore(f, q, R){ f._fpKey=q.key; f._fpRes=R ? Object.assign(R, {els:q.els, S:R.S||q.S, S0:q.S, autoGeom:q.autoGeom, cfg:q.c}) : {els:q.els, S:q.S, cfg:q.c, empty:true}; return f._fpRes; }
+  const nw=c.model==='hypermet', opt={mode:c.mode, balance:fpBalance(c), autoGeom}; if (nw) Object.assign(opt, {model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad, confirm:!c.els});
+  return {c, els, S, key, autoGeom, fn:nw ? 'xrfFPAuto' : 'xrfFP', args:()=>{ const D=fpData(f); return [D.xs, D.ys, els, S, opt]; }}; }
+function fpStore(f, q, R){ f._fpKey=q.key; f._fpRes=R ? Object.assign(R, {els:R.conf&&R.conf.kept ? R.conf.kept : q.els, S:R.S||q.S, S0:q.S, autoGeom:q.autoGeom, cfg:q.c}) : {els:q.els, S:q.S, cfg:q.c, empty:true}; return f._fpRes; }
 function fpRun(f){ const q=fpPlan(f); if (!q) return null; if (f._fpKey===q.key) return f._fpRes;
-  let R=null; if (q.els.length){ try{ R=xrfFP(...q.args()); }catch(err){ R={err:String(err)}; } }
+  let R=null; if (q.els.length){ try{ R=(q.fn==='xrfFPAuto' ? xrfFPAuto : xrfFP)(...q.args()); }catch(err){ R={err:String(err)}; } }
   return fpStore(f, q, R);
 }
 // I7: pronta in memoria (fpRun non calcola), e il calcolo nel worker del desktop; un errore nel worker si rifà nella pagina (stesso messaggio)
 function fpReady(f){ const q=fpPlan(f); return !q || f._fpKey===q.key; }
 async function fpRunAsync(f){ const q=fpPlan(f); if (!q || f._fpKey===q.key || !window.AcchEngine || !q.els.length) return fpRun(f);
-  let R; try{ R=await AcchEngine.call('xrfFP', ...q.args()); }catch(e){ return fpRun(f); }
+  let R; try{ R=await AcchEngine.call(q.fn||'xrfFP', ...q.args()); }catch(e){ return fpRun(f); }
   const now=fpPlan(f); return now && now.key===q.key ? fpStore(f, q, R) : fpRun(f); }
 function fpSummary(f){ const R=f._fpRes; if (!R || !R.Q || !R.Q.res) return ''; return Object.entries(R.Q.res).sort((a,b)=>b[1].w-a[1].w).slice(0,3).map(([e,o])=>`${e} ${fmtN(o.w, o.w<10?1:0)}%`).join(' · '); }
 /* avvisi della stima a parametri fondamentali: gli stessi nel pannello, nel PDF e nel CSV */
@@ -8776,6 +8800,14 @@ function fpNotes(f, R){ if (!R || !R.Q || !R.Q.res) return []; const c=fpCfg(f),
       if (Q.relC>0.1) notes.unshift('⚠️ <b>Il picco Compton è troppo debole</b> (matrice pesante: biacca, cinabro, metalli): la scala assoluta non è affidabile. Usa «Lega» per i rapporti tra elementi, oppure uno standard.');
       if (Q.over) notes.unshift('⚠️ La somma supera il 100%: la parte invisibile scelta non è adatta o lo strato non è spesso e omogeneo.'); }
     notes.unshift(`Elementi considerati: ${els.join(', ')}. Ciò che non è in elenco non viene cercato né contato nella somma: controlla che non manchi nulla, aggiungilo sopra.`);
+    // 3.1: modello usato, verifica degli elementi con il fit, impostazioni della 3.0, file .cfg di PyMca
+    if (R.conf && R.conf.dropped && R.conf.dropped.length){ const t=R.conf.dropped.map(d=>d.why==='riga' ? `${d.el} (riga analitica non significativa: ${fmtN(d.w||0,3)} ± ${fmtN(d.sw||0,3)}%)` : `${d.el} (Δχ² ${fmtN(d.d,1)}, sotto la soglia ${R.conf.thr})`).join(', ');
+      notes.unshift(`Non confermati dal fit e tolti dal calcolo: ${t}. Le loro righe sono spiegate dagli altri elementi, dalle fughe o dai picchi somma. Se sai che ci sono, aggiungili negli elementi.`); }
+    if (R.conf && R.conf.ambiguous && R.conf.ambiguous.length) notes.unshift('⚠️ '+R.conf.ambiguous.map(a=>`${a.el} non è distinguibile da ${a.with} con questo spettro: nel calcolo entra ${a.with}`).join('; ')+'.');
+    if (c.was30) notes.unshift('Impostazioni salvate con la versione 3.0: la stima usa il modello della 3.0 (picchi gaussiani, tubo di Kramers), così i risultati non cambiano. Per il modello 3.1 (ipermetro, fughe, picchi somma, tubo di Ebel) scegli «3.1» in «Modello».');
+    if (R.fit && R.fit.peakModel==='hypermet') notes.push(`Modello 3.1: picchi con code e gradino (ipermetro), fughe Kα e Kβ del ${R.fit.det==='Ge'?'germanio':'silicio'}${R.fit.pile?', picchi somma':''}${S.phys==='3.1'?', tubo di Ebel (1999)':''}; Noise ${fmtN(1000*R.fit.noise,0)} eV, Fano ${fmtN(R.fit.fano,3)}, χ² ridotto ${fmtN(R.fit.chi2r,2)}.`);
+    if (S.exc) notes.push(`Eccitazione a lista di energie (${S.exc.length===1?'monocromatica a '+fmtN(S.exc[0][0],2)+' keV':S.exc.length+' energie'}): anodo e tensione del tubo non contano.`);
+    if (c.cfgName) notes.push(`Condizioni importate da ${esc(c.cfgName)} (PyMca)${c.cfgWarn&&c.cfgWarn.length?': '+c.cfgWarn.length+' impostazioni senza equivalente, elencate sotto le condizioni di misura':''}.`);
     { const ov=[]; for (const e of els){ const o=Q.res[e]; if (!o) continue; const E=fpLineE(e,o.line); for (const j of els){ if (j===e) continue; const Rj=Q.res[j]; if (!Rj||Rj.w<o.w) continue; const fam=FP.el[j].fam; if ([...(fam.K||[]),...(fam.L||[])].some(q=>q[2]>0.05&&Math.abs(q[1]-E)<0.6*xrfFWHM(E))) { ov.push(`${e} (riga vicina a ${j})`); break; } } } if (ov.length) notes.unshift(`⚠️ Valori poco sicuri per righe sovrapposte: ${ov.join(', ')}. Un elemento così può anche non esserci: cerca una seconda riga.`); }
     // As da solo nel calcolo (Pb assente o a zero) con As Kβ sotto il limite di Currie: la riga a 10,5 keV può essere Pb Lα; prima nessun avviso (ciclo 26, B_300_s10)
     if (Q.res.As && !(Q.res.Pb && Q.res.Pb.w>0) && !f.uncal && !f._currieSkip && isCounts(f.ys)){ let kb=null; try{ kb=xrfCurrie(f.xs, f.ys, [fpLineE('As','Kb')])[0]; }catch(err){} if (kb && !kb.detected) notes.unshift('⚠️ As non distinguibile da Pb: la riga As Kα coincide con Pb Lα e la As Kβ è sotto il limite di rilevabilità (pochi conteggi). Il valore di As può essere Pb: misura più a lungo.'); }
@@ -8813,10 +8845,19 @@ function renderCult(f){
         <label class="ibf"><span>Atmosfera</span><select id="fpAtm"><option value="air" ${S.atm==='air'?'selected':''}>aria</option><option value="he" ${S.atm==='he'?'selected':''}>elio</option><option value="vac" ${S.atm==='vac'?'selected':''}>vuoto</option></select></label>
         <label class="ibf adv"><span>Finestra del rivelatore (Be, µm)</span><input type="number" id="fpBeD" step="0.5" min="0" value="${S.beD}"></label>
         <label class="ibf adv"><span>Spessore del sensore (Si, µm)</span><input type="number" id="fpSi" step="10" min="50" value="${S.si}"></label>
+        <label class="ibf adv"><span>Rivelatore</span><select id="fpDet"><option value="Si" ${S.det!=='Ge'?'selected':''}>silicio (SDD, Si-PIN)</option><option value="Ge" ${S.det==='Ge'?'selected':''}>germanio</option></select></label>
+        ${S.phys==='3.1'?`<label class="ibf adv"><span>Finestra del tubo (Be, µm)</span><input type="number" id="fpBeT" step="5" min="0" value="${S.beT}"></label>
+        <label class="ibf adv"><span>Elettroni sull'anodo (°)</span><input type="number" id="fpAe" step="1" min="30" max="90" value="${S.ae}"></label>
+        <label class="ibf adv"><span>Uscita dei raggi X dal tubo (°)</span><input type="number" id="fpEps" step="1" min="5" max="90" value="${S.eps}"></label>`:''}
         <label class="ibf adv"><span>Filtro primario</span><select id="fpFiltEl"><option value="">nessuno</option>${Object.keys(FP_FILTERS).map(e=>`<option value="${e}" ${so.filtEl===e?'selected':''}>${e}</option>`).join('')}</select></label>
         <label class="ibf adv"><span>Spessore del filtro (µm)</span><input type="number" id="fpFiltUm" step="1" min="0" value="${so.filtUm!=null?so.filtUm:''}"></label>
       </div>
       <div class="row"><span class="opt-l">Senza intestazione uso valori tipici (45°/45°, 1 cm d'aria). Gli angoli sono misurati dalla superficie del campione.</span><span class="spacer"></span><button class="btn small ghost" id="fpSall">Usa per tutti gli spettri XRF</button></div>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><label class="ibf" style="margin:0"><span>Modello</span><select id="fpModel"><option value="3.1" ${c.model==='hypermet'?'selected':''}>3.1: ipermetro, fughe, picchi somma, tubo di Ebel</option><option value="3.0" ${c.model!=='hypermet'?'selected':''}>3.0: picchi gaussiani, tubo di Kramers</option></select></label>
+        ${c.model==='hypermet'?`<label class="opt-l"><input type="checkbox" id="fpPile" ${c.pileup!==false?'checked':''}> picchi somma</label> <label class="opt-l"><input type="checkbox" id="fpQuad" ${c.quad?'checked':''}> asse dell'energia con termine quadratico</label>`:''}
+        <span class="spacer"></span><button class="btn small ghost" id="fpCfgIn" type="button">Importa .cfg di PyMca…</button> <button class="btn small ghost" id="fpCfgOut" type="button">Esporta .cfg di PyMca</button><input type="file" id="fpCfgFile" accept=".cfg,.ini,.txt" hidden></div>
+      ${so.exc?`<div class="opt-l">Eccitazione a lista di energie dal file .cfg (${so.exc.length} energie): anodo e tensione non contano. <button class="btn small ghost" id="fpExcOff" type="button">Usa il tubo</button></div>`:''}
+      ${c.cfgWarn&&c.cfgWarn.length?`<details class="opt-l"><summary>Impostazioni del .cfg senza equivalente (${c.cfgWarn.length})</summary><ul>${c.cfgWarn.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:''}
     </details>`;
   if (R.empty) h+='<div class="pkempty">Scegli almeno un elemento.</div>';
   else if (R.err || !R.Q) h+=`<div class="signote">Non riesco a calcolare la composizione${R.err?': '+esc(R.err):''}.</div>`;
@@ -8849,11 +8890,37 @@ function renderCult(f){
   $('#fpSdet').ontoggle=()=>{ c.openS=$('#fpSdet').open; anSet(f,'fp',c); };
   const setS=(k, el, num)=>{ el.onchange=()=>{ c.S=Object.assign({}, c.S||{}); const v=num ? fpNum(el.value) : el.value; if (v==null || v==='') delete c.S[k]; else c.S[k]=v; save(); }; };
   setS('anode', $('#fpAn')); setS('kv', $('#fpKv'), 1); setS('psi1', $('#fpP1'), 1); setS('psi2', $('#fpP2'), 1); setS('d2', $('#fpD2'), 1); setS('atm', $('#fpAtm')); setS('beD', $('#fpBeD'), 1); setS('si', $('#fpSi'), 1); if ($('#fpFiltEl')){ setS('filtEl', $('#fpFiltEl')); setS('filtUm', $('#fpFiltUm'), 1); }
+  setS('det', $('#fpDet')); if ($('#fpBeT')){ setS('beT', $('#fpBeT'), 1); setS('ae', $('#fpAe'), 1); setS('eps', $('#fpEps'), 1); }
+  $('#fpModel').onchange=e=>{ const v=e.target.value; c.model=v==='3.1'?'hypermet':'gauss'; c.phys=v; delete c.was30; save(); };
+  if ($('#fpPile')) $('#fpPile').onchange=e=>{ c.pileup=e.target.checked; save(); };
+  if ($('#fpQuad')) $('#fpQuad').onchange=e=>{ c.quad=e.target.checked; save(); };
+  if ($('#fpExcOff')) $('#fpExcOff').onclick=()=>{ c.S=Object.assign({}, c.S||{}); delete c.S.exc; save(); };
+  $('#fpCfgIn').onclick=()=>$('#fpCfgFile').click();
+  $('#fpCfgFile').onchange=async e=>{ const file=e.target.files[0]; if (!file) return; try{ fpImportCfg(c, await file.text(), file.name); save(); toast('✔ Condizioni importate da '+file.name+'.'); }catch(err){ toast('⚠️ Non riesco a leggere '+file.name+': '+String(err.message||err)); } };
+  $('#fpCfgOut').onclick=()=>{ try{ const t=fpExportCfg(f, R); download(new Blob([t.text],{type:'text/plain'}), (f.name||'xrf').replace(/\.[^.]+$/,'')+'.cfg'); if (t.warn.length) toast('Esportato. '+t.warn.length+' impostazioni non hanno un equivalente in PyMca: vedi le note nel file.'); }catch(err){ toast('⚠️ Esportazione non riuscita: '+String(err.message||err)); } };
   if ($('#fpSens')) $('#fpSens').onclick=async()=>{ const box=$('#fpSensOut'); box.textContent='Sto ricalcolando…'; await new Promise(r=>setTimeout(r,20)); const q=await fpSensitivity(f); if (!q){ box.textContent=''; return; } box.innerHTML=`<p class="why">Ho ripetuto la stima ${q.n} volte cambiando tensione ±5 kV, angoli ±10° e spessore del sensore. Mostra quanto contano queste ipotesi, in più del ± di conteggio. <b>Non è un'accuratezza:</b> vale solo se il modello è adatto al campione.</p><div class="areawrap"><table class="areatab"><thead><tr><th>Elemento</th><th>Stima %</th><th>da</th><th>a</th></tr></thead><tbody>${Object.entries(q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`<tr><td><b>${e}</b></td><td>${fmtN(o.w,o.w<10?2:1)}</td><td>${fmtN(o.lo,o.lo<10?2:1)}</td><td>${fmtN(o.hi,o.hi<10?2:1)}</td></tr>`).join('')}</tbody></table></div>`; };
   $('#fpSall').onclick=()=>{ let n=0; files.forEach(g=>{ if (g.instr!=='xrf' || g===f) return; const cg=fpCfg(g); cg.S=Object.assign({}, c.S||{}); fpSaveCfg(g, cg); n++; }); toast(n ? `✔ Condizioni copiate su ${n} spettr${n===1?'o':'i'} XRF.` : 'Non ci sono altri spettri XRF.'); };
   if ($('#fpCsv')) $('#fpCsv').onclick=async()=>{ await fpRunAsync(f); download(csvBlob(fpCsvRows([f])), `${LANG==='en'?'xrf_FP':'composizione_FP'}_${(f.name||'xrf').replace(/\.[^.]+$/,'')}.csv`); };
   bindLayer(f, R);
 }
+/* 3.1: file .cfg di PyMca (app/pymca-cfg-core.js). Import: condizioni di misura, eccitazione, rivelatore, picchi somma, termine quadratico;
+   le chiavi senza equivalente restano elencate nel pannello (mai ignorate in silenzio). Export: un .cfg completo per rifare il calcolo in PyMca. */
+function fpImportCfg(c, text, name){ const P=window.PymcaCfg; if (!P) throw new Error('modulo PymcaCfg assente'); const n=P.toAcch(P.parse(text)), st=n.setup||{}, S={};
+  if (st.anode && FP_ANODES.includes(st.anode)) S.anode=st.anode; for (const k of ['kv','psi1','psi2','d2','beD','beT','si','ae','eps','tT']) if (typeof st[k]==='number' && isFinite(st[k])) S[k]=st[k];
+  if (['air','he','vac'].includes(st.atm)) S.atm=st.atm; if (st.det==='Ge') S.det='Ge'; if (st.trans) S.trans=1; if (Array.isArray(st.exc) && st.exc.length) S.exc=st.exc;
+  if (st.filt && FP_FILTERS[st.filt.comp] && st.filt.um>0){ S.filtEl=st.filt.comp; S.filtUm=st.filt.um; }
+  c.S=S; c.model='hypermet'; c.phys='3.1'; delete c.was30; const ft=n.fit||{}; c.pileup=ft.pileup!==false && ft.pileup!==0; c.quad=!!ft.quad; c.cfgName=String(name||'').slice(0,120);
+  c.cfgWarn=(n.warnings||[]).map(w=>typeof w==='string'?w:w.msg).filter(Boolean).slice(0,40);
+  if (n.peaks && typeof n.peaks==='object'){ const els=Object.keys(n.peaks).filter(e=>FP.el[e]); if (els.length) c.els=els; }
+  return n; }
+function fpExportCfg(f, R){ const P=window.PymcaCfg; if (!P) throw new Error('modulo PymcaCfg assente'); const S=(R&&R.S)||fpSetupOf(f), F=R&&R.fit, els=(R&&R.els)||[];
+  const n={setup:{anode:S.anode, kv:S.kv, psi1:S.psi1, psi2:S.psi2, beT:S.beT, eps:S.eps, ae:S.ae||75, d1:S.d1, d2:S.d2, atm:S.atm, beD:S.beD, si:S.si, det:S.det||'Si', trans:S.trans||0, tT:S.tT||0,
+      filt:S.filt?{comp:S.filt.comp, rho:S.filt.rho, um:S.filt.um}:null, exc:S.exc||null},
+    fit:F?{xminE:F.lo, xmaxE:F.hi, zero:F.off||0, gain:null, noise:F.noise||null, fano:F.fano||null, quad:F.quad||0, hypermet:F.peakModel==='hypermet'?{gauss:1, st:1, lt:1, step:1}:{gauss:1, st:0, lt:0, step:0},
+      st:F.shape?F.shape.st:null, lt:F.shape?F.shape.lt:null, stepH:F.shape?F.shape.step:null, escape:true, detEl:S.det||'Si', pileup:!!F.pile}:{},
+    peaks:Object.fromEntries(els.map(e=>[e, [fpLine(e,S)==='La'?'L':'K']])),
+    matrix:R&&R.Q&&R.Q.comp?{name:'Acchiappaspettri', comp:R.Q.comp, rho:null, thickness:null}:null};
+  const cfg=P.fromAcch(n); return {text:P.stringify(cfg), warn:cfg.warnings||[]}; }
 /* atmosfera nella lingua dell'esportazione (nel CSV e nel PDF italiani «air» restava in inglese) */
 function fpAtmName(a, en){ const m={air:['aria','air'], he:['elio','helium'], vac:['vuoto','vacuum']}[a]; return m ? m[en?1:0] : (a||''); }
 // nella colonna Note gli avvisi hanno «! » davanti, come nel PDF: prima il ⚠️ si toglieva senza nulla al suo posto

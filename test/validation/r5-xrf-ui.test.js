@@ -9,16 +9,17 @@ const FX=path.join(B.ROOT,'test','fixtures','xrf-c25'), TUT=path.join(B.ROOT,'ex
 const rd=p=>fs.readFileSync(p,'utf8');
 
 // carica un file e raccoglie ciò che vede l'utente: elementi, stima FP con gli avvisi, ipotesi, controllo del dato
-async function inspect(p, name, text, setup){
-  return p.evaluate(async ([name, text, setup])=>{
+// model: '3.0' (motore della 3.0: gli spettri sintetici di questi test sono generati con quel modello, quindi i numeri esatti valgono lì) o '3.1'
+async function inspect(p, name, text, setup, model){
+  return p.evaluate(async ([name, text, setup, model])=>{
     files.length=0; await addEntries([{file:new File([text],name), path:name}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
-    const f=files[files.length-1]; cur=files.length-1; if (setup){ const c=fpCfg(f); c.els=setup; fpSaveCfg(f,c); }
+    const f=files[files.length-1]; cur=files.length-1; { const c=fpCfg(f); if (setup) c.els=setup; c.model=model==='3.1'?'hypermet':'gauss'; c.phys=model; fpSaveCfg(f,c); }
     const d=viewOf(f), H=xrfElements(f,d); f._fpKey=null; const R=fpRun(f);
     const strip=t=>String(t).replace(/<[^>]+>/g,'');
     const res=R&&R.Q&&R.Q.res ? Object.fromEntries(Object.entries(R.Q.res).map(([e,o])=>[e,{w:o.w, sw:o.sw, line:o.line}])) : null;
     const hy=hypotheses(f,d);
     return {els:H.els, shifted:!!H.shifted, res, notes:res?fpNotes(f,R).map(strip):[], hyp:(hy&&hy.list||[]).map(h=>h.it), qual:assess(f,d).map(o=>o.lv+': '+strip(o.t))};
-  }, [name, text, setup||null]);
+  }, [name, text, setup||null, model||'3.0']);
 }
 
 test('XRF: anodo, pochi conteggi, stagno puro, asse spostato, tutorial 3 (online, italiano)', async ()=>{
@@ -63,6 +64,31 @@ test('XRF: anodo, pochi conteggi, stagno puro, asse spostato, tutorial 3 (online
     for (const [e,w] of [['Cu',86.3],['Sn',8.3],['Pb',5.4]]) assert.equal(t0.res[e].w.toFixed(1), w.toFixed(1), 'tutorial '+e);
     const t1=await inspect(p, 'BRONZO_SIMULATO_Rh40kV_SINTETICO.mca', rd(TUT), ['Sn','Cu','Pb','Zn','As']);
     for (const [e,w,d] of [['Cu',84.0,1],['Sn',8.1,1],['Pb',4.7,1],['Zn',2.5,1],['As',0.64,2]]) assert.equal(t1.res[e].w.toFixed(d), w.toFixed(d), 'tutorial con Zn e As '+e);
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  } finally { await br.close(); server.close(); }
+});
+
+// 3.1 (predefinito per le analisi nuove): verifica degli elementi con il fit. I falsi elementi di docs/LIMITAZIONI.md spariscono o sono segnalati
+test('XRF 3.1: niente Sb e I falsi nello stagno, As senza Pb nel bronzo arsenicale, avvisi chiari; un file nuovo usa il 3.1', async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    const {ctx, p, errors}=await B.openPage(br, server, {lang:'it'});
+    const def=await p.evaluate(async (text)=>{ files.length=0; await addEntries([{file:new File([text],'x.mca'), path:'x.mca'}]); const c=fpCfg(files[0]); return [c.model, c.phys]; }, rd(path.join(FX,'P3_pureSn.mca')));
+    assert.deepEqual(def, ['hypermet','3.1'], 'modello predefinito per un file nuovo');
+    for (const f of ['P3_pureSn.mca','R1_Sn_seed2.mca','R2_Sn_seed3.mca','R6_Sn_35kV.mca']){
+      const r=await inspect(p, f, rd(path.join(FX,f)), null, '3.1');
+      assert.deepEqual(Object.keys(r.res), ['Sn'], `${f}: ${JSON.stringify(r.res)}`);
+      assert.ok(r.notes.some(t=>/Non confermati dal fit.*Sb.*I|Non confermati dal fit.*I.*Sb/.test(t)), `${f}: manca l'avviso su Sb e I`);
+    }
+    { const r=await inspect(p, 'B_CuSnAs_noPb.mca', rd(path.join(FX,'B_CuSnAs_noPb.mca')), null, '3.1'); assert.ok(r.res.As && Math.abs(r.res.As.w-2)<0.5 && !r.res.Pb, JSON.stringify(r.res)); }
+    // pochi conteggi (bronzo arsenicale, picco 300): As e Pb non confermati, e l'avviso lo dice; nessun Pb nel calcolo al posto di As
+    for (const n of ['B_300_s3.mca','B_300_s8.mca']){ const r=await inspect(p, n, rd(path.join(FX,'..','xrf-c27',n)), null, '3.1');
+      assert.ok(!r.res.Pb, `${n}: Pb nel calcolo ${JSON.stringify(r.res)}`); assert.ok(r.notes.some(t=>/Non confermati dal fit/.test(t) && /As/.test(t)), `${n}: avviso`); }
+    // il modello di tubo è diverso da quello che ha generato questi spettri sintetici (Kramers): scarti di qualche per cento, non di più
+    const t=await inspect(p, 'BRONZO_SIMULATO_Rh40kV_SINTETICO.mca', rd(TUT), ['Sn','Cu','Pb','Zn','As'], '3.1');
+    for (const [e,w] of [['Cu',84],['Sn',8],['Pb',5],['Zn',2.5]]) assert.ok(Math.abs(t.res[e].w/w-1)<0.12, `tutorial 3.1 ${e}: ${t.res[e].w}`);
+    assert.ok(t.notes.some(t=>/Modello 3\.1/.test(t)), 'nota sul modello');
     assert.deepEqual(errors, []);
     await ctx.close();
   } finally { await br.close(); server.close(); }

@@ -124,6 +124,8 @@
       api.libraries=(P.libraries||[]).slice();   // librerie incorporate: si conservano e si riscrivono al salvataggio (le usa la libreria dei picchi, I4)
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
+      // 3.1: progetti delle versioni precedenti, le stime XRF restano col modello di allora (avviso nel pannello e qui)
+      const fp30=typeof win.fpProjectCompat==='function' ? win.fpProjectCompat(files, P.manifest.appVersion) : 0;
       // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
       const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced);
       // I11: un file di un'estensione che non si rilegge più (estensione cambiata o che dà errore) non si perde: torna nel progetto com'era
@@ -138,6 +140,7 @@
       if (legacy){ name=null; path=null; } else { name=fileName||null; path=filePath||null; }
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
+      if (fp30) toast(`Progetto della versione ${P.manifest.appVersion||'precedente'}: ${fp30===1?'lo spettro XRF resta':'gli '+fp30+' spettri XRF restano'} col modello 3.0, così le composizioni non cambiano. Il modello 3.1 si sceglie nel pannello delle concentrazioni.`);
       if (lost>0) toast(lost===1 ? '⚠️ Un file del progetto non è stato riconosciuto.' : `⚠️ ${lost} file del progetto non sono stati riconosciuti.`);   // singolare: prima «1 file … non sono stati»
       if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
       pluginNotes(plMissing, plLost, new Map([...plEnts].map(([e,L])=>[e.path, L[0].plugin.version])));
