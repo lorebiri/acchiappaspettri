@@ -1,6 +1,6 @@
 # Studio: XRF di Acchiappaspettri, PyMca e i metodi di V. Palleschi
 
-*Studio del 19 novembre 2026 sul ramo `claude/studio-pymca`, partito da `desktop` (3.0.0). Non è un'implementazione: nessun file dell'app è stato cambiato. Il prototipo di confronto è in [`ricerca/xrf-pymca/`](../../ricerca/xrf-pymca/).*
+*Studio del 19 novembre 2026 sul ramo `claude/studio-pymca`, partito da `desktop` (3.0.0). Non è un'implementazione: nessun file dell'app è stato cambiato. Il prototipo di confronto è in [`ricerca/xrf-pymca/`](../../ricerca/xrf-pymca/). Che cosa è stato realizzato poi nella 3.1 (ramo `claude/xrf-libs-3.1`): [`CONCLUSIONE-XRF-LIBS.md`](../../CONCLUSIONE-XRF-LIBS.md). Correzioni a questo studio fatte durante la 3.1: il significato di `hypermetflag` (§ 2.5) e le citazioni Cesareo/Trojek (§ 5).*
 
 ## In breve, per chi non è del mestiere
 
@@ -114,7 +114,7 @@ Formato INI di `ConfigDict` (`PyMcaIO/ConfigDict.py`): sezioni `[name]`, sottose
 | Sezione | Chiavi principali | Valori tipici |
 |---|---|---|
 | `[detector]` | `zero`, `gain`, `noise`, `fano`, `sum`, `detele`, `fixed*`, `delta*`, `ethreshold`, `ithreshold`, `nthreshold` | noise 0,10–0,13 keV, fano 0,10–0,114, sum 1·10⁻⁸–1·10⁻¹⁰, detele Si |
-| `[fit]` | `xmin`, `xmax`, `energy`, `energyweight`, `energyflag`, `energyscatter`, `hypermetflag`, `escapeflag`, `sumflag`, `stripflag`, `stripalgorithm`, `snipwidth`, `continuum`, `maxiter`, `deltachi`, `linearfitflag` | hypermet 1 (cioè tutte le code), escape 1, SNIP 30, maxiter 10 |
+| `[fit]` | `xmin`, `xmax`, `energy`, `energyweight`, `energyflag`, `energyscatter`, `hypermetflag`, `escapeflag`, `sumflag`, `stripflag`, `stripalgorithm`, `snipwidth`, `continuum`, `maxiter`, `deltachi`, `linearfitflag` | hypermet 1 (**sola gaussiana**: i bit sono 1 gaussiana, 2 coda corta, 4 coda lunga, 8 gradino; tutte le code = 15; correzione del 19/11/2026, vedi la nota sotto), escape 1, SNIP 30, maxiter 10 |
 | `[peakshape]` | `st_arearatio`, `st_sloperatio`, `lt_arearatio`, `lt_sloperatio`, `step_heightratio`, `eta_factor`, con `fixed*` e `delta*` | 0,05 / 0,5 / 0,02 / 10 / 1·10⁻⁴ / 0,02 |
 | `[peaks]` | elemento = guscio o righe | `Fe = Ka, Kb`, `Pb = L, M` |
 | `[attenuators]` | nome = attivo, materiale, densità, spessore (cm), fattore; `Matrix = attivo, materiale, densità, spessore, α_in, α_out, …` | aria 0,0012048 g/cm³; Be 1,848; Si 2,33 |
@@ -360,7 +360,7 @@ Due spettri, PyMca 5.9.7 + fisx 1.3.2 contro il nucleo di `index.html` (desktop 
 | Fe | 64,31 | 65,4 (riferimento) | 65,4 | 65,4 | 65,51 (+2%) |
 | Ni | 12,35 | 11,17 | 11,79 | 11,79 (−5%) | 11,82 (−4%) |
 | Cu | 0,175 | 0,168 | 0,177 | 0,177 (+1%) | 0,171 (−2%) |
-| χ²ᵣ del fit | | 13,1 (2,4–17 keV, ipermetro) | | | 22,2 (4,5–15 keV, gaussiane) |
+| χ²ᵣ del fit | | 13,1 (2,4–17 keV, `hypermetflag = 1`, cioè sola gaussiana: vedi la correzione al § 2.5) | | | 22,2 (4,5–15 keV, gaussiane) |
 
 Lettura. (i) La fluorescenza secondaria è essenziale negli acciai: senza, Cr risulta +70%. L'app la include. (ii) Sulle concentrazioni i due programmi sono vicini; la normalizzazione a 100% avvantaggia l'app rispetto allo standard interno di PyMca, che qui non è stato ottimizzato. (iii) Il χ²ᵣ più alto dell'app su uno spettro reale da 3 milioni di conteggi è l'effetto atteso della forma gaussiana senza code (proposta 2). (iv) Per far girare l'app su questo spettro bisogna sostituire lo spettro del tubo con una riga a 16 keV nella cache (trucco da prototipo): è la proposta 7.
 
@@ -413,7 +413,11 @@ DOI verificati con l'API di Crossref il 19/11/2026 salvo dove indicato.
 - Ryan C.G., Clayton E., Griffin W.L., Sie S.H., Cousens D.R. (1988). SNIP, a statistics-sensitive background treatment for the quantitative analysis of PIXE spectra in geoscience applications. *Nucl. Instrum. Methods B* 34, 396–402. doi:10.1016/0168-583X(88)90063-8
 - Morháč M., Kliman J., Matoušek V., Veselský M., Turzo I. (1997). Background elimination methods for multidimensional coincidence γ-ray spectra. *Nucl. Instrum. Methods A* 401, 113–132. doi:10.1016/S0168-9002(97)01023-1
 - Van Gysel M., Lemberge P., Van Espen P. (2003). Implementation of a spectrum fitting procedure using a robust peak model. *X-Ray Spectrom.* 32, 434–441. doi:10.1002/xrs.666
-- Cesareo R., Rizzutto M.A., Brunetti A., Rao D.V. (2009). Metal location and thickness in a multilayered sheet by measuring Kα/Kβ, Lα/Lβ and Lα/Lγ X-ray ratios. *Nucl. Instrum. Methods B* 267, 2890–2896. doi:10.1016/j.nimb.2009.06.119. *Nota: il commento di `fpLayerSolve` cita «Cesareo et al. 2008» e «Trojek 2011». Crossref non ha restituito un articolo che corrisponda a questi due riferimenti: vanno controllati.*
+- Cesareo R., Rizzutto M.A., Brunetti A., Rao D.V. (2009). Metal location and thickness in a multilayered sheet by measuring Kα/Kβ, Lα/Lβ and Lα/Lγ X-ray ratios. *Nucl. Instrum. Methods B* 267, 2890–2896. doi:10.1016/j.nimb.2009.06.119
+- Cesareo R., Brunetti A. (2008). Metal sheets thickness determined by energy-dispersive X-ray fluorescence analysis. *J. X-Ray Sci. Technol.* 16, 119–130. doi:10.3233/XST-2008-00196 (CR; abstract letto con OpenAlex: spessore delle dorature dal rapporto fra righe K)
+- Trojek T., Čechák T., Musílek L. (2010). Recognition of pigment layers in illuminated manuscripts by means of Kα/Kβ and Lα/Lβ ratios of characteristic X-rays. *Appl. Radiat. Isot.* 68, 871–874. doi:10.1016/j.apradiso.2009.09.054 (CR)
+- Trojek T., Wegrzynek D. (2010). X-ray fluorescence Kα/Kβ ratios for a layered specimen: comparison of measurements and Monte Carlo calculations with the MCNPX code. *Nucl. Instrum. Methods A* 619, 311–315. doi:10.1016/j.nima.2009.10.157 (CR)
+- *Verifica delle citazioni di `fpLayerSolve` (3.1, 19/11/2026).* «Cesareo et al. 2008» nell'elenco dell'app era il capitolo Cesareo, Ridolfi, Marabelli et al., *Portable X-ray Fluorescence Spectrometry*, RSC 2008, pp. 206–246, doi:10.1039/9781847558640-00206: esiste (Crossref), ma è una rassegna sugli strumenti portatili. «Trojek 2011» era *J. Anal. At. Spectrom.* 26, 1253 (doi:10.1039/c0ja00187b): esiste, ma tratta gli effetti della superficie e la ricostruzione del rilievo, non il metodo dei rapporti fra righe. Nell'app sono stati sostituiti dai tre articoli specifici sul metodo: Cesareo e Brunetti 2008, Cesareo et al. 2009, Trojek et al. 2010.
 - Lucas-Tooth H.J., Price B.J. (1961). *Metallurgia* 64 (citato dall'app; senza DOI, pagine non verificate).
 
 **Palleschi, LIBS e CF-LIBS**: la bibliografia completa, con DOI e livello di verifica, è la tabella del § 3.2 (37 voci più i riferimenti di controllo), integrata dai lavori elencati sotto quella tabella.
