@@ -133,9 +133,16 @@ jobs:
     needs: build
     permissions:
       contents: write
+      actions: write    # solo per far ripartire pages.yml (sito allineato alla nuova versione)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Controlla i pacchetti, scrive le note e pubblica
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         run: node scripts/publish-release.js "$GITHUB_REF_NAME"
+      # una release pubblicata con il GITHUB_TOKEN non fa partire gli altri workflow: il sito si aggiorna con questo lancio
+      - name: Aggiorna il sito di presentazione (pages.yml su main)
+        if: ${{ !contains(github.ref_name, '-') }}
+        continue-on-error: true
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}"

@@ -106,6 +106,55 @@ export function scegliPrincipale(sistema, arch = '') {
   return [];
 }
 
+const RE_VERSIONE = /^(\d+)\.(\d+)\.(\d+)$/;
+const SUFFISSI = { win: 'x64-setup.exe', 'mac-arm': 'aarch64.dmg', 'mac-intel': 'x64.dmg', 'linux-appimage': 'amd64.AppImage', 'linux-deb': 'amd64.deb' };
+
+/** Nome del pacchetto di una versione, come lo produce la pipeline di rilascio («Acchiappaspettri_3.0.0_x64-setup.exe»); null se non valido. */
+export function nomeFile(chiave, versione) {
+  if (!SUFFISSI[chiave] || !RE_VERSIONE.test(String(versione || ''))) return null;
+  return `Acchiappaspettri_${versione}_${SUFFISSI[chiave]}`;
+}
+
+/** Confronta due versioni X.Y.Z come numeri: > 0 se a è più nuova di b, 0 se uguali (o non leggibili entrambe). */
+export function confrontaVersioni(a, b) {
+  const pa = RE_VERSIONE.exec(String(a || '')) || [0, 0, 0, 0];
+  const pb = RE_VERSIONE.exec(String(b || '')) || [0, 0, 0, 0];
+  for (let i = 1; i <= 3; i++) if (Number(pa[i]) !== Number(pb[i])) return Number(pa[i]) - Number(pb[i]);
+  return 0;
+}
+
+const HEX64 = /^[0-9a-f]{64}$/;
+const dataValida = (d) => typeof d === 'string' && !Number.isNaN(Date.parse(d));
+
+/**
+ * I dati della versione scritti nella pagina da scripts/sito-aggiorna.mjs (<script type="application/json" id="dati-versione">),
+ * nella stessa forma di leggiRelease più `fonte` ('github' o 'package.json') e `date` (versione → data ISO).
+ * Indirizzi non di GitHub, nomi che non corrispondono al pacchetto, impronte e date non valide vengono scartati.
+ * @returns {null|{versione:string, data:string|null, pagina:string, fonte:string, file:Object, date:Object}}
+ */
+export function leggiDatiStatici(json) {
+  if (!json || typeof json !== 'object' || !RE_VERSIONE.test(String(json.versione || ''))) return null;
+  const file = {};
+  for (const v of CATALOGO) {
+    const f = json.file?.[v.chiave];
+    if (!f || typeof f !== 'object' || classificaFile(f.nome) !== v.chiave || !urlDownloadSicuro(f.url)) continue;
+    file[v.chiave] = {
+      nome: f.nome, url: f.url,
+      dimensione: Number.isFinite(f.dimensione) && f.dimensione >= 0 ? f.dimensione : null,
+      sha256: typeof f.sha256 === 'string' && HEX64.test(f.sha256) ? f.sha256 : null,
+    };
+  }
+  const date = {};
+  for (const [ver, d] of Object.entries(json.date && typeof json.date === 'object' ? json.date : {})) if (RE_VERSIONE.test(ver) && dataValida(d)) date[ver] = d;
+  return {
+    versione: json.versione,
+    data: dataValida(json.data) ? json.data : null,
+    pagina: urlDownloadSicuro(json.pagina) ? json.pagina : URL_RELEASES,
+    fonte: json.fonte === 'github' ? 'github' : 'package.json',
+    file, date,
+  };
+}
+
 /** Numero di versione principale (2 per «2.2.0»), 0 se non leggibile. */
 export function versionePrincipale(v) {
   const m = /^(\d+)\./.exec(String(v || ''));

@@ -1,0 +1,118 @@
+# GitHub Pages: pubblica l'app online e il sito di presentazione (scarica/) dal ramo main, con il sito allineato all'ultima
+# versione pubblicata su GitHub Releases. Istruzioni complete: DEPLOY-SITO.md.
+#
+# Che cosa pubblica: l'intero ramo main costruito con Jekyll, esattamente come «Deploy from a branch» (stessi file, stessi
+# indirizzi: l'app a https://lorebiri.github.io/acchiappaspettri/, il sito a …/scarica/ e …/scarica/en/). L'unica differenza:
+# prima della costruzione scripts/sito-aggiorna.mjs --pubblicata scrive nelle due pagine del sito versione, data, link
+# diretti, dimensioni, impronte SHA-256, JSON-LD, sitemap e Novità dell'ultima release pubblicata.
+#
+# Quando parte:
+#   - a ogni push su main (con Pages da Actions anche l'app esce da qui, quindi ogni modifica di main va pubblicata);
+#   - a fine pubblicazione di una release: release.yml lo lancia con workflow_dispatch (una release pubblicata con il
+#     GITHUB_TOKEN non genera eventi per gli altri workflow); per una release pubblicata a mano dal sito di GitHub c'è
+#     l'evento «release», che lo rilancia su main;
+#   - ogni giorno alle 05:17 UTC, come rete di sicurezza (release modificate, file aggiunti dopo);
+#   - a mano: Actions → «Pages» → Run workflow.
+#
+# Finché Settings → Pages → Source è «Deploy from a branch», questo workflow costruisce e controlla l'artefatto ma NON
+# pubblica (pubblica GitHub dal ramo, come sempre): niente cambia online e il run resta verde. Pubblica solo quando Source è
+# «GitHub Actions» (lo legge dall'API di Pages), oppure se la variabile del repository PAGES_DA_WORKFLOW vale «si».
+# Dopo il deploy il lavoro «controlla» verifica online app e sito (scripts/sito-verifica.mjs).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Il run di una release gira sul tag, e l'ambiente github-pages accetta solo main: si rilancia lo stesso workflow su main.
+  rilancia:
+    name: Rilancia su main dopo la release
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}"
+
+  costruisci:
+    name: Costruisce app e sito
+    if: github.event_name != 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      versione: ${{ steps.sync.outputs.versione }}
+      pubblica: ${{ steps.modo.outputs.pubblica }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version: 22 }
+      - name: Da dove pubblica Pages (ramo o Actions)
+        id: modo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORZA: ${{ vars.PAGES_DA_WORKFLOW }}
+        run: |
+          tipo=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .build_type 2>/dev/null || echo sconosciuto)
+          echo "Pages: build_type = $tipo"
+          if [ "$GITHUB_REF" = "refs/heads/main" ] && { [ "$tipo" = "workflow" ] || [ "$FORZA" = "si" ]; }; then
+            echo "pubblica=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "pubblica=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pages pubblica dal ramo (build_type=$tipo) o il run non è su main: l'artefatto viene costruito e controllato, ma non pubblicato."
+          fi
+      - name: Scrive nel sito l'ultima versione pubblicata
+        id: sync
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: node scripts/sito-aggiorna.mjs --pubblicata
+      - name: Costruisce l'intero ramo come la pubblicazione dal ramo (Jekyll)
+        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+        with: { source: ./, destination: ./_site }
+      - name: L'artefatto contiene l'app e il sito, agli indirizzi di sempre
+        run: node scripts/sito-verifica.mjs _site --versione "${{ steps.sync.outputs.versione }}"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with: { path: ./_site }
+
+  pubblica:
+    name: Pubblica su GitHub Pages
+    needs: costruisci
+    if: needs.costruisci.outputs.pubblica == 'si'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  controlla:
+    name: Controlla online app e sito
+    needs: [costruisci, pubblica]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version: 22 }
+      - name: App e sito online, con la versione appena pubblicata
+        run: node scripts/sito-verifica.mjs https://lorebiri.github.io/acchiappaspettri/ --versione "${{ needs.costruisci.outputs.versione }}" --attendi 600

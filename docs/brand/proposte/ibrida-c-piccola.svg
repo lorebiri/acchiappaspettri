@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Acchiappaspettri, proposta di icona ibrida C · Il 3.0 con l’occhiolino (versione per 16-32 px) -->
+  <rect x="16" y="16" width="992" height="992" rx="200" fill="#1d3557" stroke="#3a5a88" stroke-width="32"/>
+  <path d="M370 620 C400 520 430 250 512 250 C594 250 624 520 654 620 L654 730 L606.7 670 L559.3 730 L512.0 670 L464.7 730 L417.3 670 L370.0 730 Z" fill="#2563c9"/>
+  <path d="M170 730 C300 730 340 716 370 620 C400 520 430 250 512 250 C594 250 624 520 654 620 C684 716 724 730 854 730" fill="none" stroke="#ffffff" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="482" cy="500" r="26" fill="#ffffff"/><circle cx="542" cy="500" r="26" fill="#ffffff"/>
+</svg>

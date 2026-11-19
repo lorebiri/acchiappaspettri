@@ -21,7 +21,9 @@
     "test:validation:tempi": "node --test test/validation/i5-tempi-ui.test.js",
     "test:validation:ui": "node --test test/validation/r5-corpus-ui.test.js test/validation/r5-canali-ui.test.js test/validation/r5-epr-ui.test.js test/validation/r5-avvisi-ui.test.js test/validation/r6-esportazioni.test.js test/validation/r6-pdf-ostile.test.js test/validation/r6-formato-esportazioni.test.js test/validation/ui-esporta.test.js test/validation/r5-xrf-ui.test.js test/validation/xrf31-flussi-ui.test.js test/validation/r6-ftir-fondo-alto.test.js test/validation/r5-barra-avviso-ui.test.js test/validation/desktop-dialoghi.test.js test/validation/r5-import-i1-ui.test.js test/validation/tono-desktop.test.js test/validation/ui-rilascio-ui.test.js test/validation/i1-analisi-ui.test.js test/validation/i1-cjk-ui.test.js test/validation/esporta-voci-ui.test.js test/validation/i2-nucleo-ui.test.js test/validation/segnala-ui.test.js test/validation/sorp-ui.test.js test/validation/i3-canali-ui.test.js test/validation/origin-ui.test.js test/validation/i4-librerie-ui.test.js test/validation/i9-chemo-ui.test.js test/validation/libs-cf-ui.test.js test/validation/i6-finestre-ui.test.js && node --test test/validation/i5-motore-ui.test.js test/validation/i11-estensioni-ui.test.js test/validation/i7-rust-ui.test.js && node --test test/validation/i6-grafico-ui.test.js test/validation/fondo-picchi-ui.test.js test/validation/sicurezza-csv-ui.test.js test/validation/debug-conclusione-ui.test.js",
     "test:fuzz": "node test/fuzz/estensioni-fuzz.js --seconds 60",
-    "validazione": "node scripts/gen-validazione.js"
+    "validazione": "node scripts/gen-validazione.js",
+    "sito": "node scripts/sito-aggiorna.mjs",
+    "sito:verifica": "node scripts/sito-verifica.mjs"
   },
   "devDependencies": {
     "@fontsource/nunito": "5.1.0",

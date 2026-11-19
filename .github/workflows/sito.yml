@@ -1,21 +1,15 @@
-# Sito di presentazione e download (scarica/): test a ogni modifica e, solo se lo si attiva, pubblicazione su GitHub Pages.
+# Sito di presentazione e download (scarica/): test a ogni modifica, in un browser vero e con i controlli statici.
 #
-# Oggi Pages pubblica il ramo main così com'è («Deploy from a branch»): la cartella scarica/ esce insieme all'app,
-# all'indirizzo https://lorebiri.github.io/acchiappaspettri/scarica/, e l'app resta a https://lorebiri.github.io/acchiappaspettri/.
-# Non serve nessun cambio di impostazioni e il lavoro «pubblica» qui sotto non parte.
-#
-# Se un giorno si vuole pubblicare da GitHub Actions (Settings → Pages → Source: «GitHub Actions»), basta creare la variabile
-# del repository PAGES_DA_WORKFLOW = si (Settings → Secrets and variables → Actions → Variables): a ogni push su main il lavoro
-# «pubblica» costruisce con Jekyll l'intero ramo, esattamente come fa oggi la pubblicazione dal ramo (stessi file, stessi
-# indirizzi), e lo pubblica. App e sito escono insieme; nessun indirizzo cambia. Docs: docs/PUBBLICARE.md, «Sito».
+# La pubblicazione è in pages.yml (app e sito insieme, con la versione dell'ultima release scritta nelle pagine).
+# Istruzioni: DEPLOY-SITO.md.
 name: Sito
 on:
   push:
     branches: ["**"]
     tags-ignore: ["**"]
-    paths: ["scarica/**", "test/unit/sito.test.js", "test/validation/sito-ui.test.js", "scripts/sito-schermate.js", ".github/workflows/sito.yml", "index.html", "app/desktop.js", "i18n/en-app.json"]
+    paths: ["scarica/**", "CHANGELOG.md", "CHANGELOG.en.md", "package.json", "test/unit/sito*.test.js", "test/validation/sito-ui.test.js", "scripts/sito-*", ".github/workflows/sito.yml", ".github/workflows/pages.yml", "index.html", "app/desktop.js", "i18n/en-app.json"]
   pull_request:
-    paths: ["scarica/**", "test/unit/sito.test.js", "test/validation/sito-ui.test.js", ".github/workflows/sito.yml"]
+    paths: ["scarica/**", "CHANGELOG.md", "CHANGELOG.en.md", "package.json", "test/unit/sito*.test.js", "test/validation/sito-ui.test.js", "scripts/sito-*", ".github/workflows/sito.yml", ".github/workflows/pages.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,42 +25,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Struttura, link, immagini, nomi di terzi, logica del download
-        run: node --test test/unit/sito.test.js
+      - name: Struttura, link, immagini, nomi di terzi, logica del download, allineamento alla versione
+        run: node --test test/unit/sito.test.js test/unit/sito-sync.test.js
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Il sito costruito contiene app e pagine agli indirizzi di sempre
+        run: node scripts/sito-verifica.mjs .
       - run: npx playwright install --with-deps chromium
-      - name: Nel browser (API di GitHub simulata), con gli screenshot desktop e mobile
+      - name: Nel browser (API di GitHub simulata o assente, JavaScript spento), con gli screenshot desktop e mobile
         run: node --test test/validation/sito-ui.test.js
         env: { SITO_SCREENSHOT: sito-screenshot }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with: { name: sito-screenshot, path: sito-screenshot, retention-days: 14, if-no-files-found: ignore }
 
-  pubblica:
-    # spento finché la variabile non c'è: con «Deploy from a branch» Pages pubblica già scarica/ insieme all'app
-    if: vars.PAGES_DA_WORKFLOW == 'si' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency: { group: pages, cancel-in-progress: false }
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}scarica/
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - name: Costruisce il sito come la pubblicazione dal ramo (Jekyll sull'intero ramo)
-        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
-        with: { source: ./, destination: ./_site }
-      - name: L'app e il sito ci sono, agli indirizzi di sempre
-        run: |
-          test -f _site/index.html && test -f _site/app/ui.js && test -f _site/i18n/en.js
-          test -f _site/scarica/index.html && test -f _site/scarica/en/index.html && test -f _site/scarica/img/desktop-spazio.webp
-          grep -q 'href="../"' _site/scarica/index.html
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with: { path: ./_site }
-      - id: deploy
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Acchiappaspettri, proposta di icona ibrida A · Il picco è Gino (versione per 16-32 px) -->
+  <rect x="16" y="16" width="992" height="992" rx="200" fill="#2563c9"/>
+  <path d="M120 730 C280 730 350 690 392 540 C424 420 452 210 512 210 C572 210 600 420 632 540 C674 690 744 730 904 730 L700 730 L700 810 L637 740 L575 810 L512 740 L449 810 L387 740 L324 810 L324 730 Z" fill="#ffffff" stroke="#ffffff" stroke-width="56" stroke-linejoin="round"/>
+  <ellipse cx="466" cy="470" rx="40" ry="54" fill="#1c2230"/><ellipse cx="558" cy="470" rx="40" ry="54" fill="#1c2230"/>
+</svg>

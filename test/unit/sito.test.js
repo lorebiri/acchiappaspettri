@@ -128,7 +128,8 @@ for (const [lingua, file] of Object.entries(PAGINE)) {
     assert.match(html, /http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https:\/\/api\.github\.com;/);
     assert.doesNotMatch(html, /\sstyle="/, `${lingua}: attributo style in linea`);
     assert.doesNotMatch(html, /\son[a-z]+="/, `${lingua}: gestore di evento in linea`);
-    assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>/, `${lingua}: script in linea`);
+    // script in linea: solo i blocchi di dati (JSON-LD e dati della versione), che non si eseguono
+    assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)(?![^>]*\stype="application\/(ld\+)?json")[^>]*>/, `${lingua}: script in linea`);
     assert.doesNotMatch(html, /<style/, `${lingua}: <style> in linea`);
     // accessibilità di base
     assert.strictEqual((html.match(/<h1\b/g) || []).length, 1);
@@ -141,8 +142,9 @@ for (const [lingua, file] of Object.entries(PAGINE)) {
     assert.match(html, /class="salta" href="#contenuto"/);
     assert.match(html, /<meta name="viewport"/);
     assert.match(html, /hreflang="(it|en)"/);
-    // la versione desktop si scarica sempre almeno dalla pagina delle versioni (anche senza JavaScript)
-    assert.ok((html.match(/href="https:\/\/github\.com\/lorebiri\/acchiappaspettri\/releases\/latest"/g) || []).length >= 6);
+    // anche senza JavaScript ogni pacchetto ha il suo link: diretto al file (dati scritti dalla pubblicazione) o alla pagina delle versioni
+    for (const k of ['win', 'mac-arm', 'mac-intel', 'linux-appimage', 'linux-deb'])
+      assert.match(html, new RegExp(`<li data-file="${k}"[^>]*><a href="https:\\/\\/github\\.com\\/lorebiri\\/acchiappaspettri\\/releases\\/(latest|download\\/v[\\d.]+\\/Acchiappaspettri_[^"]+)">`), `${lingua}: link di ${k}`);
   });
 
   test(`sito (${lingua}): nessun confronto con prodotti di terzi, marchi solo dove servono`, () => {

@@ -33,6 +33,8 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+/* «hidden» vince sempre sulle regole di display (per esempio il pulsante del tema senza JavaScript, l'avviso della versione) */
+[hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; animation: none !important; } }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; overflow-wrap: break-word; }
 img { max-width: 100%; height: auto; }
@@ -257,3 +259,15 @@ details li + li { margin-top: 4px; }
 }
 .impronta .copia { justify-self: start; }
 @media (min-width: 921px) { .hero-griglia { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 40px; } }
+
+/* ---- Novità (generate da scripts/sito-aggiorna.mjs dal CHANGELOG) ---- */
+.novita { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.voce-novita h3 { margin: 0; }
+.novita-data { margin: 2px 0 10px; font-size: 14.5px; color: var(--muted); }
+.voce-novita > p:not(.novita-data):not(.nota) { margin: 0 0 6px; }
+.voce-novita .punti li ul { margin: 6px 0 0; }
+.voce-novita code { overflow-wrap: anywhere; }
+.altre-novita { margin-top: 6px; }
+.altre-novita summary { padding: 10px 0 6px; }
+.file li.assente a { font-weight: 500; }
+#versione a { white-space: nowrap; }

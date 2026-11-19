@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Avvio della pagina di presentazione: tema, domande frequenti e pulsanti di download con l'ultima versione letta da GitHub.
-// Senza JavaScript, o se GitHub non risponde, i link restano sulla pagina ufficiale delle versioni: la pagina funziona lo stesso.
+// Avvio della pagina di presentazione: tema, domande frequenti e pulsanti di download.
+// Versione, data, link diretti, dimensioni e impronte sono già scritti nella pagina (scripts/sito-aggiorna.mjs, a ogni
+// pubblicazione): il pulsante per il sistema riconosciuto compare subito da quei dati. Poi la pagina chiede a GitHub
+// l'ultima versione stabile (attesa massima 6 s, risposta tenuta 10 minuti nella scheda) e, se è uguale o più nuova,
+// aggiorna pulsanti ed elenco. Se GitHub è lento, ha raggiunto il limite di richieste o non risponde, restano i dati della pagina.
 import {
-  URL_API, URL_RELEASES, rilevaSistema, leggiRelease, scegliPrincipale, urlDownloadSicuro,
-  versionePrincipale, formattaDimensione, formattaData,
+  URL_API, URL_RELEASES, rilevaSistema, leggiRelease, leggiDatiStatici, scegliPrincipale, urlDownloadSicuro,
+  versionePrincipale, confrontaVersioni, formattaDimensione, formattaData,
 } from './scarica.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -20,6 +23,7 @@ const TESTI = {
     breve: { win: 'installer', 'mac-arm': 'chip Apple', 'mac-intel': 'Intel', 'linux-appimage': 'AppImage', 'linux-deb': '.deb' },
     versione: (v) => `versione ${v}`,
     pubblicata: (v, d) => `Ultima versione: ${v}${d ? `, pubblicata il ${d}` : ''}.`,
+    novita: 'Le novità',
     daGithub: 'dalla pagina delle versioni su GitHub',
     sceltaMac: 'Che chip ha il tuo Mac? Menu Apple → Informazioni su questo Mac: «Chip Apple M…» oppure «Processore Intel».',
     mobile: 'Il programma desktop è per computer (Windows, macOS, Linux). Sul telefono o sul tablet usa la versione online.',
@@ -42,6 +46,7 @@ const TESTI = {
     breve: { win: 'installer', 'mac-arm': 'Apple chip', 'mac-intel': 'Intel', 'linux-appimage': 'AppImage', 'linux-deb': '.deb' },
     versione: (v) => `version ${v}`,
     pubblicata: (v, d) => `Latest version: ${v}${d ? `, published on ${d}` : ''}.`,
+    novita: 'What\'s new',
     daGithub: 'from the releases page on GitHub',
     sceltaMac: 'Which chip does your Mac have? Apple menu → About This Mac: «Apple M… chip» or «Intel processor».',
     mobile: 'The desktop program is for computers (Windows, macOS, Linux). On a phone or tablet, use the online version.',
@@ -128,10 +133,13 @@ async function copia(testo, pulsante) {
   annuncia(ok ? TESTI.annuncioOk : TESTI.annuncioSel);
   setTimeout(() => { pulsante.textContent = TESTI.copia; }, 2000);
 }
-function rigaImpronta(nome, hex) {
+function pulsanteCopia(nome, hex) {
   const btn = crea('button', { type: 'button', class: 'copia', 'aria-label': TESTI.copiaAria(nome), text: TESTI.copia });
   btn.addEventListener('click', () => copia(hex, btn));
-  return crea('span', { class: 'impronta' }, crea('span', { class: 'impronta-nome', text: 'SHA-256' }), crea('code', { text: hex }), btn);
+  return btn;
+}
+function rigaImpronta(nome, hex) {
+  return crea('span', { class: 'impronta' }, crea('span', { class: 'impronta-nome', text: 'SHA-256' }), ' ', crea('code', { text: hex }), ' ', pulsanteCopia(nome, hex));
 }
 
 // ---- pulsante principale ----
@@ -174,34 +182,65 @@ function disegnaPrincipale(sistema, arch, release, errore) {
   box.setAttribute('aria-busy', 'false');
 }
 
+// elenco dei file: link diretto, nome e dimensione, impronta con «Copia» (le impronte già scritte nella pagina restano)
 function aggiornaElenco(release) {
   for (const li of document.querySelectorAll('[data-file]')) {
     const f = release.file[li.dataset.file];
-    li.querySelector('.impronta')?.remove();
+    const vecchia = li.querySelector('.impronta');
+    const stessa = !!f?.sha256 && vecchia?.querySelector('code')?.textContent === f.sha256;
+    if (vecchia && !stessa) vecchia.remove();
+    li.classList.toggle('assente', !f);
     if (!f) continue;
     const a = $('a', li);
     if (a) a.href = href(f.url);
     const info = $('.file-info', li);
     if (info) info.textContent = [f.nome, formattaDimensione(f.dimensione, LINGUA)].filter(Boolean).join(' · ');
-    if (f.sha256) li.append(rigaImpronta(f.nome, f.sha256));
+    if (stessa) { if (!vecchia.querySelector('.copia')) vecchia.append(' ', pulsanteCopia(f.nome, f.sha256)); } else if (f.sha256) li.append(rigaImpronta(f.nome, f.sha256));
   }
 }
 
+function disegnaVersione(release) {
+  const v = $('#versione');
+  if (!v) return;
+  const link = crea('a', { href: '#novita', text: TESTI.novita });
+  v.replaceChildren(TESTI.pubblicata(release.versione, formattaData(release.data, LINGUA)), ' ', link);
+  const nv = $('#nota-versione');
+  if (nv) { const vecchia = versionePrincipale(release.versione) < 3; nv.hidden = !vecchia; nv.textContent = vecchia ? TESTI.vecchia(release.versione) : ''; }
+}
+
+// dati scritti nella pagina a ogni pubblicazione (scripts/sito-aggiorna.mjs)
+function leggiStatici() {
+  try { return leggiDatiStatici(JSON.parse($('#dati-versione')?.textContent || 'null')); } catch { return null; }
+}
+
+const CHIAVE_CACHE = 'acch-sito-release';
+const CACHE_MS = 10 * 60 * 1000, CACHE_ERRORE_MS = 2 * 60 * 1000, ATTESA_MS = 6000;
+
 async function caricaRelease() {
   try {
-    const salvata = JSON.parse(sessionStorage.getItem('acch-sito-release') || 'null');
-    if (salvata && Date.now() - salvata.quando < 10 * 60 * 1000) return leggiRelease(salvata.json);
-  } catch { /* sessionStorage non disponibile */ }
+    const salvata = JSON.parse(sessionStorage.getItem(CHIAVE_CACHE) || 'null');
+    const eta = salvata ? Date.now() - salvata.quando : Infinity;
+    if (salvata?.errore && eta >= 0 && eta < CACHE_ERRORE_MS) throw new Error(`${salvata.errore} (ricordato per 2 minuti)`);
+    if (salvata?.json && eta >= 0 && eta < CACHE_MS) { const r = leggiRelease(salvata.json); if (r) return r; }
+  } catch (e) { if (/ricordato/.test(e.message)) throw e; /* sessionStorage non disponibile o illeggibile */ }
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 8000);
+  const t = setTimeout(() => ctl.abort(), ATTESA_MS);
+  const ricorda = (o) => { try { sessionStorage.setItem(CHIAVE_CACHE, JSON.stringify({ quando: Date.now(), ...o })); } catch { /* pazienza */ } };
   try {
     const r = await fetch(URL_API, { headers: { Accept: 'application/vnd.github+json' }, signal: ctl.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
-    if (!r.ok) throw new Error(`GitHub ha risposto ${r.status}`);
+    if (!r.ok) {
+      const limite = (r.status === 403 || r.status === 429) && r.headers.get('x-ratelimit-remaining') === '0';
+      throw new Error(limite ? 'limite di richieste di GitHub raggiunto' : `GitHub ha risposto ${r.status}`);
+    }
     const json = await r.json();
     const release = leggiRelease(json);
     if (!release) throw new Error('risposta di GitHub non valida');
-    try { sessionStorage.setItem('acch-sito-release', JSON.stringify({ quando: Date.now(), json })); } catch { /* pazienza */ }
+    ricorda({ json });
     return release;
+  } catch (e) {
+    const msg = e?.name === 'AbortError' ? 'GitHub non ha risposto in tempo' : String(e?.message || e);
+    ricorda({ errore: msg });
+    throw new Error(msg);
   } finally { clearTimeout(t); }
 }
 
@@ -218,17 +257,24 @@ async function avvia() {
   document.documentElement.dataset.sistema = sistema;
   document.querySelector(`.carta-sistema[data-sistema="${sistema}"]`)?.classList.add('evidenza');
   const arch = sistema === 'mac' ? await architettura() : '';
-  $('#scarica-principale')?.setAttribute('aria-busy', 'true');
 
+  // 1. subito, dai dati scritti nella pagina
+  const statici = leggiStatici();
+  if (statici) { disegnaPrincipale(sistema, arch, statici, false); aggiornaElenco(statici); }
+  else $('#scarica-principale')?.setAttribute('aria-busy', 'true');
+
+  // 2. poi l'ultima versione da GitHub, se risponde ed è uguale o più nuova (o se la pagina ha i dati di una versione
+  //    non ancora pubblicata, da package.json: allora vale quella davvero scaricabile)
   let release = null;
-  try { release = await caricaRelease(); } catch (err) { console.info('Acchiappaspettri: elenco dei file non disponibile —', err.message); }
-  disegnaPrincipale(sistema, arch, release, !release);
-  if (!release) return;
-  const v = $('#versione');
-  if (v) v.textContent = TESTI.pubblicata(release.versione, formattaData(release.data, LINGUA));
-  const nv = $('#nota-versione');
-  if (nv && versionePrincipale(release.versione) < 3) { nv.textContent = TESTI.vecchia(release.versione); nv.hidden = false; }
-  aggiornaElenco(release);
+  try { release = await caricaRelease(); } catch (err) { console.info('Acchiappaspettri: elenco dei file da GitHub non disponibile —', err.message); }
+  if (release && (!statici || statici.fonte !== 'github' || confrontaVersioni(release.versione, statici.versione) >= 0)) {
+    disegnaPrincipale(sistema, arch, release, false);
+    disegnaVersione(release);
+    aggiornaElenco(release);
+  } else if (!statici) {
+    disegnaPrincipale(sistema, arch, null, true);
+  }
+  document.documentElement.dataset.release = release ? 'github' : (statici ? 'pagina' : 'nessuna');
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia);
