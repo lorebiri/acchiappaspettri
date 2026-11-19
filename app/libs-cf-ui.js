@@ -34,6 +34,7 @@
       case 'noConvergence': return T('L\'iterazione su T e n_e non è arrivata a convergenza.', 'The T and n_e iteration did not converge.');
       case 'closureRefMissing': return T('Lo standard interno '+w.el+' non ha righe misurate: chiusura a 100 % al suo posto.', 'The internal standard '+w.el+' has no measured lines: closure to 100% used instead.');
       case 'neInvalid': return T('La densità elettronica data non è valida (serve un numero in cm⁻³ fra 10¹³ e 10²¹, per esempio 1e17): ignorata, n_e ricavata per iterazione (ipotesi: 1 atm).', 'The given electron density is not valid (a number in cm⁻³ between 10¹³ and 10²¹ is needed, e.g. 1e17): ignored, n_e estimated by iteration (assumption: 1 atm).');
+      case 'oneElement': return T('Un solo elemento: con la chiusura a 100 % risulta 100 % per costruzione. Scegli tutti gli elementi presenti nel campione.', 'A single element: with closure to 100% it comes out at 100% by construction. Select all the elements present in the sample.');
       case 'noLines': return T('Elementi scelti senza righe misurabili, quindi assenti dal risultato: '+L(w.els)+'. La chiusura a 100 % è fatta senza di loro e gli altri risultano più alti.', 'Selected elements with no measurable lines, hence missing from the result: '+L(w.els)+'. The 100% closure is made without them, so the others come out higher.');
       case 'selfAbsNoW': return T('Correzione dell\'autoassorbimento non applicata: mancano i coefficienti Stark w delle righe.', 'Self-absorption correction not applied: line Stark coefficients w are missing.');
       case 'lowSA': return T('Righe scartate per autoassorbimento forte: '+L(w.lines), 'Lines discarded for strong self-absorption: '+L(w.lines));
@@ -61,12 +62,12 @@
     let s=`<p style="margin:6px 0"><b>T</b> = ${g(r.T,4)} ± ${g(r.sT,2)} K · <b>n_e</b> = ${ex(r.ne)} cm⁻³ <small>(${h(srcs[r.neSource]||r.neSource)})</small> · χ²ᵣ ${g(r.fit.chi2r,3)} · ${r.points.length} ${T('righe','lines')}</p>`;
     s+=`<p class="why" style="margin:2px 0">McWhirter: n_e ${mw.ok?'&gt;':'&lt;'} ${ex(mw.neMin)} cm⁻³ (ΔE = ${g(mw.dE,3)} eV, ${h(mw.species||'')}) → ${mw.ok?T('soddisfatto (necessario, non sufficiente)','met (necessary, not sufficient)'):T('NON soddisfatto','NOT met')}</p>`;
     if (r.neSaha && r.neSaha.length) s+=`<p class="why" style="margin:2px 0">${T('n_e dall\'equilibrio di Saha','n_e from Saha equilibrium')}: ${r.neSaha.map(x=>h(x.el)+' '+ex(x.ne)).join(' · ')} ${T('(confronta con Stark)','(compare with Stark)')}</p>`;
-    s+=`<table class="areatab"><thead><tr><th>${T('Elemento','Element')}</th><th>${T('% atomica','atomic %')}</th><th>${T('% in peso','wt %')}</th><th>${T('stadi','stages')}</th><th>${T('righe','lines')}</th><th>${T('ionizzato','ionised')}</th></tr></thead><tbody>${
-      r.elements.map(e=>`<tr><td>${h(e.el)}</td><td>${g(100*e.mol,3)} ± ${g(100*e.sMol,2)}</td><td>${g(100*e.wt,3)} ± ${g(100*e.sWt,2)}</td><td>${h(e.species.join('+'))}</td><td>${e.nLines}</td><td>${g(100*e.ionFrac,2)} %</td></tr>`).join('')}</tbody></table>`;
+    s+=`<div class="areawrap"><table class="areatab"><thead><tr><th>${T('Elemento','Element')}</th><th>${T('% atomica','atomic %')}</th><th>${T('% in peso','wt %')}</th><th>${T('stadi','stages')}</th><th>${T('righe','lines')}</th><th>${T('ionizzato','ionised')}</th></tr></thead><tbody>${
+      r.elements.map(e=>`<tr><td>${h(e.el)}</td><td>${g(100*e.mol,3)} ± ${g(100*e.sMol,2)}</td><td>${g(100*e.wt,3)} ± ${g(100*e.sWt,2)}</td><td>${h(e.species.join('+'))}</td><td>${e.nLines}</td><td>${g(100*e.ionFrac,2)} %</td></tr>`).join('')}</tbody></table></div>`;
     s+=`<p class="why" style="margin:2px 0">${T('Incertezze: solo statistiche (regressione e A_ki), Monte Carlo; non comprendono gli errori di modello (LTE, autoassorbimento, risposta spettrale).','Uncertainties: statistical only (regression and A_ki), Monte Carlo; they exclude model errors (LTE, self-absorption, spectral response).')}${r.sumWt!==1?' '+T('Somma con lo standard interno','Sum with the internal standard')+': '+g(100*r.sumWt,4)+' %':''}</p>`;
     s+=`<h4 class="anh">${T('Grafico di Boltzmann','Boltzmann plot')}${r.mode==='saha-boltzmann'?' (Saha–Boltzmann)':''}</h4>`+plotSvg(r);
-    s+=`<details><summary>${T('Tabella del grafico','Plot table')}</summary><table class="areatab"><thead><tr><th>${T('specie','species')}</th><th>λ (nm)</th><th>E_k (eV)</th><th>x (eV)</th><th>y = ln(I/gA)</th><th>σ_y</th><th>${T('residuo','residual')}</th></tr></thead><tbody>${
-      r.points.map(p=>`<tr><td>${h(p.el+' '+p.st)}${p.resonance?' ʳ':''}</td><td>${g(p.wl,6)}</td><td>${g(p.Ek,4)}</td><td>${g(p.x,4)}</td><td>${g(p.y,4)}</td><td>${g(p.sy,2)}</td><td>${g(p.res,2)}</td></tr>`).join('')}</tbody></table><p class="why">ʳ ${T('riga di risonanza','resonance line')}</p></details>`;
+    s+=`<details><summary>${T('Tabella del grafico','Plot table')}</summary><div class="areawrap"><table class="areatab"><thead><tr><th>${T('specie','species')}</th><th>λ (nm)</th><th>E_k (eV)</th><th>x (eV)</th><th>y = ln(I/gA)</th><th>σ_y</th><th>${T('residuo','residual')}</th></tr></thead><tbody>${
+      r.points.map(p=>`<tr><td>${h(p.el+' '+p.st)}${p.resonance?' ʳ':''}</td><td>${g(p.wl,6)}</td><td>${g(p.Ek,4)}</td><td>${g(p.x,4)}</td><td>${g(p.y,4)}</td><td>${g(p.sy,2)}</td><td>${g(p.res,2)}</td></tr>`).join('')}</tbody></table></div><p class="why">ʳ ${T('riga di risonanza','resonance line')}</p></details>`;
     s+=`<h4 class="anh">${T('Avvisi','Warnings')}</h4><ul class="anlist">${r.warnings.map(w=>`<li class="lv-${/Fail|noConv/.test(w.code)?'bad':'warn'}"><span>△</span><div>${h(warnText(w))}</div></li>`).join('')}</ul>`;
     return s; }
 
@@ -80,7 +81,7 @@
       `<div class="elrow"><b>${T('Elementi','Elements')}:</b> ${avail.map(e=>`<button class="pill ${st.els.includes(e)?'on':''}" data-cfel="${e}">${e}</button>`).join(' ')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:6px 0">
         <label>${T('Larghezza strumentale FWHM (nm)','Instrument FWHM (nm)')} <input data-cf="fwhm" size="6" value="${h(st.fwhm)}" placeholder="${h(T('stima','estimate'))}"></label>
-        <label>n_e <select data-cf="ne">${[['Halpha','Hα 656,28 nm'],['Hbeta','Hβ 486,13 nm'],['given',T('valore (cm⁻³)','value (cm⁻³)')],['iter',T('iterazione (1 atm)','iteration (1 atm)')]].map(([v,t])=>`<option value="${v}" ${st.ne===v?'selected':''}>${h(t)}</option>`).join('')}</select></label>
+        <label>n_e <select data-cf="ne">${[['Halpha','Hα '+g(656.28,5)+' nm'],['Hbeta','Hβ '+g(486.13,5)+' nm'],['given',T('valore (cm⁻³)','value (cm⁻³)')],['iter',T('iterazione (1 atm)','iteration (1 atm)')]].map(([v,t])=>`<option value="${v}" ${st.ne===v?'selected':''}>${h(t)}</option>`).join('')}</select></label>
         ${st.ne==='given'?`<input data-cf="neVal" size="8" value="${h(st.neVal)}" placeholder="1e17">`:''}
         <label>${T('Metodo','Method')} <select data-cf="mode"><option value="saha-boltzmann" ${st.mode==='saha-boltzmann'?'selected':''}>Saha–Boltzmann</option><option value="boltzmann" ${st.mode==='boltzmann'?'selected':''}>${T('Boltzmann per specie','Boltzmann per species')}</option></select></label>
         <label class="check"><input type="checkbox" data-cf="noRes" ${st.noRes?'checked':''}> ${T('escludi le righe di risonanza','exclude resonance lines')}</label>
@@ -100,6 +101,7 @@
           const fw=num(st.fwhm), opt={elements:st.els, fwhmG:fw>0?fw:undefined, mode:st.mode, excludeResonance:st.noRes};
           if (st.ne==='Halpha'||st.ne==='Hbeta') opt.neFrom=st.ne; else if (st.ne==='given'){ const v=neNum(st.neVal); opt.ne=v>=1e13 && v<=1e21 ? v : -1; }   // valore assente o assurdo: -1 fa comparire l'avviso neInvalid (prima si passava in silenzio all'iterazione)
           st.res=C.analyze(D, Array.from(f.xs), Array.from(f.ys), opt);
+          if (st.res && st.res.ok && st.res.elements && st.res.elements.length===1 && (!opt.closure || opt.closure==='sum')) (st.res.warnings=st.res.warnings||[]).unshift({code:'oneElement'});
           if ((st.ne==='Halpha'||st.ne==='Hbeta') && st.res.neSource==='iterated' && st.res.warnings) st.res.warnings.unshift({code:'noH'});
         }catch(e){ console.error(e); st.res={ok:false, why:String(e&&e.message||e)}; } out.innerHTML=resultHtml(st.res); }, 20); };
     };

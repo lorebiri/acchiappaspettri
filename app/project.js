@@ -140,7 +140,9 @@
       if (legacy){ name=null; path=null; } else { name=fileName||null; path=filePath||null; }
       busy=false; markSaved();
       toast(`📂 Progetto aperto: ${files.length} spettri.`);
-      if (fp30) toast(`Progetto della versione ${P.manifest.appVersion||'precedente'}: ${fp30===1?'lo spettro XRF resta':'gli '+fp30+' spettri XRF restano'} col modello 3.0, così le composizioni non cambiano. Il modello 3.1 si sceglie nel pannello delle concentrazioni.`);
+      if (fp30){ const v=P.manifest.appVersion||'', en=!!(window.AcchI18n && window.AcchI18n.lang==='en');   // «gli 2 spettri» e inglese a metà: frase composta per lingua (debug 3.1 indipendente)
+        toast(en ? `Project from version ${v||'(earlier)'}: ${fp30===1?'the XRF spectrum stays':'the '+fp30+' XRF spectra stay'} with the 3.0 model, so the compositions do not change. The 3.1 model can be chosen in the concentrations panel.`
+          : `Progetto della versione ${v||'precedente'}: ${fp30===1?'lo spettro XRF resta':'i '+fp30+' spettri XRF restano'} col modello 3.0, così le composizioni non cambiano. Il modello 3.1 si sceglie nel pannello delle concentrazioni.`); }
       if (lost>0) toast(lost===1 ? '⚠️ Un file del progetto non è stato riconosciuto.' : `⚠️ ${lost} file del progetto non sono stati riconosciuti.`);   // singolare: prima «1 file … non sono stati»
       if (lostCh>0) toast(`⚠️ ${lostCh} canali salvati nel progetto non si ritrovano nei file originali.`);
       pluginNotes(plMissing, plLost, new Map([...plEnts].map(([e,L])=>[e.path, L[0].plugin.version])));

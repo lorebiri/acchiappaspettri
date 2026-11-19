@@ -24,7 +24,7 @@ for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang
       const w3=box.querySelector('.libscf'); for (const b of w3.querySelectorAll('[data-cfel].on')) if (!['Cu','Sn','Zn','Pb'].includes(b.dataset.cfel)) b.click();
       box.querySelector('.libscf [data-cf="run"]').click(); await new Promise(r=>setTimeout(r, 3000));
       const res=f._cf.res; return {sb, instr:f.instr, head, text:box.querySelector('.libscf').textContent, ok:res&&res.ok, T:res&&res.T, ne:res&&res.ne, src:res&&res.neSource,
-        wt:res&&res.ok?Object.fromEntries(res.elements.map(e=>[e.el, e.wt])):null, svg:!!box.querySelector('.libscf svg'), rows:box.querySelectorAll('.libscf table tbody tr').length};
+        wt:res&&res.ok?Object.fromEntries(res.elements.map(e=>[e.el, e.wt])):null, svg:!!box.querySelector('.libscf svg'), wrapped:box.querySelectorAll('.libscf .areawrap > table').length, rows:box.querySelectorAll('.libscf table tbody tr').length};
     }, [csv()]);
     assert.strictEqual(out.instr, 'libs'); assert.ok(!out.noPanel, 'manca il pannello CF-LIBS');
     assert.match(out.head, lang==='en' ? /experimental/ : /sperimentale/);
@@ -33,7 +33,7 @@ for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang
     assert.ok(Math.abs(out.T/1e4-1)<0.05, 'T '+out.T); assert.ok(Math.abs(out.ne/1e17-1)<0.15, 'n_e '+out.ne);
     // qui conta il pannello, non l'accuratezza (passo di 0,02 nm, righe di risonanza escluse come da impostazione): tolleranze larghe
     for (const [e,v] of Object.entries({Cu:0.85, Sn:0.08, Zn:0.04, Pb:0.03})) assert.ok(Math.abs(out.wt[e]/v-1)<(v>0.05?0.1:0.3), e+' '+out.wt[e]);
-    assert.ok(out.svg && out.rows>5);
+    assert.ok(out.svg && out.rows>5); assert.equal(out.wrapped, 2, 'tabelle scorrevoli sugli schermi stretti');
     assert.match(out.text, lang==='en' ? /spectral response/ : /risposta spettrale/);
     assert.match(out.text, lang==='en' ? /necessary, not sufficient/ : /necessaria e non sufficiente/);
     assert.deepStrictEqual(errors, []);

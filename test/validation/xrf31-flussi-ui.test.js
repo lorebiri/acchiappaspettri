@@ -17,6 +17,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
       files.length=0; await addEntries([{file:new File([text],'bronzo.mca'), path:'bronzo.mca'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
       const f=files[0]; cur=0; o.model=fpCfg(f).model;
       const c=fpCfg(f); c.els=['Sn','Cu','Pb','Zn','As']; fpSaveCfg(f,c); f._fpKey=null; const R=fpRun(f); o.r1=res(R);
+      { const m=methodsText([f], new Set(['fp'])); o.meth31={hyper:/ipermetro/.test(m) && /Van Gysel/.test(m) && /Solé/.test(m), kramers:/Kramers/.test(m)}; }
       document.querySelector('#secCult').open=true; renderCult(f); o.panel=!!document.querySelector('#fpModel') && !!document.querySelector('#fpCfgIn');
       // .cfg: esportato e reimportato su una copia delle impostazioni
       const ex=fpExportCfg(f, R); o.cfgLen=ex.text.length; const c2={}; fpImportCfg(c2, ex.text, 'esportato.cfg'); o.imp={anode:c2.S.anode, kv:c2.S.kv, psi1:c2.S.psi1, psi2:c2.S.psi2, model:c2.model, els:c2.els};
@@ -41,7 +42,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
       const z=await JSZip.loadAsync(b2), st=JSON.parse(await z.file('project/state.json').async('string')); delete st.xrfModel;
       const P0=await AcchFormat.decode(b2, JSZip), enc=await AcchFormat.encode({appVersion:'3.0.0', title:'', state:st, spectra:P0.spectra, libraries:[], results:[]}, JSZip);
       await AcchProject.closeProject(); toasts.length=0; await AcchProject.openBytes(enc.bytes||enc,'vecchio.acchspettri',null);
-      const V=files[0]; V._fpKey=null; o.old={model:fpCfg(V).model, was30:!!fpCfg(V).was30, r:res(fpRun(V)), toast:toasts.some(t=>/col modello 3\.0/.test(t)), note:fpNotes(V, V._fpRes).some(t=>/versione 3\.0/.test(t))};
+      const V=files[0]; V._fpKey=null; { const m=methodsText([V], new Set(['fp'])); o.meth30={kramers:/Kramers/.test(m), hyper:/ipermetro/.test(m)}; } o.old={model:fpCfg(V).model, was30:!!fpCfg(V).was30, r:res(fpRun(V)), toast:toasts.some(t=>/col modello 3\.0/.test(t)), note:fpNotes(V, V._fpRes).some(t=>/versione 3\.0/.test(t))};
       return o; }, [TUT]);
     assert.equal(r.model, 'hypermet', 'file nuovo: modello 3.1'); assert.ok(r.panel, 'controlli del modello e del .cfg nel pannello');
     for (const [e,w] of [['Cu',84],['Sn',8],['Pb',5],['Zn',2.5]]) assert.ok(Math.abs(r.r1[e]/w-1)<0.12, `3.1 ${e}: ${r.r1[e]}`);
@@ -51,6 +52,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
     assert.ok(r.u16.anode==='Ag' && r.u16.warn, '.cfg UTF-16 e tensione fuori limite: '+JSON.stringify(r.u16));
     assert.deepEqual(r.peaksEls, ['Cu'], 'elementi da [peaks]: '+JSON.stringify(r.peaksEls)); assert.ok(r.excLen<=400 && r.excWarn, 'eccitazione: '+r.excLen);
     assert.equal(r.reopen.model, 'hypermet'); assert.deepEqual(r.reopen.r, r.r1, 'progetto riaperto: stessi numeri');
+    assert.deepEqual([r.meth31, r.meth30], [{hyper:true, kramers:false}, {kramers:true, hyper:false}], 'paragrafo «Metodi» del modello usato');
     assert.equal(r.old.model, 'gauss', 'progetto della 3.0: modello 3.0'); assert.ok(r.old.was30 && r.old.note, 'avviso nel pannello'); assert.ok(r.old.toast, 'avviso all\'apertura');
     assert.deepEqual(['Cu','Sn','Pb'].map(e=>r.old.r[e].toFixed(2)), ['86.28','8.34','5.38'], 'numeri della 3.0: '+JSON.stringify(r.old.r));
     assert.deepEqual(errors, []); await ctx.close();
