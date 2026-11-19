@@ -19,15 +19,16 @@ for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang
       const f=files[files.length-1]; cur=files.length-1; if (f.instr!=='libs') return {instr:f.instr};
       renderAnHyp(f, viewOf(f)); const box=document.querySelector('#anHyp'), wrap=box.querySelector('.libscf'); if (!wrap) return {instr:f.instr, noPanel:true};
       const head=wrap.textContent; wrap.querySelector('[data-cf="open"]').click();
-      const w2=box.querySelector('.libscf'); w2.querySelector('[data-cf="fwhm"]').value='0.05'; w2.querySelector('[data-cf="fwhm"]').dispatchEvent(new Event('change'));
+      const w2=box.querySelector('.libscf'); const sb=!!w2.querySelector('[data-cfel="Sb"]'); w2.querySelector('[data-cf="fwhm"]').value='0.05'; w2.querySelector('[data-cf="fwhm"]').dispatchEvent(new Event('change'));
       for (const e of ['Cu','Sn','Zn','Pb']){ const b=w2.querySelector('[data-cfel="'+e+'"]'); if (b && !b.classList.contains('on')) b.click(); }
       const w3=box.querySelector('.libscf'); for (const b of w3.querySelectorAll('[data-cfel].on')) if (!['Cu','Sn','Zn','Pb'].includes(b.dataset.cfel)) b.click();
       box.querySelector('.libscf [data-cf="run"]').click(); await new Promise(r=>setTimeout(r, 3000));
-      const res=f._cf.res; return {instr:f.instr, head, text:box.querySelector('.libscf').textContent, ok:res&&res.ok, T:res&&res.T, ne:res&&res.ne, src:res&&res.neSource,
+      const res=f._cf.res; return {sb, instr:f.instr, head, text:box.querySelector('.libscf').textContent, ok:res&&res.ok, T:res&&res.T, ne:res&&res.ne, src:res&&res.neSource,
         wt:res&&res.ok?Object.fromEntries(res.elements.map(e=>[e.el, e.wt])):null, svg:!!box.querySelector('.libscf svg'), rows:box.querySelectorAll('.libscf table tbody tr').length};
     }, [csv()]);
     assert.strictEqual(out.instr, 'libs'); assert.ok(!out.noPanel, 'manca il pannello CF-LIBS');
     assert.match(out.head, lang==='en' ? /experimental/ : /sperimentale/);
+    assert.match(out.head, lang==='en' ? /only on synthetic spectra/ : /solo su spettri sintetici/); assert.ok(!out.sb, 'Sb (nessuna riga in banca dati) non va offerto');
     assert.ok(out.ok, JSON.stringify(out).slice(0,500)); assert.strictEqual(out.src, 'Halpha');
     assert.ok(Math.abs(out.T/1e4-1)<0.05, 'T '+out.T); assert.ok(Math.abs(out.ne/1e17-1)<0.15, 'n_e '+out.ne);
     // qui conta il pannello, non l'accuratezza (passo di 0,02 nm, righe di risonanza escluse come da impostazione): tolleranze larghe
