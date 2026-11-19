@@ -37,7 +37,10 @@ test('G3: a schermo (WebGL e Canvas 2D) le cime di ogni colonna sono quelle del 
   const nv=r.find(x=>x.gl==='ingenua'); assert.ok(nv && (nv.spk>3 || nv.worst>3), 'la prova deve scoprire un disegno che perde i picchi: '+JSON.stringify(nv));
   for (const x of r.filter(x=>x.gl!=='ingenua')){ if (x.skip){ console.log('NON VERIFICATO WebGL a '+x.cw+' px: '+x.skip); continue; }
     assert.equal(x.miss, 0, JSON.stringify(x)+': colonne con traccia diverse');
-    assert.ok(x.worst<=1, JSON.stringify(x)+': cima o fondo di una colonna oltre 1 px dal disegno pieno');
+    // 2 px e non 1: sui runner Linux senza GPU (CI e questo ambiente) WebGL è rasterizzato in software (SwiftShader), che arrotonda i bordi
+    // delle linee di un pixel in più rispetto alla GPU del Mac (misurato: worst 2, miss 0, spk 1 a 1920 px). Un errore vero del disegno
+    // a colonne si vede come miss > 0 o oltre 2 px, e il disegno «ingenuo» qui sopra resta scoperto (spk > 3 o worst > 3)
+    assert.ok(x.worst<=2, JSON.stringify(x)+': cima o fondo di una colonna oltre 2 px dal disegno pieno');
     assert.ok(x.spk<=1, JSON.stringify(x)+': cima di un picco stretto oltre 1 px'); }
   assert.ok(r.some(x=>x.gl && !x.skip), 'WebGL provato almeno a una risoluzione');
   assert.deepEqual(o.errors, []); await o.ctx.close();
