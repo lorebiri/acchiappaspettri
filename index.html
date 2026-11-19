@@ -33,6 +33,8 @@
 <script src="app/baseline-core.js"></script>
 <script src="app/mcr-core.js"></script>
 <script src="app/kinetics-core.js"></script>
+<script src="app/libs-data.js"></script>
+<script src="app/libs-cf-core.js"></script>
 <script src="app/assess-core.js"></script>
 <script src="app/pymca-cfg-core.js"></script>
 <script src="app/library.js"></script>
@@ -8209,6 +8211,7 @@ function renderAnHyp(f, d){
     else if (H.list.length) list=`<ul class="anlist">${H.list.map(h=>`<li class="lv-info"><span>🎨</span><div><b>${h.els.join(' + ')}</b> → ${esc(h.it)}</div></li>`).join('')}</ul>`;
     box.innerHTML += cp + list;
     $$('#anHyp [data-col]').forEach(b=>b.onclick=()=>{ anSet(f,'color', (f.an&&f.an.color)===b.dataset.col ? null : b.dataset.col); renderAnalysis(); });
+    if (f.instr==='libs' && window.LibsCfUi) LibsCfUi.render(box, f, d, H.els);   // CF-LIBS sperimentale: app/libs-cf-ui.js
   }
 }
 
@@ -9994,6 +9997,7 @@ applySober(); bindProject(); bindCommands(); checkNews(); bindRefs(); bindAnalys
 <script src="app/ui.js"></script>
 <script src="app/sorption-ui.js"></script>
 <script src="app/chemo-ui.js"></script>
+<script src="app/libs-cf-ui.js"></script>
 <script src="app/web.js"></script>
 <script src="app/shell.js"></script>
 <script src="app/engine.js"></script>
