@@ -186,9 +186,11 @@ function eseguiXRF(c, cert, C){
       if (f.noise>0){ opt.noise=f.noise; opt.fixNoise=!!(f.fixed&&f.fixed.noise); } if (f.fano>0){ opt.fano=f.fano; opt.fixFano=!!(f.fixed&&f.fixed.fano); }
       opt.escape=f.escape ? undefined : 'none'; opt.pileup=f.pileup; } }
   else if (mp!=='gaussiano') avvisi.push('modello_picco «'+mp+'» sconosciuto: usato il gaussiano');
-  const t0=Date.now(), R=C.xrfFP(xs, sp.ys, els, S, opt); if (!R || !R.Q || R.Q.err) throw new Error('il calcolo FP non ha dato risultati'+(R&&R.Q&&R.Q.err?' ('+R.Q.err+')':''));
+  // modello 3.1 completo: con il picco ipermetro anche la fisica 3.1 (tubo di Ebel, produzione fine, terziaria), salvo «fisica»: "3.0" nei metadati
+  let S1=S; if (opt.model==='hypermet' && m.fisica!=='3.0'){ const so=JSON.parse(S.key); so.phys='3.1'; S1=C.fpSetup(so); }
+  const t0=Date.now(), R=C.xrfFP(xs, sp.ys, els, S1, opt); if (!R || !R.Q || R.Q.err) throw new Error('il calcolo FP non ha dato risultati'+(R&&R.Q&&R.Q.err?' ('+R.Q.err+')':''));
   const trovati={}; for (const e of els) if (R.Q.res[e]) trovati[e]={w:R.Q.res[e].w, sw:R.Q.res[e].sw, riga:R.Q.res[e].line};
-  return {trovati, fissi, elementi:els, avvisi, dettagli:{formato:sp.fmt, calibrazione:cal, eccitazione:ex.modo, setup:JSON.parse(S.key), intervallo_keV:[opt.lo??null, opt.hi??null], modello_picco:mp, chi2r:R.fit&&R.fit.chi2r, somma:R.Q.sum, ms:Date.now()-t0}};
+  return {trovati, fissi, elementi:els, avvisi, dettagli:{formato:sp.fmt, calibrazione:cal, eccitazione:ex.modo, setup:JSON.parse(S1.key), intervallo_keV:[opt.lo??null, opt.hi??null], modello_picco:mp, chi2r:R.fit&&R.fit.chi2r, somma:R.Q.sum, ms:Date.now()-t0}};
 }
 
 /* ---------------- un campione LIBS: aggancio al modulo CF-LIBS (app/libs-cf-core.js), in preparazione ---------------- */

@@ -12,27 +12,27 @@
 
 | Campione | Tecnica | Esito | Elementi superati |
 |---|---|---|---|
-| esempi/nist-srm-1155 | XRF | non superato | 3 su 5 |
+| esempi/nist-srm-1155 | XRF | non superato | 4 su 5 |
 
 ## esempi/nist-srm-1155
 
 NIST SRM 1155, acciaio inossidabile AISI 316 · non dichiarato nei file di PyMca (fascio monocromatico)
 Fonte: spettro e configurazione d'esempio di PyMca 5.9.7 (MIT, © ESRF): test/fixtures/pymca/Steel.spe e Steel.cfg
 
-Condizioni usate: anodo Ag, eccitazione 16 keV (nucleo), angoli 45°/45°, aria, rivelatore Si 350 µm, finestra Be 20 µm, filtro Al 1100 µm. Intervallo 4,5–15 keV, picco ipermetro, calibrazione dal cfg. χ²ᵣ = 9,59.
+Condizioni usate: anodo Ag, eccitazione 16 keV (nucleo), angoli 45°/45°, aria, rivelatore Si 350 µm, finestra Be 20 µm, filtro Al 1100 µm. Intervallo 4,5–15 keV, picco ipermetro, calibrazione dal cfg. χ²ᵣ = 9,4.
 Elementi non misurati, presi dal certificato: C 0,0445%, Mo 2,39%, S 0,0175%, As 0,0107%, P 0,02%, Si 0,509%, N 0,04%, Pb 0,001%, W 0,11%.
 
 | Elemento | Tipo | Certificato (%) | U (k) | Trovato (%) | u | Errore rel. | ζ | E_n | Limite | Esito |
 |---|---|---|---|---|---|---|---|---|---|---|
 | C | certificato | 0,0445 | 0,0014 (3,2) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
-| Co | certificato | 0,1052 | 0,0057 (2,36) | 0,3823 | 0,026 | +263,4% | 10,6 | 5,3 | ±25% | **non superato** (errore oltre 25%, ζ oltre 2) |
-| Cr | certificato | 18,37 | 0,21 (4,3) | 18,59 | 0,93 | +1,2% | 0,237 | 0,118 | ±10% | **superato** |
-| Cu | certificato | 0,1734 | 0,0075 (2,26) | 0,171 | 0,011 | -1,4% | 0,204 | 0,101 | ±25% | **superato** |
-| Mn | certificato | 1,619 | 0,075 (3,2) | 1,624 | 0,086 | +0,3% | 0,0538 | 0,0256 | ±10% | **superato** |
+| Co | certificato | 0,1052 | 0,0057 (2,36) | 0,3787 | 0,026 | +260,0% | 10,6 | 5,28 | ±25% | **non superato** (errore oltre 25%, ζ oltre 2) |
+| Cr | certificato | 18,37 | 0,21 (4,3) | 18,45 | 0,92 | +0,4% | 0,0814 | 0,0405 | ±10% | **superato** |
+| Cu | certificato | 0,1734 | 0,0075 (2,26) | 0,1732 | 0,011 | -0,1% | 0,0156 | 0,00769 | ±25% | **superato** |
+| Mn | certificato | 1,619 | 0,075 (3,2) | 1,614 | 0,086 | -0,3% | 0,0616 | 0,0292 | ±10% | **superato** |
 | Mo | certificato | 2,386 | 0,024 (2,23) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
-| Ni | certificato | 12,35 | 0,22 (4,3) | 11,21 | 0,56 | -9,3% | 2,02 | 0,997 | ±10% | **non superato** (ζ oltre 2) |
+| Ni | certificato | 12,35 | 0,22 (4,3) | 11,26 | 0,56 | -8,9% | 1,93 | 0,95 | ±10% | **superato** |
 | S | certificato | 0,0175 | 0,0032 (4,3) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
-| V | certificato | 0,0508 | 0,0034 (2,36) | 0,007191 | 0,01 | -85,8% | 4,34 | 2,16 | — | **segnalato** (sotto 0,1%: riportato, non valutato) |
+| V | certificato | 0,0508 | 0,0034 (2,36) | 0,003377 | 0,0097 | -93,4% | 4,84 | 2,41 | — | **segnalato** (sotto 0,1%: riportato, non valutato) |
 | As | indicativo | 0,01067 | 0,00045 (2,6) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | P | indicativo | 0,02 | 0,0012 (2,4) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | Si | indicativo | 0,5093 | 0,0049 (2,6) | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
@@ -40,9 +40,9 @@ Elementi non misurati, presi dal certificato: C 0,0445%, Mo 2,39%, S 0,0175%, As
 | Pb | informativo | 0,001 | — | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | W | informativo | 0,11 | — | — | — | — | — | — | — | **fisso** (non misurato: preso dal certificato e tolto dalla normalizzazione) |
 | Bi | limite | 0,0005 | — | — | — | — | — | — | — | **informazione** (il certificato dà solo un limite (<)) |
-| Fe | per differenza | 64,19 | — | 64,88 | 3,2 | +1,1% | 0,212 | 0,106 | — | **informazione** (valore per differenza: non entra nei criteri) |
+| Fe | per differenza | 64,19 | — | 64,99 | 3,3 | +1,2% | 0,246 | 0,123 | — | **informazione** (valore per differenza: non entra nei criteri) |
 
-Esito del campione: **non superato** (3 su 5 elementi valutati).
+Esito del campione: **non superato** (4 su 5 elementi valutati).
 
 <details><summary>Avvisi (9)</summary>
 
