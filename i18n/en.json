@@ -2874,5 +2874,14 @@
 "Exported. {0} settings have no equivalent in PyMca: see the notes in the .cfg file.": "Exported. {0} settings have no equivalent in PyMca: see the notes in the .cfg file.",
 "Project from version {0}: {1} with the 3.0 model, so the compositions do not change. The 3.1 model can be chosen in the concentrations panel.": "Project from version {0}: {1} with the 3.0 model, so the compositions do not change. The 3.1 model can be chosen in the concentrations panel.",
 "XRF spectra stay": "XRF spectra stay",
-"the XRF spectrum stays": "the XRF spectrum stays"
+"the XRF spectrum stays": "the XRF spectrum stays",
+"19 novembre 2026": "19 November 2026",
+"CF-LIBS sperimentale": "Experimental CF-LIBS",
+"File .cfg di PyMca": "PyMca .cfg files",
+"Per gli spettri LIBS una prima analisi senza taratura (temperatura, densità elettronica, concentrazioni), provata solo su spettri sintetici. I dati atomici si scaricano dal NIST la prima volta che li chiedi.": "For LIBS spectra, a first calibration-free analysis (temperature, electron density, concentrations), tested only on synthetic spectra. The atomic data are downloaded from NIST the first time you ask for them.",
+"Picchi con code e gradino come in PyMca, fughe e picchi somma, tubo descritto con la formula di Ebel. Gli elementi proposti restano solo se il fit li conferma: niente più antimonio e iodio inventati nello stagno. I progetti della 3.0 si riaprono con gli stessi numeri.": "Peaks with tails and step as in PyMca, escape and sum peaks, tube described with the Ebel formula. Proposed elements stay only if the fit confirms them: no more made-up antimony and iodine in tin. Projects from 3.0 reopen with the same numbers.",
+"Porti le condizioni di misura da PyMca nelle concentrazioni XRF, e le riporti indietro con «Esporta .cfg di PyMca».": "Bring your measurement conditions from PyMca into the XRF concentrations, and take them back with «Export PyMca .cfg».",
+"Versione di prova": "Test version",
+"XRF più aderente agli spettri veri": "XRF that fits real spectra better",
+"È una versione di prova (3.1.0-rc.1): non arriva come aggiornamento automatico.": "This is a test version (3.1.0-rc.1): it is not offered as an automatic update."
 }

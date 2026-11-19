@@ -1,8 +1,8 @@
 # Novità delle versioni
 
-## In preparazione (3.1, non pubblicata)
+## 3.1.0-rc.1 — 19 novembre 2026
 
-Ramo `claude/xrf-libs-3.1`. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md.
+Versione di prova (pre-release): non viene proposta come aggiornamento automatico. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md e DEBUG-3.1-INDIPENDENTE.md.
 
 - XRF, modello 3.1 (predefinito per le analisi nuove): picchi con code e gradino (ipermetro, come PyMca), fughe Kα e Kβ del silicio o del germanio per tutte le righe, picchi somma facoltativi, Noise e Fano liberi o fissati, termine quadratico dell'asse dell'energia, parametri adattati con Levenberg–Marquardt; spettro del tubo di Ebel (1999) con anodo, kV, angoli e finestra configurabili e 14 anodi; fluorescenza terziaria approssimata; eccitazione monocromatica o a lista di energie; rivelatore al germanio. Sull'acciaio NIST SRM 1155 distribuito con PyMca il χ² ridotto scende da 15,2 a 8,2 (PyMca 13,1).
 - XRF, verifica degli elementi con il fit: un elemento proposto entra nel calcolo solo se la sua riga analitica è significativa e se migliora davvero il fit. Spariscono Sb e I falsi nelle leghe di stagno e Pb al posto di As; gli elementi tolti sono elencati negli avvisi.
