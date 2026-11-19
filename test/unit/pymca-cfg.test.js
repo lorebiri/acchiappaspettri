@@ -51,6 +51,7 @@ test('toAcch su Steel.cfg: eccitazione monocromatica 16 keV, geometria, filtri, 
   assert.deepEqual({anode:s.anode, kv:s.kv, psi1:s.psi1, psi2:s.psi2, beT:s.beT, eps:s.eps, alphae:s.alphae, alphax:s.alphax, d1:s.d1, d2:s.d2, atm:s.atm, beD:s.beD, si:s.si, det:s.det},
     {anode:'Ag', kv:30, psi1:45, psi2:45, beT:125, eps:90, alphae:90, alphax:90, d1:0, d2:5, atm:'air', beD:20, si:350, det:'Si'});
   assert.deepEqual(s.filt, {comp:'Al', compW:{Al:1}, rho:2.72, um:1100, name:'Al1'});
+  assert.equal(s.ae, 90, 'ae: incidenza degli elettroni (alphae); eps: uscita dei raggi X (alphax)'); assert.equal(s.trans, 0); assert.equal(s.tT, null);
   const f=n.fit;
   assert.equal(f.xmin, 200); assert.equal(f.xmax, 1432); assert.ok(Math.abs(f.xminE-(-0.00612446976449+0.0119281593146*200))<1e-9); assert.ok(Math.abs(f.xmaxE-17.075)<1e-3);
   assert.equal(f.noise, 0.127439); assert.equal(f.fano, 0.101156); assert.equal(f.sum, 1e-10); assert.equal(f.quad, null);
@@ -125,6 +126,8 @@ test('casi sintetici: ipermetro completo, multistrato, elio, germanio, due filtr
   assert.equal(cfg.peaks.Cu, 'K'); assert.deepEqual(cfg.peaks.Pb, ['L','M']);
   const back=P.toAcch(P.stringify(cfg)); assert.equal(back.setup.filt.comp, 'Cu:63 Zn:37'); assert.deepEqual(back.fit.hypermet, {gauss:true, st:true, lt:false, step:true}); assert.equal(back.setup.eps, 20);
   // senza eccitazione: energy = None e la spiegazione per generarla in PyMca
+  const tr=P.fromAcch({setup:{anode:'Rh', kv:50, ae:60, trans:1, tT:5}}); assert.equal(tr.tube.transmission, 1); assert.equal(tr.tube.anodethickness, 0.0005); assert.equal(tr.tube.alphae, 60);
+  const trb=P.toAcch(P.stringify(tr)); assert.equal(trb.setup.trans, 1); assert.equal(trb.setup.tT, 5); assert.equal(trb.setup.ae, 60);
   const c2=P.fromAcch({setup:{anode:'W', kv:35}}); assert.equal(c2.fit.energy, 'None'); assert.match(c2.warnings.map(x=>x.msg).join(' '), /Tube/);
 });
 

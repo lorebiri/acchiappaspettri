@@ -232,7 +232,8 @@
     const anode=hasTube ? String(get('tube', tube, 'anode')||'') || null : null, kv=hasTube ? num(get('tube', tube, 'voltage')) : null;
     const alphae=hasTube ? num(get('tube', tube, 'alphae')) : null, alphax=hasTube ? num(get('tube', tube, 'alphax')) : null;
     if (hasTube && num(tube.filter1thickness)>0) { used.tube.add('filter1').add('filter1thickness').add('filter1density'); warn('[tube] filter1', 'approssimata', 'filtro del tubo «'+tube.filter1+'» ('+um(tube.filter1thickness)+' µm): in PyMca entra solo nella lista delle energie generata dal tubo; aggiungilo come filtro sul fascio se serve'); }
-    if (hasTube && flag(tube.transmission)) { used.tube.add('transmission'); warn('[tube] transmission', 'ignorata', 'tubo a trasmissione: l\'app presume un anodo massiccio'); }
+    const trans=hasTube && flag(get('tube', tube, 'transmission')), tT=trans ? um(get('tube', tube, 'anodethickness')) : null;
+    if (trans) warn('[tube] transmission', 'nota', 'tubo a trasmissione (anodo di '+tT+' µm): nell\'app vale solo con il modello fisico 3.1 (spettro di Ebel)');
 
     // eccitazione: la lista di [fit] è ciò che PyMca usa davvero
     const E=arr(get('fit', fit, 'energy')), Wt=arr(get('fit', fit, 'energyweight')), Fl=arr(get('fit', fit, 'energyflag')), Sc=arr(get('fit', fit, 'energyscatter'));
@@ -308,7 +309,8 @@
     return {
       version:VERSION,
       // exc: la stessa eccitazione nel formato di fpSetup ([[E keV, peso, diffusione 0/1]]), così fpSetup(n.setup) la usa direttamente
-      setup:{anode, kv, psi1, psi2, beT, eps:alphax, alphae, alphax, d1:0, d2, atm, beD, si, det:detType, filt, exc:excitation ? excitation.map(x=>[x.E, x.w, x.scatter?1:0]) : null},
+      // eps è l'angolo d'uscita dei raggi X dall'anodo (alphax di PyMca); ae l'incidenza degli elettroni (alphae), usata dal modello fisico 3.1
+      setup:{anode, kv, psi1, psi2, beT, eps:alphax, ae:alphae, alphae, alphax, trans:trans ? 1 : 0, tT, d1:0, d2, atm, beD, si, det:detType, filt, exc:excitation ? excitation.map(x=>[x.E, x.w, x.scatter?1:0]) : null},
       excitation, fit:fitN, peaks, matrix, quant, warnings:W
     };
   }
@@ -503,7 +505,8 @@ CompoundList = H1, C1, O1
     if (num(s.kv)!=null) T.voltage=s.kv;
     if (num(s.beT)!=null){ T.window='Be'; T.windowdensity=BE_RHO; T.windowthickness=r6(s.beT*1e-4); }
     const ax=num(s.alphax)!=null ? s.alphax : num(s.eps)!=null ? s.eps : null; if (ax!=null) T.alphax=ax;
-    if (num(s.alphae)!=null) T.alphae=s.alphae;
+    if (num(s.ae)!=null) T.alphae=s.ae; else if (num(s.alphae)!=null) T.alphae=s.alphae;
+    if (s.trans){ T.transmission=1; if (num(s.tT)>0) T.anodethickness=r6(s.tT*1e-4); }
     if (!s.anode) delete cfg.tube;   // tubo ignoto: niente sezione [tube] (come McaTheory.cfg), invece di un tubo inventato
     if (num(s.charF)!=null && s.charF!==1 || num(s.cexp)!=null && s.cexp!==1) warn('[tube]', 'ignorata', 'correzioni empiriche del tubo dell\'app (charF, cexp): PyMca usa il modello di Ebel');
     // attenuatori

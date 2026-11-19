@@ -53,7 +53,7 @@ Esito del campione: **non superato** (3 su 5 elementi valutati).
 - cfg [xrfmc]: impostazioni di XMI-MSIM (Monte Carlo): l'app non le usa
 - cfg [detector] ignoreinputcalibration, nthreshold: senza equivalente nell'app (soglie di raggruppamento delle righe e opzioni di calibrazione)
 - cfg [fit] stripwidth, stripfilterwidth, exppolorder, strategy, fitweight, stripanchorsflag, use_limit, stripiterations, linpolorder, deltaonepeak, stripconstant, strategyflag, stripanchorslist: senza equivalente nell'app (opzioni dell'algoritmo di PyMca)
-- cfg [tube] anodedensity, anodethickness, transmission, deltaplotting, filter1thickness, filter1density, filter1: senza equivalente nell'app (dettagli dello spettro del tubo di Ebel)
+- cfg [tube] anodedensity, anodethickness, deltaplotting, filter1thickness, filter1density, filter1: senza equivalente nell'app (dettagli dello spettro del tubo di Ebel)
 - cfg [concentrations] usexrfmc, useautotime: senza equivalente nell'app
 
 </details>
