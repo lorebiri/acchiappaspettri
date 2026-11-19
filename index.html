@@ -3604,17 +3604,17 @@ function fpSetup(o){ o=o||{};
   const s={anode:FP.el[o.anode]&&FP_ANODES.includes(o.anode)?o.anode:'Rh', kv:+o.kv>50?50:+o.kv>4?+o.kv:40, psi1:+o.psi1>3&&+o.psi1<=90?+o.psi1:45, psi2:+o.psi2>3&&+o.psi2<=90?+o.psi2:45,
     d1:o.d1!=null&&+o.d1>=0?+o.d1:1.0, d2:o.d2!=null&&+o.d2>=0?+o.d2:1.0, beT:o.beT!=null?+o.beT:125, beD:o.beD!=null?+o.beD:12.5, si:o.si!=null?+o.si:500, eps:+o.eps||20,
     atm:o.atm==='he'||o.atm==='vac'?o.atm:'air', charF:+o.charF>0?+o.charF:1, cexp:+o.cexp>0?+o.cexp:1, filt:o.filt&&fpParseComp(o.filt.comp)?o.filt:null};
-  if (o.phys==='3.1') s.phys='3.1';   // modello fisico 3.1: tubo di Ebel, produzione delle righe più fine, rese ω da xraylib, fluorescenza terziaria
+  if (o.phys==='3.1'){ s.phys='3.1'; s.ae=+o.ae>=30&&+o.ae<=90?+o.ae:75; if (o.trans){ s.trans=1; s.tT=+o.tT>0?+o.tT:0; } }   // ae: incidenza degli elettroni sull'anodo; eps resta l'angolo d'uscita dei raggi X   // modello fisico 3.1: tubo di Ebel, produzione delle righe più fine, rese ω da xraylib, fluorescenza terziaria
   if (o.det==='Ge') s.det='Ge';   // rivelatore al germanio (efficienza e fughe); predefinito il silicio
   // eccitazione a lista di energie (monocromatica, sincrotrone, ottiche con filtro, [fit] energy… di PyMca): [[E keV, peso, diffusione 0/1]]
   if (Array.isArray(o.exc)){ const ex=o.exc.filter(q=>Array.isArray(q) && +q[0]>0.5 && +q[0]<=100 && +q[1]>0).map(q=>[+q[0], +q[1], q[2]?1:0]); if (ex.length){ s.exc=ex; s.kv=Math.max(...ex.map(q=>q[0])); } }
   s.key=JSON.stringify(s); return s;
 }
-const FP_ANODES=['Rh','Ag','Mo','W','Pd','Cr','Cu','Ti'];
+const FP_ANODES=['Rh','Ag','Mo','W','Pd','Cr','Cu','Ti','Au','Pt','Ta','Co','Fe','Sc'];
 const FP_CACHE=new Map();
 /* spettro del tubo: continuo di Kramers N(E) ∝ Z·(E₀/E − 1) con autoassorbimento nell'anodo (profondità di Kanaya–Okayama) e righe
    caratteristiche ∝ ω·(U·lnU − U + 1); finestra di berillio; aria tra tubo e campione */
-function fpTube(S){
+function fpTube(S){ if (S.phys==='3.1') return fpTubeEbel(S);
   const a=FP.el[S.anode], Z=a.Z, E0=S.kv, st=0.1, R=2.76e-6*a.A*E0**1.67/Z**0.889, se=Math.sin(S.eps*Math.PI/180), E=[], N=[];
   const win=x=>{ let t=Math.exp(-fpMu('Be',x)*1.848*S.beT*1e-4); if (S.filt){ const c=fpParseComp(S.filt.comp); t*=Math.exp(-fpMuC(c,x)*S.filt.rho*S.filt.um*1e-4); } return t; };
   const self=(x, Ecut)=>{ const z=0.7*R*Math.max(1e-3, 1-(Ecut/E0)**1.67), q=fpMu(S.anode,x)*z/se; return q<1e-9 ? 1 : (1-Math.exp(-q))/q; };
@@ -3625,6 +3625,34 @@ function fpTube(S){
   }
   return {E:Float64Array.from(E), N:Float64Array.from(N)};
 }
+/* spettro del tubo del modello fisico 3.1: Ebel H. (1999) X-ray tube spectra, X-Ray Spectrom. 28, 255–266, doi:10.1002/(SICI)1097-4539(199907/08)28:4<255::AID-XRS347>3.0.CO;2-Y
+   (valido per 5–50 kV, incidenza degli elettroni 50–90°, uscita dei raggi X 5–90°). Continuo e righe K riprendono XRayTubeEbel.py di PyMca
+   (MIT, © ESRF; vedi THIRD-PARTY-NOTICES.md): N(E) = 1,35·10⁹·Z·(E₀/E − 1)^x·f(χ), x = 1,109 − 0,00435·Z + 0,00175·E₀, f(χ) = (1 − e^(−2τρz·sinα_e/sinα_x))/(2τρz·sinα_e/sinα_x),
+   profondità media ρz dalle formule (4) di Ebel; righe K: 6,0·10¹³·(1/S)·R·ω_K·p_riga·f(χ), z_K = 2, b_K = 0,35.
+   Righe L (PyMca calcola solo le K): stessa forma con z_L = 8, b_L = 0,25 e le costanti per sottoguscio L1 0,71·10¹³, L2 2,70·10¹³, L3 4,94·10¹³
+   (con la correzione f(Z) = −0,4814 + 0,03781·Z − 2,413·10⁻⁴·Z² per L1 e L2, Z < 80) come nell'implementazione di XMI-MSIM (Schoonjans et al. 2012,
+   doi:10.1016/j.sab.2012.03.011, file xmi_ebel.F90), che le attribuisce a Ebel; l'articolo sulle righe L è Ebel H. (2003) X-Ray Spectrom. 32, 46–51,
+   doi:10.1002/xrs.610 (testo non letto: costanti verificate solo su XMI-MSIM). Rese ω per sottoguscio da FP_DATA (xraylib).
+   Tubo a trasmissione (S.trans, spessore dell'anodo S.tT in µm) come in PyMca. Unità: fotoni/(sr·mA·s) per passo di 0,1 keV. */
+function fpTubeEbel(S){
+  const a=FP.el[S.anode], Z=a.Z, E0=S.kv, st=0.1, E=[], N=[], rho=FP_RHO[S.anode]||10, sae=Math.sin((S.ae||75)*Math.PI/180), sax=Math.sin((S.eps||20)*Math.PI/180), sf=sae/sax;
+  const win=x=>{ let t=Math.exp(-fpMu('Be',x)*1.848*S.beT*1e-4); if (S.filt){ const c=fpParseComp(S.filt.comp); t*=Math.exp(-fpMuC(c,x)*S.filt.rho*S.filt.um*1e-4); } return t; };
+  const lz=Math.log(Z), m=0.1382-0.9211/Math.sqrt(Z), eta=(0.1904-0.2236*lz+0.1292*lz*lz-0.0149*lz**3)*E0**m;
+  const rhozmax=a.A/Z*(0.787e-5*Math.sqrt(0.0135*Z)*E0**1.5+0.735e-6*E0*E0);
+  const rhoz=u0=>{ const l=Math.log(u0); return rhozmax*(l*(0.49269-1.09870*eta+0.78557*eta*eta))/(0.70256-1.09865*eta+1.00460*eta*eta+l); };
+  const tT=S.trans ? (S.tT>0 ? S.tT*1e-4*rho : 2*rhozmax) : 0;
+  const fchi=(x, u0)=>{ const tau=fpTau(S.anode,x), rz=rhoz(u0), h=tau*2*rz*sf; if (!(h>0)) return 0;
+    return S.trans ? (Math.exp(-tau*(tT-2*rz)/sax)-Math.exp(-tau*tT/sax))/h : (1-Math.exp(-h))/h; };
+  const xe=1.109-0.00435*Z+0.00175*E0;
+  for (let x=1+st/2; x<E0; x+=st){ const u0=E0/x; E.push(x); N.push(1.35e9*Z*(u0-1)**xe*fchi(x,u0)*win(x)*st); }
+  const C={K:[6.0e13,2,0.35], L1:[0.71e13,8,0.25], L2:[2.70e13,8,0.25], L3:[4.94e13,8,0.25]}, fc=Z>=80 ? 1 : -0.4814+0.03781*Z-2.413e-4*Z*Z;
+  for (const [nm, El, sh, rate] of (a.tl||[])){ const ed=a.ed[sh], w=a.w[sh]; if (!ed || ed>=E0 || !w || !C[sh]) continue; const [k0, zs, bs]=C[sh], u0=E0/ed, l=Math.log(u0);
+    let ovs=(Math.sqrt(u0)*l+2*(1-Math.sqrt(u0)))/(u0*l+1-u0); ovs=1+16.05*Math.sqrt(0.0135*Z/ed)*ovs; ovs*=(zs*bs/Z)*(u0*l+1-u0);
+    const R=1-0.0081517*Z+3.613e-5*Z*Z+0.009583*Z*Math.exp(-u0)+0.001141*E0;
+    E.push(El); N.push(k0*(sh==='L1'||sh==='L2' ? fc : 1)*ovs*R*w*rate*fchi(El,u0)*win(El)*S.charF); }
+  return {E:Float64Array.from(E), N:Float64Array.from(N)};
+}
+const FP_RHO={Sc:2.99, Ti:4.51, Cr:7.19, Fe:7.874, Co:8.9, Cu:8.96, Mo:10.28, Rh:12.41, Pd:12.02, Ag:10.49, Ta:16.69, W:19.25, Pt:21.45, Au:19.3};   // densità degli anodi (g/cm³)
 /* prepara (e ricorda) tutto ciò che dipende solo dalle condizioni di misura */
 function fpPrep(S){
   let P=FP_CACHE.get(S.key); if (P) return P; if (FP_CACHE.size>12) FP_CACHE.clear();
@@ -3653,6 +3681,12 @@ const FP_ENH=['Ka','Kb','La','Lb'];
 function fpIntensities(layers, S, lines, opt){
   const P=fpPrep(S), s1=P.s1, s2=P.s2, nb=P.nb, out={}; opt=opt||{};
   const MU=layers.map(L=>fpMuLayer(P, L.comp));
+  /* fluorescenza terziaria (modello fisico 3.1), approssimata: la riga j che eccita i è a sua volta rinforzata dalla secondaria nella stessa matrice
+     (k → j → i); il contributo di j si moltiplica per (1 + S_j/P_j), con S_j/P_j il rinforzo secondario di j. Presume che i fotoni j secondari abbiano
+     la stessa distribuzione in profondità dei primari: è il termine principale negli acciai (Ni → Fe → Cr). */
+  const tf={}; if (S.phys==='3.1' && opt.tert!==false && opt.sec!==false){ const Lb=layers.find(L=>!isFinite(L.t)); if (Lb && Object.keys(Lb.comp).length>=3){
+    const l2=[]; for (const j in Lb.comp) if (FP.el[j]) for (const lj of FP_ENH) if (fpLineE(j,lj)) l2.push([j,lj]);
+    const R2=fpIntensities(layers, S, l2, {split:true, tert:false}); for (const [j,lj] of l2){ const t=R2[j+' '+lj], sc=R2[j+' '+lj+' sec']||0; tf[j+lj]=t>sc && sc>0 ? sc/(t-sc) : 0; } } }
   for (const [s, l] of lines){
     const Ei=fpLineE(s,l); if (!Ei){ out[s+' '+l]=0; continue; } const sig=fpSigArr(P,s,l), det=P.det(Ei); let I=0;
     const muI=layers.map(L=>fpMuC(L.comp, Ei)), above=new Float64Array(nb);
@@ -3666,7 +3700,7 @@ function fpIntensities(layers, S, lines, opt){
           for (const lj of FP_ENH){ const Ej=fpLineE(j,lj); if (!Ej || !(Ej>ed)) continue; const sj=fpSigArr(P,j,lj), sigI=fpSigma(s,l,Ej,S.phys==='3.1'), muJ=fpMuC(L.comp,Ej); if (!sigI) continue;
             for (let b=0;b<nb;b++){ if (!sj[b]) continue; const mE=M[b], chi=mE/s1+muI[k]/s2;
               const Lf=(s1/mE)*Math.log(1+mE/(s1*muJ))+(s2/muI[k])*Math.log(1+muI[k]/(s2*muJ));
-              Ssum+=0.5*P.N[b]*C*sigI*Cj*sj[b]/(s1*chi)*Lf*Math.exp(-above[b]); } } }
+              Ssum+=0.5*P.N[b]*C*sigI*Cj*sj[b]/(s1*chi)*Lf*Math.exp(-above[b])*(1+(tf[j+lj]||0)); } } }
         I+=Ssum; if (opt.split) out[s+' '+l+' sec']=Ssum*det; }
       if (!isFinite(L.t)) break;
       for (let b=0;b<nb;b++) above[b]+=(M[b]/s1+muI[k]/s2)*L.t;
