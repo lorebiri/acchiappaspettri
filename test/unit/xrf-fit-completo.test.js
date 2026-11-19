@@ -86,3 +86,12 @@ test('lettura .mca con lo slot vuoto «Calibration3: 0 0» (Bruker ELIO): il pun
   const ok='# Tube Anode: Rh\n# MCA Channels: 2048\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'+Array.from({length:2048},(_,i)=>String(1+i%5)).join('\n'), q=C.parseXRF(ok);
   assert.ok(Math.abs(q.xs[q.xs.length-1]-40.94)<1e-9 && Math.abs(q.xs[1]-q.xs[0]-0.02)<1e-9, 'calibrazione con «0 0» vero invariata');
 });
+test('export Bruker ELIO: .mca (con «Calibration3: 0 0») e .spt LIDAQ (Coefficients = 0 0 0 0 e due punti) danno lo stesso asse e lo stesso tempo vivo', ()=>{
+  const counts=Array.from({length:4096},(_,i)=>i<30?0:(i===758?9000:i===2032?700:5+(i%3)));
+  const mca='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# Live time: 84,894\n# MCA Channels: 4096\n# Calibration1: 758 8,046\n# Calibration2: 2032 22,163\n# Calibration3: 0 0\n#\n'+counts.join('\n');
+  const spt='[LIDAQ1ch Spectrum]\nStart Time = 05/03/2025 11:28:38\n\nRun Time = 90000 msec\nLive Time = 84894 msec\n\n[CALIBRATION]\nCoefficients = 0 0 0 0\nCoefficients points number = 0\n758 8,046\n2032 22,163\n\n[ROIs]\nROIs Number = 0\n\n[DATA]\n'+counts.join('\n');
+  const a=C.parseXRF(mca), b=C.parseXRF(spt);
+  assert.deepStrictEqual([a.xrf.cal.a, a.xrf.cal.b].map(v=>v.toFixed(9)), [b.xrf.cal.a, b.xrf.cal.b].map(v=>v.toFixed(9)), 'stessa calibrazione');
+  assert.strictEqual(a.xs.length, b.xs.length); assert.ok(Math.abs(a.xs[0]-b.xs[0])<1e-12);
+  assert.ok(Math.abs(parseFloat(a.xrf.live.replace(',','.'))-84.894)<1e-9 && b.xrf.liveMs && +b.xrf.live===84894, 'tempo vivo in s (.mca) e in ms (.spt)');
+});

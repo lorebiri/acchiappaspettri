@@ -5696,6 +5696,7 @@ async function addEntries(entries){
   const list = a => a.slice(0,3).map(esc).join(', ')+(a.length>3?'…':'');
   const note=$('#skipNote'), msgs=[];
   if (skipped.length) msgs.push(`🙈 Ho saltato ${skipped.length===1?'un file':skipped.length+' file'} di formato non riconosciuto: ${list(skipped)}.`);
+  if (skipped.some(n=>/\.xga$/i.test(n))) msgs.push('I file .xga sono progetti del software Bruker ELIO (formato binario .NET, non leggibile qui): esporta gli spettri dal software ELIO in .mca o .spt, che l\'app legge con calibrazione, tubo e tempo vivo.');   // 3.1 (dati reali ELIO)
   if (rejected.length) msgs.push(`⛔ Non letto: ${rejected.slice(0,3).map(esc).join('; ')}.`);
   if (errors.length) msgs.push(`🤔 In ${errors.length} file non ho trovato almeno due colonne di numeri (file vuoto, binario o con testo al posto dei numeri): ${list(errors)}. Aprili con un editor di testo: se sono l'esportazione di uno strumento, esportali di nuovo come testo o CSV.`);
   if (unreadable.length) msgs.push(`🔒 Non riesco ad aprire ${unreadable.length} file: ${list(unreadable)}. Se sono su OneDrive/SharePoint, scegli «Mantieni sempre su questo dispositivo» oppure copiali sul Desktop e riprova.`);
