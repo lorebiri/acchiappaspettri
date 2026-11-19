@@ -64,7 +64,7 @@ const page=`### Quale file scaricare · Which file to download
 
 I file si trovano più sotto, in **Assets**. Gli altri (\`.sig\`, \`.app.tar.gz\`, \`latest.json\`, \`.tsv\`) servono agli aggiornamenti automatici e alla licenza; «Source code (zip)» e «Source code (tar.gz)», aggiunti da GitHub, sono il codice sorgente: nessuno di questi serve per usare il programma. · The files are below, under **Assets**. The others are for automatic updates and licensing; «Source code» archives are added by GitHub: you do not need them to use the program.
 
-Istruzioni passo passo · Step-by-step instructions: [docs/INSTALLAZIONE.md](${doc})
+Istruzioni passo passo · Step-by-step instructions: [docs/INSTALLAZIONE.md](${doc}) · Sito del programma · Website: https://lorebiri.github.io/acchiappaspettri/scarica/
 
 ### Avvisi del browser e del PC · Browser and PC warnings
 I pacchetti non hanno firma Apple/Microsoft, quindi browser e sistema avvisano; gli aggiornamenti invece sono firmati e verificati dall'app. Su Windows gli avvisi arrivano in quest'ordine:
