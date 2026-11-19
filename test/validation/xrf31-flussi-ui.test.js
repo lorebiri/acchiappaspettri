@@ -29,6 +29,9 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
       // [peaks] con chiavi ereditate (toString…) e lista di eccitazione lunga: elementi veri soltanto, lista troncata a 400 con avviso
       { const c4={}; const big='[peaks]\ntoString = K\nhasOwnProperty = K\nCu = K\n[fit]\nenergy = '+Array.from({length:450},(_,i)=>(5+i*0.1).toFixed(2)).join(', ')+'\nenergyweight = '+Array(450).fill('1').join(', ')+'\nenergyflag = '+Array(450).fill('1').join(', ')+'\nenergyscatter = '+Array(450).fill('0').join(', ')+'\n';
         fpImportCfg(c4, big, 'lungo.cfg'); o.peaksEls=c4.els; o.excLen=c4.S.exc?c4.S.exc.length:0; o.excWarn=(c4.cfgWarn||[]).some(t=>/troncata a 400/.test(t)); }
+      // debug 3.1 indipendente: .cfg in UTF-16 (come lo salva il Blocco note) e tensione oltre i limiti, sostituita con un avviso
+      { const t16='\ufeff[tube]\nanode = Ag\nvoltage = 60\n[peaks]\nCu = K\n', u=new Uint8Array(2*t16.length); for (let i=0;i<t16.length;i++){ u[2*i]=t16.charCodeAt(i)&255; u[2*i+1]=t16.charCodeAt(i)>>8; }
+        const c5={}; fpImportCfg(c5, decodeBuffer(u.buffer), 'utf16.cfg'); o.u16={anode:c5.S.anode, kv:c5.S.kv, warn:(c5.cfgWarn||[]).some(t=>/fuori dai limiti/.test(t) && /kv 60 → 50/.test(t))}; }
       // progetto salvato e riaperto
       let saved=null; const h=AcchProject.host, old=h.saveAs; h.saveAs=async (b,s)=>{ saved=b; return {name:s,path:null}; }; await AcchProject.saveAs(); h.saveAs=old;
       await AcchProject.closeProject(); await AcchProject.openBytes(saved,'p.acchspettri',null); const F=files[0]; F._fpKey=null; o.reopen={model:fpCfg(F).model, r:res(fpRun(F))};
@@ -45,6 +48,7 @@ test('XRF 3.1: .cfg andata e ritorno, .cfg ostile, progetto salvato e riaperto, 
     assert.deepEqual(r.imp, {anode:'Rh', kv:40, psi1:45, psi2:45, model:'hypermet', els:r.imp.els}, JSON.stringify(r.imp)); assert.ok(['Sn','Cu','Pb','Zn','As'].every(e=>r.imp.els.includes(e)), 'elementi dal .cfg');
     assert.ok(Math.abs(r.cal.zero-r.cal.want0)<1e-6 && Math.abs(r.cal.gain/r.cal.wantG-1)<1e-6 && r.cal.sum===1, '.cfg esportato: calibrazione per canale dello spettro e picchi somma come impostati '+JSON.stringify(r.cal));
     assert.ok(!r.bad.polluted && !r.bad.proto, 'prototipo inquinato'); assert.ok(!r.bad.xss && !r.bad.html, 'HTML del .cfg eseguito o non protetto'); assert.ok(!r.bad.run, 'calcolo con il .cfg ostile: '+r.bad.run);
+    assert.ok(r.u16.anode==='Ag' && r.u16.warn, '.cfg UTF-16 e tensione fuori limite: '+JSON.stringify(r.u16));
     assert.deepEqual(r.peaksEls, ['Cu'], 'elementi da [peaks]: '+JSON.stringify(r.peaksEls)); assert.ok(r.excLen<=400 && r.excWarn, 'eccitazione: '+r.excLen);
     assert.equal(r.reopen.model, 'hypermet'); assert.deepEqual(r.reopen.r, r.r1, 'progetto riaperto: stessi numeri');
     assert.equal(r.old.model, 'gauss', 'progetto della 3.0: modello 3.0'); assert.ok(r.old.was30 && r.old.note, 'avviso nel pannello'); assert.ok(r.old.toast, 'avviso all\'apertura');

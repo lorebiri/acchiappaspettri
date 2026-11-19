@@ -3624,12 +3624,12 @@ const FP_AIR={N:0.7553, O:0.2318, Ar:0.0128}, FP_AIR_RHO=1.205e-3;
 /* condizioni di misura (geometria, tubo, rivelatore) con valori tipici dove l'intestazione non dice nulla */
 function fpSetup(o){ o=o||{};
   const s={anode:FP.el[o.anode]&&FP_ANODES.includes(o.anode)?o.anode:'Rh', kv:+o.kv>50?50:+o.kv>4?+o.kv:40, psi1:+o.psi1>3&&+o.psi1<=90?+o.psi1:45, psi2:+o.psi2>3&&+o.psi2<=90?+o.psi2:45,
-    d1:o.d1!=null&&+o.d1>=0?+o.d1:1.0, d2:o.d2!=null&&+o.d2>=0?+o.d2:1.0, beT:o.beT!=null&&+o.beT>=0?+o.beT:125, beD:o.beD!=null&&+o.beD>=0?+o.beD:12.5, si:o.si!=null&&+o.si>0?+o.si:500, eps:+o.eps>3&&+o.eps<=90?+o.eps:20,   // 3.1: valori impossibili (angoli fuori 3–90°, spessori negativi) tornano ai tipici: davano NaN
+    d1:o.d1!=null&&+o.d1>=0&&+o.d1<=1e3?+o.d1:1.0, d2:o.d2!=null&&+o.d2>=0&&+o.d2<=1e3?+o.d2:1.0, beT:o.beT!=null&&+o.beT>=0&&+o.beT<=1e5?+o.beT:125, beD:o.beD!=null&&+o.beD>=0&&+o.beD<=1e5?+o.beD:12.5, si:o.si!=null&&+o.si>=0.1&&+o.si<=1e5?+o.si:500, eps:+o.eps>3&&+o.eps<=90?+o.eps:20,   // 3.1: valori impossibili (angoli fuori 3–90°, spessori negativi) tornano ai tipici: davano NaN; debug 3.1: anche quelli finiti ma assurdi (1e308 cm d'aria, sensore di 1e-300 µm)
     atm:o.atm==='he'||o.atm==='vac'?o.atm:'air', charF:+o.charF>0?+o.charF:1, cexp:+o.cexp>0?+o.cexp:1, filt:o.filt&&fpParseComp(o.filt.comp)?o.filt:null};
-  if (o.phys==='3.1'){ s.phys='3.1'; s.ae=+o.ae>=30&&+o.ae<=90?+o.ae:75; if (o.trans){ s.trans=1; s.tT=+o.tT>0?+o.tT:0; } }   // ae: incidenza degli elettroni sull'anodo; eps resta l'angolo d'uscita dei raggi X   // modello fisico 3.1: tubo di Ebel, produzione delle righe più fine, rese ω da xraylib, fluorescenza terziaria
+  if (o.phys==='3.1'){ s.phys='3.1'; s.ae=+o.ae>=30&&+o.ae<=90?+o.ae:75; if (o.trans){ s.trans=1; s.tT=+o.tT>0&&+o.tT<=1e4?+o.tT:0; } }   // ae: incidenza degli elettroni sull'anodo; eps resta l'angolo d'uscita dei raggi X   // modello fisico 3.1: tubo di Ebel, produzione delle righe più fine, rese ω da xraylib, fluorescenza terziaria
   if (o.det==='Ge') s.det='Ge';   // rivelatore al germanio (efficienza e fughe); predefinito il silicio
   // eccitazione a lista di energie (monocromatica, sincrotrone, ottiche con filtro, [fit] energy… di PyMca): [[E keV, peso, diffusione 0/1]]
-  if (Array.isArray(o.exc)){ const ex=o.exc.filter(q=>Array.isArray(q) && +q[0]>0.5 && +q[0]<=50 && +q[1]>0)   // le tabelle FP arrivano a 50 keV: oltre, mancano gli spigoli K degli elementi pesanti
+  if (Array.isArray(o.exc)){ const ex=o.exc.filter(q=>Array.isArray(q) && +q[0]>0.5 && +q[0]<=50 && +q[1]>1e-100 && +q[1]<1e100)   // le tabelle FP arrivano a 50 keV: oltre, mancano gli spigoli K degli elementi pesanti
       .map(q=>[+q[0], +q[1], q[2]?1:0]); if (ex.length){ s.exc=ex; s.kv=Math.max(...ex.map(q=>q[0])); } }
   s.key=JSON.stringify(s); return s;
 }
@@ -8940,7 +8940,7 @@ function renderCult(f){
   if ($('#fpQuad')) $('#fpQuad').onchange=e=>{ c.quad=e.target.checked; save(); };
   if ($('#fpExcOff')) $('#fpExcOff').onclick=()=>{ c.S=Object.assign({}, c.S||{}); delete c.S.exc; save(); };
   $('#fpCfgIn').onclick=()=>$('#fpCfgFile').click();
-  $('#fpCfgFile').onchange=async e=>{ const file=e.target.files[0]; if (!file) return; try{ fpImportCfg(c, await file.text(), file.name); save(); toast('✔ Condizioni importate da '+file.name+'.'); }catch(err){ toast('⚠️ Non riesco a leggere '+file.name+': '+String(err.message||err)); } };
+  $('#fpCfgFile').onchange=async e=>{ const file=e.target.files[0]; if (!file) return; try{ fpImportCfg(c, decodeBuffer(await file.arrayBuffer()), file.name); save(); toast('✔ Condizioni importate da '+file.name+'.'); }catch(err){ toast('⚠️ Non riesco a leggere '+file.name+': '+String(err.message||err)); } };
   $('#fpCfgOut').onclick=()=>{ try{ const t=fpExportCfg(f, R); download(new Blob([t.text],{type:'text/plain'}), (f.name||'xrf').replace(/\.[^.]+$/,'')+'.cfg'); if (t.warn.length) toast('Esportato. '+t.warn.length+' impostazioni non hanno un equivalente in PyMca: vedi le note nel file.'); }catch(err){ toast('⚠️ Esportazione non riuscita: '+String(err.message||err)); } };
   if ($('#fpSens')) $('#fpSens').onclick=async()=>{ const box=$('#fpSensOut'); box.textContent='Sto ricalcolando…'; await new Promise(r=>setTimeout(r,20)); const q=await fpSensitivity(f); if (!q){ box.textContent=''; return; } box.innerHTML=`<p class="why">Ho ripetuto la stima ${q.n} volte cambiando tensione ±5 kV, angoli ±10° e spessore del sensore. Mostra quanto contano queste ipotesi, in più del ± di conteggio. <b>Non è un'accuratezza:</b> vale solo se il modello è adatto al campione.</p><div class="areawrap"><table class="areatab"><thead><tr><th>Elemento</th><th>Stima %</th><th>da</th><th>a</th></tr></thead><tbody>${Object.entries(q.res).sort((a,b)=>b[1].w-a[1].w).map(([e,o])=>`<tr><td><b>${e}</b></td><td>${fmtN(o.w,o.w<10?2:1)}</td><td>${fmtN(o.lo,o.lo<10?2:1)}</td><td>${fmtN(o.hi,o.hi<10?2:1)}</td></tr>`).join('')}</tbody></table></div>`; };
   $('#fpSall').onclick=()=>{ let n=0; files.forEach(g=>{ if (g.instr!=='xrf' || g===f) return; const cg=fpCfg(g); cg.S=Object.assign({}, c.S||{}); fpSaveCfg(g, cg); n++; }); toast(n ? `✔ Condizioni copiate su ${n} spettr${n===1?'o':'i'} XRF.` : 'Non ci sono altri spettri XRF.'); };
@@ -8953,6 +8953,10 @@ function fpImportCfg(c, text, name){ const P=window.PymcaCfg; if (!P) throw new 
   if (st.anode && FP_ANODES.includes(st.anode)) S.anode=st.anode; for (const k of ['kv','psi1','psi2','d2','beD','beT','si','ae','eps','tT']) if (typeof st[k]==='number' && isFinite(st[k])) S[k]=st[k];
   if (['air','he','vac'].includes(st.atm)) S.atm=st.atm; if (st.det==='Ge') S.det='Ge'; if (st.trans) S.trans=1; if (Array.isArray(st.exc) && st.exc.length){ if (st.exc.some(q=>q[0]>50)) (n.warnings=n.warnings||[]).push('energie di eccitazione oltre 50 keV ignorate: le tabelle fisiche dell\'app arrivano a 50 keV'); S.exc=st.exc.filter(q=>q[0]<=50).slice(0,400); if (st.exc.length>400) (n.warnings=n.warnings||[]).push('lista di energie di eccitazione troncata a 400 (ne aveva '+st.exc.length+'): è il limite dei progetti'); }
   if (st.filt && FP_FILTERS[st.filt.comp] && st.filt.um>0){ S.filtEl=st.filt.comp; S.filtUm=st.filt.um; }
+  { const T=fpSetup(Object.assign({phys:'3.1'}, S)), lim=[];   // valori che l'app riporta ai suoi limiti: lo si dice (prima 60 kV diventavano 50 in silenzio)
+    if (S.kv!=null && !S.exc && S.kv!==T.kv) lim.push('kv '+S.kv+' → '+T.kv);
+    for (const k of ['psi1','psi2','eps','d2','beT','beD','si']) if (S[k]!=null && S[k]!==T[k]) lim.push(k+' '+S[k]+' → '+T[k]);
+    if (lim.length) (n.warnings=n.warnings||[]).push('valori fuori dai limiti dell\'app, sostituiti: '+lim.join('; ')); }
   c.S=S; c.model='hypermet'; c.phys='3.1'; delete c.was30; const ft=n.fit||{}; c.pileup=ft.pileup!==false && ft.pileup!==0; c.quad=!!ft.quad; c.cfgName=String(name||'').slice(0,120);
   c.cfgWarn=(n.warnings||[]).map(w=>typeof w==='string'?w:w.msg).filter(Boolean).slice(0,40);
   if (n.peaks && typeof n.peaks==='object'){ const els=Object.keys(n.peaks).filter(e=>Object.prototype.hasOwnProperty.call(FP.el, e)); if (els.length) c.els=els; }

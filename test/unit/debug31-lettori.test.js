@@ -33,3 +33,11 @@ test('.cfg: [DEFAULT] e %(x)s non esauriscono la memoria; «%(» ripetuto e spaz
   // un file normale con [DEFAULT] e sostituzioni resta come prima
   assert.deepEqual(P.parse('[DEFAULT]\nd = 7\n[s]\nk = %(d)s0\n').s, {d:7, k:70});
 });
+test('fpSetup: valori finiti ma assurdi (1e308 cm d\'aria, sensore di 1e-300 µm, peso 1e-310) tornano ai tipici invece di dare NaN', ()=>{
+  const S=C.fpSetup({anode:'Rh', kv:40, phys:'3.1', d1:1e308, d2:1e308, beT:1e308, beD:1e308, si:1e-300, trans:1, tT:1e308});
+  assert.deepEqual([S.d1, S.d2, S.beT, S.beD, S.si, S.tT], [1, 1, 125, 12.5, 500, 0]);
+  const I=C.fpIntensities([{comp:{Cu:0.9, Sn:0.1}, t:Infinity}], S, [['Cu','Ka'],['Sn','Ka']]); assert.ok(Number.isFinite(I['Cu Ka']) && I['Cu Ka']>0);
+  assert.equal(C.fpSetup({exc:[[17.48, 1e-310, 1]]}).exc, undefined, 'peso denormale scartato');
+  const R=C.fpSetup({d2:3.5, beT:250, si:1000}); assert.deepEqual([R.d2, R.beT, R.si], [3.5, 250, 1000], 'valori realistici invariati');
+  assert.equal(C.fpSetup({eps:30}).eps, 30, 'angolo d\'uscita del tubo'); assert.equal(C.fpSetup({}).eps, 20);
+});
