@@ -17,7 +17,7 @@ const loadFiles=(p,list)=>p.evaluate(async list=>{ await addEntries(list.map(([n
 const xrfText=()=>{ let s='# Tube Anode: Rh\n# Tube Voltage: 40\n# Incident beam angle: 68\n# Fluorescence beam: 63,5\n# MCA Channels: 2048\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'; for (let i=0;i<2048;i++){ const E=i*0.02; s+=Math.round(20+5000*Math.exp(-0.5*((E-8.04)/0.07)**2)+700*Math.exp(-0.5*((E-8.9)/0.07)**2)+900*Math.exp(-0.5*((E-22.1)/0.09)**2))+'\n'; } return s; };
 const ftir=()=>Array.from({length:800},(_,i)=>{ const x=4000-i*4; return x+'\t'+(0.02+0.8*Math.exp(-0.5*((x-1730)/10)**2)+0.3*Math.exp(-0.5*((x-2920)/15)**2)).toFixed(5); }).join('\n');
 (async()=>{
-  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const browser=await chromium.launch(process.env.PW_CHANNEL?{channel:process.env.PW_CHANNEL}:{});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const browser=await chromium.launch(process.env.PW_CHANNEL?{channel:process.env.PW_CHANNEL}:process.env.PW_EXECUTABLE?{executablePath:process.env.PW_EXECUTABLE}:{});
   { // versione online leggera: picchi e assegnazioni identici al desktop, il resto si riapre
     const sign=()=>JSON.stringify(files.map(f=>{ const d=viewOf(f), H=hypotheses(f,d); return {n:f.name,i:f.instr,p:d.peaks.map(q=>[+q.x.toFixed(4),+q.y.toPrecision(7),q.area!=null?+q.area.toPrecision(7):null,(q.sugg||[]).slice(0,3).map(g=>[g.id,+(g.score||0).toFixed(4)])]),h:H&&[(H.els||[]).join(),(H.unsure||[]).join(),(H.list||[]).map(x=>x.it+(x.score||'')),(H.pig||[]).map(x=>x.it+(x.score||''))],q:assess(f,d).map(o=>o.lv)}; }));
     const fx=[['m.mca',xrfText()],['a.txt',ftir()],['b.txt',ftir()]];

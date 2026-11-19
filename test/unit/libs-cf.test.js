@@ -171,3 +171,10 @@ test('spettro reale SuperLIBS 10K (0201H, CC BY 4.0): il calcolo gira e dà avvi
 });
 
 test.after(()=>{ if (process.env.LIBS_REPORT) console.log('\n'+REPORT.map(r=>r.join(' | ')).join('\n')); });
+test('multipletti non risolti della stessa specie (Zn I 330,26/330,29 nm): una riga sola con g·A sommato, non scartati', ()=>{
+  const r=C.candidates(D, ['Zn','Cu'], 300, 345, {fwhmG:0.1}), z=r.lines.filter(l=>l.el==='Zn' && l.merged);
+  assert.ok(z.length>=1, 'multipletto di Zn unito'); const m=z.find(l=>Math.abs(l.wl-330.27)<0.03); assert.ok(m && m.parts.length===2 && m.gk===1 && m.A>0);
+  assert.ok(!r.blended.some(l=>l.el==='Zn' && Math.abs(l.wl-330.27)<0.05), 'non più fra le righe scartate');
+  const S=C.synth(D, {comp:{Cu:90, Zn:10}, T:10000, ne:1e17, ambient:{H:1e17}, wl:[300,540], fwhmG:0.1, peakCounts:3e5, seed:2}), a=C.analyze(D, S.x, S.y, {elements:['Cu','Zn'], fwhmG:0.1, neFrom:'Halpha'});
+  assert.ok(a.ok, a.why); const zn=a.elements.find(e=>e.el==='Zn'); assert.ok(zn && zn.wt>0.05, 'Zn misurato: '+(zn&&zn.wt));
+});

@@ -2028,10 +2028,14 @@ function parseXRF(text){
   }
   if (counts.length<16 || !counts.every(isFinite)) return null;
   // calibrazione canale → energia
-  let A=null, B=null, C2=0;
+  let A=null, B=null, C2=0, calNote='';
   if (poly && poly.slice(0,3).some(v=>v!==0)){ A=poly[0]||0; B=poly[1]||0; C2=poly[2]||0; }
   else {
     const pts=cal.filter(q=>q[0]>=0);   // l'energia di un punto può essere negativa (scostamento: «Calibration1: 0 -0.100»); scartarla toglieva lo scostamento (ciclo 25)
+    // 3.1: Bruker ELIO scrive uno slot vuoto «Calibration3: 0 0» accanto ai due punti veri; nella regressione spostava l'asse (≈ +0,1 keV a 8 keV).
+    // Il punto (0, 0) si scarta solo se ci sono almeno altri due punti e non sta sulla loro retta (oltre mezzo canale): un «0 0» vero resta
+    { const z=pts.findIndex(q=>q[0]===0 && q[1]===0), o=pts.filter(q=>!(q[0]===0 && q[1]===0)); if (z>=0 && o.length>=2){ const [p1,p2]=[o[0],o[o.length-1]], b=(p2[1]-p1[1])/((p2[0]-p1[0])||1), a0=p1[1]-b*p1[0];
+      if (Math.abs(a0)>0.5*Math.abs(b)){ pts.splice(z,1); calNote='zero'; } } }
     if (pts.length>=2){ const n=pts.length, mx=pts.reduce((t,q)=>t+q[0],0)/n, my=pts.reduce((t,q)=>t+q[1],0)/n;
       let sxx=0, sxy=0; for (const q of pts){ sxx+=(q[0]-mx)**2; sxy+=(q[0]-mx)*(q[1]-my); } if (sxx>0){ B=sxy/sxx; A=my-B*mx; } }
     else if (pts.length===1 && pts[0][0]>0){ A=0; B=pts[0][1]/pts[0][0]; }
@@ -2048,7 +2052,7 @@ function parseXRF(text){
     kv: hv(/Tube Voltage\s*[:=]\s*([\d.,]+)/i) || hv(/\bHV\s*[:=]\s*([\d.,]+)/i), ua: hv(/Tube Current\s*[:=]\s*([\d.,]+)/i),
     live: hv(/Live[_ ]time\s*[:=\-]\s*([\d.,]+)/i), liveMs: /Live Time\s*=\s*[\d.,]+\s*msec/i.test(meta.join('\n')),
     psi1: hv(/Incident beam angle\s*[:=]\s*([\d.,]+)/i) || hv(/Incidence angle\s*[:=]\s*([\d.,]+)/i), psi2: hv(/Fluorescence beam(?: angle)?\s*[:=]\s*([\d.,]+)/i) || hv(/Take-?off angle\s*[:=]\s*([\d.,]+)/i),
-    dist: hv(/Sample to detector distance\s*[:=]\s*([\d.,]+)/i) };
+    dist: hv(/Sample to detector distance\s*[:=]\s*([\d.,]+)/i), calNote };
   if (info.tube && !XRF_TUBES[info.tube] && !XRF_LINES[info.tube]) info.tube='';
   return {xs:Float64Array.from(xs), ys:Float64Array.from(ys), meta:meta.concat(['XRF '+fmt]), pe:false, peX:'', peY:'', xrf:info, importIssue: badCh ? {dropped:badCh, thou:0, after:0, total:counts.length} : null};
 }
@@ -3845,8 +3849,10 @@ function xrfFitHyper(c){
   const free=[]; const add=(k, lo2, hi2)=>{ if (!(opt.fix && k in opt.fix)) free.push([k, lo2, hi2]); };
   if (!opt.fix){
     add('off', p.off-0.1, p.off+0.1); add('gain', p.gain-0.02, p.gain+0.02); if (opt.quad) add('quad', -1e-3, 1e-3);
-    if (!(opt.noise>0 && opt.fixNoise)) add('noise', 0.03, 0.30); if (!(opt.fano>0 && opt.fixFano)) add('fano', 0.05, 0.20);
-    if (flags&2){ add('st', 0, 0.4); add('sts', 0.05, 3); } if (flags&4) add('lt', 0, 0.15); if (flags&8) add('step', 0, 5e-3);
+    // limiti come i «delta» di McaTheory.cfg di PyMca (st 0,05 ± 0,03, pendenza 0,5 ± 0,49, lt 0,02 ± 0,015, gradino 10⁻⁴ ± 5·10⁻⁵), con lo zero ammesso:
+    // più larghi, la coda lunga e il gradino si confondono con il fondo (spettri reali ELIO: coda lunga all'8% e χ² triplo)
+    if (!(opt.noise>0 && opt.fixNoise)) add('noise', 0.04, 0.30); if (!(opt.fano>0 && opt.fixFano)) add('fano', 0.05, 0.20);
+    if (flags&2){ add('st', 0, 0.08); add('sts', 0.01, 1); } if (flags&4) add('lt', 0, 0.035); if (flags&8) add('step', 0, 2e-4);
     if (hasC){ add('wc', 0.12, 0.8); add('th', Math.max(30, p.th-(opt.autoGeom?60:8)), Math.min(178, p.th+(opt.autoGeom?60:8))); } }
   const vec=()=>Float64Array.from(free, f=>p[f[0]]), put=v=>{ free.forEach((f,k)=>p[f[0]]=v[k]); };
   const resid=v=>{ const q=Object.assign({}, p); free.forEach((f,k)=>q[f[0]]=v[k]); const R=solve(build(q)), out=new Float64Array(m); for (let i=0;i<m;i++) out[i]=(net[i]-R.mod[i])*w[i]; return out; };

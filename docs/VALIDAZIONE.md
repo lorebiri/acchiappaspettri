@@ -275,10 +275,10 @@ Rumore 1 % del picco più alto, 100 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,7 | 1,5 / 4,0 % | ✓ |
-| ALS (Eilers & Boelens 2005) | 1,53 % | 2,30 % | 5,08 % | 8,60 % | 98,1 % | 0,09 | 0,5 | 2,5 / 4,5 % | ✓ |
-| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,3 | 1,5 / 8,0 % | ✓ |
-| ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,5 | 2,0 / 10,0 % | ✓ |
+| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,4 | 1,5 / 4,0 % | ✓ |
+| ALS (Eilers & Boelens 2005) | 1,53 % | 2,30 % | 5,08 % | 8,60 % | 98,1 % | 0,09 | 0,4 | 2,5 / 4,5 % | ✓ |
+| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,2 | 1,5 / 8,0 % | ✓ |
+| ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,4 | 2,0 / 10,0 % | ✓ |
 | SNIP (Ryan 1988) | 1,16 % | 4,29 % | 3,12 % | 12,02 % | 98,1 % | 0,01 | 0,6 | 2,5 / 6,0 % | ✓ |
 | rolling ball (Kneen & Annegarn 1996) | 3,18 % | 5,55 % | 17,82 % | 34,80 % | 97,9 % | 0,28 | 0,1 | 4,5 / 8,0 % | ✓ |
 
@@ -286,33 +286,33 @@ Rumore 0,2 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 4,8 | — | — |
-| ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,5 | — | — |
-| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 2,1 | — | — |
-| ModPoly (Lieber 2003) | 0,95 % | 5,82 % | 4,22 % | 15,27 % | 98,4 % | 0,10 | 0,6 | — | — |
-| SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,6 | — | — |
+| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,5 | — | — |
+| ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,4 | — | — |
+| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,4 | — | — |
+| ModPoly (Lieber 2003) | 0,95 % | 5,82 % | 4,22 % | 15,27 % | 98,4 % | 0,10 | 0,4 | — | — |
+| SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,31 % | 6,58 % | 17,59 % | 38,19 % | 98,4 % | 0,15 | 0,1 | — | — |
 
 Rumore 0,05 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 5,1 | — | — |
+| arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 4,7 | — | — |
 | ALS (Eilers & Boelens 2005) | 1,46 % | 2,63 % | 5,35 % | 10,35 % | 99,0 % | 0,00 | 0,4 | — | — |
-| IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 2,3 | — | — |
+| IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 2,0 | — | — |
 | ModPoly (Lieber 2003) | 1,03 % | 3,09 % | 4,48 % | 12,37 % | 99,0 % | 0,10 | 0,4 | — | — |
-| SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,5 | — | — |
+| SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,33 % | 5,38 % | 17,32 % | 36,47 % | 99,0 % | 0,17 | 0,1 | — | — |
 
 Rumore 3 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,8 | — | — |
+| arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,7 | — | — |
 | ALS (Eilers & Boelens 2005) | 2,89 % | 3,38 % | 6,40 % | 9,82 % | 96,9 % | 0,00 | 0,4 | — | — |
-| IModPoly (Zhao 2007) | 0,85 % | 3,59 % | 1,88 % | 9,54 % | 96,9 % | 0,03 | 1,0 | — | — |
-| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,6 | — | — |
-| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,5 | — | — |
+| IModPoly (Zhao 2007) | 0,85 % | 3,59 % | 1,88 % | 9,54 % | 96,9 % | 0,03 | 0,9 | — | — |
+| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,5 | — | — |
+| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,53 % | 6,21 % | 20,10 % | 40,48 % | 96,4 % | 0,03 | 0,1 | — | — |
 
 Limite noto: arPLS con la rigidità automatica storica (λ = (n/(2π·8))⁴, come nella 2.x) non segue una fluorescenza ripida sugli spettri molto puliti (rumore ≤ 0,2 % del picco): il fondo resta sotto la fluorescenza e l'errore cresce. Con un λ più basso, o con IModPoly e ALS, l'errore resta sotto il 2–3 %. Vedi `docs/LIMITAZIONI.md`.
@@ -377,21 +377,21 @@ Condizioni lette da `Steel.cfg`; elementi: Ni, Mn, Pb, As, Fe, W, V, Cr, Cu; int
 
 | Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto |
 |---|---|---|---|
-| Cr K | 1186002 | 1196016 | -0,8% |
-| Mn K | 98002 | 109608 | -10,6% |
-| Fe Ka+Fe Kb | 3552091 | 3566386 | -0,4% |
-| Ni K | 511718 | 512385 | -0,1% |
-| Cu K | 10074 | 10058 | +0,2% |
+| Cr K | 1185724 | 1196016 | -0,9% |
+| Mn K | 97755 | 109608 | -10,8% |
+| Fe Ka+Fe Kb | 3551074 | 3566386 | -0,4% |
+| Ni K | 511552 | 512385 | -0,2% |
+| Cu K | 10090 | 10058 | +0,3% |
 
 | % in peso (normalizzato su Cr+Mn+Fe+Ni+Cu) | Acchiappaspettri 3.1 | PyMca (secondaria + terziaria, Fe di riferimento) | Certificato NIST |
 |---|---|---|---|
-| Cr | 18,258 | 20,024 | 18,971 |
-| Mn | 1,649 | 1,895 | 1,672 |
-| Fe | 67,748 | 66,005 | per differenza |
+| Cr | 18,259 | 20,024 | 18,971 |
+| Mn | 1,646 | 1,895 | 1,672 |
+| Fe | 67,750 | 66,005 | per differenza |
 | Ni | 12,163 | 11,897 | 12,754 |
 | Cu | 0,182 | 0,179 | 0,179 |
 
-χ² ridotto sullo stesso intervallo: Acchiappaspettri 3.1 **8,23**, 3.0 15,15; PyMca con `Steel.cfg` (sola gaussiana) **13,09**, PyMca con l'ipermetro completo 19,16. Noise/Fano: Acchiappaspettri 101 eV / 0,134, PyMca 105 eV / 0,137. I fondi sono diversi (B-spline nel fit contro SNIP), quindi il χ² dice soprattutto quanto bene è descritta la forma dei picchi.
+χ² ridotto sullo stesso intervallo: Acchiappaspettri 3.1 **8,21**, 3.0 15,15; PyMca con `Steel.cfg` (sola gaussiana) **13,09**, PyMca con l'ipermetro completo 19,16. Noise/Fano: Acchiappaspettri 101 eV / 0,134, PyMca 105 eV / 0,137. I fondi sono diversi (B-spline nel fit contro SNIP), quindi il χ² dice soprattutto quanto bene è descritta la forma dei picchi.
 
 ### R15.2 XRFSpectrum.mca (standard sottile multielemento distribuito con PyMca)
 
@@ -399,30 +399,30 @@ Condizioni dal `.cfg` di `PyMca5/tests/XrfTest.py`; aree in unità dello spettro
 
 | Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto | Nel criterio |
 |---|---|---|---|---|
-| Ar K | 7805,3255 | 7284,5606 | +7,1% | no (< 1% del totale) |
-| Ca K | 9658,7615 | 9397,0349 | +2,8% | no (< 1% del totale) |
-| Ti K | 15664,6824 | 14836,3565 | +5,6% | sì |
-| V K | 20154,7695 | 18856,2495 | +6,9% | sì |
-| Cr K | 26992,1897 | 25084,0118 | +7,6% | sì |
-| Mn K | 34143,2420 | 31587,5719 | +8,1% | sì |
-| Fe K | 43641,8615 | 39996,6964 | +9,1% | sì |
-| Co K | 51570,9385 | 46933,8383 | +9,9% | sì |
-| Ni K | 63573,5018 | 58119,2601 | +9,4% | sì |
-| Cu K | 70995,3502 | 64988,5373 | +9,2% | sì |
-| Zn K | 81308,5049 | 75169,8951 | +8,2% | sì |
+| Ar K | 7633,2687 | 7284,5606 | +4,8% | no (< 1% del totale) |
+| Ca K | 9428,1746 | 9397,0349 | +0,3% | no (< 1% del totale) |
+| Ti K | 15334,8687 | 14836,3565 | +3,4% | sì |
+| V K | 19731,5033 | 18856,2495 | +4,6% | sì |
+| Cr K | 26436,5108 | 25084,0118 | +5,4% | sì |
+| Mn K | 33448,7037 | 31587,5719 | +5,9% | sì |
+| Fe K | 42754,1949 | 39996,6964 | +6,9% | sì |
+| Co K | 50528,0302 | 46933,8383 | +7,7% | sì |
+| Ni K | 62327,5876 | 58119,2601 | +7,2% | sì |
+| Cu K | 69627,9951 | 64988,5373 | +7,1% | sì |
+| Zn K | 79761,4738 | 75169,8951 | +6,1% | sì |
 | Zn L | 0,0000 | 452,5626 | -100,0% | no (< 1% del totale) |
-| As K | 109414,0778 | 100762,3329 | +8,6% | sì |
-| As L | 1039,2099 | 447,4769 | +132,2% | no (< 1% del totale) |
-| Se K | 116726,8110 | 108113,0960 | +8,0% | sì |
-| Se L | 1369,7303 | 971,9866 | +40,9% | no (< 1% del totale) |
-| Sr K | 139383,1846 | 123927,7256 | +12,5% | sì |
-| Sr L | 3928,4122 | 3093,3100 | +27,0% | no (< 1% del totale) |
-| Cd L | 2676,6940 | 3113,6104 | -14,0% | no (< 1% del totale) |
-| Sb L | 5085,7241 | 6205,6459 | -18,0% | no (< 1% del totale) |
-| Tl L | 97371,8419 | 98831,5287 | -1,5% | sì |
-| Tl M | 11141,7997 | 15018,4209 | -25,8% | no (righe M) |
-| Pb L | 99580,4382 | 99445,3070 | +0,1% | sì |
-| Pb M | 14010,0993 | 13455,3309 | +4,1% | no (righe M) |
+| As K | 107332,9696 | 100762,3329 | +6,5% | sì |
+| As L | 1021,7244 | 447,4769 | +128,3% | no (< 1% del totale) |
+| Se K | 114456,8878 | 108113,0960 | +5,9% | sì |
+| Se L | 1331,6432 | 971,9866 | +37,0% | no (< 1% del totale) |
+| Sr K | 136785,4782 | 123927,7256 | +10,4% | sì |
+| Sr L | 3824,9201 | 3093,3100 | +23,7% | no (< 1% del totale) |
+| Cd L | 2621,6683 | 3113,6104 | -15,8% | no (< 1% del totale) |
+| Sb L | 5023,4202 | 6205,6459 | -19,1% | no (< 1% del totale) |
+| Tl L | 95713,3611 | 98831,5287 | -3,2% | sì |
+| Tl M | 11016,0949 | 15018,4209 | -26,6% | no (righe M) |
+| Pb L | 97671,4551 | 99445,3070 | -1,8% | sì |
+| Pb M | 13602,4577 | 13455,3309 | +1,1% | no (righe M) |
 
 ### R15.3 Bronzo SINTETICO di `examples/` (tubo Rh 40 kV)
 
@@ -430,10 +430,10 @@ Tubo di Ebel in entrambi i programmi, matrice iterata e normalizzata a 100%. Lo 
 
 | % in peso | Verità | Acchiappaspettri 3.1 | PyMca |
 |---|---|---|---|
-| Cu | 84,00 | 83,45 | 82,26 |
-| Sn | 8,00 | 8,53 | 8,82 |
-| Pb | 5,00 | 4,89 | 5,91 |
-| Zn | 2,50 | 2,53 | 2,56 |
-| As | 0,50 | 0,59 | 0,45 |
+| Cu | 84,00 | 83,51 | 82,26 |
+| Sn | 8,00 | 8,49 | 8,82 |
+| Pb | 5,00 | 4,88 | 5,91 |
+| Zn | 2,50 | 2,52 | 2,56 |
+| As | 0,50 | 0,60 | 0,45 |
 
 

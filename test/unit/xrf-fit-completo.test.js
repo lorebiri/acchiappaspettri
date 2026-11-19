@@ -78,3 +78,11 @@ test('eccitazione a lista di energie: picchi Rayleigh e Compton per ogni energia
   const xs=Float64Array.from({length:1500},(_,i)=>i*0.012), ys=Float64Array.from(xs, x=>50+1e4*Math.exp(-0.5*((x-16)/0.08)**2)+2e4*Math.exp(-0.5*((x-15.2)/0.2)**2));
   const R=C.xrfFitLines(xs, ys, ['Fe'], S, {lo:2, hi:17.5}); assert.ok(R.comps['Rayleigh 16.00 keV'] && R.comps['Compton 16.00 keV'], 'componenti di diffusione');
 });
+test('lettura .mca con lo slot vuoto «Calibration3: 0 0» (Bruker ELIO): il punto incoerente non entra nella calibrazione; un «0 0» vero sì', ()=>{
+  const body=Array.from({length:4096},(_,i)=>String(i===758?50000:i===2032?9000:i%7)).join('\n');
+  const elio='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# MCA Channels: 4096\n# Calibration1: 758 8,046\n# Calibration2: 2032 22,163\n# Calibration3: 0 0\n#\n'+body;
+  const p=C.parseXRF(elio), at=ch=>{ let b=0; for (let i=0;i<p.ys.length;i++) if (p.ys[i]===(ch===758?50000:9000)) b=i; return p.xs[b]; };
+  assert.ok(Math.abs(at(758)-8.046)<1e-6 && Math.abs(at(2032)-22.163)<1e-6, `canali 758 e 2032: ${at(758)} e ${at(2032)} keV`);
+  const ok='# Tube Anode: Rh\n# MCA Channels: 2048\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'+Array.from({length:2048},(_,i)=>String(1+i%5)).join('\n'), q=C.parseXRF(ok);
+  assert.ok(Math.abs(q.xs[q.xs.length-1]-40.94)<1e-9 && Math.abs(q.xs[1]-q.xs[0]-0.02)<1e-9, 'calibrazione con «0 0» vero invariata');
+});

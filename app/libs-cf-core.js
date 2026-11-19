@@ -278,6 +278,12 @@
   function candidates(D, elements, x0, x1, opt){ opt=opt||{}; const out=[]; const pad=0.5;
     for (const el of elements) for (const st of ['I','II']) for (const l of linesOf(D, el, st)) if (l.wl>x0+pad && l.wl<x1-pad && (!opt.minAcc || accRel(D,l.acc)<=accRel(D,opt.minAcc))) out.push(l);
     out.sort((a,b)=>a.wl-b.wl); const sep=opt.sepMin!=null?opt.sepMin:Math.max(0.6*((opt.fwhmG||0.05)+(opt.fL0||0.03)), 0.02), bad=new Set();
+    // multipletti non risolti della stessa specie (Zn I 330,26/330,29; 334,50/334,56/334,59…): una riga sola con g·A sommato ed E_k medio pesato con g·A,
+    // pratica comune in CF-LIBS; solo se i livelli superiori differiscono meno di 0,1 eV (così l'errore sul grafico di Boltzmann resta sotto il 10% a 1 eV).
+    // Prima venivano scartati come sovrapposti e lo Zn risultava 0 senza avviso (validazione sui bronzi, 3.1)
+    if (opt.mergeMultiplets!==false) for (let i=1;i<out.length;i++){ const a=out[i-1], b=out[i];
+      if (b.wl-a.wl<sep && a.el===b.el && a.st===b.st && Math.abs(a.Ek-b.Ek)<0.1){ const ga=a.gk*a.A, gb=b.gk*b.A, g=ga+gb;
+        out.splice(i-1, 2, Object.assign({}, a, {wl:(a.wl*ga+b.wl*gb)/g, Ek:(a.Ek*ga+b.Ek*gb)/g, gk:1, A:g, parts:(a.parts||[a]).concat(b.parts||[b]), merged:true, acc:accRel(D,a.acc)>=accRel(D,b.acc)?a.acc:b.acc})); i--; } }
     for (let i=1;i<out.length;i++) if (out[i].wl-out[i-1].wl<sep){ bad.add(i); bad.add(i-1); }
     return {lines:out.filter((l,i)=>!bad.has(i)), blended:out.filter((l,i)=>bad.has(i))}; }
   function analyze(D, xs, ys, opt){ opt=Object.assign({snrMin:8, maxShift:0.03, mode:'saha-boltzmann'}, opt||{}); const t0=Date.now();
