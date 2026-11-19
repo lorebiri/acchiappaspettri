@@ -2036,6 +2036,7 @@ function parseXRF(text){
   const calibrated = A!==null && (B>0 || C2>0);
   const E = ch => calibrated ? A+B*ch+C2*ch*ch : ch;
   let scale=1; if (calibrated && E(start+counts.length-1)>200) scale=0.001;   // energie in eV → keV
+  // i canali a zero all'inizio e alla fine si tolgono, ma xs resta il numero di canale (o la sua energia): con un primo valore 0 ys[0] è il canale 1, non lo 0
   let lo=0, hi=counts.length-1; while (lo<hi && counts[lo]===0) lo++; while (hi>lo && counts[hi]===0) hi--;
   const xs=[], ys=[];
   for (let i=lo;i<=hi;i++){ const x=E(start+i)*scale; if (calibrated && x<0) continue; xs.push(x); ys.push(counts[i]); }
