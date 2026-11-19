@@ -13,7 +13,7 @@ Base per l'analisi quantitativa LIBS senza taratura secondo il gruppo di Pisa (C
 | `app/libs-cf-ui.js` | pannello «CF-LIBS (sperimentale)» nella scheda delle ipotesi degli spettri LIBS |
 | `test/unit/libs-cf.test.js` | prove di ogni funzione e validazione sintetica; `LIBS_REPORT=1 node --test test/unit/libs-cf.test.js` stampa la tabella dei risultati |
 | `test/validation/libs-cf-ui.test.js` | il pannello nel browser vero (italiano e inglese) |
-| `test/fixtures/libs/` | spettro reale SuperLIBS 0201H (CC BY 4.0) e lo script che lo estrae |
+| `test/fixtures/libs/` | spettro reale SuperLIBS 0201H (CC BY 4.0) e lo script che lo estrae; `gen-sintetici.js` scrive spettri sintetici CSV (bronzo, acciaio, vetro, bronzo autoassorbito) da aprire nell'app, deterministici |
 
 ## Banca dati atomica
 - **Fonte**: Kramida A., Ralchenko Yu., Reader J., NIST ASD Team (2024). *NIST Atomic Spectra Database* (versione 5.12), NIST Standard Reference Database 78, https://physics.nist.gov/asd, doi:10.18434/T4W30F. Scaricata il 19/11/2026 (data scritta nel file). Moduli `lines1.pl` (TSV, `format=3`), `energy1.pl`, `ie.pl`.
