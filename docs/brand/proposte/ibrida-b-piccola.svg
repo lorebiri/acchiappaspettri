@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Acchiappaspettri, proposta di icona ibrida B · Gino afferra la curva (versione per 16-32 px) -->
+  <rect x="16" y="16" width="992" height="992" rx="200" fill="#1d3557" stroke="#3a5a88" stroke-width="32"/>
+  <path d="M300 800 L300 480 A212 212 0 0 1 724 480 L724 800 L653.3 730 L582.7 800 L512.0 730 L441.3 800 L370.7 730 L300.0 800 Z" fill="#ffffff"/>
+  <circle cx="436" cy="430" r="48" fill="#1c2230"/><circle cx="588" cy="430" r="48" fill="#1c2230"/>
+  <path d="M150 680 H380 C430 680 460 540 512 540 C564 540 594 680 644 680 H874" fill="none" stroke="#1d3557" stroke-width="120" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 680 H380 C430 680 460 540 512 540 C564 540 594 680 644 680 H874" fill="none" stroke="#ffc84a" stroke-width="68" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
