@@ -1,0 +1,49 @@
+# Completa la pubblicazione di una bozza già costruita, senza ricompilare: rifà solo l'ultimo passo di release.yml
+# (scripts/publish-release.js: controlla pacchetti e firme di latest.json, scrive le note da CHANGELOG.md, pubblica).
+# Serve quando i pacchetti sono pronti ma l'ultimo passo si è fermato per un motivo che si corregge su main
+# (es. una sezione mancante nel CHANGELOG): lo script e il CHANGELOG si prendono da main, i pacchetti dalla bozza del tag.
+# Per prudenza il commit del tag deve essere un antenato di main: main contiene tutto ciò che è stato costruito.
+name: Completa la pubblicazione
+
+on:
+  workflow_dispatch:
+    inputs:
+      versione:
+        description: 'Versione già costruita in bozza, senza la v (es. 3.1.0-rc.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # pubblica la release e aggiorna latest.json
+  actions: write    # avvia pages.yml per le versioni stabili
+
+concurrency:
+  group: pubblica
+  cancel-in-progress: false
+
+jobs:
+  pubblica:
+    name: Controlla e pubblica la bozza
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSIONE: ${{ inputs.versione }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { ref: main, fetch-depth: 0 }
+      - name: Il tag esiste, è in main e la sua release è una bozza
+        run: |
+          set -e
+          if ! printf '%s' "$VERSIONE" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then echo "::error::versione non valida: «$VERSIONE»"; exit 1; fi
+          git fetch --tags --quiet
+          git rev-parse -q --verify "refs/tags/v$VERSIONE" >/dev/null || { echo "::error::il tag v$VERSIONE non esiste"; exit 1; }
+          git merge-base --is-ancestor "v$VERSIONE" HEAD || { echo "::error::il commit di v$VERSIONE non è in main"; exit 1; }
+          bozza=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" --jq ".[] | select(.tag_name==\"v$VERSIONE\") | .draft")
+          [ "$bozza" = "true" ] || { echo "::error::la release di v$VERSIONE non c'è o non è una bozza (draft: «$bozza»)"; exit 1; }
+      - name: Controlla i pacchetti, scrive le note e pubblica
+        run: node scripts/publish-release.js "v$VERSIONE"
+      - name: Aggiorna il sito di presentazione (solo versioni stabili)
+        if: ${{ !contains(inputs.versione, '-') }}
+        continue-on-error: true
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
