@@ -1,9 +1,13 @@
-# Pubblicazione: si parte da un tag v1.2.3 (stabile) o v1.2.3-beta.1 (beta).
+# Pubblicazione: si parte da un tag v1.2.3 (stabile) o v1.2.3-rc.1 (versione di prova).
 # Prima i test; poi gli installer in una release in bozza; infine la pubblicazione, solo se ci sono tutti i pacchetti e i metadati.
+# Stabile: release «Latest», poi pages.yml aggiorna il sito. Con «-» nella versione: pre-release, mai «Latest», sito invariato.
+# Parte dal push di un tag oppure a mano su un tag (workflow_dispatch con --ref vX.Y.Z): così lo avvia pubblica.yml, perché
+# un tag creato con il GITHUB_TOKEN non fa partire altri workflow.
 name: Release
 on:
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
 permissions:
   contents: read
 # due esecuzioni sullo stesso tag (tag cancellato e rifatto) scriverebbero nella stessa bozza: la seconda aspetta
@@ -14,6 +18,10 @@ jobs:
   check-version:
     runs-on: ubuntu-24.04
     steps:
+      - name: Avviata su un tag di versione
+        run: |
+          if [ "$GITHUB_REF_TYPE" != tag ] || ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "::error::release.yml va avviato su un tag vX.Y.Z (ricevuto $GITHUB_REF_TYPE «$GITHUB_REF_NAME»): usa «Pubblica una versione» (pubblica.yml)"; exit 1; fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: node scripts/check-version.js "$GITHUB_REF_NAME"
       - name: La firma degli aggiornamenti è configurata

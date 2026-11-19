@@ -80,3 +80,16 @@ test('fondo: baseCurveR è pura e copiabile al worker del desktop (stesso risult
   const y0=Float64Array.from(s.y); C.baseCurveR('imodpoly', null, s.x, s.y, 'raman', 'I'); assert.deepEqual(Array.from(s.y), Array.from(y0), 'non modifica i dati');
   assert.deepEqual(C.baseCurveR('anchor', {pts:[]}, s.x, s.y, 'raman', 'I'), {bl:null, par:null});
 });
+// 3.1: base consigliata per un Raman con fluorescenza. Sintetico: fluorescenza a gobba stretta su un intervallo corto, dove il polinomio di grado 6
+// non segue il fondo e sottrae troppo; su spettri veri di pigmenti a 633 nm succedeva in 6 spettri su 13 (validazione 3.1, dati riservati)
+test('ramanBaseAdvice: IModPoly se non sottrae troppo, altrimenti SNIP o ALS', ()=>{
+  const x=Float64Array.from({length:900},(_,i)=>100+i);
+  const lor=(v,c,w)=>1/(1+((v-c)/w)**2);
+  const easy=Float64Array.from(x,v=>200+0.05*(v-100)+80*lor(v,450,6)+50*lor(v,700,6));
+  assert.strictEqual(C.ramanBaseAdvice(x, easy), 'imodpoly', 'fondo dolce: IModPoly');
+  const hard=Float64Array.from(x,v=>5000*Math.exp(-0.5*((v-180)/60)**2)+3000*Math.exp(-0.5*((v-620)/90)**2)+200*lor(v,300,5)+150*lor(v,850,5));
+  const m=C.ramanBaseAdvice(x, hard); assert.ok(['snip','als','imodpoly'].includes(m));
+  const over=k=>{ const bl=C.baseCurve(k, C.baseDefaults(k,x,hard,'raman'), x, hard, 'raman', 'I'); const z=Array.from(hard,(v,i)=>v-bl[i]), mx=Math.max(...z); return z.filter(v=>v<-0.03*mx).length/z.length; };
+  assert.ok(over(m)<=0.05 || m==='als', `metodo consigliato ${m}: ${(100*over(m)).toFixed(1)}% sotto-sottratto`);
+  if (over('imodpoly')>0.05) assert.notStrictEqual(m, 'imodpoly', 'IModPoly sottrae troppo e non va consigliato');
+});

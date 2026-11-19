@@ -125,8 +125,10 @@ test('XRF: As da solo con pochi conteggi, «1 warning», aria/elio/vuoto, PDF co
   const server=await B.startServer(), br=await B.launch();
   try{
     const {ctx, p, errors}=await B.openPage(br, server, {lang:'it'}), FX=path.join(B.ROOT,'test','fixtures');
-    const note=async (name, text)=>{ await load(p, [[name, text]]); return p.evaluate(()=>{ const f=files[0]; cur=0; f._fpKey=null; const R=fpRun(f); return R ? fpNotes(f,R).join(' | ') : ''; }); };
-    for (const n of ['B_300_s3.mca','B_300_s8.mca']) assert.match(await note(n, rd(path.join(FX,'xrf-c27',n))), /As non distinguibile da Pb/, n);
+    // model: '3.0' (gli avvisi sotto sono quelli del motore 3.0) o '3.1' (predefinito per le analisi nuove: verifica degli elementi con il fit)
+    const note=async (name, text, model)=>{ await load(p, [[name, text]]); return p.evaluate(model=>{ const f=files[0]; cur=0; const c=fpCfg(f); c.model=model==='3.1'?'hypermet':'gauss'; c.phys=model; fpSaveCfg(f,c); f._fpKey=null; const R=fpRun(f); return R ? fpNotes(f,R).join(' | ') : ''; }, model||'3.0'); };
+    for (const n of ['B_300_s3.mca','B_300_s8.mca']){ assert.match(await note(n, rd(path.join(FX,'xrf-c27',n))), /As non distinguibile da Pb/, n);
+      assert.match(await note(n, rd(path.join(FX,'xrf-c27',n)), '3.1'), /Non confermati dal fit.*As/, n+' (3.1)'); }
     assert.ok(!/non distinguibile da Pb/.test(await note('B.mca', rd(path.join(EX,'xrf-lega-sintetico','BRONZO_SIMULATO_Rh40kV_SINTETICO.mca')))), 'tutorial 3 (con Pb): avviso falso');
     assert.ok(!/non distinguibile da Pb/.test(await note('B_CuSnAs_noPb.mca', rd(path.join(FX,'xrf-c25','B_CuSnAs_noPb.mca')))), 'As con molti conteggi: avviso falso');
     // PDF: «cm⁻¹» con l'esponente vero, ∞ e √ leggibili

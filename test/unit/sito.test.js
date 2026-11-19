@@ -117,9 +117,10 @@ for (const [lingua, file] of Object.entries(PAGINE)) {
     const online = path.resolve(dir, lingua === 'it' ? '../' : '../../', 'index.html');
     assert.strictEqual(online, path.join(ROOT, 'index.html'));
     assert.ok(attr(html, 'a', 'href').includes(lingua === 'it' ? '../' : '../../'));
-    // link esterni: solo il progetto su GitHub, la sua pagina e la posta
+    // link esterni: solo il progetto su GitHub, la sua pagina, la posta e il sito dell'autore (piè di pagina)
     for (const h of [...attr(html, 'a', 'href'), ...attr(html, 'link', 'href')].filter((h) => /^https?:/.test(h)))
-      assert.match(h, /^https:\/\/(github\.com\/lorebiri\/acchiappaspettri([/#].*)?|lorebiri\.github\.io\/acchiappaspettri\/scarica\/(en\/)?)$/, `${lingua}: link esterno inatteso ${h}`);
+      assert.match(h, /^https:\/\/(github\.com\/lorebiri\/acchiappaspettri([/#].*)?|lorebiri\.github\.io\/acchiappaspettri\/scarica\/(en\/)?|lorebiri\.github\.io\/)$/, `${lingua}: link esterno inatteso ${h}`);
+    assert.ok(attr(html, 'a', 'href').includes('https://lorebiri.github.io/'), `${lingua}: manca il link al sito dell'autore`);
     // nessuna risorsa esterna: immagini, script, fogli di stile e caratteri dal sito stesso
     for (const s of [...attr(html, 'img', 'src'), ...attr(html, 'script', 'src'), ...attr(html, 'link', 'href').filter((_, i, a) => true)])
       if (!/^https:\/\/lorebiri\.github\.io\/acchiappaspettri\/scarica\//.test(s)) assert.doesNotMatch(s, /^(https?:)?\/\//, `${lingua}: risorsa esterna ${s}`);

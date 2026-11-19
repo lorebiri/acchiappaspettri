@@ -1,0 +1,454 @@
+[
+ {
+  "dispositivo": "browser",
+  "file": "CSV (esempio del repository)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 430,
+    "totale": 430,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 361,
+    "totale": 791,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 143,
+    "totale": 934,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 585,
+    "totale": 1519,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 4,
+    "totale": 1523,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "PE_0000h_SINTETICO.csv",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 5,
+   "primi": [
+    2915,
+    2848,
+    1471,
+    730
+   ],
+   "grafico": {
+    "alto": 295,
+    "basso": 731,
+    "largo": 580,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "browser",
+  "file": "JCAMP-DX (stesso spettro)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 432,
+    "totale": 432,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 375,
+    "totale": 807,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 131,
+    "totale": 938,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 517,
+    "totale": 1455,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 6,
+    "totale": 1461,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "PE_0000h_SINTETICO.jdx",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 5,
+   "primi": [
+    2915,
+    2848,
+    1471,
+    730
+   ],
+   "grafico": {
+    "alto": 295,
+    "basso": 731,
+    "largo": 580,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "browser",
+  "file": "TXT con tabulazioni (corpus)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 405,
+    "totale": 405,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 381,
+    "totale": 786,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 152,
+    "totale": 938,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 510,
+    "totale": 1448,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 17,
+    "totale": 1465,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "01_ftir_tab_desc.txt",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 3,
+   "primi": [
+    1730,
+    2920,
+    1050
+   ],
+   "grafico": {
+    "alto": 295,
+    "basso": 731,
+    "largo": 580,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "browser",
+  "file": "CSV in trasmittanza (corpus)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 476,
+    "totale": 476,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 393,
+    "totale": 869,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 148,
+    "totale": 1017,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 664,
+    "totale": 1681,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 5,
+    "totale": 1686,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "05_ftir_T_header.csv",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Trasmittanza (%)",
+   "picchi": 3,
+   "primi": [
+    1050,
+    2920,
+    1730
+   ],
+   "grafico": {
+    "alto": 295,
+    "basso": 731,
+    "largo": 580,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "telefono",
+  "file": "CSV (esempio del repository)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 313,
+    "totale": 313,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 315,
+    "totale": 628,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 133,
+    "totale": 761,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 475,
+    "totale": 1236,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 3,
+    "totale": 1239,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "PE_0000h_SINTETICO.csv",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 5,
+   "primi": [
+    2915,
+    2848,
+    1471,
+    730
+   ],
+   "grafico": {
+    "alto": 429,
+    "basso": 717,
+    "largo": 320,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "telefono",
+  "file": "JCAMP-DX (stesso spettro)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 275,
+    "totale": 275,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 340,
+    "totale": 615,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 128,
+    "totale": 743,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 469,
+    "totale": 1212,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 2,
+    "totale": 1214,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "PE_0000h_SINTETICO.jdx",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 5,
+   "primi": [
+    2915,
+    2848,
+    1471,
+    730
+   ],
+   "grafico": {
+    "alto": 429,
+    "basso": 717,
+    "largo": 320,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "telefono",
+  "file": "TXT con tabulazioni (corpus)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 250,
+    "totale": 250,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 337,
+    "totale": 587,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 133,
+    "totale": 720,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 682,
+    "totale": 1402,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 4,
+    "totale": 1406,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "01_ftir_tab_desc.txt",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Assorbanza",
+   "picchi": 3,
+   "primi": [
+    1730,
+    2920,
+    1050
+   ],
+   "grafico": {
+    "alto": 429,
+    "basso": 717,
+    "largo": 320,
+    "inVista": true
+   }
+  },
+  "errori": []
+ },
+ {
+  "dispositivo": "telefono",
+  "file": "CSV in trasmittanza (corpus)",
+  "benvenuto": true,
+  "passi": [
+   {
+    "passo": "pagina aperta",
+    "ms": 389,
+    "totale": 389,
+    "nota": ""
+   },
+   {
+    "passo": "benvenuto chiuso con «Iniziamo»",
+    "ms": 316,
+    "totale": 705,
+    "nota": ""
+   },
+   {
+    "passo": "«Scegli file» premuto",
+    "ms": 147,
+    "totale": 852,
+    "nota": "pulsante già in vista"
+   },
+   {
+    "passo": "file letto, si apre il passo 2",
+    "ms": 533,
+    "totale": 1385,
+    "nota": ""
+   },
+   {
+    "passo": "grafico leggibile in vista",
+    "ms": 2,
+    "totale": 1387,
+    "nota": "già in vista"
+   }
+  ],
+  "grafico": {
+   "strumento": "ftir",
+   "nome": "05_ftir_T_header.csv",
+   "asseX": "Numero d'onda (cm⁻¹)",
+   "asseY": "Trasmittanza (%)",
+   "picchi": 3,
+   "primi": [
+    1050,
+    2920,
+    1730
+   ],
+   "grafico": {
+    "alto": 429,
+    "basso": 717,
+    "largo": 320,
+    "inVista": true
+   }
+  },
+  "errori": []
+ }
+]

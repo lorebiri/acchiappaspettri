@@ -17,7 +17,8 @@ function startServer(){
 }
 async function launch(){
   const {chromium}=require(path.join(ROOT,'node_modules','playwright'));
-  return chromium.launch(process.env.PW_CHANNEL ? {channel:process.env.PW_CHANNEL} : {});
+  // PW_EXECUTABLE: un Chromium già installato (per esempio /opt/pw-browsers/chromium) quando la versione di Playwright non ha il suo
+  return chromium.launch(process.env.PW_CHANNEL ? {channel:process.env.PW_CHANNEL} : process.env.PW_EXECUTABLE ? {executablePath:process.env.PW_EXECUTABLE} : {});
 }
 // pagina pronta: benvenuto, giro guidato e novità disattivati; desk=true → anteprima dell'app desktop; csp → intestazione Content-Security-Policy della pagina (I11)
 async function openPage(browser, server, opt){

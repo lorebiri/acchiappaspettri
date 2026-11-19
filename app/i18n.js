@@ -24,7 +24,7 @@
     // parola guida: solo parole intere, non attaccate a un segnaposto (in «spettr{1}» la parola vera è «spettri»)
     const safe=[]; parts.forEach((p,i)=>{ const m=p.match(/[\p{L}]+/gu)||[]; m.forEach((w,j)=>{ if (w.length<3) return; if (j===0 && i>0 && p.startsWith(w)) return; if (j===m.length-1 && i<parts.length-1 && p.endsWith(w)) return; safe.push(w.toLowerCase()); }); });
     const w=safe.sort((a,b)=>b.length-a.length)[0];
-    const t={re, order, tr:v, len:statics.length}; if (w) (byWord.get(w)||byWord.set(w,[]).get(w)).push(t); else general.push(t);
+    const t={re, order, tr:v, len:statics.length, st:parts.map(x=>x.trim()).filter(x=>x.length>=6)}; if (w) (byWord.get(w)||byWord.set(w,[]).get(w)).push(t); else general.push(t);
     // il desktop toglie le emoji dai testi: anche i modelli «🎉 … {0}» devono valere senza emoji (es. il titolo delle Novità)
     const de=deEmoji(k); if (de!==k && !Object.prototype.hasOwnProperty.call(dict, de)) addEntry(de, deEmoji(v));
   }
@@ -36,7 +36,9 @@
     if (protect && protect.has(s)) return null;
     if (!protect && cache.has(s)) return cache.get(s);
     let r=exact.has(s) ? exact.get(s) : null;
-    const fits=(m,t)=>{ let cap=0; for (let i=1;i<m.length;i++) cap+=m[i].length; return cap<=Math.max(24,3*t.len) && (cap<=60 || cap<=0.6*s.length || (t.len>=20 && cap<=140)); };   // un modello quasi tutto segnaposto non deve «inghiottire» frasi intere
+    // un segnaposto che contiene di nuovo un pezzo fisso del modello è un elenco di ripetizioni («Sb (riga…), I (riga…)»): il modello non vale per tutto,
+    // così l'elenco si traduce voce per voce più sotto (prima solo la prima voce era tradotta, debug 3.1 indipendente)
+    const fits=(m,t)=>{ let cap=0; for (let i=1;i<m.length;i++){ cap+=m[i].length; if (t.st && t.st.some(x=>m[i].includes(x))) return false; } return cap<=Math.max(24,3*t.len) && (cap<=60 || cap<=0.6*s.length || (t.len>=20 && cap<=140)); };   // un modello quasi tutto segnaposto non deve «inghiottire» frasi intere
     const fill=(t,m)=>{ const vals=[]; t.order.forEach((n,i)=>vals[n]=m[i+1]); return t.tr.replace(/\{(\d+)\}/g,(_,n)=>{ const v=vals[+n]; return v==null?'':(lookup(v)||v); }); };
     if (r==null){ const seen=new Set(), cand=general.slice();   // tra tutti i modelli possibili vince quello con più testo fisso, il più specifico
       for (const w of wordsOf(s)){ if (seen.has(w)) continue; seen.add(w); const L=byWord.get(w); if (L) cand.push(...L); }
@@ -50,8 +52,8 @@
       const SENT=/(?<=[.!?…])\s+(?=[\p{Lu}«])/u;
       { const q=/^(\d+) (\p{L}.*)$/u.exec(s); if (q){ const v=lookup(q[2]); if (v!=null) r=q[1]+' '+v; } }
       { const q=/^Usa «(.+)»$/su.exec(s); if (q){ const v=lookup(q[1]); r='Use «'+(v!=null?v:q[1])+'»'; } }
-      r=r||pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ')||list('; ','; ');   // «nota; nota» (colonna Nota delle tabelle)
-      if (r==null){ const m=/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N})»%]*)$/su.exec(s); if (m && (m[1]||m[3]) && m[2] && m[2]!==s){ const inner=lookup(m[2]); if (inner!=null) r=m[1]+inner+m[3]; } }
+      r=r||pair(' — ')||pair(': ')||list(SENT,' ')||list(' · ',' · ')||list('; ','; ')||list(', ',', ');   // elenco di voci tutte traducibili («Sb (riga…), I (riga…)»): prima di «Etichetta: resto» con una parte sola   // «nota; nota» (colonna Nota delle tabelle)
+      if (r==null){ const m=/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N})»%]*)$/su.exec(s); if (m && (m[1]||m[3]) && m[2] && m[2]!==s){ const inner=lookup(m[2]); if (inner!=null) r=m[1]+inner+m[3]; else if (m[1] && m[3]){ const in2=lookup(m[2]+m[3]); if (in2!=null) r=m[1]+in2; } } }   // «△ Frase.» del desktop: il punto finale fa parte del modello
       if (r==null) r=pair(' — ',1)||pair(': ',1)||list(SENT,' ',1)||list(' · ',' · ',1)||list(', ',', ',1);
     }
     if (r!=null && r.includes('spectrum/spectra')) r=r.replace(/\b1 spectrum\/spectra\b/g,'1 spectrum').replace(/spectrum\/spectra/g,'spectra');

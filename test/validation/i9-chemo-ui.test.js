@@ -72,7 +72,7 @@ test('I9 prestazioni: serie 200 × 1000, MCR-ALS, MCR-BANDS e cinetica senza blo
   try{ const {ctx, p, errors}=await B.openPage(br, server, {lang:'it', desk:true});
     // lavoro deterministico: il carico della macchina (suite in parallelo) può solo aggiungere compiti lunghi. Si ripete la misura fino a
     // 5 volte e conta la mediana del compito più lungo di ogni tentativo (ci si ferma appena 3 tentativi sono puliti: la mediana è già ≤ 50 ms)
-    const worst=[]; let r=null; for (let attempt=0; attempt<5 && worst.filter(w=>w<=50).length<3; attempt++){ r=await p.evaluate(async ()=>{ const clk=async q=>{ for (let i=0;i<1200;i++){ const e=$(q); if (e && !e.disabled){ e.click(); return; } await new Promise(r=>setTimeout(r,25)); } throw new Error('elemento non pronto: '+q); }; const wait=async (c,n)=>{ for (let i=0;i<(n||4000) && !c();i++) await new Promise(r=>setTimeout(r,25)); return c(); };
+    const worst=[], tries=[]; let r=null; for (let attempt=0; attempt<5 && worst.filter(w=>w<=50).length<3; attempt++){ r=await p.evaluate(async ()=>{ const clk=async q=>{ for (let i=0;i<1200;i++){ const e=$(q); if (e && !e.disabled){ e.click(); return; } await new Promise(r=>setTimeout(r,25)); } throw new Error('elemento non pronto: '+q); }; const wait=async (c,n)=>{ for (let i=0;i<(n||4000) && !c();i++) await new Promise(r=>setTimeout(r,25)); return c(); };
       const m=200, n=1000, t=Array.from({length:m},(_,i)=>i*0.1), x=Array.from({length:n},(_,j)=>300+j*0.4), data=new Float64Array(m*n), g=(v,c,w)=>Math.exp(-0.5*((v-c)/w)**2); let s=1;
       for (let i=0;i<m;i++){ const a=Math.exp(-0.5*t[i]), b=0.5/(0.1-0.5)*(Math.exp(-0.5*t[i])-Math.exp(-0.1*t[i])); for (let j=0;j<n;j++){ s=(s*16807)%2147483647; data[i*n+j]=a*g(x[j],400,30)+b*g(x[j],500,40)+(1-a-b)*g(x[j],620,35)+0.001*(s/2147483647-0.5); } }
       const se={kind:'kinetics', t:{values:t, quantity:'tempo', unit:'s'}, x:{values:Float64Array.from(x), quantity:'x', unit:'nm'}, y:{}, shape:[m,n], dtype:'f64', data, meta:{}};
@@ -83,11 +83,11 @@ test('I9 prestazioni: serie 200 × 1000, MCR-ALS, MCR-BANDS e cinetica senza blo
       const t0=performance.now(); MARK.push('run@'+Math.round(t0-T0)); await clk('#chMRun'); await wait(()=>$('#chMBands')); const tM=performance.now()-t0; MARK.push('mcrdone@'+Math.round(performance.now()-T0)); await clk('#chMBands'); await wait(()=>f._chemo.bands); MARK.push('bands@'+Math.round(performance.now()-T0));
       AcchChemo._rt.tab='kin'; f.an.kin={model:'consec'}; AcchChemo.render(); const t1=performance.now(); await clk('#chKRun'); await wait(()=>f._chemo.kin); const tK=performance.now()-t1;
       await new Promise(r=>setTimeout(r,200)); po.disconnect(); MARK.push('end@'+Math.round(performance.now()-T0)); return {long, mark:MARK, tM, tK, k:f._chemo.kin.res.params.map(p=>p.value)}; });
-      worst.push(Math.max(0, ...r.long.map(e=>parseInt(e,10)))); }   // «68@1349»: durata in ms @ istante (prima si confrontavano i testi con 50)
+      worst.push(Math.max(0, ...r.long.map(e=>parseInt(e,10)))); tries.push({long:r.long, mark:r.mark}); }   // diagnosi: dove cadono i compiti lunghi in ogni tentativo   // «68@1349»: durata in ms @ istante (prima si confrontavano i testi con 50)
     assert.ok(Math.abs(r.k[0]-0.5)<0.01 && Math.abs(r.k[1]-0.1)<0.002, 'k '+r.k);
     console.log(`# I9 200×1000: MCR-ALS ${Math.round(r.tM)} ms, cinetica ${Math.round(r.tK)} ms, compiti lunghi ${JSON.stringify(r.long)} ${JSON.stringify(r.mark)}`);
     const med=worst.slice().sort((a,b)=>a-b)[Math.floor((worst.length-1)/2)];
-    assert.ok(med<=50, `compito più lungo, mediana di ${worst.length} tentativi: ${med} ms (${JSON.stringify(worst)}); ultimo tentativo: ${JSON.stringify(r.long)}`);
+    assert.ok(med<=50, `compito più lungo, mediana di ${worst.length} tentativi: ${med} ms (${JSON.stringify(worst)}); tentativi: ${JSON.stringify(tries)}`);
     assert.deepStrictEqual(errors, []); await ctx.close();
   } finally { await br.close(); server.close(); }
 });

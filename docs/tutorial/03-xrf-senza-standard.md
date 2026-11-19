@@ -29,7 +29,9 @@ Si apre la sezione **🏛️ Concentrazioni XRF: composizione e spessori**. In *
 ## 3. Controlla gli elementi
 Il programma propone da solo gli elementi che ha trovato: qui **Cu, Sn, Pb**. Il primo risultato è:
 
-Cu 86,3 · Sn 8,3 · Pb 5,4
+Cu 85,7 · Sn 8,7 · Pb 5,5
+
+*(Con il modello 3.0, scelto in «Condizioni di misura» → «Modello», o in un progetto salvato con la 3.0: Cu 86,3 · Sn 8,3 · Pb 5,4.)*
 
 **Mancano lo zinco e l'arsenico.** La somma è forzata a 100%: se manca un elemento, la sua quota finisce sugli altri. Per questo il rame risulta troppo alto.
 
@@ -46,16 +48,18 @@ Con il file d'esempio (provato più volte, online e desktop, sempre con gli stes
 
 | Elemento | Stima (% in peso) | Valore usato per costruire il file |
 |---|---|---|
-| Cu | 84,0 ± 0,3 | 84 |
-| Sn | 8,1 ± 0,6 | 8 |
-| Pb | 4,7 ± 0,2 | 5 |
+| Cu | 83,5 ± 0,4 | 84 |
+| Sn | 8,5 ± 0,6 | 8 |
+| Pb | 4,9 ± 0,2 | 5 |
 | Zn | 2,5 ± 0,07 | 2,5 |
-| As | 0,64 ± 0,1 | 0,5 |
+| As | 0,60 ± 0,1 | 0,5 |
 
 Sotto la tabella il programma aggiunge:
 - **⚠️ Valori poco sicuri per righe sovrapposte: As (riga vicina a Pb).** La riga Kα dell'arsenico e la riga Lα del piombo cadono quasi alla stessa energia (circa 10,5 keV). L'arsenico potrebbe anche non esserci: serve una seconda riga per confermarlo.
 - **Elementi considerati.** Ciò che non è in elenco non viene cercato né contato.
 - **± = solo statistica di conteggio.** Non comprende gli errori del modello.
+
+Sono i numeri del modello 3.1 (predefinito dalla 3.1). Con il modello 3.0 la tabella era Cu 84,0 · Sn 8,1 · Pb 4,7 · Zn 2,5 · As 0,64. La differenza (Sn e Pb qualche per cento più alti) viene dallo spettro del tubo: il file è stato costruito con il tubo del modello 3.0 (Kramers), il 3.1 usa quello di Ebel.
 
 **Attenzione: qui l'accordo è migliore che nella realtà.** Il file è stato costruito con lo stesso modello fisico che il programma usa per il calcolo e con le stesse condizioni. Il programma stesso scrive che su leghe simulate con tubo e rivelatore diversi da quelli presunti l'errore relativo ha mediana di circa 3–4%, ma arriva al 20–30% per un caso su dieci, e di più per gli elementi sotto il 2–3%.
 

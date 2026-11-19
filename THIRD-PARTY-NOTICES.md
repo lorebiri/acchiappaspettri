@@ -15,7 +15,9 @@ Generato il 2026-11-06 dal commit 7e9f598 (ramo desktop) e dai pacchetti della C
 | Carattere Nunito (@fontsource/nunito 5.1.0) | pagina web e app desktop (`vendor/fonts/`) | SIL Open Font License 1.1 |
 | Carattere WenQuanYi Micro Hei 0.2.0-beta | pagina web e app desktop (`vendor/fonts/WenQuanYiMicroHei.ttf`), solo nei PDF con cinese, giapponese o coreano | Apache 2.0 (scelta tra Apache 2.0 e GPLv3 con eccezione per i font) |
 | Tabelle fisiche FP_DATA calcolate con xraylib 4.x | `index.html` (dati) | BSD-3-Clause (avviso riportato sotto) |
+| Dati atomici per la CF-LIBS sperimentale dal NIST Atomic Spectra Database 5.12: **non inclusi**, li scarica l'app dal sito del NIST su richiesta dell'utente | `app/libs-nist.js` (codice), `scripts/gen-libs-data.py` | NIST Standard Reference Data, copyright U.S. Secretary of Commerce (15 U.S.C. §290e); non ridistribuiti (vedi sotto) |
 | Descrizione del formato .opj di Origin da liborigin 3.0.x (nessun codice incluso) | `app/origin-core.js` | liborigin: GPL-2.0-or-later (avviso sotto) |
+| PyMca / fisx: modello di file .cfg (da `McaTheory.cfg` e `Steel.cfg`); forma «ahypermet», picchi somma, probabilità di fuga e spettro del tubo di Ebel (continuo e righe K) portati in JavaScript (3.1); file d'esempio nei test | `app/pymca-cfg-core.js` (MODEL_CFG); `index.html` (`xrfHyperAt`, `xrfEscape`, `xrfFitHyper`, `fpTubeEbel`); `test/fixtures/pymca/` (non nei pacchetti) | MIT (avviso sotto) |
 | Crate Rust (Tauri 2, wry, tao, rustls, ring e altri: 336 crate) | eseguibile desktop | MIT, Apache-2.0, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0 (elenco completo sotto) |
 | Microsoft WebView2 Loader (SDK 1.0.3650.58, collegato staticamente) | eseguibile Windows | BSD-3-Clause (Microsoft) |
 | Nullsoft Scriptable Install System 3.x | installatore Windows | zlib/libpng; modulo LZMA: vedi sotto |
@@ -1146,6 +1148,23 @@ modification, are permitted provided that the following conditions are met:
 THIS SOFTWARE IS PROVIDED BY Bruno Golosio, Antonio Brunetti, Manuel Sanchez del Rio, Tom Schoonjans and Teemu Ikonen ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Bruno Golosio, Antonio Brunetti, Manuel Sanchez del Rio, Tom Schoonjans and Teemu Ikonen BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+### NIST ASD (dati atomici della CF-LIBS sperimentale)
+**I dati del NIST non sono distribuiti con l'app né nel repository** finché il NIST non dà il permesso di ridistribuirli. Quando l'utente preme «Scarica i dati atomici dal NIST» nel pannello CF-LIBS, l'app (`app/libs-nist.js`; sul desktop tramite il comando nativo `nist_get`, limitato a `https://physics.nist.gov/cgi-bin/ASD/`) fa al sito del NIST le stesse richieste di `scripts/gen-libs-data.py` (righe, livelli ed energie di ionizzazione degli stadi I e II di 26 elementi) e ne conserva un estratto selezionato e trasformato nell'archivio dell'app su quel computer: righe di emissione scelte (E1, 200–900 nm, classe ≥ C, le 30 più intense a 10 000 K per specie; λ in aria, A_ki, classe, E_i, E_k, g_i, g_k), energie di ionizzazione e funzioni di partizione **calcolate da Acchiappaspettri** dai livelli. Lo script serve ai test (la CI scarica i dati in una cache che non entra nei pacchetti) e a chi vuole preparare un file da caricare nella versione online, dove il browser blocca lo scaricamento diretto (il sito del NIST non lo permette alle pagine di altri siti).
+
+Citazione richiesta: Kramida, A., Ralchenko, Yu., Reader, J., and NIST ASD Team (2024). NIST Atomic Spectra Database (ver. 5.12), [Online]. Available: https://physics.nist.gov/asd. National Institute of Standards and Technology, Gaithersburg, MD. DOI: https://doi.org/10.18434/T4W30F
+
+Condizioni d'uso (lette il 19/11/2026 su https://www.nist.gov/srd/public-law e https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications): i dati di riferimento standard (SRD) sono protetti dal copyright del Segretario al Commercio degli Stati Uniti in base allo Standard Reference Data Act (15 U.S.C. §290e), che consente al Segretario di autorizzarne la riproduzione e la pubblicazione da parte di altri. L'avviso che il NIST chiede di riportare con i prodotti SRD è:
+
+```text
+Copyright protection on this compilation of data has been secured by the Secretary of the U.S. Department of Commerce on behalf of the United States in the United States and all countries that are parties to the Universal Copyright Convention, pursuant to Section 290(e) of Title 15 of the United States Code.
+NIST Standard Reference Data (SRD); ©Copyright 2024 by the U.S. Secretary of Commerce on behalf of the United States of America. All rights reserved.
+```
+
+La stessa pagina del NIST sull'SRD dice che i dati SRD non possono essere riprodotti senza permesso. **Stato: il permesso di ridistribuzione va chiesto al NIST; fino ad allora i dati non sono inclusi** e ogni utente li scarica dal sito del NIST. Il NIST non garantisce i dati («AS IS»).
+
+### SuperLIBS 10K (solo nei test)
+`test/fixtures/libs/superlibs-0201H.csv` (non incluso nei pacchetti dell'app) è un estratto modificato (una riga, trasposta, arrotondata) di: Lepore K., Dyar M.D., Ytsma C.R. (2023). Mount Holyoke College Laser Induced Breakdown Spectra; SuperLIBS 10K; Earth and vacuum atmospheres. Zenodo, doi:10.5281/zenodo.10287455. Licenza Creative Commons Attribution 4.0 International (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/).
+
 ### Altre tabelle
 Le tabelle di bande (FTIR, Raman, UV-Vis, fluorescenza, NMR), di righe (XRF secondo X-ray Data Booklet; LIBS da NIST Atomic Spectra Database) e di pigmenti sono compilate dall'autore a partire dalla letteratura citata nel programma e nella documentazione (tra gli altri Socrates 2001; Larkin 2011; Eastaugh et al. 2008; Janssens & Van Grieken 2004; Bell, Clark & Gibbs 1997; Burgio & Clark 2001; Caggiani et al. 2016). Si tratta di valori numerici selezionati e riordinati, non di copie delle opere. Le fonti vanno citate quando si usano i risultati.
 
@@ -1159,6 +1178,35 @@ terms of the GNU General Public License as published by the Free Software Founda
 the License, or (at your option) any later version.
 ```
 Per .opju («CPYUA») non esiste documentazione pubblica: la struttura è stata ricostruita da Acchiappaspettri; la codifica dei valori è FPC (M. Burtscher, P. Ratanaworabhan, «FPC: A High-Speed Compressor for Double-Precision Floating-Point Data», IEEE Trans. Computers 58 (2009) 18–31), algoritmo riscritto da zero.
+
+### PyMca / fisx
+`app/pymca-cfg-core.js` legge e scrive i file di configurazione `.cfg` di PyMca. Il lettore e lo scrittore sono scritti da zero; il modello di file usato per scrivere (`MODEL_CFG`) deriva da `PyMca5/PyMcaData/McaTheory.cfg` e `Steel.cfg` di PyMca 5.9.7. Nei test (`test/fixtures/pymca/`, fuori dai pacchetti) ci sono, senza modifiche, `McaTheory.cfg`, `Steel.cfg`, `Steel.spe` e `XRFSpectrum.mca` di PyMca. Dalla 3.1 alcune parti del modello XRF di `index.html` sono portate dal codice di PyMca 5.9.7 (MIT): la forma del picco «ahypermet» di `PyMcaMath/fitting/specfit/SpecfitFuns.c`, i picchi somma per autoconvoluzione (`SpecfitFuns.pileup`, `ClassMcaTheory.py`), la probabilità di fuga di `PyMcaPhysics/xrf/Elements.py` (`getEscape`) e lo spettro del tubo di `PyMcaPhysics/xrf/XRayTubeEbel.py` (continuo e righe K di Ebel 1999); le funzioni portate lo dicono nel commento. Per le righe L del tubo si usano le costanti di Ebel (2003) come le applica XMI-MSIM (Schoonjans et al. 2012, `src/xmi_ebel.F90`, GPL-3.0): sono solo valori numerici dalla letteratura, nessun codice di XMI-MSIM è incluso. Nessun codice di fisx (1.3.2, stessa licenza) è incluso; PyMca serve, come programma esterno, a `scripts/pymca-cfg-verifica.py` e a `scripts/confronto-pymca.py`. Si chiede di citare: Solé V.A., Papillon E., Cotte M., Walter Ph., Susini J. (2007) A multiplatform code for the analysis of energy-dispersive X-ray fluorescence spectra. Spectrochim. Acta B 62, 63–68, doi:10.1016/j.sab.2006.12.002.
+
+```text
+The PyMca X-Ray Fluorescence Toolkit is Copyright (C) 2004-2023 of the
+European Synchrotron Radiation Facility (ESRF).
+
+The MIT License (MIT)
+
+Copyright (c) 2004-2023 European Synchrotron Radiation Facility (ESRF)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
 
 ## 3. Windows
 

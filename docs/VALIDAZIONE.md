@@ -1,8 +1,8 @@
 # Validazione numerica di Acchiappaspettri
 
-Documento generato da `scripts/gen-validazione.js` il 2026-11-18. **Non modificare a mano**: rigenerarlo.
+Documento generato da `scripts/gen-validazione.js` il 2026-11-19. **Non modificare a mano**: rigenerarlo.
 
-- Versione dell'app: **3.0.0** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
+- Versione dell'app: **3.1.0-rc.1** (nucleo scientifico di `index.html`, righe tra `/*CORE-START*/` e `/*CORE-END*/`)
 - Motore: Node v22.23.5 (V8 12.4.254.21-node.57), linux x64
 - LRE (log relative error) = −log10(|calcolato − certificato| / |certificato|), al massimo 15; se il certificato è 0 si usa l'errore assoluto. LRE 10 = 10 cifre corrette.
 - Ogni tabella si riproduce con `node --test test/validation/` (i test falliscono sotto soglia).
@@ -275,9 +275,9 @@ Rumore 1 % del picco più alto, 100 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,6 | 1,5 / 4,0 % | ✓ |
+| arPLS (Baek 2015) | 0,65 % | 3,10 % | 2,01 % | 22,15 % | 98,1 % | 0,00 | 1,5 | 1,5 / 4,0 % | ✓ |
 | ALS (Eilers & Boelens 2005) | 1,53 % | 2,30 % | 5,08 % | 8,60 % | 98,1 % | 0,09 | 0,4 | 2,5 / 4,5 % | ✓ |
-| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,4 | 1,5 / 8,0 % | ✓ |
+| IModPoly (Zhao 2007) | 0,56 % | 1,50 % | 1,21 % | 4,31 % | 98,1 % | 0,03 | 1,3 | 1,5 / 8,0 % | ✓ |
 | ModPoly (Lieber 2003) | 1,03 % | 2,24 % | 3,05 % | 10,40 % | 98,1 % | 0,11 | 0,5 | 2,0 / 10,0 % | ✓ |
 | SNIP (Ryan 1988) | 1,16 % | 4,29 % | 3,12 % | 12,02 % | 98,1 % | 0,01 | 0,5 | 2,5 / 6,0 % | ✓ |
 | rolling ball (Kneen & Annegarn 1996) | 3,18 % | 5,55 % | 17,82 % | 34,80 % | 97,9 % | 0,28 | 0,1 | 4,5 / 8,0 % | ✓ |
@@ -286,33 +286,33 @@ Rumore 0,2 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,9 | — | — |
-| ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,5 | — | — |
-| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,7 | — | — |
+| arPLS (Baek 2015) | 9,62 % | 281,44 % | 28,96 % | 493,29 % | 97,9 % | 0,05 | 3,4 | — | — |
+| ALS (Eilers & Boelens 2005) | 1,58 % | 2,38 % | 5,52 % | 9,15 % | 98,4 % | 0,00 | 0,4 | — | — |
+| IModPoly (Zhao 2007) | 0,44 % | 4,14 % | 0,97 % | 13,74 % | 98,4 % | 0,07 | 1,6 | — | — |
 | ModPoly (Lieber 2003) | 0,95 % | 5,82 % | 4,22 % | 15,27 % | 98,4 % | 0,10 | 0,4 | — | — |
-| SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,5 | — | — |
+| SNIP (Ryan 1988) | 1,24 % | 9,50 % | 3,34 % | 22,34 % | 98,4 % | 0,03 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,31 % | 6,58 % | 17,59 % | 38,19 % | 98,4 % | 0,15 | 0,1 | — | — |
 
 Rumore 0,05 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 5,5 | — | — |
-| ALS (Eilers & Boelens 2005) | 1,46 % | 2,63 % | 5,35 % | 10,35 % | 99,0 % | 0,00 | 0,5 | — | — |
+| arPLS (Baek 2015) | 67,24 % | 190,10 % | 163,07 % | 507,85 % | 98,4 % | 0,00 | 5,0 | — | — |
+| ALS (Eilers & Boelens 2005) | 1,46 % | 2,63 % | 5,35 % | 10,35 % | 99,0 % | 0,00 | 0,4 | — | — |
 | IModPoly (Zhao 2007) | 0,30 % | 2,39 % | 0,68 % | 7,71 % | 99,0 % | 0,05 | 2,5 | — | — |
-| ModPoly (Lieber 2003) | 1,03 % | 3,09 % | 4,48 % | 12,37 % | 99,0 % | 0,10 | 0,5 | — | — |
-| SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,5 | — | — |
+| ModPoly (Lieber 2003) | 1,03 % | 3,09 % | 4,48 % | 12,37 % | 99,0 % | 0,10 | 0,4 | — | — |
+| SNIP (Ryan 1988) | 1,39 % | 7,67 % | 4,09 % | 13,90 % | 99,0 % | 0,00 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,33 % | 5,38 % | 17,32 % | 36,47 % | 99,0 % | 0,17 | 0,1 | — | — |
 
 Rumore 3 % del picco più alto, 40 spettri:
 
 | Metodo | RMS mediano | RMS 95° perc. | massimo mediano | massimo 95° perc. | ritrovati | falsi per spettro | ms per spettro | Soglia (RMS med / 95°) | Esito |
 |---|---|---|---|---|---|---|---|---|---|
-| arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,8 | — | — |
+| arPLS (Baek 2015) | 0,84 % | 1,43 % | 2,63 % | 5,18 % | 96,9 % | 0,00 | 0,7 | — | — |
 | ALS (Eilers & Boelens 2005) | 2,89 % | 3,38 % | 6,40 % | 9,82 % | 96,9 % | 0,00 | 0,4 | — | — |
 | IModPoly (Zhao 2007) | 0,85 % | 3,59 % | 1,88 % | 9,54 % | 96,9 % | 0,03 | 0,9 | — | — |
-| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,6 | — | — |
-| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,5 | — | — |
+| ModPoly (Lieber 2003) | 3,10 % | 4,94 % | 4,72 % | 16,85 % | 96,9 % | 0,03 | 0,5 | — | — |
+| SNIP (Ryan 1988) | 1,79 % | 7,05 % | 4,14 % | 14,60 % | 96,9 % | 0,00 | 0,4 | — | — |
 | rolling ball (Kneen & Annegarn 1996) | 3,53 % | 6,21 % | 20,10 % | 40,48 % | 96,4 % | 0,03 | 0,1 | — | — |
 
 Limite noto: arPLS con la rigidità automatica storica (λ = (n/(2π·8))⁴, come nella 2.x) non segue una fluorescenza ripida sugli spettri molto puliti (rumore ≤ 0,2 % del picco): il fondo resta sotto la fluorescenza e l'errore cresce. Con un λ più basso, o con IModPoly e ALS, l'errore resta sotto il 2–3 %. Vedi `docs/LIMITAZIONI.md`.
@@ -364,4 +364,76 @@ Senza ripartenza BoxBOD dalla partenza 1 si ferma sul pianoro b₂ = 114.8096333
 | Confronto dei modelli su dati A → B → C | consec | consec (AIC) | il modello vero | ✓ |
 
 Non eseguiti qui (codice esterno): `scipy.optimize.least_squares` e pyglotaran. La copertura vale con rumore gaussiano indipendente; la funzione di risposta dello strumento (ultraveloce) è fuori dalla 3.0.0.
+
+## R15. XRF: confronto con PyMca (`scripts/confronto-pymca.js`)
+
+*Generato da `node scripts/confronto-pymca.js` (risultati di PyMca 5.9.7 con fisx 1.3.2 in `test/fixtures/pymca/confronto-pymca.json`, scritti da `scripts/confronto-pymca.py`). Il test `test/unit/xrf-pymca-confronto.test.js` controlla gli stessi numeri in CI.*
+
+Area di Acchiappaspettri: gaussiana più code (con il `.cfg` di PyMca, a sola gaussiana, l'area gaussiana comprende anche le code). Criteri su Steel.spe: aree dei gruppi principali entro il 3% (15% per i gruppi sovrapposti ad altri, come Mn Kα sotto Cr Kβ); concentrazioni entro il 6% del certificato e il 10% di PyMca (Mn escluso: PyMca divide diversamente l'area con Cr Kβ). Su XRFSpectrum.mca: χ² non peggiore e aree dei gruppi K e L entro il 15% (le righe M sotto 2,5 keV, sovrapposte fra loro, sono solo riportate), perché lì le aree dipendono molto dal fondo (con SNIP, invece del fondo a B-spline, gli scarti cambiano segno: da +8% a −3/−8%).  Sul bronzo sintetico: entro il 10% della verità e il 20% di PyMca (geometrie solo approssimativamente uguali). χ² ridotto del modello 3.1 non peggiore di quello di PyMca.
+
+### R15.1 Steel.spe (acciaio NIST SRM 1155, eccitazione monocromatica 16 keV)
+
+Condizioni lette da `Steel.cfg`; elementi: Ni, Mn, Pb, As, Fe, W, V, Cr, Cu; intervallo di PyMca (canali 200–1432).
+
+| Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto |
+|---|---|---|---|
+| Cr K | 1184846 | 1196016 | -0,9% |
+| Mn K | 96711 | 109608 | -11,8% |
+| Fe Ka+Fe Kb | 3547527 | 3566386 | -0,5% |
+| Ni K | 511214 | 512385 | -0,2% |
+| Cu K | 10158 | 10058 | +1,0% |
+
+| % in peso (normalizzato su Cr+Mn+Fe+Ni+Cu) | Acchiappaspettri 3.1 | PyMca (secondaria + terziaria, Fe di riferimento) | Certificato NIST |
+|---|---|---|---|
+| Cr | 18,264 | 20,024 | 18,971 |
+| Mn | 1,630 | 1,895 | 1,672 |
+| Fe | 67,756 | 66,005 | per differenza |
+| Ni | 12,167 | 11,897 | 12,754 |
+| Cu | 0,183 | 0,179 | 0,179 |
+
+χ² ridotto sullo stesso intervallo: Acchiappaspettri 3.1 **7,90**, 3.0 15,15; PyMca con `Steel.cfg` (sola gaussiana) **13,09**, PyMca con l'ipermetro completo 19,16. Noise/Fano: Acchiappaspettri 105 eV / 0,130, PyMca 105 eV / 0,137. I fondi sono diversi (B-spline nel fit contro SNIP), quindi il χ² dice soprattutto quanto bene è descritta la forma dei picchi.
+
+### R15.2 XRFSpectrum.mca (standard sottile multielemento distribuito con PyMca)
+
+Condizioni dal `.cfg` di `PyMca5/tests/XrfTest.py`; aree in unità dello spettro (conteggi normalizzati). La concentrazione non si confronta: PyMca usa uno standard interno (Co) e uno strato sottile, che l'app non prevede.
+
+| Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto | Nel criterio |
+|---|---|---|---|---|
+| Ar K | 7670,9154 | 7284,5606 | +5,3% | no (< 1% del totale) |
+| Ca K | 9487,5065 | 9397,0349 | +1,0% | no (< 1% del totale) |
+| Ti K | 15429,9838 | 14836,3565 | +4,0% | sì |
+| V K | 19860,8552 | 18856,2495 | +5,3% | sì |
+| Cr K | 26582,5911 | 25084,0118 | +6,0% | sì |
+| Mn K | 33671,0088 | 31587,5719 | +6,6% | sì |
+| Fe K | 43027,1585 | 39996,6964 | +7,6% | sì |
+| Co K | 50875,1211 | 46933,8383 | +8,4% | sì |
+| Ni K | 62772,0963 | 58119,2601 | +8,0% | sì |
+| Cu K | 70121,9707 | 64988,5373 | +7,9% | sì |
+| Zn K | 80339,1473 | 75169,8951 | +6,9% | sì |
+| Zn L | 0,0000 | 452,5626 | -100,0% | no (< 1% del totale) |
+| As K | 108080,6427 | 100762,3329 | +7,3% | sì |
+| As L | 1042,9059 | 447,4769 | +133,1% | no (< 1% del totale) |
+| Se K | 115285,8519 | 108113,0960 | +6,6% | sì |
+| Se L | 1340,9498 | 971,9866 | +38,0% | no (< 1% del totale) |
+| Sr K | 137607,4666 | 123927,7256 | +11,0% | sì |
+| Sr L | 3861,0405 | 3093,3100 | +24,8% | no (< 1% del totale) |
+| Cd L | 2658,2897 | 3113,6104 | -14,6% | no (< 1% del totale) |
+| Sb L | 5064,1006 | 6205,6459 | -18,4% | no (< 1% del totale) |
+| Tl L | 96167,1246 | 98831,5287 | -2,7% | sì |
+| Tl M | 11135,1057 | 15018,4209 | -25,9% | no (righe M) |
+| Pb L | 98153,9538 | 99445,3070 | -1,3% | sì |
+| Pb M | 13667,2505 | 13455,3309 | +1,6% | no (righe M) |
+
+### R15.3 Bronzo SINTETICO di `examples/` (tubo Rh 40 kV)
+
+Tubo di Ebel in entrambi i programmi, matrice iterata e normalizzata a 100%. Lo spettro è generato col modello 3.0 dell'app (tubo di Kramers): la «verità» vale per quel modello.
+
+| % in peso | Verità | Acchiappaspettri 3.1 | PyMca |
+|---|---|---|---|
+| Cu | 84,00 | 83,60 | 82,26 |
+| Sn | 8,00 | 8,41 | 8,82 |
+| Pb | 5,00 | 4,95 | 5,91 |
+| Zn | 2,50 | 2,51 | 2,56 |
+| As | 0,50 | 0,53 | 0,45 |
+
 

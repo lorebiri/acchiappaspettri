@@ -152,6 +152,10 @@ P('');
   { const se=SY.serieCinetica('consec',[0.5,0.12],{},50,80,0.002,7), R=[['ord1',{model:'ord1'}],['consec',{model:'consec'}],['par3c',{model:'par', nExp:3, offset:true}]].map(([l,o])=>Object.assign(K.fit(se,o),{label:l})), c=K.compare(R), b=c.rows.slice().sort((x,y)=>x.aic-y.aic)[0].label;
     P(`| Confronto dei modelli su dati A → B → C | consec | ${b} (AIC) | il modello vero | ${esito(b==='consec')} |`); }
   P(''); P('Non eseguiti qui (codice esterno): `scipy.optimize.least_squares` e pyglotaran. La copertura vale con rumore gaussiano indipendente; la funzione di risposta dello strumento (ultraveloce) è fuori dalla 3.0.0.'); P(''); }
+// R15 (3.1): XRF, confronto automatico con PyMca 5.9.7 + fisx 1.3.2 sugli spettri pubblici (scripts/confronto-pymca.js, test/unit/xrf-pymca-confronto.test.js)
+{ const X=require('./confronto-pymca.js'), r=X.calcola(), body=X.rapporto(r).split('\n').slice(1).map(l=>l.replace(/^## (\d)\./,'### R15.$1'));
+  P('## R15. XRF: confronto con PyMca (`scripts/confronto-pymca.js`)'); body.forEach(l=>P(l)); P('');
+  const okA=r.steel.aree.filter(a=>a.grande).every(a=>Math.abs(a.diff)<(a.sovrapposto?0.15:0.03)), okC=r.steel.chi2r.acch31<=r.steel.chi2r.pymca; if (!okA || !okC) fails++; }
 fs.mkdirSync(path.dirname(OUT),{recursive:true}); fs.writeFileSync(OUT, md.join('\n')+'\n');
-console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10–R12, R13 e R14 sopra soglia'}.`);
+console.log(`Scritto ${path.relative(process.cwd(), OUT)}: ${fails? fails+' controlli sotto soglia' : 'tutti i controlli R1–R3, R10–R15 sopra soglia'}.`);
 process.exitCode=fails?1:0;

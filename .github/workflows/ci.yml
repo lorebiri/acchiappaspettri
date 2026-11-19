@@ -30,6 +30,12 @@ jobs:
       - run: node scripts/check-version.js
       - name: Il dizionario generato è aggiornato
         run: node scripts/i18n-build.js && git diff --exit-code i18n/en.js
+      # dati atomici del NIST per i test della CF-LIBS: non sono nel repository né nei pacchetti (permesso del NIST da chiedere),
+      # li scarica scripts/gen-libs-data.py dal sito del NIST in scripts/.nist-cache/, tenuta in cache finché lo script non cambia
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with: { path: scripts/.nist-cache, key: "nist-asd-${{ hashFiles('scripts/gen-libs-data.py') }}" }
+      - name: Dati atomici del NIST per i test (scaricati, non distribuiti)
+        run: python3 scripts/gen-libs-data.py
       - name: Test unitari (scienza, formato, lingue, configurazione)
         run: npm test
       - name: Benchmark scientifici
@@ -43,6 +49,8 @@ jobs:
         run: npm run test:ui
       - name: Validazione nell'interfaccia (file avversi ed esportazioni)
         run: npm run test:validation:ui
+      - name: Versione online, revisione della chiarezza (il desktop resta identico)
+        run: node --test test/validation/web-chiarezza-ui.test.js
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with: { name: validazione, path: docs/VALIDAZIONE.md }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

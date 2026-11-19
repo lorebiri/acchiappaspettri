@@ -7,7 +7,10 @@
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const leggi = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
-const PKG = JSON.parse(leggi('package.json'));
+const PKG0 = JSON.parse(leggi('package.json'));
+// versione mostrata dal sito: quella di package.json, o l'ultima stabile del CHANGELOG se package.json ha una versione di prova (rc)
+const VS = /-/.test(PKG0.version) ? [...leggi('CHANGELOG.md').matchAll(/^## (\d+\.\d+\.\d+)(?![-\w.])/gm)].map((m) => m[1])[0] : PKG0.version;
+const PKG = { ...PKG0, version: VS };
 const PAGINE = { it: 'scarica/index.html', en: 'scarica/en/index.html' };
 const AIUTO = 'esegui «npm run sito» e fai il commit di scarica/';
 const S = () => import(path.join(ROOT, 'scarica', 'scarica.js'));
@@ -275,7 +278,7 @@ test('sito-sync: pages.yml pubblica app e sito, alla release, ai push su main, o
   const r = leggi('.github/workflows/release.yml');
   assert.match(r, /gh workflow run pages\.yml/);
   assert.ok(!fs.readFileSync(path.join(ROOT, '.github/workflows/sito.yml'), 'utf8').includes('deploy-pages'), 'un solo workflow pubblica');
-  assert.strictEqual(PKG.scripts.sito, 'node scripts/sito-aggiorna.mjs');
+  assert.strictEqual(PKG0.scripts.sito, 'node scripts/sito-aggiorna.mjs');
   const doc = leggi('DEPLOY-SITO.md');
   for (const s of ['npm run sito', 'GitHub Actions', 'pages.yml', 'sito-verifica.mjs']) assert.ok(doc.includes(s), `DEPLOY-SITO.md: ${s}`);
 });
@@ -289,4 +292,25 @@ test('sito-sync: il controllo della pubblicazione trova app e sito nel ramo e si
   const q = await verifica(sorgente(vuota));
   assert.ok(q.some((x) => /^app: {2}?.*risponde 404/.test(x) || /^app: /.test(x)));
   assert.ok(q.some((x) => /^sito: scarica\/ risponde 404/.test(x)));
+});
+
+test('sito-sync: schede delle funzioni nuove già nelle pagine ma spente fino alla versione stabile; una rc non arriva nel sito', async () => {
+  const { mostraPerVersione, versioneRaggiunta, versioneDelSito, leggiChangelogRepo, applica, datiNellaPagina } = await A();
+  for (const [v, atteso] of [['3.0.0', false], ['3.1.0-rc.1', false], ['3.1.0', true], ['3.1.2', true], ['4.0.0-rc.1', true]]) assert.strictEqual(versioneRaggiunta(v, '3.1.0'), atteso, v);
+  const cl = leggiChangelogRepo(ROOT);
+  assert.strictEqual(versioneDelSito('3.1.0-rc.1', cl.it), '3.0.0', 'con una versione di prova il sito resta sull\'ultima stabile');
+  assert.strictEqual(versioneDelSito('3.1.0', cl.it), '3.1.0');
+  for (const [lingua, file] of Object.entries(PAGINE)) {
+    const html = leggi(file), dati = datiNellaPagina(html);
+    const legati = [...html.matchAll(/<[a-z]+\b[^>]*\sdata-(dalla|prima-della)-versione="([^"]+)"[^>]*>/g)];
+    assert.ok(legati.length >= 8, `${lingua}: parti legate alla versione`);
+    for (const m of legati) assert.strictEqual(/\shidden\b/.test(m[0]), m[1] === 'dalla' ? !versioneRaggiunta(dati.versione, m[2]) : versioneRaggiunta(dati.versione, m[2]), `${lingua}: ${m[0].slice(0, 90)}`);
+    // la scheda CF-LIBS e il suo link nell'indice escono insieme, con la 3.1.0 stabile
+    const con31 = mostraPerVersione(html, '3.1.0');
+    assert.match(con31, /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0">/, lingua); assert.match(con31, /<li data-dalla-versione="3\.1\.0"><a href="#f-libs">/, lingua);
+    assert.match(html, /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0" hidden>/, `${lingua}: spenta con la ${dati.versione}`);
+    assert.ok(mostraPerVersione(con31, dati.versione) === html, `${lingua}: si spengono di nuovo identiche`);
+    assert.ok(applica(con31, dati, lingua, cl) === html, `${lingua}: applica spegne le schede secondo la versione scritta`);
+    assert.doesNotMatch(html, /Palleschi|Legnaioli|PyMca/, `${lingua}: nomi non ammessi`);
+  }
 });
