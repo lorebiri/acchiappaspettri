@@ -3863,7 +3863,7 @@ function xrfFitHyper(c){
   const B=build(p), act=[]; R.x.forEach((v,j)=>{ if (v>0) act.push(j); }); const sdAll=new Float64Array(R.x.length), dof=Math.max(1, m-act.length-free.length), red=R.chi/dof;
   if (act.length){ const Mx=act.map(j=>act.map(q=>R.Gm[j][q])), Lc=chol(Mx); if (Lc){ const inv=cholInv(Lc); act.forEach((j,k)=>sdAll[j]=Math.sqrt(Math.max(0,inv[k][k])*Math.max(1,red))); } }
   const area={}, sArea={}, famArea={}, sd=sdAll.subarray(0, comps.length);
-  comps.forEach((cp,j)=>{ const sr=cp.lines.reduce((t,q)=>t+q[2],0); famArea[cp.id]={a:R.x[j], s:sd[j], area:R.x[j]*sr, sArea:sd[j]*sr}; if (!cp.el) return;
+  comps.forEach((cp,j)=>{ const sr=cp.lines.reduce((t,q)=>t+q[2],0), gr=L[j].reduce((t,q)=>t+q.rel*q.ph,0); famArea[cp.id]={a:R.x[j], s:sd[j], area:R.x[j]*sr, sArea:sd[j]*sr, gArea:R.x[j]*gr, tArea:R.x[j]*gr*(1+(flags&2?p.st:0)+(flags&4?p.lt:0))};   // tArea: gaussiana più code if (!cp.el) return;   // gArea: area gaussiana del fotopicco, come «fitarea» di PyMca
     for (const [nm,E,rel] of cp.lines){ const key=nm==='La'||nm==='Ka'?nm:nm==='Lb1'?'Lb':nm==='Kb'?'Kb':null; if (!key) continue;
       const ad=key==='Lb' ? cp.lines.filter(q=>q[0].startsWith('Lb')).reduce((t,q)=>t+q[2],0) : rel;
       (area[cp.el]=area[cp.el]||{})[key]=(area[cp.el][key]||0)+R.x[j]*ad; (sArea[cp.el]=sArea[cp.el]||{})[key]=Math.hypot((sArea[cp.el][key]||0), sd[j]*ad); } });
