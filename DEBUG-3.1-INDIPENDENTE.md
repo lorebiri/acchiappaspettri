@@ -113,7 +113,7 @@ Per una decina di minuti, inoltre, un `git stash` ha riportato l'albero di lavor
   - in `validazione/` ci sono solo il NIST SRM 1155 pubblico e i criteri;
   - `docs/VALIDAZIONE-DATI-REALI.md` ha solo errori aggregati;
   - `THIRD-PARTY-NOTICES.md` riporta il testo MIT di PyMca identico a `LICENSE.MIT` di PyMca 5.9.7, l'elenco delle funzioni portate e la nota su XMI-MSIM (solo costanti).
-- **Suite locali** (ultima esecuzione dopo le correzioni): test unitari 380 su 386 (6 saltati come prima), validazione numerica 77/77, benchmark 36/36, `check-version` a posto, dizionario rigenerato senza differenze. Collaudo e validazione nell'interfaccia: vedi in fondo.
+- **Suite locali** (ultima esecuzione dopo le correzioni): test unitari 380 su 386 (6 saltati come prima), validazione numerica 77/77, benchmark 36/36, `check-version` a posto, dizionario rigenerato senza differenze. Collaudo dell'interfaccia passato per intero (italiano e inglese, web e desktop simulato). Validazione nell'interfaccia: 212 prove su 213. L'unica fallita è I9, la prova dei tempi della chemometria, codice non toccato qui: con la macchina carica ha avuto un tentativo da 1,9 s; rilanciata da sola passa (3/3), come già annotato in CONCLUSIONE. Tutte con `PW_EXECUTABLE=/opt/pw-browsers/chromium`.
 
 ## Prestazioni
 
