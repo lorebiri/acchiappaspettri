@@ -16,7 +16,7 @@
   const listeners=[];
   /* stato del lavoro (senza i dati grezzi): serve a capire se ci sono modifiche non salvate */
   function memoryOf(f){ return win.fileMemory(f); }
-  function stateObj(){ return {title:S.docTitle||'', S, MV, COMPS:COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined})), REFS, LIB, curIndex:cur}; }
+  function stateObj(){ return {title:S.docTitle||'', S, MV, COMPS:COMPS.map(c=>({id:c.id,name:c.name,instr:c.instr,mode:c.mode,gap:c.gap,out:c.out,keys:c.keys,inset:c.inset||undefined})), REFS, LIB, curIndex:cur, xrfModel:'3.1'}; }   // 3.1: chi salva conosce il modello XRF 3.1 (fpProjectCompat non tocca questi progetti, qualunque sia la versione scritta)
   function sig(){ const st=stateObj(), Sx=Object.assign({},st.S); delete Sx.lang; return JSON.stringify({S:Sx, MV:st.MV, C:st.COMPS, R:st.REFS.map(r=>r.id), L:st.LIB.map(e=>e.id), F:files.map(f=>[f.path, f.size, memoryOf(f)])}); }
   function markSaved(){ baseline=sig(); notify(); autosave.clear(); }
   /* copia di recupero: resta sul computer (IndexedDB), non va mai in rete. Si cancella quando il lavoro è salvato o scartato */
@@ -125,7 +125,7 @@
       prevResults=(P.results||[]).filter(r=>r&&typeof r.name==='string'&&typeof r.text==='string');
       await addEntries(ents); win.ACCH_PENDING_MEM=null;
       // 3.1: progetti delle versioni precedenti, le stime XRF restano col modello di allora (avviso nel pannello e qui)
-      const fp30=typeof win.fpProjectCompat==='function' ? win.fpProjectCompat(files, P.manifest.appVersion) : 0;
+      const fp30=typeof win.fpProjectCompat==='function' ? win.fpProjectCompat(files, P.manifest.appVersion, st) : 0;
       // file del progetto da cui non è venuto nessuno spettro, e canali salvati che non si ritrovano (I3: un file può dare più spettri)
       const last=win.ACCH_LAST_ADD||{produced:files.map(f=>f.path), missing:0}, got=new Set(last.produced);
       // I11: un file di un'estensione che non si rilegge più (estensione cambiata o che dà errore) non si perde: torna nel progetto com'era

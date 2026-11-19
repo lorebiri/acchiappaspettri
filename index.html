@@ -8763,7 +8763,8 @@ function fpCfg(f){ const s=(f.an&&f.an.fp)||null, c=Object.assign({mode:'norm', 
   if (s && !s.model){ c.model='gauss'; c.phys='3.0'; c.was30=true; }   // impostazioni salvate dalla 3.0: stessi risultati di prima, con un avviso (fpNotes)
   return c; }
 /* progetti salvati prima della 3.1: le stime XRF restano col modello 3.0 (gaussiane, tubo di Kramers), con un avviso; si passa al 3.1 dal pannello */
-function fpProjectCompat(list, appVersion){ const m=/^(\d+)\.(\d+)/.exec(String(appVersion||'')), old=!m || +m[1]<3 || (+m[1]===3 && +m[2]<1); if (!old) return 0; let n=0;
+function fpProjectCompat(list, appVersion, state){ if (state && state.xrfModel) return 0;   // salvato da una versione che conosce il modello 3.1
+  const m=/^(\d+)\.(\d+)/.exec(String(appVersion||'')), old=!m || +m[1]<3 || (+m[1]===3 && +m[2]<1); if (!old) return 0; let n=0;
   for (const f of list){ if (f.instr!=='xrf') continue; const s=(f.an&&f.an.fp)||{}; if (s.model) continue; anSet(f, 'fp', Object.assign({mode:'norm', bal:'org'}, s, {model:'gauss', phys:'3.0', was30:true})); f._fpKey=null; n++; }
   return n; }
 function fpSaveCfg(f, c){ anSet(f, 'fp', c); f._fpKey=null; }

@@ -82,10 +82,13 @@
     }
     const def=byName.get('DEFAULT'), out={};
     const interp=(v, sec)=>v.replace(/%\(([^)]+)\)s|%%/g, (all, k)=>{ if (!k) return '%'; const src=(sec.opts.has(k)?sec:def&&def.opts.has(k)?def:null); return src ? src.opts.get(k).join('\n').trim() : all; });
+    // nomi che in JavaScript toccano il prototipo: una sezione [__proto__] scriveva su Object.prototype (revisione 3.1). Si scartano, sezioni e chiavi
+    const BAD=new Set(['__proto__','constructor','prototype']);
     for (const s of secs){ if (s.name==='DEFAULT') continue;
-      let d=out; for (const part of s.name.split('.')){ const k=part.split('_|_').join('.'); if (!isObj(d[k])) d[k]={}; d=d[k]; }
+      const parts=s.name.split('.').map(part=>part.split('_|_').join('.')); if (parts.some(k=>BAD.has(k))) continue;
+      let d=out; for (const k of parts){ if (!Object.prototype.hasOwnProperty.call(d,k) || !isObj(d[k])) d[k]={}; d=d[k]; }
       const keys=new Map(def ? def.opts : []); for (const [k,v] of s.opts) keys.set(k,v);
-      for (const [k,v] of keys){ const val=v.join('\n').replace(/\s+$/,''); d[k]=pyData(interp(val, s)); }
+      for (const [k,v] of keys){ if (BAD.has(k)) continue; const val=v.join('\n').replace(/\s+$/,''); d[k]=pyData(interp(val, s)); }
     }
     return out;
   }

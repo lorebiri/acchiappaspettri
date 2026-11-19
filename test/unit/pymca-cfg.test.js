@@ -137,3 +137,9 @@ test('formule e materiali', ()=>{
   const cfg={materials:{A:{CompoundList:['B','Fe'], CompoundFraction:[1,1]}, B:{CompoundList:'Cu', CompoundFraction:1}}}; assert.deepEqual(P.materialComp('A', cfg), {Cu:0.5, Fe:0.5});
   const loop={materials:{A:{CompoundList:'A', CompoundFraction:1}}}; assert.equal(P.materialComp('A', loop), null, 'un materiale che contiene sé stesso non manda in ciclo');
 });
+test('sicurezza: un .cfg con sezioni o chiavi __proto__, constructor, prototype non tocca il prototipo degli oggetti', ()=>{
+  const c=P.parse('[__proto__]\npolluted = 1\n[constructor]\nprototype = 2\n[a.__proto__]\nx = 3\n[peaks]\n__proto__ = K\nCu = K\nconstructor = L\n');
+  assert.strictEqual(({}).polluted, undefined); assert.strictEqual(Object.prototype.polluted, undefined); assert.strictEqual(({}).x, undefined);
+  assert.deepStrictEqual(Object.keys(c).sort(), ['peaks']); assert.deepStrictEqual(Object.keys(c.peaks), ['Cu']);
+  const n=P.toAcch(c); assert.strictEqual(({}).polluted, undefined); assert.deepStrictEqual(Object.keys(n.peaks), ['Cu']);
+});

@@ -30,7 +30,9 @@ The section **🏛️ XRF concentrations: composition and thicknesses** opens. L
 ## 3. Check the elements
 The program proposes the elements it found by itself: here **Cu, Sn, Pb**. The first result is:
 
-Cu 86.3 · Sn 8.3 · Pb 5.4
+Cu 85.7 · Sn 8.7 · Pb 5.5
+
+*(With the 3.0 model, chosen in «Measurement conditions» → «Model», or in a project saved with 3.0: Cu 86.3 · Sn 8.3 · Pb 5.4.)*
 
 **Zinc and arsenic are missing.** The sum is forced to 100%: if an element is missing, its share goes to the others. This is why copper comes out too high.
 
@@ -47,11 +49,13 @@ With the example file (tested several times, online and desktop, always with the
 
 | Element | Estimate (wt %) | Value used to build the file |
 |---|---|---|
-| Cu | 84.0 ± 0.3 | 84 |
-| Sn | 8.1 ± 0.6 | 8 |
-| Pb | 4.7 ± 0.2 | 5 |
+| Cu | 83.5 ± 0.4 | 84 |
+| Sn | 8.5 ± 0.6 | 8 |
+| Pb | 4.9 ± 0.2 | 5 |
 | Zn | 2.5 ± 0.07 | 2.5 |
-| As | 0.64 ± 0.1 | 0.5 |
+| As | 0.60 ± 0.1 | 0.5 |
+
+These are the numbers of the 3.1 model (the default from 3.1). With the 3.0 model the table was Cu 84.0 · Sn 8.1 · Pb 4.7 · Zn 2.5 · As 0.64. The difference (Sn and Pb a few per cent higher) comes from the tube spectrum: the file was built with the 3.0 tube model (Kramers), 3.1 uses Ebel's.
 
 Below the table the program adds:
 - **⚠️ Uncertain values because of overlapping lines: As (line close to Pb).** The arsenic Kα line and the lead Lα line fall at almost the same energy (about 10.5 keV). Arsenic may not be there at all: a second line is needed to confirm it.
