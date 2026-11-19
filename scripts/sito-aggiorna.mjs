@@ -9,10 +9,12 @@
 //   elenco      tutti i pacchetti con link diretto, nome, dimensione e impronta SHA-256
 //   novita      la sezione «Novità»: le ultime 3 versioni pubblicate di CHANGELOG.md (in inglese CHANGELOG.en.md),
 //               senza le versioni di prova (rc) né le sezioni «In preparazione»
+// e accende o spegne (attributo hidden) le parti con data-dalla-versione / data-prima-della-versione (mostraPerVersione)
 // e rigenera scarica/sitemap.xml (con le due lingue).
 //
 // Uso:
-//   npm run sito                       versione di package.json (prima del commit di un rilascio, o dopo la pubblicazione per
+//   npm run sito                       versione di package.json (se è una versione di prova, l'ultima stabile del CHANGELOG)
+//                                      (prima del commit di un rilascio, o dopo la pubblicazione per
 //                                      scrivere anche data, dimensioni e impronte). Se quella versione è già su GitHub Releases
 //                                      prende i dati da lì; altrimenti i link portano alla pagina delle versioni.
 //   node scripts/sito-aggiorna.mjs --pubblicata [--dir cartella]
@@ -283,6 +285,24 @@ function bloccoNovita(dati, T, sezioni, sezioniIt) {
   return righe.join('\n');
 }
 
+/**
+ * Parti della pagina legate a una versione: un elemento con data-dalla-versione="3.1.0" si vede solo se la versione scritta nella pagina
+ * è una 3.1.0 stabile o successiva (una versione di prova come 3.1.0-rc.1 no); data-prima-della-versione="3.1.0" il contrario.
+ * Così le schede delle funzioni nuove stanno già nel sito ma escono solo con la versione pubblicata: pages.yml scrive l'ultima
+ * versione PUBBLICATA (--pubblicata) prima di mettere online. Si aggiunge o si toglie solo l'attributo hidden.
+ */
+export function versioneRaggiunta(versione, soglia) {
+  const c2 = confrontaVersioni(String(versione || '').split('-')[0], soglia);
+  return c2 !== 0 ? c2 > 0 : !/-/.test(String(versione || ''));
+}
+export function mostraPerVersione(html, versione) {
+  return String(html).replace(/<([a-z][a-z0-9]*)((?:\s[^>]*?)?\sdata-(dalla|prima-della)-versione="([^"]+)"[^>]*?)\s*>/gi, (_, tag, attr, tipo, soglia) => {
+    const vedi = tipo === 'dalla' ? versioneRaggiunta(versione, soglia) : !versioneRaggiunta(versione, soglia);
+    const a = attr.replace(/\shidden(?=\s|$)/g, '');
+    return `<${tag}${a}${vedi ? '' : ' hidden'}>`;
+  });
+}
+
 /** Sostituisce il contenuto di un blocco <!-- sync:nome --> … <!-- /sync:nome -->. Errore se il blocco non c'è. */
 export function sostituisciBlocco(html, nome, contenuto) {
   const re = new RegExp(`(<!-- sync:${nome}\\b[^>]*-->)[\\s\\S]*?(\\n[ \\t]*<!-- /sync:${nome} -->)`);
@@ -305,6 +325,7 @@ export function applica(html, dati, lingua, changelog) {
   out = sostituisciBlocco(out, 'versione', bloccoVersione(dati, T));
   out = sostituisciBlocco(out, 'elenco', bloccoElenco(dati, T));
   out = sostituisciBlocco(out, 'novita', bloccoNovita(dati, T, changelog[lingua] || [], changelog.it || []));
+  out = mostraPerVersione(out, dati.versione);
   return out;
 }
 
@@ -349,12 +370,24 @@ async function daGitHub(versione, precedenti) {
 
 // ---- riga di comando ----
 
+/**
+ * Versione che il sito deve mostrare: quella di package.json se è stabile; se è una versione di prova (3.1.0-rc.1) l'ultima stabile
+ * del CHANGELOG, perché le versioni di prova non vanno annunciate né proposte nel sito.
+ */
+export function versioneDelSito(versionePkg, sezioniIt) {
+  if (!/-/.test(String(versionePkg || ''))) return versionePkg;
+  const base = String(versionePkg).split('-')[0];   // confrontaVersioni non legge il suffisso «-rc.N»
+  const stabili = (sezioniIt || []).map((x) => x.versione).filter((v) => confrontaVersioni(v, base) < 0 && !/-/.test(v));
+  return stabili.sort((a, b) => confrontaVersioni(b, a))[0] || versionePkg;
+}
+
 async function main(argv) {
   const pubblicata = argv.includes('--pubblicata');
   const i = argv.indexOf('--dir');
   const dir = resolve(i >= 0 ? argv[i + 1] : join(RADICE, 'scarica'));
-  const versionePkg = JSON.parse(readFileSync(join(RADICE, 'package.json'), 'utf8')).version;
   const changelog = leggiChangelogRepo();
+  const versionePacchetto = JSON.parse(readFileSync(join(RADICE, 'package.json'), 'utf8')).version, versionePkg = versioneDelSito(versionePacchetto, changelog.it);
+  if (versionePkg !== versionePacchetto) console.log(`${versionePacchetto} è una versione di prova: il sito resta sulla ${versionePkg}.`);
   const pagine = { it: join(dir, 'index.html'), en: join(dir, 'en', 'index.html') };
   const html = { it: readFileSync(pagine.it, 'utf8'), en: readFileSync(pagine.en, 'utf8') };
   const precedenti = datiNellaPagina(html.it);

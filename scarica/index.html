@@ -173,8 +173,8 @@
         <li><strong>UV-Visibile</strong>nm, eV o cm⁻¹, band gap di Tauc</li>
         <li><strong>Fluorescenza</strong>emissione ed eccitazione, Rayleigh e Raman dell'acqua, spostamento di Stokes</li>
         <li><strong>Cromatografia HPLC</strong>uno o più canali, piatti teorici, coda, risoluzione, S/N, tarature</li>
-        <li><strong>Fluorescenza X (XRF)</strong>calibrazione dell'energia, elementi, composizione con o senza standard</li>
-        <li><strong>LIBS</strong>righe atomiche di 41 elementi e bande molecolari</li>
+        <li><strong>Fluorescenza X (XRF)</strong>calibrazione dell'energia, elementi, composizione con o senza standard<span data-dalla-versione="3.1.0" hidden>; fit completo dei picchi (code, fughe, picchi somma) e verifica degli elementi</span></li>
+        <li><strong>LIBS</strong>righe atomiche di 41 elementi e bande molecolari<span data-dalla-versione="3.1.0" hidden>; analisi senza taratura (CF-LIBS), sperimentale</span></li>
         <li><strong>Termogravimetria (TGA)</strong>massa %, DTG, T₅%, residuo, gradini</li>
         <li><strong>Calorimetria (DSC)</strong>endo/exo, ΔH in J/g, onset, possibile Tg, segmenti</li>
         <li><strong>NMR</strong>¹H e ¹³C, ppm, integrali, riferimento</li>
@@ -196,7 +196,7 @@
           <dl>
             <dt>Infrarosso</dt><dd>Thermo OMNIC <code>.spa</code>, Bruker OPUS (<code>.0</code>, <code>.1</code>…), PerkinElmer <code>.sp</code> e <code>.asc</code>, JASCO</dd>
             <dt>Cromatografia</dt><dd>Agilent ChemStation/OpenLab <code>.ch</code> e <code>.uv</code> con tutti i canali, Waters <code>.arw</code>, Shimadzu (più blocchi e più campioni)</dd>
-            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code></dd>
+            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code><span data-dalla-versione="3.1.0" hidden>, export di Bruker ELIO (<code>.mca</code> e <code>.spt</code>), <code>.mca</code> in formato SPEC; impostazioni del fit XRF in formato <code>.cfg</code>, in lettura e in scrittura</span></dd>
             <dt>Adsorbimento</dt><dd>Anton Paar Autosorb (Kaomi, ASiQwin) e AIF</dd>
             <dt>Progetti Origin</dt><dd><code>.opju</code> e <code>.opj</code>: si sceglie quali coppie X/Y importare</dd>
           </dl>
@@ -257,6 +257,7 @@
         <li><a href="#f-esportazioni">Esportazioni</a></li>
         <li><a href="#f-progetti">Progetti</a></li>
         <li><a href="#f-desktop">Desktop</a></li>
+        <li data-dalla-versione="3.1.0" hidden><a href="#f-libs">CF-LIBS</a></li>
       </ul>
 
       <article class="funzione" id="f-picchi" aria-labelledby="t-f-picchi">
@@ -279,6 +280,7 @@
           <h3 id="t-f-fondo">Ritocchi e rimozione del fondo, con l'anteprima</h3>
           <p>Conversioni (trasmittanza e assorbanza, unità dell'asse), smoothing, raggi cosmici, derivate, normalizzazioni e scale. E ora la <strong>rimozione del fondo</strong> con i metodi riconosciuti in letteratura.</p>
           <ul class="punti">
+            <li data-dalla-versione="3.1.0" hidden><strong>Raman con fluorescenza</strong>: il metodo consigliato è scelto sullo spettro; dove il polinomio iterativo toglierebbe troppo segnale si passa a SNIP o ALS, provati su spettri veri di pigmenti.</li>
             <li><strong>Metodi</strong>: arPLS, ALS, polinomio iterativo (IModPoly, ModPoly), SNIP, rolling ball, inviluppo convesso, retta, oppure punti di ancoraggio scelti sul grafico o scritti.</li>
             <li><strong>Anteprima dal vivo</strong>: mentre muovi i cursori vedi lo spettro prima della correzione e il fondo stimato; i valori consigliati sono calcolati sullo spettro.</li>
             <li>Per uno spettro o per tutti quelli della tecnica; annulla e «Ripristina l'originale». Il file originale non cambia mai.</li>
@@ -364,13 +366,18 @@
 
       <article class="funzione inversa" id="f-xrf" aria-labelledby="t-f-xrf">
         <div class="funzione-testo">
-          <p class="etichetta">Fluorescenza X</p>
+          <p class="etichetta" data-prima-della-versione="3.1.0">Fluorescenza X</p>
+          <p class="etichetta novita" data-dalla-versione="3.1.0" hidden>Novità · Fluorescenza X</p>
           <h3 id="t-f-xrf">XRF: elementi e composizione</h3>
           <p>Calibrazione dell'energia controllata e corretta, elementi riconosciuti con le righe coincidenti dichiarate (per esempio Pb Lα e As Kα), aree nette con il fondo SNIP.</p>
           <ul class="punti">
             <li><strong>Composizione senza standard</strong> con i parametri fondamentali, sempre presentata come <em>stima</em> con le ipotesi usate e l'intervallo di sensibilità.</li>
             <li>Con i tuoi standard, concentrazioni e spessori.</li>
             <li>Per i beni culturali: elementi probabili e pigmenti compatibili, come ipotesi.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>Fit completo dei picchi</strong>: code e gradino, fughe Kα e Kβ del rivelatore, picchi somma, calibrazione e risoluzione adattate allo spettro; tubo descritto con la formula di Ebel (1999). Pesi giusti anche con pochi conteggi per canale.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>Verifica degli elementi</strong>: un elemento proposto resta solo se il fit lo conferma; quelli tolti sono elencati.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>File dello strumento e impostazioni</strong>: export di strumenti portatili letti con la calibrazione e il tempo vivo; impostazioni del fit in formato <code>.cfg</code> importate ed esportate.</li>
+            <li data-dalla-versione="3.1.0" hidden>I progetti salvati con la versione precedente si riaprono con gli stessi numeri.</li>
           </ul>
         </div>
         <figure class="cornice"><img src="img/xrf.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Spettro XRF sintetico di un bronzo in scala logaritmica con le righe etichettate e, a destra, la stima della composizione senza standard (Cu 84 %, Sn 8,1 %, Pb 4,7 %, Zn 2,5 %, As 0,6 %) con le incertezze e gli avvisi."></figure>
@@ -435,6 +442,20 @@
           <figure class="cornice"><img src="img/confronto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="La vista Confronto del desktop: sei spettri FTIR sintetici di polietilene invecchiato, sfalsati con la legenda colorata."></figure>
           <figure class="cornice"><img src="img/desktop-scuro.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Lo spazio di lavoro del desktop con il tema scuro: spettro FTIR sintetico di polietilene con i nomi dei picchi, tabella dei picchi in basso e proprietà a destra."></figure>
         </div>
+      </article>
+
+      <article class="funzione" id="f-libs" aria-labelledby="t-f-libs" data-dalla-versione="3.1.0" hidden>
+        <div class="funzione-testo">
+          <p class="etichetta novita">Novità · Sperimentale</p>
+          <h3 id="t-f-libs">LIBS senza taratura (CF-LIBS), sperimentale</h3>
+          <p>Per gli spettri LIBS una prima analisi quantitativa senza standard: temperatura dal grafico di Boltzmann o di Saha–Boltzmann, densità elettronica dalle righe dell'idrogeno, concentrazioni per chiusura a 100 %, con le incertezze.</p>
+          <ul class="punti">
+            <li><strong>Sperimentale</strong>: provata solo su spettri sintetici; il pannello lo dice e non va usata per dichiarare concentrazioni.</li>
+            <li><strong>Dati atomici su richiesta</strong>: righe, livelli ed energie di ionizzazione del NIST Atomic Spectra Database non sono inclusi; si scaricano una volta dal sito del NIST e restano salvati, poi tutto funziona senza rete.</li>
+            <li>Avvisi chiari: equilibrio termodinamico (McWhirter, condizione necessaria e non sufficiente), righe di risonanza, elementi senza righe misurabili.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="img/libs.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Il pannello CF-LIBS (sperimentale) su uno spettro LIBS sintetico di un bronzo: temperatura e densità elettronica, tabella delle concentrazioni con le incertezze e grafico di Saha–Boltzmann."></figure>
       </article>
     </div>
   </section>

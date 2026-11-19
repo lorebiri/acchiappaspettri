@@ -76,3 +76,12 @@ Da quel momento: ogni push su `main` pubblica app e sito; ogni release stabile a
 - `node --test test/validation/sito-ui.test.js`: prova nel browser (Windows, Mac Apple e Intel, Linux, telefono, tablet; temi; italiano e inglese; GitHub che non risponde, lento o al limite di richieste; JavaScript spento). Con `SITO_SCREENSHOT=cartella` salva anche gli screenshot.
 - Dopo cambiamenti visibili dell'app, le schermate si rifanno con `node scripts/sito-schermate.js`.
 - In locale dietro un proxy, Node ha bisogno di `NODE_USE_ENV_PROXY=1` per raggiungere l'API di GitHub.
+
+## Funzioni di una versione non ancora pubblicata
+
+Le schede e le voci che descrivono una versione futura stanno già nelle pagine, con l'attributo `data-dalla-versione="3.1.0"` e `hidden`. Quelle da togliere all'uscita hanno invece `data-prima-della-versione="3.1.0"`.
+- `scripts/sito-aggiorna.mjs` le accende o le spegne secondo la versione che scrive nella pagina, e una versione di prova (`3.1.0-rc.1`) non basta.
+- Con una versione di prova in `package.json`, `npm run sito` tiene il sito sull'ultima versione stabile del CHANGELOG.
+- La pubblicazione (`pages.yml`, `--pubblicata`) scrive sempre l'ultima versione pubblicata su GitHub.
+
+Così le schede della 3.1 escono da sole con la 3.1.0 stabile, senza toccare il sito.

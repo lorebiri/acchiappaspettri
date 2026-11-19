@@ -170,8 +170,8 @@
         <li><strong>UV-Visible</strong>nm, eV or cm⁻¹, Tauc band gap</li>
         <li><strong>Fluorescence</strong>emission and excitation, Rayleigh and water Raman, Stokes shift</li>
         <li><strong>HPLC chromatography</strong>one or more channels, plate number, tailing, resolution, S/N, calibration</li>
-        <li><strong>X-ray fluorescence (XRF)</strong>energy calibration, elements, composition with or without standards</li>
-        <li><strong>LIBS</strong>atomic lines of 41 elements and molecular bands</li>
+        <li><strong>X-ray fluorescence (XRF)</strong>energy calibration, elements, composition with or without standards<span data-dalla-versione="3.1.0" hidden>; full peak fit (tails, escapes, sum peaks) and element check</span></li>
+        <li><strong>LIBS</strong>atomic lines of 41 elements and molecular bands<span data-dalla-versione="3.1.0" hidden>; calibration-free analysis (CF-LIBS), experimental</span></li>
         <li><strong>Thermogravimetry (TGA)</strong>mass %, DTG, T₅%, residue, steps</li>
         <li><strong>Calorimetry (DSC)</strong>endo/exo, ΔH in J/g, onset, possible Tg, segments</li>
         <li><strong>NMR</strong>¹H and ¹³C, ppm, integrals, reference</li>
@@ -193,7 +193,7 @@
           <dl>
             <dt>Infrared</dt><dd>Thermo OMNIC <code>.spa</code>, Bruker OPUS (<code>.0</code>, <code>.1</code>…), PerkinElmer <code>.sp</code> and <code>.asc</code>, JASCO</dd>
             <dt>Chromatography</dt><dd>Agilent ChemStation/OpenLab <code>.ch</code> and <code>.uv</code> with all channels, Waters <code>.arw</code>, Shimadzu (several blocks and samples)</dd>
-            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code></dd>
+            <dt>XRF</dt><dd>Amptek/PMCA <code>.mca</code>, LIDAQ <code>.spt</code>, ORTEC/Maestro <code>.spe</code><span data-dalla-versione="3.1.0" hidden>, Bruker ELIO exports (<code>.mca</code> and <code>.spt</code>), SPEC-format <code>.mca</code>; XRF fit settings in <code>.cfg</code> format, read and written</span></dd>
             <dt>Adsorption</dt><dd>Anton Paar Autosorb (Kaomi, ASiQwin) and AIF</dd>
             <dt>Origin projects</dt><dd><code>.opju</code> and <code>.opj</code>: you choose which X/Y pairs to import</dd>
           </dl>
@@ -252,6 +252,7 @@
         <li><a href="#f-esportazioni">Exports</a></li>
         <li><a href="#f-progetti">Projects</a></li>
         <li><a href="#f-desktop">Desktop</a></li>
+        <li data-dalla-versione="3.1.0" hidden><a href="#f-libs">CF-LIBS</a></li>
       </ul>
 
       <article class="funzione" id="f-picchi" aria-labelledby="t-f-picchi">
@@ -274,6 +275,7 @@
           <h3 id="t-f-fondo">Adjustments and background removal, with a preview</h3>
           <p>Conversions (transmittance and absorbance, axis units), smoothing, cosmic rays, derivatives, normalisation and scaling. And now <strong>background removal</strong> with methods established in the literature.</p>
           <ul class="punti">
+            <li data-dalla-versione="3.1.0" hidden><strong>Raman with fluorescence</strong>: the suggested method is chosen on the spectrum; where the iterative polynomial would remove too much signal it switches to SNIP or ALS, tested on real pigment spectra.</li>
             <li><strong>Methods</strong>: arPLS, ALS, iterative polynomial (IModPoly, ModPoly), SNIP, rolling ball, convex hull, straight line, or anchor points picked on the plot or typed.</li>
             <li><strong>Live preview</strong>: while you move the sliders you see the spectrum before correction and the estimated background; recommended values are computed from the spectrum.</li>
             <li>For one spectrum or all spectra of the technique; undo and «Restore the original». The original file never changes.</li>
@@ -359,13 +361,18 @@
 
       <article class="funzione inversa" id="f-xrf" aria-labelledby="t-f-xrf">
         <div class="funzione-testo">
-          <p class="etichetta">X-ray fluorescence</p>
+          <p class="etichetta" data-prima-della-versione="3.1.0">X-ray fluorescence</p>
+          <p class="etichetta novita" data-dalla-versione="3.1.0" hidden>New · X-ray fluorescence</p>
           <h3 id="t-f-xrf">XRF: elements and composition</h3>
           <p>Energy calibration checked and corrected, elements recognised with coinciding lines declared (for example Pb Lα and As Kα), net areas with the SNIP background.</p>
           <ul class="punti">
             <li><strong>Standardless composition</strong> with fundamental parameters, always presented as an <em>estimate</em> with the assumptions used and a sensitivity range.</li>
             <li>With your standards, concentrations and thicknesses.</li>
             <li>For cultural heritage: probable elements and compatible pigments, as hypotheses.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>Full peak fit</strong>: tails and step, detector Kα and Kβ escapes, sum peaks, calibration and resolution fitted to the spectrum; tube described with the Ebel (1999) formula. Correct weights even with few counts per channel.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>Element check</strong>: a proposed element stays only if the fit confirms it; the removed ones are listed.</li>
+            <li data-dalla-versione="3.1.0" hidden><strong>Instrument files and settings</strong>: exports of portable instruments read with calibration and live time; fit settings in <code>.cfg</code> format imported and exported.</li>
+            <li data-dalla-versione="3.1.0" hidden>Projects saved with the previous version reopen with the same numbers.</li>
           </ul>
         </div>
         <figure class="cornice"><img src="../img/xrf.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Synthetic XRF spectrum of a bronze on a log scale with labelled lines and, on the right, the standardless composition estimate (Cu 84 %, Sn 8.1 %, Pb 4.7 %, Zn 2.5 %, As 0.6 %) with uncertainties and warnings."></figure>
@@ -430,6 +437,20 @@
           <figure class="cornice"><img src="../img/confronto.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop Comparison view: six synthetic spectra of aged polyethylene, offset with a coloured legend."></figure>
           <figure class="cornice"><img src="../img/desktop-scuro.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The desktop workspace in the dark theme: synthetic polyethylene FTIR spectrum with peak names, peak table below and properties on the right."></figure>
         </div>
+      </article>
+
+      <article class="funzione" id="f-libs" aria-labelledby="t-f-libs" data-dalla-versione="3.1.0" hidden>
+        <div class="funzione-testo">
+          <p class="etichetta novita">New · Experimental</p>
+          <h3 id="t-f-libs">Calibration-free LIBS (CF-LIBS), experimental</h3>
+          <p>For LIBS spectra, a first quantitative analysis without standards: temperature from the Boltzmann or Saha–Boltzmann plot, electron density from the hydrogen lines, concentrations by closure to 100%, with uncertainties.</p>
+          <ul class="punti">
+            <li><strong>Experimental</strong>: tested only on synthetic spectra; the panel says so and it must not be used to report concentrations.</li>
+            <li><strong>Atomic data on request</strong>: lines, levels and ionisation energies of the NIST Atomic Spectra Database are not included; they are fetched once from the NIST website and stay saved, then everything works offline.</li>
+            <li>Clear warnings: thermodynamic equilibrium (McWhirter, necessary but not sufficient condition), resonance lines, elements with no measurable lines.</li>
+          </ul>
+        </div>
+        <figure class="cornice"><img src="../img/libs.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The CF-LIBS panel (experimental) on a synthetic LIBS spectrum of a bronze: temperature and electron density, concentration table with uncertainties and Saha–Boltzmann plot."></figure>
       </article>
     </div>
   </section>

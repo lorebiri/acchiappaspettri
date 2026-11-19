@@ -127,6 +127,17 @@ const SHOTS={
     await panes(o.p, {right:600});
     await o.p.evaluate(()=>{ openTab('an'); $('#secCult').open=true; const f=files[0], c=fpCfg(f); c.els=['Sn','Cu','Pb','Zn','As']; fpSaveCfg(f,c); refreshAll(); AcchShell.showRes('tech'); });
     await o.p.waitForSelector('#anCult .fptab'); await o.p.evaluate(()=>$('#secCult').scrollIntoView({block:'start'})); await o.p.waitForTimeout(900); await shoot(o,'xrf.webp'); return o; },
+  // CF-LIBS (sperimentale) su uno spettro LIBS SINTETICO di bronzo; i dati atomici del NIST non sono nel repository: servono quelli preparati
+  // in locale da scripts/gen-libs-data.py (test/libs-dati-locali.js), messi nell'archivio della pagina come dopo «Scarica i dati atomici dal NIST»
+  'libs.webp': async ()=>{ const D=require(path.join(ROOT,'test/libs-dati-locali.js')), LC=require(path.join(ROOT,'app/libs-cf-core.js'));
+    const S=LC.synth(D,{comp:{Cu:85, Sn:8, Zn:4, Pb:3}, T:10000, ne:1e17, ambient:{H:2e17}, peakCounts:1e6, seed:3, wl:[240,700], step:0.02});
+    const csv='# LIBS laser-induced breakdown, spettro SINTETICO\nwavelength_nm,counts\n'+Array.from(S.x).map((x,i)=>x.toFixed(2)+','+S.y[i]).join('\n')+'\n';
+    const o=await desk(); await panes(o.p, {bottom:560}); await o.p.evaluate(d=>AcchLibsNist.save(d), JSON.parse(JSON.stringify(D))); await load(o.p, [['bronzo_LIBS_SINTETICO.csv', csv]]);
+    await o.p.evaluate(async ()=>{ AcchShell.showRes('hyp'); const f=files[0]; renderAnHyp(f, viewOf(f)); const q=k=>document.querySelector('#anHyp .libscf [data-cf="'+k+'"]');
+      q('open').click(); const w=document.querySelector('#anHyp .libscf'); for (const e of ['Cu','Sn','Zn','Pb']){ const b=document.querySelector('#anHyp [data-cfel="'+e+'"]'); if (b && !b.classList.contains('on')) b.click(); }
+      for (const b of document.querySelectorAll('#anHyp [data-cfel].on')) if (!['Cu','Sn','Zn','Pb'].includes(b.dataset.cfel)) b.click();
+      const fw=q('fwhm'); fw.value='0.05'; fw.dispatchEvent(new Event('change')); q('run').click(); await new Promise(r=>setTimeout(r, 4000)); document.querySelector('#anHyp .libscf').scrollIntoView({block:'start'}); void w; await new Promise(r=>setTimeout(r,300)); });
+    await hideToast(o.p); await o.p.waitForTimeout(600); await shoot(o,'libs.webp'); return o; },
   'bet.webp': async ()=>{ const o=await desk(); await panes(o.p, {bottom:520}); await load(o.p, [['kaomi-tabella-it.txt', rd('test/fixtures/sorption/kaomi-tabella-it.txt')]]);
     await o.p.evaluate(()=>{ renderAnalysis(); AcchShell.showRes('tech'); $('#anTech [data-tab="bet"]').click(); }); await hideToast(o.p); await o.p.waitForTimeout(900); await shoot(o,'bet.webp'); return o; },
   'esporta.webp': async ()=>{ const o=await desk(); await load(o.p, FTIR()); await o.p.evaluate(()=>{ newCmp(files[0].instr, files); Object.assign(S,{outTrace:true, outProject:true, csvData:true}); saveS(); syncControls(); AcchShell.showDoc('export'); renderSummary(); }); await o.p.waitForTimeout(500);
