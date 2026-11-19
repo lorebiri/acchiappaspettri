@@ -20,6 +20,7 @@ mod segnala;
 mod libs;
 mod store;
 mod viste;
+mod nist;
 
 /// Archivio dell'app su file (store.rs): cartella e serratura, così due lotti non si scrivono mai insieme.
 #[derive(Default)]
@@ -825,7 +826,7 @@ pub fn run() {
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, reveal_granted, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
-        viste::view_open, viste::view_put, viste::view_take
+        viste::view_open, viste::view_put, viste::view_take, nist::nist_get
     ]);
     #[cfg(feature = "e2e")]
     let builder = builder.invoke_handler(tauri::generate_handler![
@@ -833,7 +834,7 @@ pub fn run() {
         pick_export_dir, export_existing, write_in_dir, reveal_in_dir, reveal_granted, store_write, save_report_shot, send_report_mapi,
         engine::engine_config, engine::acch_watch, engine::acch_cancel, engine::acch_read, engine::acch_calc, engine::acch_zip_put, engine::acch_zip_make, engine::acch_zip_take,
         lib_list, lib_write, lib_remove, lib_shared_add, lib_shared_remove,
-        viste::view_open, viste::view_put, viste::view_take,
+        viste::view_open, viste::view_put, viste::view_take, nist::nist_get,
         e2e::e2e_config, e2e::e2e_grant, e2e::e2e_finish, e2e::e2e_check_update
     ]);
     builder

@@ -2883,5 +2883,7 @@
 "Porti le condizioni di misura da PyMca nelle concentrazioni XRF, e le riporti indietro con «Esporta .cfg di PyMca».": "Bring your measurement conditions from PyMca into the XRF concentrations, and take them back with «Export PyMca .cfg».",
 "Versione di prova": "Test version",
 "XRF più aderente agli spettri veri": "XRF that fits real spectra better",
-"È una versione di prova (3.1.0-rc.1): non arriva come aggiornamento automatico.": "This is a test version (3.1.0-rc.1): it is not offered as an automatic update."
+"È una versione di prova (3.1.0-rc.1): non arriva come aggiornamento automatico.": "This is a test version (3.1.0-rc.1): it is not offered as an automatic update.",
+"Pesi dai conteggi lisciati: giusti anche con pochi conteggi per canale. «Come PyMca»: 1/√conteggi, che con pochi conteggi sottostima le righe deboli.": "Weights from smoothed counts: correct even with few counts per channel. «As in PyMca»: 1/√counts, which underestimates weak lines when counts are few.",
+"pesi del fit come PyMca (1/√conteggi)": "fit weights as in PyMca (1/√counts)"
 }

@@ -5,7 +5,7 @@
 // Uso: node test/fixtures/libs/gen-sintetici.js [cartella]   (predefinita: la cartella temporanea del sistema). Deterministico.
 'use strict';
 const fs=require('fs'), path=require('path'), os=require('os');
-const C=require('../../../app/libs-cf-core.js'), D=require('../../../app/libs-data.js');
+const C=require('../../../app/libs-cf-core.js'), D=require('../../libs-dati-locali.js');
 const out=process.argv[2]||os.tmpdir();
 const CASI={
   'bronzo_Cu85_Sn8_Zn4_Pb3':{comp:{Cu:85, Sn:8, Zn:4, Pb:3}},

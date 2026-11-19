@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
 // CF-LIBS sperimentale nel programma vero: uno spettro LIBS SINTETICO (bronzo, app/libs-cf-core.js synth) caricato come CSV,
-// pannello «CF-LIBS (sperimentale)» nelle ipotesi, calcolo con n_e da Hα, risultati e avvisi, in italiano e in inglese.
+// pannello «CF-LIBS (sperimentale)» nelle ipotesi, calcolo con n_e da Hα, risultati e avvisi, in italiano e in inglese; scaricamento dei dati atomici
+// dal NIST (risposte simulate con un campione SINTETICO, test/fixtures/libs/nist-sintetico.js), errori di rete e CORS, uso senza rete dopo.
 // Uso: PW_CHANNEL=chrome node --test test/validation/libs-cf-ui.test.js
 'use strict';
 const test=require('node:test'), assert=require('node:assert');
-const B=require('./browser.js'), C=require('../../app/libs-cf-core.js'), D=require('../../app/libs-data.js');
+const B=require('./browser.js'), C=require('../../app/libs-cf-core.js'), D=require('../libs-dati-locali.js');
 
 function csv(){ const S=C.synth(D,{comp:{Cu:85, Sn:8, Zn:4, Pb:3}, T:10000, ne:1e17, ambient:{H:2e17}, peakCounts:1e6, seed:3, wl:[240,700], step:0.02});
   return '# LIBS laser-induced breakdown, spettro SINTETICO\nwavelength_nm,counts\n'+Array.from(S.x).map((x,i)=>x.toFixed(2)+','+S.y[i]).join('\n')+'\n'; }
@@ -14,6 +15,8 @@ for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang
   const server=await B.startServer(), br=await B.launch();
   try{
     const {p, errors}=await B.openPage(br, server, {lang});
+    // dati atomici del NIST (preparati da scripts/gen-libs-data.py, non distribuiti) messi nell'archivio della pagina come dopo lo scaricamento
+    await p.evaluate(D=>{ AcchLibsNist.save(D); }, JSON.parse(JSON.stringify(D)));
     const out=await p.evaluate(async ([text])=>{
       files.length=0; await addEntries([{file:new File([text],'bronzo-libs.csv'), path:'bronzo-libs.csv'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
       const f=files[files.length-1]; cur=files.length-1; if (f.instr!=='libs') return {instr:f.instr};
@@ -37,5 +40,32 @@ for (const lang of ['it','en']) test('CF-LIBS nel pannello delle ipotesi ('+lang
     assert.match(out.text, lang==='en' ? /spectral response/ : /risposta spettrale/);
     assert.match(out.text, lang==='en' ? /necessary, not sufficient/ : /necessaria e non sufficiente/);
     assert.deepStrictEqual(errors, []);
+  } finally { await br.close(); server.close(); }
+});
+
+const NS=require('../fixtures/libs/nist-sintetico.js');
+for (const lang of ['it','en']) test('CF-LIBS senza dati atomici: spiegazione, scaricamento dal NIST, errori, poi senza rete ('+lang+')', {timeout:5*60*1000}, async ()=>{
+  const server=await B.startServer(), br=await B.launch();
+  try{
+    const {p, errors, external}=await B.openPage(br, server, {lang}); let calls=0, mode='abort';
+    await p.route('https://physics.nist.gov/**', route=>{ calls++; if (mode==='abort') return route.abort('failed');
+      if (mode==='html') return route.fulfill({status:200, body:'<html><body>Server error</body></html>', headers:{'access-control-allow-origin':'*'}});
+      return route.fulfill({status:200, contentType:'text/plain; charset=UTF-8', body:NS.respond(route.request().url()), headers:{'access-control-allow-origin':'*'}}); });
+    const open=async ()=>p.evaluate(async ([text])=>{ files.length=0; await addEntries([{file:new File([text],'bronzo-libs.csv'), path:'bronzo-libs.csv'}]); document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+      const f=files[files.length-1]; cur=files.length-1; AcchLibsNist.delay=0; renderAnHyp(f, viewOf(f)); const w=document.querySelector('#anHyp .libscf'); return {text:w?w.textContent:'', get:!!(w&&w.querySelector('[data-cf="nist"]')), file:!!(w&&w.querySelector('[data-cf="nistFile"]')), ready:!!(w&&w.querySelector('[data-cf="open"]'))}; }, [csv()]);
+    const click=async ()=>{ await p.evaluate(()=>document.querySelector('#anHyp [data-cf="nist"]').click()); await p.waitForFunction(()=>{ const m=document.querySelector('#anHyp [data-cf="nistMsg"]'); return !document.querySelector('#anHyp [data-cf="nist"]') || (m && /△/.test(m.textContent)); }, null, {timeout:60000});
+      return p.evaluate(()=>{ const m=document.querySelector('#anHyp [data-cf="nistMsg"]'); return {msg:m?m.textContent:'', ready:!!document.querySelector('#anHyp .libscf [data-cf="open"]')}; }); };
+    const a=await open(); assert.ok(a.get && a.file && !a.ready, JSON.stringify(a)); assert.match(a.text, lang==='en' ? /experimental/ : /sperimentale/);
+    assert.match(a.text, /NIST/); assert.match(a.text, /doi:10\.18434\/T4W30F/); assert.match(a.text, lang==='en' ? /not distributed with the app/ : /Non sono distribuiti con l'app/);
+    const b=await click(); assert.ok(!b.ready && /CORS|direct downloads|scaricamento diretto/.test(b.msg), 'NIST irraggiungibile: '+b.msg);
+    mode='html'; const c=await click(); assert.ok(!c.ready && /NIST/.test(c.msg) && /(previsto|expected)/.test(c.msg), 'risposta inattesa: '+c.msg);
+    await p.evaluate(()=>{ Object.defineProperty(navigator, 'onLine', {get:()=>false, configurable:true}); }); const d=await click(); assert.ok(/(Internet)/.test(d.msg), 'senza rete: '+d.msg);
+    await p.evaluate(()=>{ Object.defineProperty(navigator, 'onLine', {get:()=>true, configurable:true}); });
+    mode='ok'; calls=0; const e=await click(); assert.ok(e.ready, 'dopo lo scaricamento il pannello è pronto: '+e.msg); assert.equal(calls, 26+2*(2*26-1), 'richieste al NIST (energie di ionizzazione, righe e livelli di 51 specie)');
+    const saved=await p.evaluate(k=>{ const t=localStorage.getItem(k); return t ? JSON.parse(t) : null; }, 'acch.libs.nist'); assert.ok(saved && saved.species['Cu I'] && saved.version==='libs-data-1', 'salvati nell\'archivio della pagina');
+    // pagina riaperta senza rete: i dati restano e il pannello è pronto senza richieste
+    mode='abort'; calls=0; await p.reload(); await p.waitForFunction(()=>window.AcchProject && window.AcchUi); await p.evaluate(()=>{ try{ endTour(); }catch(e){} });
+    const g=await open(); assert.ok(g.ready && !g.get && calls===0, 'senza rete dopo lo scaricamento: '+JSON.stringify(g)+' richieste '+calls);
+    assert.deepStrictEqual(errors, []); assert.deepStrictEqual(external.filter(u=>!/physics\.nist\.gov/.test(u)), []);
   } finally { await br.close(); server.close(); }
 });

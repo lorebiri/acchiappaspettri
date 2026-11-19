@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 // SPDX-License-Identifier: GPL-3.0-or-later
-// CF-LIBS sperimentale (app/libs-cf-core.js, app/libs-data.js): ogni funzione ha la sua prova; poi la validazione su spettri
+// CF-LIBS sperimentale (app/libs-cf-core.js; dati atomici del NIST preparati da scripts/gen-libs-data.py, test/libs-dati-locali.js): ogni funzione ha la sua prova; poi la validazione su spettri
 // SINTETICI con verità nota (stesso modello fisico: dice che il programma è coerente, non che il modello descrive un plasma vero)
 // e su uno spettro REALE pubblico (SuperLIBS 10K, CC BY 4.0), dove si documenta il risultato senza pretendere accuratezza.
 const test=require('node:test'), assert=require('node:assert'), fs=require('fs'), path=require('path');
-const ROOT=path.join(__dirname,'..','..'), C=require('../../app/libs-cf-core.js'), D=require('../../app/libs-data.js');
+const ROOT=path.join(__dirname,'..','..'), C=require('../../app/libs-cf-core.js'), D=require('../libs-dati-locali.js');
 const rel=(a,b)=>Math.abs(a-b)/Math.abs(b);
 const REPORT=[];   // tabella dei risultati della validazione, stampata alla fine (node --test la mostra)
 
 /* ---------------- banca dati ---------------- */
-test('libs-data.js: fonte NIST ASD con DOI e data, elementi richiesti, righe filtrate, file piccolo', ()=>{
+test('dati atomici (scaricati dal NIST, non distribuiti): fonte con DOI e data, elementi richiesti, righe filtrate; nessuna copia nell\'app', ()=>{
   assert.match(D.source, /Kramida/); assert.match(D.source, /10\.18434\/T4W30F/); assert.match(D.source, /version 5\.\d+/);
   assert.match(D.downloaded, /^\d{4}-\d{2}-\d{2}$/); assert.match(D.copyright, /15 U\.S\.C\. 290e/);
   for (const el of ['H','C','N','O','Na','Mg','Al','Si','K','Ca','Ti','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ag','Sn','Sb','Au','Pb','Ba','Sr','Li']){
@@ -18,7 +18,8 @@ test('libs-data.js: fonte NIST ASD con DOI e data, elementi richiesti, righe fil
     assert.ok(sp.lines.length<=D.selection.perSpecies);
     for (const l of sp.lines){ n++; assert.ok(l[0]>=200 && l[0]<=900); assert.ok(l[1]>0); assert.ok(D.selection.acc.concat(D.selection.fillAcc).includes(l[2]), l[2]); assert.ok(l[4]>l[3]); } }
   assert.ok(n>800, 'righe: '+n);
-  const sz=fs.statSync(path.join(ROOT,'app/libs-data.js')).size; assert.ok(sz<120*1024, 'dimensione '+sz);
+  assert.ok(!fs.existsSync(path.join(ROOT,'app/libs-data.js')), 'i dati del NIST non vanno nell\'app finché il NIST non dà il permesso');
+  for (const f of ['index.html','app/vista.html']) assert.ok(!/libs-data\.js/.test(fs.readFileSync(path.join(ROOT,f),'utf8')), f);
   // funzioni di partizione: entro il 6 % da quelle calcolate dal NIST a 1 eV (la differenza viene dai livelli sopra il limite, che qui non si contano)
   for (const [sp, u, un] of D.pfCheck1eV) if (un) assert.ok(rel(u, un)<0.06, sp+' '+u+' contro '+un);
 });

@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Lorenzo Birindelli
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Genera app/libs-data.js, la banca dati atomica per la CF-LIBS (sperimentale), dal NIST Atomic Spectra Database.
+"""Genera libs-data.js, la banca dati atomica per la CF-LIBS (sperimentale), dal NIST Atomic Spectra Database.
+
+I dati NON sono distribuiti con l'app né nel repository finché il NIST non dà il permesso di ridistribuirli: l'app li scarica
+da sé su richiesta dell'utente (app/libs-nist.js, stesse richieste e stesse scelte di questo script). Lo script serve per i test
+(la CI lo esegue con la cache) e per chi vuole preparare un file da caricare nella versione online («Carica un file di dati»).
 
 Fonte: Kramida A., Ralchenko Yu., Reader J., NIST ASD Team, NIST Atomic Spectra Database (NIST Standard Reference
 Database 78), versione dichiarata in ASD_VERSION, https://physics.nist.gov/asd, doi:10.18434/T4W30F.
 Moduli usati: lines1.pl (righe, format=3 = TSV), energy1.pl (livelli, per le funzioni di partizione), ie.pl (energie di
 ionizzazione). Masse atomiche: pesi atomici standard abbreviati IUPAC/CIAAW 2021 (scritti qui sotto, non scaricati).
 
-Uso:   /opt/venv/bin/python scripts/gen-libs-data.py            (scarica e scrive app/libs-data.js)
-       /opt/venv/bin/python scripts/gen-libs-data.py --offline  (riusa solo la cache)
-Cache: scripts/.nist-cache/ (file TSV grezzi così come li dà il NIST; non è nel repository, vedi .gitignore).
+Uso:   python3 scripts/gen-libs-data.py            (scarica e scrive scripts/.nist-cache/libs-data.js)
+       python3 scripts/gen-libs-data.py --offline  (riusa solo la cache)
+Cache: scripts/.nist-cache/ (file TSV grezzi così come li dà il NIST; non è nel repository, vedi .gitignore), oppure la cartella
+in LIBS_NIST_CACHE; il file prodotto va in LIBS_DATA_OUT se c'è. Non copiarlo in app/: non va distribuito.
 Il file prodotto dipende solo dalla cache: con la stessa cache esce identico byte per byte (la data di scaricamento è
 quella scritta nella cache, non quella del giorno in cui si rigenera).
 
@@ -29,8 +34,8 @@ Scelte (dichiarate anche nel file prodotto):
 import json, math, os, re, sys, time, urllib.parse, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(ROOT, 'scripts', '.nist-cache')
-OUT = os.path.join(ROOT, 'app', 'libs-data.js')
+CACHE = os.environ.get('LIBS_NIST_CACHE') or os.path.join(ROOT, 'scripts', '.nist-cache')
+OUT = os.environ.get('LIBS_DATA_OUT') or os.path.join(CACHE, 'libs-data.js')
 ASD_VERSION = '5.12'   # https://physics.nist.gov/PhysRefData/ASD/Html/verhist.shtml (7 novembre 2024), controllata al download
 ELEMENTS = ['H', 'Li', 'C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'K', 'Ca', 'Ti', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
             'Sr', 'Ag', 'Sn', 'Sb', 'Ba', 'Au', 'Pb']

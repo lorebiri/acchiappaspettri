@@ -10,21 +10,21 @@ Condizioni lette da `Steel.cfg`; elementi: Ni, Mn, Pb, As, Fe, W, V, Cr, Cu; int
 
 | Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto |
 |---|---|---|---|
-| Cr K | 1185724 | 1196016 | -0,9% |
-| Mn K | 97755 | 109608 | -10,8% |
-| Fe Ka+Fe Kb | 3551074 | 3566386 | -0,4% |
-| Ni K | 511552 | 512385 | -0,2% |
-| Cu K | 10090 | 10058 | +0,3% |
+| Cr K | 1184846 | 1196016 | -0,9% |
+| Mn K | 96711 | 109608 | -11,8% |
+| Fe Ka+Fe Kb | 3547527 | 3566386 | -0,5% |
+| Ni K | 511214 | 512385 | -0,2% |
+| Cu K | 10158 | 10058 | +1,0% |
 
 | % in peso (normalizzato su Cr+Mn+Fe+Ni+Cu) | Acchiappaspettri 3.1 | PyMca (secondaria + terziaria, Fe di riferimento) | Certificato NIST |
 |---|---|---|---|
-| Cr | 18,259 | 20,024 | 18,971 |
-| Mn | 1,646 | 1,895 | 1,672 |
-| Fe | 67,750 | 66,005 | per differenza |
-| Ni | 12,163 | 11,897 | 12,754 |
-| Cu | 0,182 | 0,179 | 0,179 |
+| Cr | 18,264 | 20,024 | 18,971 |
+| Mn | 1,630 | 1,895 | 1,672 |
+| Fe | 67,756 | 66,005 | per differenza |
+| Ni | 12,167 | 11,897 | 12,754 |
+| Cu | 0,183 | 0,179 | 0,179 |
 
-χ² ridotto sullo stesso intervallo: Acchiappaspettri 3.1 **8,21**, 3.0 15,15; PyMca con `Steel.cfg` (sola gaussiana) **13,09**, PyMca con l'ipermetro completo 19,16. Noise/Fano: Acchiappaspettri 101 eV / 0,134, PyMca 105 eV / 0,137. I fondi sono diversi (B-spline nel fit contro SNIP), quindi il χ² dice soprattutto quanto bene è descritta la forma dei picchi.
+χ² ridotto sullo stesso intervallo: Acchiappaspettri 3.1 **7,90**, 3.0 15,15; PyMca con `Steel.cfg` (sola gaussiana) **13,09**, PyMca con l'ipermetro completo 19,16. Noise/Fano: Acchiappaspettri 105 eV / 0,130, PyMca 105 eV / 0,137. I fondi sono diversi (B-spline nel fit contro SNIP), quindi il χ² dice soprattutto quanto bene è descritta la forma dei picchi.
 
 ## 2. XRFSpectrum.mca (standard sottile multielemento distribuito con PyMca)
 
@@ -32,30 +32,30 @@ Condizioni dal `.cfg` di `PyMca5/tests/XrfTest.py`; aree in unità dello spettro
 
 | Gruppo | Acchiappaspettri 3.1 | PyMca | Scarto | Nel criterio |
 |---|---|---|---|---|
-| Ar K | 7633,2687 | 7284,5606 | +4,8% | no (< 1% del totale) |
-| Ca K | 9428,1746 | 9397,0349 | +0,3% | no (< 1% del totale) |
-| Ti K | 15334,8687 | 14836,3565 | +3,4% | sì |
-| V K | 19731,5033 | 18856,2495 | +4,6% | sì |
-| Cr K | 26436,5108 | 25084,0118 | +5,4% | sì |
-| Mn K | 33448,7038 | 31587,5719 | +5,9% | sì |
-| Fe K | 42754,1949 | 39996,6964 | +6,9% | sì |
-| Co K | 50528,0302 | 46933,8383 | +7,7% | sì |
-| Ni K | 62327,5876 | 58119,2601 | +7,2% | sì |
-| Cu K | 69627,9951 | 64988,5373 | +7,1% | sì |
-| Zn K | 79761,4738 | 75169,8951 | +6,1% | sì |
+| Ar K | 7670,9154 | 7284,5606 | +5,3% | no (< 1% del totale) |
+| Ca K | 9487,5065 | 9397,0349 | +1,0% | no (< 1% del totale) |
+| Ti K | 15429,9838 | 14836,3565 | +4,0% | sì |
+| V K | 19860,8552 | 18856,2495 | +5,3% | sì |
+| Cr K | 26582,5911 | 25084,0118 | +6,0% | sì |
+| Mn K | 33671,0088 | 31587,5719 | +6,6% | sì |
+| Fe K | 43027,1585 | 39996,6964 | +7,6% | sì |
+| Co K | 50875,1211 | 46933,8383 | +8,4% | sì |
+| Ni K | 62772,0963 | 58119,2601 | +8,0% | sì |
+| Cu K | 70121,9707 | 64988,5373 | +7,9% | sì |
+| Zn K | 80339,1473 | 75169,8951 | +6,9% | sì |
 | Zn L | 0,0000 | 452,5626 | -100,0% | no (< 1% del totale) |
-| As K | 107332,9696 | 100762,3329 | +6,5% | sì |
-| As L | 1021,7244 | 447,4769 | +128,3% | no (< 1% del totale) |
-| Se K | 114456,8878 | 108113,0960 | +5,9% | sì |
-| Se L | 1331,6432 | 971,9866 | +37,0% | no (< 1% del totale) |
-| Sr K | 136785,4783 | 123927,7256 | +10,4% | sì |
-| Sr L | 3824,9201 | 3093,3100 | +23,7% | no (< 1% del totale) |
-| Cd L | 2621,6683 | 3113,6104 | -15,8% | no (< 1% del totale) |
-| Sb L | 5023,4202 | 6205,6459 | -19,1% | no (< 1% del totale) |
-| Tl L | 95713,3611 | 98831,5287 | -3,2% | sì |
-| Tl M | 11016,0949 | 15018,4209 | -26,6% | no (righe M) |
-| Pb L | 97671,4552 | 99445,3070 | -1,8% | sì |
-| Pb M | 13602,4577 | 13455,3309 | +1,1% | no (righe M) |
+| As K | 108080,6427 | 100762,3329 | +7,3% | sì |
+| As L | 1042,9059 | 447,4769 | +133,1% | no (< 1% del totale) |
+| Se K | 115285,8519 | 108113,0960 | +6,6% | sì |
+| Se L | 1340,9498 | 971,9866 | +38,0% | no (< 1% del totale) |
+| Sr K | 137607,4666 | 123927,7256 | +11,0% | sì |
+| Sr L | 3861,0405 | 3093,3100 | +24,8% | no (< 1% del totale) |
+| Cd L | 2658,2897 | 3113,6104 | -14,6% | no (< 1% del totale) |
+| Sb L | 5064,1006 | 6205,6459 | -18,4% | no (< 1% del totale) |
+| Tl L | 96167,1246 | 98831,5287 | -2,7% | sì |
+| Tl M | 11135,1057 | 15018,4209 | -25,9% | no (righe M) |
+| Pb L | 98153,9538 | 99445,3070 | -1,3% | sì |
+| Pb M | 13667,2505 | 13455,3309 | +1,6% | no (righe M) |
 
 ## 3. Bronzo SINTETICO di `examples/` (tubo Rh 40 kV)
 
@@ -63,9 +63,9 @@ Tubo di Ebel in entrambi i programmi, matrice iterata e normalizzata a 100%. Lo 
 
 | % in peso | Verità | Acchiappaspettri 3.1 | PyMca |
 |---|---|---|---|
-| Cu | 84,00 | 83,51 | 82,26 |
-| Sn | 8,00 | 8,49 | 8,82 |
-| Pb | 5,00 | 4,88 | 5,91 |
-| Zn | 2,50 | 2,52 | 2,56 |
-| As | 0,50 | 0,60 | 0,45 |
+| Cu | 84,00 | 83,60 | 82,26 |
+| Sn | 8,00 | 8,41 | 8,82 |
+| Pb | 5,00 | 4,95 | 5,91 |
+| Zn | 2,50 | 2,51 | 2,56 |
+| As | 0,50 | 0,53 | 0,45 |
 

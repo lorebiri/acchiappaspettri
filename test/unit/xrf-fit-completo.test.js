@@ -99,3 +99,15 @@ test('revisione 3.1: nel fit completo le righe del tubo diffuse non finiscono fr
   const sp=synth({Fe:5e5}, {seed:9}), R=C.xrfFitLines(sp.xs, sp.ys, ['Fe'], C.fpSetup({anode:'Mo', kv:20, exc:[[17.48,1,1]]}), {model:'hypermet', lo:3, hi:18, pileup:false});
   assert.deepStrictEqual(Object.keys(R.area), ['Fe']);
 });
+test('debug 3.1 indipendente: pesi del fit con pochi conteggi per canale: col modello 3.1 (spettro lisciato) l\'area di una riga debole non cala, con 1/√y (Neyman, 3.0 e PyMca) sì', ()=>{
+  const S=C.fpSetup({anode:'Mo', kv:20, exc:[[19.0,1,0]]}), n=5600, dx=17.5/n, res={neyman:[], smooth:[]};
+  const fix={off:0, gain:0, quad:0, noise:Math.sqrt(0.14**2-2.3548**2*0.00385*0.114*5.895), fano:0.114, st:0, sts:0.5, lt:0, lts:10, step:0};
+  for (const seed of [1,2,3,4,5,6]){ const xs=Float64Array.from({length:n},(_,i)=>0.5+i*dx), ys=new Float64Array(n), r=rng(seed);
+    const add=(el,A)=>{ const F=C.FP.el[el].fam.K, sr=F.reduce((t,f)=>t+f[2],0); for (const [nm,E,rel] of F){ const sg=C.xrfFWHM(E)/2.3548; for (let i=0;i<n;i++) ys[i]+=A*rel/sr*dx*Math.exp(-0.5*((xs[i]-E)/sg)**2)/(sg*2.5066); } };
+    add('Fe', 2e5); add('Ni', 600); for (let i=0;i<n;i++) ys[i]=poisson(r, ys[i]+0.75);   // Ni: 600 conteggi su ~60 canali
+    for (const wt of ['neyman', undefined]){ const R=C.xrfFitLines(xs, ys, ['Fe','Ni'], S, {model:'hypermet', lo:3, hi:17.5, pileup:false, escape:'none', weights:wt, fix});
+      res[wt||'smooth'].push(R.comps['Ni K'].area/600); } }
+  const m=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  assert.ok(Math.abs(m(res.smooth)-1)<0.05, 'lisciato (predefinito del 3.1): '+m(res.smooth).toFixed(3));
+  assert.ok(m(res.neyman)<0.9, 'Neyman: '+m(res.neyman).toFixed(3)+' (la distorsione che la correzione toglie)');
+});

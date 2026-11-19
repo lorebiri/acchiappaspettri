@@ -30,6 +30,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 acch-core = { path = "acch-core" }
 sha2 = "0.10"
+# scaricamento dei dati atomici del NIST per la CF-LIBS (src/nist.rs): stesse versioni e stesse funzioni già usate dall'aggiornamento automatico
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 [features]
 # Solo per i collaudi automatici: mai attiva negli installer pubblicati (vedi docs/COLLAUDO.md)

@@ -33,7 +33,7 @@
 <script src="app/baseline-core.js"></script>
 <script src="app/mcr-core.js"></script>
 <script src="app/kinetics-core.js"></script>
-<script src="app/libs-data.js"></script>
+<script src="app/libs-nist.js"></script>
 <script src="app/libs-cf-core.js"></script>
 <script src="app/assess-core.js"></script>
 <script src="app/pymca-cfg-core.js"></script>
@@ -3911,12 +3911,22 @@ function xrfFitHyper(c){
    famiglie K, L e M (Pb Mα sopra S Kα, Hg Mα…); piccole correzioni di scala in energia (spostamento, guadagno) e di risoluzione scelte dal minimo χ². split: righe separate (Kα | Kβ, Lα | Lβ | Lγ). */
 const fmtExcE=E=>E.toFixed(2)+' keV';
 const xrfComptonId=S=>{ const sx=S&&S.exc&&S.exc.filter(q=>q[2]).sort((x,y)=>y[1]-x[1])[0]; return sx ? 'Compton '+fmtExcE(sx[0]) : 'Compton '+(S&&S.anode)+' Ka'; };
+/* pesi del fit (σ² dei conteggi). 'neyman' (modello 3.0, come PyMca): 1/√max(1, y), distorto quando i conteggi per canale sono pochi:
+   i canali sotto la media pesano di più e le righe deboli escono basse (bronzo sintetico, Sn vero 8,0 %: 8,3 / 7,5 / 6,9 % con 2048 / 4096 /
+   8192 canali). 'smooth' (predefinito del modello 3.1, debug 3.1): σ² dallo spettro lisciato su mezza larghezza di riga, stima senza distorsione
+   dei conteggi attesi (8,05 / 8,20 / 8,46 %); sui bronzi certificati e sull'acciaio NIST di PyMca i risultati restano gli stessi. Provato anche
+   σ² dal modello del passaggio precedente (Pearson iterato): sui bronzi certificati era peggiore, quindi non c'è. La lisciatura serve solo ai pesi. */
+function xrfWeights(xs, ys, a, m, opt){ opt=opt||{}; const w=new Float64Array(m), sch=opt.weights||(opt.model==='hypermet' ? 'smooth' : 'neyman');
+  if (sch==='smooth'){ const n=xs.length, dx=(xs[n-1]-xs[0])/(n-1), h=Math.max(1, Math.round(0.25*xrfFWHM(8)/Math.max(1e-9, dx))), c=new Float64Array(n+1);
+    for (let i=0;i<n;i++) c[i+1]=c[i]+ys[i];
+    for (let i=0;i<m;i++){ const j=a+i, lo=Math.max(0, j-h), hi=Math.min(n-1, j+h); w[i]=1/Math.sqrt(Math.max(1, (c[hi+1]-c[lo])/(hi-lo+1))); } return w; }
+  for (let i=0;i<m;i++) w[i]=1/Math.sqrt(Math.max(1, ys[a+i])); return w; }
 function xrfFitLines(xs, ys, els, S, opt){
   opt=opt||{}; const n=xs.length, kv=S?S.kv:40, dx0=(xs[n-1]-xs[0])/(n-1), bgm=opt.bgMode||'spline';
   const bkg=opt.bkg || (bgm==='spline' ? new Float64Array(n) : baselineSNIP(ys, bgm==='hybrid' ? Math.max(4, Math.round(2.2*xrfFWHM(10)/dx0)) : 0, true));
   const lo=Math.max(xs[0], opt.lo||1.0), hi=Math.min(xs[n-1], opt.hi||Math.min(kv*0.97, 48));
   let a=0; while (a<n && xs[a]<lo) a++; let b=n-1; while (b>a && xs[b]>hi) b--; const m=b-a+1; if (m<20) return null;
-  const X=xs.subarray(a,b+1), net=Float64Array.from({length:m},(_,i)=>ys[a+i]-bkg[a+i]), w=Float64Array.from({length:m},(_,i)=>1/Math.sqrt(Math.max(1, ys[a+i])));
+  const X=xs.subarray(a,b+1), net=Float64Array.from({length:m},(_,i)=>ys[a+i]-bkg[a+i]), w=xrfWeights(xs, ys, a, m, opt);
   const comps=[];   // {id, el, fam, lines:[[nome, E, rel]], kind}
   const split=opt.split||{}, groups={K:[['Ka'],['Kb']], L:[['La','Ll'],['Lb1','Lb2','Ln'],['Lg1']], M:[['Ma','Ma2'],['Mb'],['Mg']]}, EDK={K:'K', L:'L3', M:'M5'};
   const famOf=(s, fam)=>{ const F=FP.el[s].fam[fam], R=opt.ratios&&opt.ratios[s]; if (!F || !R) return F;   // rapporti Kβ/Kα e Lβ/Lα previsti per la matrice
@@ -7933,7 +7943,7 @@ function cleanFp(v){ const o={}, str=(x,n)=>typeof x==='string'?x.slice(0,n||200
     if (Array.isArray(v.S.exc)){ const ex=v.S.exc.filter(q=>Array.isArray(q) && q.length>=2 && q.slice(0,3).every(x=>typeof x==='number' && isFinite(x))).slice(0,400).map(q=>[q[0], q[1], q[2]?1:0]); if (ex.length) s.exc=ex; }
     o.S=s; }
   // 3.1: modello del picco e modello fisico; un'impostazione salvata senza «model» viene dalla 3.0 e resta col modello 3.0 (fpCfg)
-  if (v.model==='hypermet'||v.model==='gauss') o.model=v.model; if (v.phys==='3.1'||v.phys==='3.0') o.phys=v.phys; for (const k of ['pileup','quad','was30']) if (typeof v[k]==='boolean') o[k]=v[k];
+  if (v.model==='hypermet'||v.model==='gauss') o.model=v.model; if (v.phys==='3.1'||v.phys==='3.0') o.phys=v.phys; for (const k of ['pileup','quad','was30']) if (typeof v[k]==='boolean') o[k]=v[k]; if (v.weights==='neyman') o.weights='neyman';
   if (Array.isArray(v.cfgWarn)) o.cfgWarn=v.cfgWarn.filter(t=>typeof t==='string').slice(0,40).map(t=>t.slice(0,300)); setIf(o,'cfgName',str(v.cfgName,120));
   if (v.layer && typeof v.layer==='object'){ const L=v.layer, l={}; if (L.on===true) l.on=true; if (typeof L.el==='string' && FP.el[L.el]) l.el=L.el; if (L.method==='ratio'||L.method==='atten') l.method=L.method; for (const k of ['cover','sub','coverTxt','subTxt']) setIf(l,k,str(L[k])); setIf(l,'coverRho',num(L.coverRho)); if (Array.isArray(L.lines) && L.lines.every(x=>/^(Ka|Kb|La|Lb)$/.test(x))) l.lines=L.lines; if (L.ref!=null) setIf(l,'ref',String(L.ref).slice(0,20)); o.layer=l; }
   return o; }
@@ -8803,7 +8813,7 @@ function fpSetupOf(f){ const x=f.xrf||{}, o=(f.an&&f.an.fp&&f.an.fp.S)||{};
     phys:fpCfg(f).phys, ae:o.ae, eps:o.eps, det:o.det, trans:o.trans, tT:o.tT, exc:o.exc}); }
 const FP_FILTERS={Al:2.70, Ti:4.51, Ni:8.91, Cu:8.96, Zr:6.51, Mo:10.28, Ag:10.49};   // densità in g/cm³
 /* quanto cambia la stima con condizioni diverse da quelle presunte. Non è un'accuratezza: vale se il modello è giusto */
-async function fpSensitivity(f){ const R0=await fpRunAsync(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt,phys:S0.phys,ae:S0.ae,eps:S0.eps,det:S0.det,trans:S0.trans,tT:S0.tT,exc:S0.exc}, runs=[], mo=c.model==='hypermet'?{model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad, fix:R0.fit&&R0.fit.p?Object.assign({}, R0.fit.p):undefined}:{};   // forma del picco già trovata: niente Levenberg–Marquardt a ogni variante
+async function fpSensitivity(f){ const R0=await fpRunAsync(f); if (!R0||!R0.Q||!R0.Q.res) return null; const c=fpCfg(f), o=(f.an&&f.an.fp&&f.an.fp.S)||{}, x=f.xrf||{}, S0=R0.S0, D=fpData(f), base={anode:S0.anode,kv:S0.kv,psi1:R0.S.psi1,psi2:R0.S.psi2,d2:S0.d2,d1:S0.d1,atm:S0.atm,beD:S0.beD,si:S0.si,beT:S0.beT,filt:S0.filt,phys:S0.phys,ae:S0.ae,eps:S0.eps,det:S0.det,trans:S0.trans,tT:S0.tT,exc:S0.exc}, runs=[], mo=c.model==='hypermet'?{model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad, weights:c.weights==='neyman' ? 'neyman' : 'smooth', fix:R0.fit&&R0.fit.p?Object.assign({}, R0.fit.p):undefined}:{};   // forma del picco già trovata: niente Levenberg–Marquardt a ogni variante
   const vary=[{kv:Math.max(5,S0.kv-5)},{kv:Math.min(50,S0.kv+5)},{psi1:Math.max(10,R0.S.psi1-10)},{psi1:Math.min(90,R0.S.psi1+10)},{psi2:Math.max(10,R0.S.psi2-10)},{psi2:Math.min(90,R0.S.psi2+10)},{si:S0.si*0.6},{si:S0.si*2}];
   for (const v of vary){ try{ const r=await coreAsync('xrfFP', D.xs,D.ys,R0.els,fpSetup(Object.assign({},base,v)),Object.assign({mode:c.mode,balance:fpBalance(c)}, mo)); if (r&&r.Q&&r.Q.res) runs.push(r.Q.res); }catch(e){} }
   const out={}; for (const e of Object.keys(R0.Q.res)){ const a=runs.map(q=>q[e]&&q[e].w).filter(v=>v!=null&&isFinite(v)); out[e]={w:R0.Q.res[e].w, lo:Math.min(R0.Q.res[e].w,...a), hi:Math.max(R0.Q.res[e].w,...a)}; } return {res:out, n:runs.length}; }
@@ -8816,7 +8826,7 @@ function fpPlan(f){
   if (f.instr!=='xrf' || f.uncal) return null; const c=fpCfg(f), els=(c.els||fpDefaultEls(f)).filter(e=>FP.el[e]), S=fpSetupOf(f);
   const key=[f.id, f.ecal?f.ecal.a+','+f.ecal.b:'', JSON.stringify(c), S.key, els.join(',')].join('|');
   const x=f.xrf||{}, so=c.S||{}, autoGeom = so.psi1==null && so.psi2==null && !fpNum(x.psi1) && !fpNum(x.psi2);
-  const nw=c.model==='hypermet', opt={mode:c.mode, balance:fpBalance(c), autoGeom}; if (nw) Object.assign(opt, {model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad, confirm:!c.els});
+  const nw=c.model==='hypermet', opt={mode:c.mode, balance:fpBalance(c), autoGeom}; if (nw) Object.assign(opt, {model:'hypermet', pileup:c.pileup!==false, quad:!!c.quad, confirm:!c.els, weights:c.weights==='neyman' ? 'neyman' : 'smooth'});
   return {c, els, S, key, autoGeom, fn:nw ? 'xrfFPAuto' : 'xrfFP', args:()=>{ const D=fpData(f); return [D.xs, D.ys, els, S, opt]; }}; }
 function fpStore(f, q, R){ f._fpKey=q.key; f._fpRes=R ? Object.assign(R, {els:R.conf&&R.conf.kept ? R.conf.kept : q.els, S:R.S||q.S, S0:q.S, autoGeom:q.autoGeom, cfg:q.c}) : {els:q.els, S:q.S, cfg:q.c, empty:true}; return f._fpRes; }
 function fpRun(f){ const q=fpPlan(f); if (!q) return null; if (f._fpKey===q.key) return f._fpRes;
@@ -8900,7 +8910,7 @@ function renderCult(f){
       </div>
       <div class="row"><span class="opt-l">Senza intestazione uso valori tipici (45°/45°, 1 cm d'aria). Gli angoli sono misurati dalla superficie del campione.</span><span class="spacer"></span><button class="btn small ghost" id="fpSall">Usa per tutti gli spettri XRF</button></div>
       <div class="row" style="flex-wrap:wrap;gap:6px"><label class="ibf" style="margin:0"><span>Modello</span><select id="fpModel" style="max-width:100%"><option value="3.1" ${c.model==='hypermet'?'selected':''}>3.1: ipermetro, fughe, picchi somma, tubo di Ebel</option><option value="3.0" ${c.model!=='hypermet'?'selected':''}>3.0: picchi gaussiani, tubo di Kramers</option></select></label>
-        ${c.model==='hypermet'?`<label class="opt-l"><input type="checkbox" id="fpPile" ${c.pileup!==false?'checked':''}> picchi somma</label> <label class="opt-l"><input type="checkbox" id="fpQuad" ${c.quad?'checked':''}> asse dell'energia con termine quadratico</label>`:''}
+        ${c.model==='hypermet'?`<label class="opt-l"><input type="checkbox" id="fpPile" ${c.pileup!==false?'checked':''}> picchi somma</label> <label class="opt-l"><input type="checkbox" id="fpQuad" ${c.quad?'checked':''}> asse dell'energia con termine quadratico</label> <label class="opt-l" title="Pesi dai conteggi lisciati: giusti anche con pochi conteggi per canale. «Come PyMca»: 1/√conteggi, che con pochi conteggi sottostima le righe deboli."><input type="checkbox" id="fpNey" ${c.weights==='neyman'?'checked':''}> pesi del fit come PyMca (1/√conteggi)</label>`:''}
         <span class="spacer"></span><button class="btn small ghost" id="fpCfgIn" type="button">Importa .cfg di PyMca…</button> <button class="btn small ghost" id="fpCfgOut" type="button">Esporta .cfg di PyMca</button><input type="file" id="fpCfgFile" accept=".cfg,.ini,.txt" hidden></div>
       ${so.exc?`<div class="opt-l">Eccitazione a lista di energie dal file .cfg (${so.exc.length} energie): anodo e tensione non contano. <button class="btn small ghost" id="fpExcOff" type="button">Usa il tubo</button></div>`:''}
       ${c.cfgWarn&&c.cfgWarn.length?`<details class="opt-l"><summary>Impostazioni del .cfg senza equivalente (${c.cfgWarn.length})</summary><ul>${c.cfgWarn.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:''}
@@ -8940,6 +8950,7 @@ function renderCult(f){
   $('#fpModel').onchange=e=>{ const v=e.target.value; c.model=v==='3.1'?'hypermet':'gauss'; c.phys=v; delete c.was30; save(); };
   if ($('#fpPile')) $('#fpPile').onchange=e=>{ c.pileup=e.target.checked; save(); };
   if ($('#fpQuad')) $('#fpQuad').onchange=e=>{ c.quad=e.target.checked; save(); };
+  if ($('#fpNey')) $('#fpNey').onchange=e=>{ if (e.target.checked) c.weights='neyman'; else delete c.weights; save(); };
   if ($('#fpExcOff')) $('#fpExcOff').onclick=()=>{ c.S=Object.assign({}, c.S||{}); delete c.S.exc; save(); };
   $('#fpCfgIn').onclick=()=>$('#fpCfgFile').click();
   $('#fpCfgFile').onchange=async e=>{ const file=e.target.files[0]; if (!file) return; try{ fpImportCfg(c, decodeBuffer(await file.arrayBuffer()), file.name); save(); toast('✔ Condizioni importate da '+file.name+'.'); }catch(err){ toast('⚠️ Non riesco a leggere '+file.name+': '+String(err.message||err)); } };

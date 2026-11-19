@@ -71,8 +71,33 @@
     s+=`<h4 class="anh">${T('Avvisi','Warnings')}</h4><ul class="anlist">${r.warnings.map(w=>`<li class="lv-${/Fail|noConv/.test(w.code)?'bad':'warn'}"><span>△</span><div>${h(warnText(w))}</div></li>`).join('')}</ul>`;
     return s; }
 
+  /* dati atomici assenti: non sono distribuiti con l'app (dati NIST, permesso da chiedere). Si scaricano dal sito del NIST su richiesta
+     dell'utente (app/libs-nist.js) o si carica un file preparato con scripts/gen-libs-data.py; poi restano nell'archivio dell'app. */
+  function errText(e){ const c=e&&e.code;
+    if (c==='offline') return T('Nessuna connessione a Internet: collegati e riprova. I dati servono una volta sola, poi l\'app funziona anche senza rete.','No Internet connection: connect and try again. The data are needed only once; afterwards the app works offline.');
+    if (c==='cors') return T('Il sito del NIST non permette lo scaricamento diretto da una pagina web: il browser blocca la richiesta. Usa l\'app desktop, che li scarica da sé, oppure carica qui un file di dati preparato con scripts/gen-libs-data.py (nel repository di Acchiappaspettri).','The NIST website does not allow direct downloads from a web page: the browser blocks the request. Use the desktop app, which downloads them itself, or load here a data file prepared with scripts/gen-libs-data.py (in the Acchiappaspettri repository).');
+    if (c==='quota') return T('Spazio di archiviazione esaurito: libera spazio e riprova.','Storage is full: free some space and try again.');
+    if (c==='http' || c==='format') return T('Il sito del NIST non ha risposto come previsto','The NIST website did not answer as expected')+' ('+h(e.message)+'). '+T('Riprova più tardi.','Try again later.');
+    return h(String(e&&e.message||e)); }
+  function renderGet(box, f, d, els){ const N=win.AcchLibsNist; const wrap=doc.createElement('div'); wrap.className='libscf'; wrap.style.marginTop='10px';
+    wrap.innerHTML=`<h4 class="anh">CF-LIBS <small>(${T('sperimentale','experimental')})</small></h4>
+      <p class="why" style="margin:2px 0">${T('Per la CF-LIBS servono i dati atomici del NIST Atomic Spectra Database (Kramida et al., NIST SRD 78, doi:10.18434/T4W30F): righe di emissione, livelli energetici ed energie di ionizzazione di 26 elementi. Non sono distribuiti con l\'app. Si scaricano una volta sola dal sito ufficiale del NIST (physics.nist.gov, circa 130 richieste, qualche minuto) e restano salvati nell\'app, così dopo funziona anche senza rete.','CF-LIBS needs the atomic data of the NIST Atomic Spectra Database (Kramida et al., NIST SRD 78, doi:10.18434/T4W30F): emission lines, energy levels and ionisation energies of 26 elements. They are not distributed with the app. They are downloaded once from the official NIST website (physics.nist.gov, about 130 requests, a few minutes) and stay saved in the app, so it then works offline.')}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0">${N?`<button class="btn small primary" data-cf="nist">${T('Scarica i dati atomici dal NIST','Download the atomic data from NIST')}</button>
+      <label class="btn small ghost" style="cursor:pointer">${T('Carica un file di dati…','Load a data file…')}<input type="file" data-cf="nistFile" accept=".js,.json,application/json,text/javascript" hidden></label>`:''}</div>
+      <p class="why" data-cf="nistMsg" style="margin:2px 0" aria-live="polite"></p>`;
+    const q=k=>wrap.querySelector('[data-cf="'+k+'"]'), msg=q('nistMsg'), done=()=>{ if (wrap.parentNode) wrap.parentNode.removeChild(wrap); render(box, f, d, els); };
+    if (!N){ msg.textContent=T('Modulo dei dati atomici assente.','Atomic-data module missing.'); box.appendChild(wrap); return; }
+    q('nist').onclick=async ()=>{ const b=q('nist'); b.disabled=true; msg.textContent=T('Collegamento al NIST…','Connecting to NIST…');
+      try { await N.download((i,n)=>{ msg.textContent=T('Scarico dal NIST: ','Downloading from NIST: ')+i+' / '+n+'…'; }); msg.textContent=T('Dati atomici scaricati e salvati.','Atomic data downloaded and saved.'); done(); }
+      catch(e){ msg.innerHTML='△ '+errText(e); b.disabled=false; } };
+    q('nistFile').onchange=async e=>{ const file=e.target.files&&e.target.files[0]; if (!file) return;
+      try { const t=win.decodeBuffer ? win.decodeBuffer(await file.arrayBuffer()) : await file.text(); N.save(N.parseFile(t)); done(); }
+      catch(err){ msg.innerHTML='△ '+(err&&err.code ? errText(err) : T('File non valido: ','Invalid file: ')+h(String(err&&err.message||err))); } };
+    box.appendChild(wrap); }
+
   function render(box, f, d, els){
-    const D=win.LIBS_DATA, C=win.LibsCf; if (!D || !C || !box) return;
+    const C=win.LibsCf; if (!C || !box) return; const D=win.LIBS_DATA || (win.AcchLibsNist && win.AcchLibsNist.load());
+    if (!D) return renderGet(box, f, d, els);
     const st=f._cf||(f._cf={els:null, fwhm:'', ne:'Halpha', neVal:'', mode:'saha-boltzmann', noRes:true, open:false, res:null});
     // senza righe in banca dati (Sb) l'elemento non si può misurare: non si offre
     const avail=C.elementsIn(D).filter(e=>e!=='H' && C.linesOf(D, e, 'I').length+C.linesOf(D, e, 'II').length>0); if (!st.els) st.els=(els||[]).filter(e=>avail.includes(e));
@@ -87,7 +112,7 @@
         <label class="check"><input type="checkbox" data-cf="noRes" ${st.noRes?'checked':''}> ${T('escludi le righe di risonanza','exclude resonance lines')}</label>
         <button class="btn small primary" data-cf="run">${T('Calcola','Compute')}</button></div>
       <div data-cf="out">${st.res?resultHtml(st.res):''}</div>
-      <p class="why" style="margin-top:6px">${T('Dati atomici','Atomic data')}: ${h(D.source)}, ${T('scaricati il','downloaded on')} ${h(D.downloaded)}. ${T('Coefficienti Stark non inclusi: niente correzione automatica dell\'autoassorbimento. Metodo e limiti: docs/CF-LIBS.md.','Stark coefficients not included: no automatic self-absorption correction. Method and limits: docs/CF-LIBS.md.')}</p>`);
+      <p class="why" style="margin-top:6px">${T('Dati atomici','Atomic data')}: ${h(D.source)}, ${T('scaricati dal NIST il','downloaded from NIST on')} ${h(D.downloaded)}, ${T('salvati in questa app e non ridistribuibili','saved in this app and not to be redistributed')}. ${T('Coefficienti Stark non inclusi: niente correzione automatica dell\'autoassorbimento. Metodo e limiti: docs/CF-LIBS.md.','Stark coefficients not included: no automatic self-absorption correction. Method and limits: docs/CF-LIBS.md.')}</p>`);
       wrap.querySelectorAll('[data-cfel]').forEach(b=>b.onclick=()=>{ const e=b.dataset.cfel; st.els=st.els.includes(e)?st.els.filter(x=>x!==e):st.els.concat([e]); paint(); });
       const q=k=>wrap.querySelector('[data-cf="'+k+'"]');
       if (q('open')) q('open').onclick=()=>{ st.open=true; paint(); };
