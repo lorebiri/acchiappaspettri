@@ -8,3 +8,4 @@ src-tauri/gen/
 i18n/_todo.json
 test/i18n-missing.json
 test/fuzz/esiti/
+scripts/.nist-cache/
