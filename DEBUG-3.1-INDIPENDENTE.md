@@ -17,7 +17,7 @@
   - nessun nome del laboratorio che ha dato i dati;
   - nessuno spettro né certificato riservato nei file. Un test conteneva l'intestazione di un file reale (data, tempo vivo, punti di calibrazione): ora i valori sono inventati, ma restano nella storia di git (vedi «Decisioni»);
   - l'avviso MIT di PyMca è corretto.
-- **Raccomandazione: la 3.1 si può pubblicare come candidata (rc)** dopo queste correzioni. Prima della versione definitiva vanno prese tre decisioni (sotto): permesso NIST, pesi del fit con pochi conteggi, numero di versione.
+- **Raccomandazione: la 3.1 si può pubblicare come candidata (rc)** dopo queste correzioni. Le tre decisioni chieste (dati NIST, pesi del fit, versione) sono state prese e applicate: vedi «Seguito».
 
 ## Bug trovati e corretti
 
@@ -147,6 +147,38 @@ Nella versione web il calcolo gira nella pagina: per quei tempi la pagina è fer
 4. **Storia di git**: il commit 58821fd contiene, in un test, l'intestazione di un export reale: data e ora della misura, tempo vivo e due punti di calibrazione. Nessuno spettro né certificato. Ora i valori sono inventati. Per toglierli anche dalla storia basta unire il ramo con uno «squash» invece di riscrivere la storia condivisa.
 5. **Citazioni nella CF-LIBS**: restano citazioni bibliografiche brevi (Ciucci et al. 1999, Cristoforetti et al. 2010, Tognoni et al. nello studio) e link a copie su iris.cnr.it in `docs/studi/XRF-PYMCA-CFLIBS.md`. Rispettano la regola come applicata nel commit 7ec09e7. Se la regola va letta in modo più stretto, sono da togliere anche quelle.
 
+## Seguito: decisioni di Lorenzo applicate (stesso ramo)
+
+1. **Dati NIST non più distribuiti.**
+   - `app/libs-data.js` è tolto dal repository e dal pacchetto.
+   - Il pannello CF-LIBS, senza dati, spiega che cosa sono (fonte e DOI), perché non sono inclusi e che servono una volta sola. Offre «Scarica i dati atomici dal NIST» e, in alternativa, «Carica un file di dati…».
+   - `app/libs-nist.js` fa al NIST le stesse 128 richieste di `scripts/gen-libs-data.py`, con le stesse scelte. Su un campione sintetico nel formato del NIST il risultato è identico a quello dello script, e le query coincidono byte per byte. I dati vengono salvati nell'archivio dell'app: la cartella dati sul desktop, la memoria del browser online. Dopo funziona senza rete (provato riaprendo la pagina con la rete bloccata).
+   - Sul desktop la richiesta parte dal comando nativo `nist_get` (`src-tauri/src/nist.rs`): solo `https://physics.nist.gov/cgi-bin/ASD/`, solo i tre moduli, query controllata, niente reindirizzamenti, 2 minuti e 32 MB al massimo. Nessun crate nuovo (stesse versioni di reqwest e rustls dell'aggiornamento automatico). `cargo check` e `cargo test` passano; una prova manuale con la rete scarica davvero dal NIST.
+   - **Limite della versione online**: il sito del NIST non manda l'intestazione CORS, quindi il browser blocca lo scaricamento da una pagina web. Il pannello lo spiega e propone l'app desktop o il caricamento di un file preparato con lo script. Gestiti anche: rete assente, risposta inattesa, spazio esaurito, file non valido.
+   - Test: con un campione SINTETICO (valori inventati) in node e nel browser, con le risposte del NIST simulate: scaricamento, CORS, errore del server, assenza di rete, uso senza rete dopo. I test scientifici della CF-LIBS usano i dati preparati dallo script: la CI li scarica dal NIST in una cache che non entra nei pacchetti.
+2. **Pesi del fit.** Confronto, sempre col modello 3.1 (Sn vero 8,0 %):
+
+   | Pesi | Sn sintetico a 2048 / 4096 / 8192 canali (media di 4 semi) | χ²ᵣ sintetico | Bronzi certificati: errore medio / mediana | Sn (bias) sui bronzi | Acciaio NIST di PyMca |
+   |---|---|---|---|---|---|
+   | 1/√y (Neyman, come PyMca) | 8,30 / 7,53 / 6,86 % | 1,13 / 1,05 / 0,83 | 9,3 % / 8,7 % | +8,4 % | χ²ᵣ 8,2 |
+   | **spettro lisciato (ora predefinito del 3.1)** | **8,05 / 8,20 / 8,46 %** | 0,99 / 1,00 / 0,96 | **9,2 %** / 9,2 % | +7,9 % | χ²ᵣ 7,9, concentrazioni uguali entro 0,02 punti |
+   | modello, Pearson iterato (scartato) | 7,99 / 8,15 / 8,48 % | 0,99 / 1,00 / 0,99 | 12,1 % / 10,0 % | +18,3 % | — |
+
+   - I pesi lisciati tolgono la deriva con pochi conteggi e non peggiorano il resto, quindi sono predefiniti nel 3.1. Restano disponibili nel pannello «pesi del fit come PyMca».
+   - Il modello 3.0 resta Neyman: con il 3.0 la differenza dalla 3.0.0 è ancora 0 sui 16 spettri.
+   - Il modello 3.0 (Neyman) sul sintetico dà 7,86 / 7,16 / 6,57 %.
+   - Tutti i numeri dei bronzi certificati sono aggregati; i dati restano nel repository privato.
+3. **Versione 3.1.0-rc.1**:
+   - aggiornata in `package.json`, `tauri.conf.json`, `Cargo.toml` e `Cargo.lock` (app e `acch-core`) e in `APP_VERSION_FULL`;
+   - sezione «## 3.1.0-rc.1» nel CHANGELOG e voce 3.1 nelle Novità;
+   - è una pre-release: la pipeline la pubblica come pre-release per i tag con «-», e l'aggiornamento automatico legge `releases/latest`, che esclude le pre-release.
+4. Storia di git non riscritta (lo squash lo fa Jarvis). 5. Citazioni bibliografiche brevi lasciate.
+
 ## Raccomandazione
 
-**Pronta per una release candidate 3.1 (rc), non ancora per la definitiva.** La fisica del 3.1 è corretta, la 3.0 è riprodotta esattamente, e i difetti trovati (export `.cfg`, «Metodi», lettori, CF-LIBS) sono corretti e coperti dai test. Per la definitiva restano i punti 1–3: permesso NIST, scelta sui pesi del fit con i materiali certificati, numero di versione. La CF-LIBS resta correttamente segnata come sperimentale.
+**La 3.1.0-rc.1 si può pubblicare come pre-release** una volta verde la CI. La fisica del 3.1 è corretta, la 3.0 è riprodotta esattamente, i difetti trovati sono corretti con i loro test, i dati del NIST non sono più distribuiti e i pesi del fit sono giusti anche con pochi conteggi. Per la versione definitiva restano:
+- la risposta del NIST, per eventualmente includere i dati;
+- gli altri materiali certificati, per confermare tubo di Ebel e pesi su strumenti diversi;
+- i punti aperti elencati sopra: avvisi del `.cfg` in inglese e limiti della CF-LIBS.
+
+La CF-LIBS resta correttamente segnata come sperimentale.

@@ -10,9 +10,13 @@ Strumento portatile con tubo Rh a trasmissione, 40 kV, rivelatore SDD; 10 spettr
 |---|---|---|---|---|---|---|---|
 | 3.0 | 9,0% | 10,2% | +1,5% | −10,5% | −7,8% | −7,0% (medio 16%) | 7,0 |
 | **3.1** | 9,7% | **8,5%** | **−0,3%** | −10,5% | +9,7% | +1,6% (medio 18%) | **6,0** |
+| 3.1, pesi 1/√y, codice del debug indipendente | 9,3% | 8,7% | −0,2% | −10,7% | +8,4% | +0,9% | 6,0 |
+| **3.1, pesi dallo spettro lisciato (predefinito dopo il debug)** | **9,2%** | 9,2% | −0,1% | −11,1% | +7,9% | +0,6% | 5,4 |
+| 3.1, pesi dal modello (Pearson iterato, provato e scartato) | 12,1% | 10,0% | −0,9% | −12,6% | +18,3% | −0,9% | 7,1 |
 
 - **Difetto trovato e corretto**: il lettore `.mca` usava nella calibrazione uno slot vuoto «Calibration3: 0 0» scritto dallo strumento. L'asse risultava spostato di circa 0,1 keV e **Sn era sottostimato di 3–6 volte con entrambi i modelli**. Ora il punto (0, 0) si scarta quando non sta sulla retta degli altri punti.
 - **Difetto trovato e corretto**: senza limiti stretti, nel modello 3.1 la coda lunga dei picchi si confondeva con il fondo (χ² triplo). Ora i limiti dei parametri di forma sono quelli di PyMca.
+- **Pesi del fit** (debug indipendente): con 4096 canali e 90 s i conteggi per canale sono molti, quindi i pesi lisciati danno gli stessi risultati di 1/√y (differenze sotto la variabilità fra standard; la ripetibilità sui 10 spettri resta 4,4%). I pesi dal modello spostano Sn di +10 punti e sono stati scartati. Il guadagno dei pesi lisciati è con pochi conteggi per canale (spettri sintetici in docs/SCIENZA.md). I χ² non sono confrontabili fra righe con pesi diversi.
 - Zn è sottostimato del 10% da entrambi i modelli: errore sistematico comune, ancora da capire.
 - In uno standard Pb risulta la metà del certificato con entrambi i modelli, e la misura SEM è vicina al valore dell'app: certificato o omogeneità del campione da verificare.
 - Contro la misura SEM gli scarti sono molto più grandi (38% e 50%), soprattutto su Sn e Pb: la SEM-EDS vede la superficie.

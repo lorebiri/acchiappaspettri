@@ -38,7 +38,7 @@ Stesso intervallo di PyMca (2,4–17 keV), condizioni lette dal `.cfg` di PyMca.
 
 | | Acchiappaspettri 3.0 | **Acchiappaspettri 3.1** | PyMca 5.9.7 (sua configurazione, sola gaussiana) | PyMca con ipermetro |
 |---|---|---|---|---|
-| χ² ridotto del fit | 15,2 (22,2 nel prototipo dello studio, 4,5–15 keV) | **8,2** | 13,1 | 19,2 |
+| χ² ridotto del fit | 15,2 (22,2 nel prototipo dello studio, 4,5–15 keV) | **7,9** (8,2 con i pesi 1/√y, prima del debug indipendente) | 13,1 | 19,2 |
 
 Aree dei picchi, 3.1 contro PyMca: Cr −0,8%, Fe −0,4%, Ni −0,1%, Cu +0,2%; Mn −11% (la sua riga sta sotto la Kβ del cromo e i due programmi la dividono in modo diverso).
 
@@ -111,7 +111,7 @@ Lo Zn ambiguo di uno standard (0,3 o 0,003%) è 0,3%: lo dicono le aree dei picc
 - **Dati reali di laboratorio, riservati.** Sono nel repository privato di validazione; i rapporti dettagliati (per standard e per spettro) e gli script che li producono sono stati scritti fuori dal repository pubblico, sulla macchina di questa sessione (`/home/user/validazione-privata-risultati/`): la sessione aveva solo accesso in lettura al repository privato, quindi non li ha caricati lì. Vanno copiati nel repository privato prima che la sessione venga chiusa.
 - **Zn sottostimato del 10%** sui bronzi veri con entrambi i modelli: da capire (rapporto Kβ/Kα del Cu, coda dei picchi del Cu, efficienza del rivelatore).
 
-- **Dati NIST per la LIBS (da decidere prima di pubblicare).** I dati del NIST Atomic Spectra Database sono protetti dallo Standard Reference Data Act: la pagina del NIST dice di non ridistribuirli senza permesso. Sono nel repository (`app/libs-data.js`), come richiesto, ma prima di pubblicare una versione bisogna chiedere il permesso al NIST oppure distribuire solo lo script che li rigenera.
+- **Dati NIST per la LIBS: decisione presa** (dopo il debug indipendente): non sono più nel repository né nell'app; l'utente li scarica dal NIST dal pannello CF-LIBS, finché il NIST non dà il permesso di ridistribuirli. Testo precedente: I dati del NIST Atomic Spectra Database sono protetti dallo Standard Reference Data Act: la pagina del NIST dice di non ridistribuirli senza permesso. Sono nel repository (`app/libs-data.js`), come richiesto, ma prima di pubblicare una versione bisogna chiedere il permesso al NIST oppure distribuire solo lo script che li rigenera.
 - **Modello 3.1 come predefinito per le analisi nuove.** È la scelta fatta, perché sullo spettro reale è migliore; i test e il tutorial costruiti su spettri sintetici della 3.0 usano ora esplicitamente il modello 3.0 dove verificano quei numeri. Se si preferisce aspettare altri dati reali, basta cambiare il predefinito in `fpCfg` (una riga).
 - **Tempi.** Il modello 3.1 richiede 1–4 secondi per spettro nella versione online (sul desktop il calcolo gira nel processo separato). Si può ancora ottimizzare.
 - **Lettore dei file a una colonna.** Durante il confronto è emerso che `parseXRF` scarta la prima riga di un file `.mca` a una colonna senza intestazione (come `XRFSpectrum.mca` di PyMca): lo spettro risulta spostato di un canale. Non corretto qui (tocca il lettore di tutti i formati); segnalato.
