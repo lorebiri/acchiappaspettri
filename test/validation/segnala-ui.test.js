@@ -5,6 +5,7 @@
 // Simple MAPI su Windows, ripiego mailto con lo screenshot in Download, nessun programma di posta. Dati SINTETICI.
 // Uso: PW_CHANNEL=chrome node --test test/validation/segnala-ui.test.js
 'use strict';
+const VER=require('../../package.json').version;   // la versione in corso, non una scritta a mano (3.0.0 → 3.1.0-rc.1)
 const {describe, it, before, after}=require('node:test'), assert=require('node:assert');
 const B=require('./browser.js'), {openDesk}=require('./tauri-mock.js');
 
@@ -37,14 +38,14 @@ describe('Segnala un problema', {timeout:6*60*1000}, ()=>{
     assert.ok(log.some(l=>/^ERROR JS: errore provocato/.test(l)), 'errore provocato nel registro: '+log.join(' | '));
     assert.ok(log.some(l=>l.startsWith('ERROR '+NAME)), 'avviso ⊘ nel registro');
     assert.ok(shot && attachOn, 'screenshot catturato e «Allega» acceso'); assert.strictEqual(nameOn, false, 'nome del file spento di default');
-    assert.ok(/Versione di Acchiappaspettri: 3\.0\.0/.test(tech) && /Edizione: desktop/.test(tech) && /Sistema: Windows/.test(tech) && /Lingua:/.test(tech) && /FTIR.*\.csv/.test(tech) && /errore provocato/.test(tech), tech);
+    assert.ok(tech.includes('Versione di Acchiappaspettri: '+VER) && /Edizione: desktop/.test(tech) && /Sistema: Windows/.test(tech) && /Lingua:/.test(tech) && /FTIR.*\.csv/.test(tech) && /errore provocato/.test(tech), tech);
     assert.ok(!tech.includes('campione-riservato'), 'nome del file nel riepilogo senza consenso: '+tech);
     const save=calls.find(c=>c.cmd==='save_report_shot'), mapi=calls.find(c=>c.cmd==='send_report_mapi');
     assert.ok(save && save.args.dest==='temp' && /^Acchiappaspettri-segnalazione-\d{4}-\d\d-\d\d-\d{6}\.png$/.test(save.args.name), JSON.stringify(save&&save.args));
     assert.deepStrictEqual(save.args.png, [137,80,78,71,13,10,26,10], 'PNG vero');
     assert.ok(mapi, 'MAPI non chiamato');
     assert.strictEqual(mapi.args.to, 'lorenzo.birindelli@cnr.it');
-    assert.match(mapi.args.subject, /^Acchiappaspettri 3\.0\.0\S*: segnalazione di un problema$/);
+    assert.strictEqual(mapi.args.subject, 'Acchiappaspettri '+VER+': segnalazione di un problema');
     for (const s of ['esportavo il PDF','mi aspettavo il file','Lo screenshot della finestra è allegato.','errore provocato','Avviso mostrato']) assert.ok(mapi.args.body.includes(s), 'manca «'+s+'»');
     assert.ok(!mapi.args.body.includes('campione-riservato'), 'nome del file nel corpo senza consenso');
     assert.ok(mapi.args.attachment && mapi.args.attachment.endsWith(save.args.name), 'allegato: '+mapi.args.attachment);
@@ -66,7 +67,7 @@ describe('Segnala un problema', {timeout:6*60*1000}, ()=>{
     assert.ok(tech.includes('Nome del file: '+NAME), 'con il consenso il riepilogo mostra il nome');
     const url=calls.find(c=>c.cmd==='openUrl').args.u, save=calls.find(c=>c.cmd==='save_report_shot' && c.args.dest==='downloads');
     assert.ok(url.length<=1900, 'lunghezza '+url.length);
-    assert.ok(url.startsWith('mailto:lorenzo.birindelli@cnr.it?subject=Acchiappaspettri%203.0.0'), url.slice(0,90));
+    assert.ok(url.startsWith('mailto:lorenzo.birindelli@cnr.it?subject=Acchiappaspettri%20'+encodeURIComponent(VER)), url.slice(0,90));
     assert.ok(!/[ \n#]/.test(url), 'caratteri non codificati nel mailto');
     const body=decodeURIComponent(url.split('&body=')[1]);
     assert.ok(body.includes('accento è & simboli ?=#% e a capo\r\nseconda riga'), 'testo dell\'utente intatto dopo la decodifica');
