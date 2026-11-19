@@ -54,4 +54,8 @@
     how.after(p); if (win.AcchI18n && win.AcchI18n.apply) win.AcchI18n.apply(p); }
   /* 4. Passo 2: «Analisi» subito dopo «Picchi». Cambia solo l'ordine a vista (CSS): DOM, scorciatoie e giro guidato restano quelli del desktop. */
   const tabs=$('#tabs'); if (tabs) tabs.classList.add('webtabs');
+  /* 5. Primo consiglio del passo 2: valido su ogni schermo (su quelli larghi gli strumenti sono accanto al grafico, non sotto) e indica dove scegliere l'analisi */
+  const T2=win.TIPS2, T2new="Il grafico è pronto. Nelle schede trovi gli strumenti: «Picchi» per dare i nomi, «Analisi» per scegliere cosa fare con lo spettro.";
+  if (Array.isArray(T2) && /^Sotto al grafico/.test(T2[0]||'')) T2[0]=T2new;
+  const tip2=$('#tip2'); if (tip2 && /Sotto al grafico/.test(tip2.textContent)) tip2.textContent=T2new;
 })(window);

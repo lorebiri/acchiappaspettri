@@ -34,6 +34,8 @@ describe('versione online', ()=>{
   it('passo 2: «Analisi» subito dopo «Picchi», senza cambiare il DOM', async()=>{
     const o=await B.openPage(br, server, {}); const p=o.p; await load(p); await p.evaluate(()=>{ go(2); cur=0; refreshAll(); }); await p.waitForTimeout(300);
     assert.deepStrictEqual(await tabOrder(p), ['peaks','an','refs','proc','zone']);
+    assert.match(await p.evaluate(()=>TIPS2[0]), /^Il grafico è pronto\. Nelle schede/, 'il primo consiglio non dice più «sotto al grafico»');
+    assert.ok(!(await p.evaluate(()=>TIPS2.some(t=>/^Sotto al grafico/.test(t)))));
     assert.deepStrictEqual(await p.$$eval('#tabs .tab', t=>t.map(x=>x.dataset.tab)), ['peaks','proc','zone','refs','an'], 'il DOM resta quello del desktop');
     await p.click('#tabs [data-tab="an"]'); assert.ok(await vis(p,'.panel[data-panel="an"]'));
     // i titoli delle sezioni di Analisi non vanno a capo parola per parola
