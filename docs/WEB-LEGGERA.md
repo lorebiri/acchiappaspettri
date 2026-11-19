@@ -34,3 +34,7 @@ Un progetto che usa queste funzioni le mostra da solo all'apertura, e una foto t
 Il peso scaricato: il CSS non fa risparmiare byte. Il guadagno è di attenzione, non di tempo di caricamento. Caricare `jsPDF` e il dizionario inglese solo quando servono ridurrebbe l'attesa su reti lente, circa 340 ms su 1650 misurati con rete a 10 Mbit e processore rallentato: è in [ROADMAP.md](ROADMAP.md).
 
 Le funzioni nascoste restano sempre disponibili con «Mostra qui», anche ora che il desktop è scaricabile: la versione online alleggerisce la vista, non toglie nulla.
+
+## Revisione «immediatezza e chiarezza»
+
+Testi brevi, percorso in tre passi, «Analisi» subito dopo «Picchi», contrasto e telefono: tutto in `app/web.css` e nel blocco finale di `app/web.js`, con l'inglese in `i18n/en-app.json`. Il desktop resta identico pixel per pixel (`test/validation/web-chiarezza-ui.test.js`). Dettagli e schermate in [revisione-online/LEGGIMI.md](revisione-online/LEGGIMI.md).

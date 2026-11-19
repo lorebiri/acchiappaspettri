@@ -26,3 +26,32 @@
   try{ win.AcchHost.store.setItem('acch.tourDone','true'); }catch(e){}   // online si parte subito: il giro resta nel menu
   const st=$('#stWeb'); if (st){ const l=win.document.createElement('label'); l.className='check'; l.style.display='block'; l.style.marginTop='6px'; const c=win.document.createElement('input'); c.type='checkbox'; c.id='stWebFull'; c.checked=full(); c.onchange=()=>show(c.checked); l.append(c,' Mostra le funzioni avanzate anche online'); st.appendChild(l); }
 })(window);
+/* Revisione online «immediatezza e chiarezza» (docs/revisione-online/LEGGIMI.md): solo testi brevi e ordine dei pannelli, nessuna funzione nuova, nessun calcolo toccato.
+   I testi sono in italiano come il resto della pagina; l'inglese è in i18n/en-app.json e passa dal dizionario come tutti gli altri. */
+(function(win){ 'use strict';
+  const doc=win.document, root=doc.documentElement; if (!root.classList.contains('web')) return;
+  const $=s=>doc.querySelector(s);
+  const mk=(tag, cls, text)=>{ const e=doc.createElement(tag); if (cls) e.className=cls; if (text!=null) e.textContent=text; return e; };
+  const put=(el, text)=>{ if (el) el.textContent=text; };
+  /* 1. Il riquadro «Due modi»: online si sta già usando la versione online, quindi niente secondo pulsante primario in cima.
+        Diventa una nota discreta dopo l'area di caricamento, con il solo invito all'app desktop. */
+  const box=$('#entryBox');
+  if (box){ box.classList.add('webentry'); const t=box.querySelector('.entrytxt');
+    if (t){ put(t.querySelector('b'),'Ti serve anche senza internet?'); put(t.querySelector('small'),"C'è l'app per Windows, macOS e Linux, con le stesse funzioni. In entrambi i casi i dati restano sul tuo computer."); }
+    put($('#entryDesktop'),"🖥️ Scarica l'app desktop");
+    const card=$('#v1 > .card'); if (card && card.parentNode===box.parentNode) card.after(box); }
+  /* 2. L'area di caricamento dice subito cosa fare */
+  const drop=$('#drop');
+  if (drop){ put(drop.querySelector('.big'),'Carica i tuoi spettri');
+    const or=[...drop.children].find(e=>e.matches('div') && /^\s*oppure\s*$/i.test(e.textContent)); if (or){ or.classList.add('webor'); or.textContent='Trascinali qui, anche una cartella intera, oppure:'; } }
+  /* 3. Il percorso in tre passi, breve, al posto delle tre liste lunghe (che restano nel codice e nel desktop) */
+  const how=$('#howto');
+  if (how){ const p=mk('div','webpath');
+    const S=[['1','Carica','Trascina i file: riconosco da solo lo strumento (FTIR, Raman, UV-Vis, XRF, HPLC…).'],
+             ['2',"Controlla e analizza",'Picchi con i nomi suggeriti, confronti, controllo del dato e analisi per tecnica.'],
+             ['3','Leggi e scarica',"Il risultato è subito accanto al grafico; poi PDF, immagini per le riviste ed elenco dei picchi."]];
+    for (const [n,t,d] of S){ const s=mk('div','webstep'), w=mk('div'); w.append(mk('b',null,t), mk('small',null,d)); s.append(mk('span','webn',n), w); p.appendChild(s); }
+    how.after(p); if (win.AcchI18n && win.AcchI18n.apply) win.AcchI18n.apply(p); }
+  /* 4. Passo 2: «Analisi» subito dopo «Picchi». Cambia solo l'ordine a vista (CSS): DOM, scorciatoie e giro guidato restano quelli del desktop. */
+  const tabs=$('#tabs'); if (tabs) tabs.classList.add('webtabs');
+})(window);

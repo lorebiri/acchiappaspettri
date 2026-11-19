@@ -1445,5 +1445,15 @@
   "Il progetto contiene più di {0} GB di dati, o dati compressi in modo anomalo: per sicurezza non lo apro nella pagina online. L'app desktop apre progetti fino a 4 GB.": "The project contains more than {0} GB of data, or abnormally compressed data: for safety I do not open it in the online page. The desktop app opens projects up to 4 GB.",
   "18 novembre 2026": "18 November 2026",
 "Sito di Acchiappaspettri": "Acchiappaspettri website",
-"Sito del programma": "Program website"
+"Sito del programma": "Program website",
+"Ti serve anche senza internet?": "Need it offline too?",
+"C'è l'app per Windows, macOS e Linux, con le stesse funzioni. In entrambi i casi i dati restano sul tuo computer.": "There is an app for Windows, macOS and Linux with the same features. Either way your data stays on your computer.",
+"🖥️ Scarica l'app desktop": "🖥️ Download the desktop app",
+"Carica i tuoi spettri": "Load your spectra",
+"Trascinali qui, anche una cartella intera, oppure:": "Drag them here, even a whole folder, or:",
+"Trascina i file: riconosco da solo lo strumento (FTIR, Raman, UV-Vis, XRF, HPLC…).": "Drop your files: I recognise the instrument on my own (FTIR, Raman, UV-Vis, XRF, HPLC…).",
+"Controlla e analizza": "Check and analyse",
+"Picchi con i nomi suggeriti, confronti, controllo del dato e analisi per tecnica.": "Peaks with suggested names, comparisons, data check and technique-specific analysis.",
+"Leggi e scarica": "Read and download",
+"Il risultato è subito accanto al grafico; poi PDF, immagini per le riviste ed elenco dei picchi.": "The result appears next to the plot; then PDF, journal-ready images and peak list."
 }
