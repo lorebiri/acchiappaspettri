@@ -3600,6 +3600,9 @@ function fpSetup(o){ o=o||{};
   const s={anode:FP.el[o.anode]&&FP_ANODES.includes(o.anode)?o.anode:'Rh', kv:+o.kv>50?50:+o.kv>4?+o.kv:40, psi1:+o.psi1>3&&+o.psi1<=90?+o.psi1:45, psi2:+o.psi2>3&&+o.psi2<=90?+o.psi2:45,
     d1:o.d1!=null&&+o.d1>=0?+o.d1:1.0, d2:o.d2!=null&&+o.d2>=0?+o.d2:1.0, beT:o.beT!=null?+o.beT:125, beD:o.beD!=null?+o.beD:12.5, si:o.si!=null?+o.si:500, eps:+o.eps||20,
     atm:o.atm==='he'||o.atm==='vac'?o.atm:'air', charF:+o.charF>0?+o.charF:1, cexp:+o.cexp>0?+o.cexp:1, filt:o.filt&&fpParseComp(o.filt.comp)?o.filt:null};
+  if (o.det==='Ge') s.det='Ge';   // rivelatore al germanio (efficienza e fughe); predefinito il silicio
+  // eccitazione a lista di energie (monocromatica, sincrotrone, ottiche con filtro, [fit] energy… di PyMca): [[E keV, peso, diffusione 0/1]]
+  if (Array.isArray(o.exc)){ const ex=o.exc.filter(q=>Array.isArray(q) && +q[0]>0.5 && +q[0]<=100 && +q[1]>0).map(q=>[+q[0], +q[1], q[2]?1:0]); if (ex.length){ s.exc=ex; s.kv=Math.max(...ex.map(q=>q[0])); } }
   s.key=JSON.stringify(s); return s;
 }
 const FP_ANODES=['Rh','Ag','Mo','W','Pd','Cr','Cu','Ti'];
@@ -3620,11 +3623,11 @@ function fpTube(S){
 /* prepara (e ricorda) tutto ciò che dipende solo dalle condizioni di misura */
 function fpPrep(S){
   let P=FP_CACHE.get(S.key); if (P) return P; if (FP_CACHE.size>12) FP_CACHE.clear();
-  const T=fpTube(S), s1=Math.sin(S.psi1*Math.PI/180), s2=Math.sin(S.psi2*Math.PI/180), gas=S.atm==='air'?FP_AIR:S.atm==='he'?null:null;
+  const T=S.exc ? {E:Float64Array.from(S.exc, q=>q[0]), N:Float64Array.from(S.exc, q=>q[1])} : fpTube(S), s1=Math.sin(S.psi1*Math.PI/180), s2=Math.sin(S.psi2*Math.PI/180), gas=S.atm==='air'?FP_AIR:S.atm==='he'?null:null;
   const air=(x,d)=>gas ? Math.exp(-fpMuC(gas,x)*FP_AIR_RHO*d) : 1;
   const N=Float64Array.from(T.N, (v,i)=>v*air(T.E[i], S.d1));
   P={S, E:T.E, N, s1, s2, nb:T.E.length, mu:{}, sig:{}, out:{},
-    det:x=>Math.exp(-fpMu('Be',x)*1.848*S.beD*1e-4)*(1-Math.exp(-fpTau('Si',x)*2.33*S.si*1e-4))*air(x, S.d2),
+    det:x=>Math.exp(-fpMu('Be',x)*1.848*S.beD*1e-4)*(1-Math.exp(-fpTau(S.det||'Si',x)*(S.det==='Ge'?5.323:2.33)*S.si*1e-4))*air(x, S.d2),
     theta:S.psi1+S.psi2};
   FP_CACHE.set(S.key, P); return P;
 }
@@ -3673,7 +3676,7 @@ const FP_OXIDE={Na:'Na2O',Mg:'MgO',Al:'Al2O3',Si:'SiO2',P:'P2O5',S:'SO3',Cl:null
 const fpOx=e=>{ const f=FP_OXIDE[e]; if (!f) return 0; const c=fpParseComp(f); return c && c[e] ? (c.O||0)/c[e] : 0; };
 /* intensità del picco Compton della riga Kα del tubo: Klein–Nishina × Z/A (funzione di diffusione incoerente ≈ 0,92·Z ad angoli grandi) */
 function fpCompton(comp, S){
-  const P=fpPrep(S), A=FP.el[S.anode], ka=A && A.fam.K && A.fam.K.find(q=>q[0]==='Ka'); if (!ka || !(A.ed.K<S.kv)) return 0;
+  const P=fpPrep(S), A=FP.el[S.anode], sx=S.exc&&S.exc.filter(q=>q[2]).sort((x,y)=>y[1]-x[1])[0], ka=sx ? ['Ka', sx[0]] : A && A.fam.K && A.fam.K.find(q=>q[0]==='Ka'); if (!ka || (!sx && !(A.ed.K<S.kv))) return 0;
   let N0=0; for (let b=0;b<P.nb;b++) if (Math.abs(P.E[b]-ka[1])<1e-9) N0+=P.N[b]; if (!N0) return 0;
   const th=P.theta*Math.PI/180, E=ka[1], Ec=E/(1+E/511*(1-Math.cos(th))), r=Ec/E, dkn=3.97035e-26*r*r*(r+1/r-Math.sin(th)**2);
   let za=0; for (const s in comp) za+=comp[s]*(s==='H' ? 1/1.008 : FP.el[s] ? FP.el[s].Z/FP.el[s].A : 0);
@@ -3725,10 +3728,114 @@ function fpCalibrate(stds, S){   // stds: [{meas:{El:{line,I}}, comp:{El:% nota}
   return out;
 }
 
+/* ---- modello completo del picco XRF (3.1), sul modello di PyMca: Solé V.A. et al. (2007) Spectrochim. Acta B 62, 63–68, doi:10.1016/j.sab.2006.12.002.
+   Parti riprese dal codice MIT di PyMca (© European Synchrotron Radiation Facility; avviso in THIRD-PARTY-NOTICES.md): forma «ahypermet» di
+   SpecfitFuns.c (stesse definizioni: area gaussiana A, coda corta e lunga con aree relative r e pendenze β in keV, gradino di altezza relativa h),
+   larghezza FWHM = √(Noise² + 2,3548²·0,00385·Fano·E) e picchi somma per autoconvoluzione (ClassMcaTheory.py, SpecfitFuns «pileup»),
+   probabilità di fuga di Elements.getEscape (Reed e Ware). Ipermetro per i rivelatori al silicio: Van Gysel M., Lemberge P., Van Espen P. (2003)
+   X-Ray Spectrom. 32, 434–441, doi:10.1002/xrs.666. ---- */
+function erfcxA(x){ const t=1/(1+0.5*Math.abs(x)), p=-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277))))))));
+  return x>=0 ? t*Math.exp(p) : 2*Math.exp(x*x)-t*Math.exp(p); }   // erfc(x)·exp(x²) (Numerical Recipes, «erfcc»: errore relativo < 1,2·10⁻⁷)
+function erfcA(x){ const t=1/(1+0.5*Math.abs(x)), r=t*Math.exp(-x*x-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0 ? r : 2-r; }
+/* forma dell'ipermetro per area gaussiana 1 (conteggi per keV) a distanza z = x − E₀ (keV); sh = {st, sts, lt, lts, step, flags} come in PyMca */
+function xrfHyperAt(z, sg, sh){ const s2=sg*Math.SQRT2, u=z/s2; let v=0; const fl=sh.flags==null?15:sh.flags;
+  if (fl&1 && Math.abs(u)<26) v+=Math.exp(-u*u)/(sg*2.5066282746310002);
+  const tail=(r, be)=>{ if (!(r>0) || !(be>0)) return 0; const a=u+sg/(be*Math.SQRT2);
+    return r/be*(a>=0 ? 0.5*erfcxA(a)*Math.exp(-u*u) : (z/be+0.5*(sg/be)**2 < -700 ? 0 : 0.5*erfcA(a)*Math.exp(z/be+0.5*(sg/be)**2))); };
+  if (fl&2) v+=tail(sh.st, sh.sts); if (fl&4) v+=tail(sh.lt, sh.lts);
+  if (fl&8 && sh.step>0) v+=sh.step/(sg*2.5066282746310002)*0.5*erfcA(u);
+  return v; }
+/* rivelatore: rese di fluorescenza K (Krause M.O. 1979, J. Phys. Chem. Ref. Data 8, 307, doi:10.1063/1.555594) e densità */
+const XRF_DET={Si:{w:0.050, rho:2.33}, Ge:{w:0.535, rho:5.323}};
+/* picchi di fuga del rivelatore per un fotone di energia E: [[E − E_riga, probabilità]] per tutte le righe K dell'elemento del rivelatore (Kα e Kβ).
+   Formula di Reed e Ware come in PyMca (Elements.getEscape): η = ω_K·(1 − 1/r_K)·b_riga·(τ/μ)(E)·½·[1 − t·ln(1 + 1/t)], t = μ(E_riga)/μ(E), incidenza normale */
+function xrfEscape(E, det){ const D=FP.el[det||'Si'], K=D&&D.fam.K, ek=D&&D.ed.K; if (!K || !(E>ek)) return [];
+  const r=fpTau(D.s, ek*1.0005)/Math.max(1e-30, fpTau(D.s, ek*0.9995)), muE=fpMu(D.s,E), fr=fpTau(D.s,E)/muE, sr=K.reduce((t,q)=>t+q[2],0), w=(XRF_DET[D.s]||{w:0}).w, out=[];
+  for (const [nm, El, rel] of K){ if (!(El>0) || El>=E) continue; const t=fpMu(D.s,El)/muE, eta=w*(1-1/r)*(rel/sr)*fr*0.5*(1-t*Math.log(1+1/t)); if (eta>1e-6) out.push([E-El, eta, nm]); }
+  return out; }
+/* Levenberg–Marquardt con limiti (proiezione sui limiti), Jacobiano a differenze in avanti. res(p) → vettore dei residui pesati */
+function lmBox(res, p0, lo, hi, opt){ opt=opt||{}; const np=p0.length, maxIter=opt.maxIter||12; let p=Float64Array.from(p0), r=res(p), f=0; for (const v of r) f+=v*v;
+  let lam=1e-3, it=0, nev=1; const f0=f; if (!np) return {p, f, f0, it:0, nev};
+  const clamp=q=>{ for (let k=0;k<np;k++) q[k]=Math.min(hi[k], Math.max(lo[k], q[k])); return q; };
+  for (it=1; it<=maxIter; it++){
+    const N=r.length, J=[]; for (let k=0;k<np;k++){ const h=opt.h&&opt.h[k] ? opt.h[k] : 1e-4*Math.max(1e-6, hi[k]-lo[k]), q=Float64Array.from(p); q[k]+= q[k]+h<=hi[k] ? h : -h; const d=q[k]-p[k], rq=res(q); nev++; J.push(Float64Array.from(rq, (v,i)=>(v-r[i])/d)); }
+    const A=Array.from({length:np},(_,a)=>Array.from({length:np},(_,b)=>{ let t=0; for (let i=0;i<N;i++) t+=J[a][i]*J[b][i]; return t; })), g=Array.from({length:np},(_,a)=>{ let t=0; for (let i=0;i<N;i++) t+=J[a][i]*r[i]; return t; });
+    let ok=false;
+    for (let tr=0; tr<8; tr++){ const M=A.map((row,a)=>row.map((v,b)=>a===b ? v*(1+lam)+1e-12*(v||1) : v)), L=chol(M); if (!L){ lam*=10; continue; }
+      const d=cholSolve(L, g.map(v=>-v)), q=clamp(Float64Array.from(p, (v,k)=>v+d[k])), rq=res(q); nev++; let fq=0; for (const v of rq) fq+=v*v;
+      if (fq<f){ const rel=(f-fq)/Math.max(f,1e-300); p=q; r=rq; f=fq; lam=Math.max(1e-7, lam/5); ok=true; if (rel<(opt.tol||1e-4)) it=maxIter; break; }
+      lam*=10; }
+    if (!ok) break; }
+  return {p, f, f0, it, nev}; }
+/* adattamento con il modello completo: ipermetro, fughe di tutte le righe (Kα e Kβ del Si o del Ge), picchi somma facoltativi,
+   Noise e Fano liberi (o fissati), calibrazione con termine quadratico facoltativo, parametri non lineari con Levenberg–Marquardt
+   e ampiezze con i minimi quadrati non negativi (proiezione variabile). Chiamata da xrfFitLines con opt.model='hypermet'. */
+function xrfFitHyper(c){
+  const {n, a, m, X, w, net, bkg, comps, spl, S, opt, solve}=c, det=opt.det||(S&&S.det)||'Si', pk=opt.peak||{}, flags=pk.flags!=null?pk.flags:15, escAll=opt.escape!=='si' && opt.escape!=='none', escNone=opt.escape==='none';
+  const n0=Math.sqrt(Math.max(1e-4, 0.140*0.140-2.3548*2.3548*0.00385*0.114*5.895));
+  const p={off:0, gain:0, quad:0, noise:opt.noise>0?opt.noise:n0, fano:opt.fano>0?opt.fano:0.114, st:pk.st?pk.st[0]:0.05, sts:pk.st?pk.st[1]:0.5, lt:pk.lt?pk.lt[0]:0.02, lts:pk.lt?pk.lt[1]:10, step:pk.step!=null?pk.step:1e-4, wc:0.35, th:S?S.psi1+S.psi2:90};
+  if (opt.fix) Object.assign(p, opt.fix);
+  const hasC=comps.some(q=>q.scat==='C');
+  // righe con le loro fughe (le energie di fuga non dipendono dalla calibrazione)
+  const L=comps.map(q=>q.lines.map(([nm,E,rel])=>{ const es=escNone||q.scat==='C' ? [] : escAll ? xrfEscape(E, det) : (E>=1.9 ? [[E-1.74, 0.5*0.047*(1-1/10.4)*(1-(fpTau('Si',1.74)/fpTau('Si',E))*Math.log(1+fpTau('Si',E)/fpTau('Si',1.74))), 'Ka']] : []);
+    const eT=es.reduce((t,e)=>t+e[1],0); return {nm, E, rel, es, ph:escAll ? 1-eT : 1}; }));
+  const fwhm=(E,q)=>Math.sqrt(Math.max(1e-6, q.noise*q.noise+2.3548*2.3548*0.00385*q.fano*Math.max(0,E)));
+  let pile=null;
+  const build=q=>{ const Xc=Float64Array.from(X, x=>x*(1+q.gain)+q.off+q.quad*x*x), ct=1-Math.cos((q.th||90)*Math.PI/180), sh={st:q.st, sts:q.sts, lt:q.lt, lts:q.lts, step:q.step, flags};
+    const dxA=new Float64Array(m); for (let i=0;i<m;i++) dxA[i]=i+1<m ? Xc[i+1]-Xc[i] : Xc[i]-Xc[i-1];
+    const idx=v=>{ let lo2=0, hi2=m; while (lo2<hi2){ const md=(lo2+hi2)>>1; if (Xc[md]<v) lo2=md+1; else hi2=md; } return lo2; };
+    const gauss=(col, Ec, amp, fw)=>{ const sg=fw/2.3548; for (let i=idx(Ec-5*sg); i<m && Xc[i]<=Ec+5*sg; i++) col[i]+=amp*dxA[i]*Math.exp(-0.5*((Xc[i]-Ec)/sg)**2)/(sg*2.5066282746310002); };
+    const hyper=(col, Ec, amp, fw)=>{ const sg=fw/2.3548, bmax=Math.max(fl2(sh.st, sh.sts, 2), fl2(sh.lt, sh.lts, 4)), low=flags&8 && sh.step>0 ? -Infinity : Ec-5*sg-30*bmax;
+      for (let i=idx(low); i<m && Xc[i]<=Ec+6*sg; i++) col[i]+=amp*dxA[i]*xrfHyperAt(Xc[i]-Ec, sg, sh); };
+    const fl2=(r, be, bit)=>flags&bit && r>0 && be>0 ? be : 0;
+    const cols=comps.map((cp,j)=>{ const col=new Float64Array(m);
+      for (const ln of L[j]){
+        if (cp.scat==='C'){ const Ec=ln.E/(1+ln.E/511*ct); gauss(col, Ec, ln.rel, Math.hypot(fwhm(Ec,q), q.wc)); continue; }
+        hyper(col, ln.E, ln.rel*ln.ph, fwhm(ln.E,q));
+        for (const [Ee, eta] of ln.es) if (Ee>0.3) gauss(col, Ee, ln.rel*eta, fwhm(Ee,q)); }
+      return col; });
+    const all=cols.concat(spl); if (pile) all.push(pile); return all; };
+  // parametri liberi e limiti
+  const free=[]; const add=(k, lo2, hi2)=>{ if (!(opt.fix && k in opt.fix)) free.push([k, lo2, hi2]); };
+  if (!opt.fix){
+    add('off', p.off-0.1, p.off+0.1); add('gain', p.gain-0.02, p.gain+0.02); if (opt.quad) add('quad', -1e-3, 1e-3);
+    if (!(opt.noise>0 && opt.fixNoise)) add('noise', 0.03, 0.30); if (!(opt.fano>0 && opt.fixFano)) add('fano', 0.05, 0.20);
+    if (flags&2){ add('st', 0, 0.4); add('sts', 0.05, 3); } if (flags&4) add('lt', 0, 0.15); if (flags&8) add('step', 0, 5e-3);
+    if (hasC){ add('wc', 0.12, 0.8); add('th', Math.max(30, p.th-(opt.autoGeom?60:8)), Math.min(178, p.th+(opt.autoGeom?60:8))); } }
+  const vec=()=>Float64Array.from(free, f=>p[f[0]]), put=v=>{ free.forEach((f,k)=>p[f[0]]=v[k]); };
+  const resid=v=>{ const q=Object.assign({}, p); free.forEach((f,k)=>q[f[0]]=v[k]); const R=solve(build(q)), out=new Float64Array(m); for (let i=0;i<m;i++) out[i]=(net[i]-R.mod[i])*w[i]; return out; };
+  let lm=null;
+  if (free.length){
+    if (hasC && opt.autoGeom){ let bt=p.th, bc=Infinity; for (const th of [70,80,90,100,110,120,130,140,150,160,170]){ const R=solve(build(Object.assign({}, p, {th}))); if (R.chi<bc){ bc=R.chi; bt=th; } } p.th=bt; }
+    lm=lmBox(resid, vec(), Float64Array.from(free, f=>f[1]), Float64Array.from(free, f=>f[2]), {maxIter:opt.maxIter||12, tol:1e-4}); put(lm.p); }
+  // picchi somma: autoconvoluzione del modello dei picchi (come SpecfitFuns.pileup di PyMca), ampiezza non negativa adattata come le altre
+  let R=solve(build(p));
+  if (opt.pileup!==false){ const nc=comps.length, B=build(p), pk2=new Float64Array(m); for (let j=0;j<nc;j++) if (R.x[j]) for (let i=0;i<m;i++) pk2[i]+=R.x[j]*B[j][i];
+    const Xc0=X[0]*(1+p.gain)+p.off+p.quad*X[0]*X[0], dx=(X[m-1]-X[0])/(m-1)*(1+p.gain), k0=Math.round(Xc0/dx), P=new Float64Array(m); let any=false;
+    for (let i=0;i<m;i++){ if (!(pk2[i]>0)) continue; for (let j=i;j<m;j++){ const k=i+j+k0; if (k>=m) break; if (pk2[j]>0){ P[k]+=(i===j?1:2)*pk2[i]*pk2[j]; any=true; } } }
+    const mx=Math.max(...P); if (any && mx>0){ pile=Float64Array.from(P, v=>v/mx); const R2=solve(build(p)); if (R2.chi<R.chi) R=R2; else pile=null; } }
+  const B=build(p), act=[]; R.x.forEach((v,j)=>{ if (v>0) act.push(j); }); const sdAll=new Float64Array(R.x.length), dof=Math.max(1, m-act.length-free.length), red=R.chi/dof;
+  if (act.length){ const Mx=act.map(j=>act.map(q=>R.Gm[j][q])), Lc=chol(Mx); if (Lc){ const inv=cholInv(Lc); act.forEach((j,k)=>sdAll[j]=Math.sqrt(Math.max(0,inv[k][k])*Math.max(1,red))); } }
+  const area={}, sArea={}, famArea={}, sd=sdAll.subarray(0, comps.length);
+  comps.forEach((cp,j)=>{ const sr=cp.lines.reduce((t,q)=>t+q[2],0); famArea[cp.id]={a:R.x[j], s:sd[j], area:R.x[j]*sr, sArea:sd[j]*sr}; if (!cp.el) return;
+    for (const [nm,E,rel] of cp.lines){ const key=nm==='La'||nm==='Ka'?nm:nm==='Lb1'?'Lb':nm==='Kb'?'Kb':null; if (!key) continue;
+      const ad=key==='Lb' ? cp.lines.filter(q=>q[0].startsWith('Lb')).reduce((t,q)=>t+q[2],0) : rel;
+      (area[cp.el]=area[cp.el]||{})[key]=(area[cp.el][key]||0)+R.x[j]*ad; (sArea[cp.el]=sArea[cp.el]||{})[key]=Math.hypot((sArea[cp.el][key]||0), sd[j]*ad); } });
+  const model=new Float64Array(n), bg=Float64Array.from(bkg); for (let i=0;i<m;i++) model[a+i]=R.mod[i]+bkg[a+i];
+  const nc=comps.length; for (let j=nc;j<nc+spl.length;j++) if (R.x[j]) for (let i=0;i<m;i++) bg[a+i]+=R.x[j]*B[j][i];
+  const pileA = pile && R.x[B.length-1]>0 ? R.x[B.length-1] : 0, pileMod=pileA ? Float64Array.from(pile, v=>v*pileA) : null;
+  const wf=fwhm(5.895,p)/xrfFWHM(5.895);
+  return {peakModel:'hypermet', bgFull:bg, area, sArea, comps:famArea, off:p.off, gain:p.gain, quad:p.quad, wf, wc:p.wc, th:hasC?p.th:null, noise:p.noise, fano:p.fano, p:Object.assign({}, p), det,
+    shape:{flags, st:[p.st,p.sts], lt:[p.lt,p.lts], step:p.step}, escape:escNone?'none':escAll?'all':'si', pile:pileA ? {a:pileA, counts:pileMod.reduce((t,v)=>t+v,0), model:pileMod} : null,
+    lm:lm ? {iter:lm.it, nev:lm.nev, chi0:lm.f0, chi:lm.f, free:free.map(f=>f[0])} : null, chi2r:red, lo:c.lo, hi:c.hi, a, b:c.b, model, bkg};
+}
 /* ---- adattamento dello spettro XRF con le famiglie di righe (K, L) di ogni elemento: risolve le sovrapposizioni (Pb Lα / As Kα, …) ----
    fondo a B-spline cubiche (lento, non negativo) adattato insieme alle righe; ogni famiglia è una somma di gaussiane con le intensità relative delle righe (xraylib) e la risoluzione del rivelatore;
    picchi di fuga del silicio; righe del tubo diffuse (Rayleigh e Compton). Ampiezze con minimi quadrati non negativi pesati (Poisson);
    famiglie K, L e M (Pb Mα sopra S Kα, Hg Mα…); piccole correzioni di scala in energia (spostamento, guadagno) e di risoluzione scelte dal minimo χ². split: righe separate (Kα | Kβ, Lα | Lβ | Lγ). */
+const fmtExcE=E=>E.toFixed(2)+' keV';
+const xrfComptonId=S=>{ const sx=S&&S.exc&&S.exc.filter(q=>q[2]).sort((x,y)=>y[1]-x[1])[0]; return sx ? 'Compton '+fmtExcE(sx[0]) : 'Compton '+(S&&S.anode)+' Ka'; };
 function xrfFitLines(xs, ys, els, S, opt){
   opt=opt||{}; const n=xs.length, kv=S?S.kv:40, dx0=(xs[n-1]-xs[0])/(n-1), bgm=opt.bgMode||'spline';
   const bkg=opt.bkg || (bgm==='spline' ? new Float64Array(n) : baselineSNIP(ys, bgm==='hybrid' ? Math.max(4, Math.round(2.2*xrfFWHM(10)/dx0)) : 0, true));
@@ -3747,7 +3854,9 @@ function xrfFitLines(xs, ys, els, S, opt){
       const inR=F.filter(q=>q[1]>=lo && q[1]<=hi); if (!inR.length || inR.reduce((t,q)=>t+q[2],0)<0.3) continue;
       if (split[s]) groups[fam].forEach(g=>{ const L=F.filter(q=>g.includes(q[0])); if (L.length && L.some(q=>q[1]>=lo&&q[1]<=hi)) comps.push({id:s+' '+g[0], el:s, fam, grp:g[0], lines:L}); });
       else comps.push({id:s+' '+fam, el:s, fam, lines:F}); } }
-  if (S && FP.el[S.anode]){ const A=FP.el[S.anode];
+  if (S && S.exc){ for (const [E, wt, sc] of S.exc) if (sc && E>=lo && E<=hi*1.3){ const nm=fmtExcE(E);   // eccitazione a lista: un Rayleigh e un Compton per ogni energia marcata «diffusione» (come PyMca)
+      comps.push({id:'Rayleigh '+nm, el:null, scat:'R', lines:[['E',E,1]]}); comps.push({id:'Compton '+nm, el:null, scat:'C', lines:[['E',E,1]]}); } }
+  else if (S && FP.el[S.anode]){ const A=FP.el[S.anode];
     for (const fam of ['K','L']){ const F=A.fam[fam], ed=A.ed[fam==='K'?'K':'L3']; if (!F || !ed || ed>=kv) continue;
       if (fam==='L' && els.includes(S.anode)) continue;   // anodo anche nel campione: le righe L vengono dal campione (quelle del tubo diffuse sono deboli e le ruberebbero)
       for (const g of (fam==='K'?[['Ka'],['Kb']]:[['La','Ll'],['Lb1','Lb2','Ln']])){ const L=F.filter(q=>g.includes(q[0])); if (!L.length || L[0][1]<lo || L[0][1]>hi) continue;
@@ -3776,6 +3885,7 @@ function xrfFitLines(xs, ys, els, S, opt){
     for (let j=0;j<p;j++) if (x[j]) for (let i=0;i<m;i++) mod[i]+=x[j]*cols[j][i];
     for (let i=0;i<m;i++) chi+=((net[i]-mod[i])*w[i])**2;
     return {x, chi, Gm, mod}; };
+  if (opt.model==='hypermet') return xrfFitHyper({n, a, b, m, X, w, net, bkg, comps, spl, S, opt, solve, lo, hi});
   let best=Object.assign({off:0, gain:0, wf:1, wc:0.35, th:S?S.psi1+S.psi2:90}, opt.fix||{}), R=solve(build(best.off,best.gain,best.wf,best.wc,best.th));
   const tryP=(k, vals)=>{ for (const v of vals){ const p=Object.assign({}, best, {[k]:v}), r=solve(build(p.off,p.gain,p.wf,p.wc,p.th)); if (r.chi<R.chi){ R=r; best=p; } } };
   const hasC=comps.some(c=>c.scat==='C');   // angolo di diffusione dalla posizione del picco Compton (se l'intestazione non lo dice, o lo dice male)
@@ -3817,13 +3927,13 @@ function nnlsGram(Gm, h){
 function xrfFP(xs, ys, els, S0, opt){ let S=S0;
   opt=opt||{}; let fit=xrfFitLines(xs, ys, els, S, opt), Q=null; if (!fit) return null; const bkg=fit.bkg;
   if (opt.autoGeom && fit.th && Math.abs(fit.th-(S.psi1+S.psi2))>4) S=fpSetup(Object.assign({}, S, {psi1:fit.th/2, psi2:fit.th/2}));   // geometria ignota: angoli dal Compton
-  const qo=()=>{ if (opt.mode!=='compton' || opt.compton) return opt; const c=fit.comps['Compton '+S.anode+' Ka']; return Object.assign({}, opt, {compton: c ? c.area : 0, sCompton: c ? c.sArea : 0}); };
+  const qo=()=>{ if (opt.mode!=='compton' || opt.compton) return opt; const c=fit.comps[xrfComptonId(S)]; return Object.assign({}, opt, {compton: c ? c.area : 0, sCompton: c ? c.sArea : 0}); };
   for (let it=0; it<3; it++){
     const meas=fpMeasure(fit, els, S); Q=fpQuant(meas, S, qo()); if (!Q || Q.err) break;
     const lines=[]; els.forEach(e=>{ for (const l of ['Ka','Kb','La','Lb']) if (fpLineE(e,l)) lines.push([e,l]); });
     const I=fpIntensities([{comp:Q.comp, t:Infinity}], S, lines, {sec:true}), ratios={};
     els.forEach(e=>{ const r={}; if (I[e+' Ka']>0 && I[e+' Kb']>0) r.Kb=I[e+' Kb']/I[e+' Ka']; if (I[e+' La']>0 && I[e+' Lb']>0) r.Lb=I[e+' Lb']/I[e+' La']; ratios[e]=r; });
-    fit=xrfFitLines(xs, ys, els, S, Object.assign({}, opt, {ratios, bkg, fix:{off:fit.off, gain:fit.gain, wf:fit.wf, wc:fit.wc, th:fit.th||S.psi1+S.psi2}})) || fit;
+    fit=xrfFitLines(xs, ys, els, S, Object.assign({}, opt, {ratios, bkg, fix:fit.peakModel==='hypermet' ? Object.assign({}, fit.p, {th:fit.th||S.psi1+S.psi2}) : {off:fit.off, gain:fit.gain, wf:fit.wf, wc:fit.wc, th:fit.th||S.psi1+S.psi2}})) || fit;
   }
   const meas=fpMeasure(fit, els, S); Q=fpQuant(meas, S, qo());
   return {fit, meas, Q, S};
@@ -8597,7 +8707,7 @@ function fpNotes(f, R){ if (!R || !R.Q || !R.Q.res) return []; const c=fpCfg(f),
     if (c.mode==='norm') notes.push('Pitture, vetri e materiali con elementi leggeri invisibili (H, C, O, Na…): con la somma a 100% questi numeri non sono concentrazioni del materiale, ma solo proporzioni fra gli elementi visti.');
     if (c.mode==='norm') notes.push('La somma è normalizzata a 100%: vale se tutti gli elementi principali sono nell\'elenco. Su leghe simulate con tubo e rivelatore diversi da quelli presunti l\'errore relativo senza standard ha mediana di circa 3–4% ma al 90° percentile arriva a 20–30% (di più per gli elementi sotto il 2–3%); con uno standard simile (in «Più campioni» → composizione, modello «parametri fondamentali») scende a circa 1%.');
     if (c.mode==='oxides') notes.push('Gli ossidi sono normalizzati a 100%. Sodio, magnesio e alluminio in aria quasi non si vedono: se il vetro è sodico la somma degli altri ossidi risulta sovrastimata.');
-    if (c.mode==='compton'){ notes.push(`Scala assoluta dal picco Compton (area ${fmtG(R.fit.comps['Compton '+S.anode+' Ka']?R.fit.comps['Compton '+S.anode+' Ka'].area:0,3)} conteggi, incertezza ${fmtN(100*(Q.relC||0),0)}%). Sulle preparazioni e sugli strati leggeri simulati l'errore tipico è 7–12% relativo, senza contare l'errore del modello stesso del Compton.`);
+    if (c.mode==='compton'){ notes.push(`Scala assoluta dal picco Compton (area ${fmtG(R.fit.comps[xrfComptonId(S)]?R.fit.comps[xrfComptonId(S)].area:0,3)} conteggi, incertezza ${fmtN(100*(Q.relC||0),0)}%). Sulle preparazioni e sugli strati leggeri simulati l'errore tipico è 7–12% relativo, senza contare l'errore del modello stesso del Compton.`);
       notes.push('Vale per uno strato spesso e omogeneo: se lo strato è sottile sopra la preparazione, il Compton arriva in buona parte dalla preparazione e le percentuali risultano sottostimate. I rapporti tra gli elementi restano validi.');
       if (Q.relC>0.1) notes.unshift('⚠️ <b>Il picco Compton è troppo debole</b> (matrice pesante: biacca, cinabro, metalli): la scala assoluta non è affidabile. Usa «Lega» per i rapporti tra elementi, oppure uno standard.');
       if (Q.over) notes.unshift('⚠️ La somma supera il 100%: la parte invisibile scelta non è adatta o lo strato non è spesso e omogeneo.'); }
