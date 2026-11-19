@@ -147,7 +147,167 @@ Nota per l'import: in `Steel.cfg` la sezione `[tube]` è solo un promemoria per 
 
 ## 3. Vincenzo Palleschi: articoli e parametri
 
-*(sezione in compilazione)*
+Ricerca bibliografica del 19/11/2026, fatta da un agente con l'API di Crossref per i metadati, OpenAlex e Semantic Scholar per abstract e accesso aperto, ricerche web e testi completi ad accesso aperto (CNR IRIS, ARPI dell'Università di Pisa, Zenodo, Europe PMC, IMEKO). **Nessun valore è stato inventato.** Il livello di verifica è indicato riga per riga:
+- **CR**: metadati verificati con Crossref;
+- **FT**: testo completo letto;
+- **AB**: solo l'abstract;
+- **WS**: informazione presa solo da ricerche web, da confermare.
+
+Gli abstract di Elsevier non escono dalle API, e ScienceDirect, RSC e NASA ADS hanno bloccato lo scaricamento automatico. Per questo **diversi articoli chiave sono verificati solo nei metadati**: Tognoni 2002 e 2010, Bulajic 2002, Cavalcanti 2013 (OPC), Grifoni 2016. Prima di implementare qualcosa bisogna leggerli a mano.
+
+### 3.1 Chi è e che cosa interessa ad Acchiappaspettri
+- Vincenzo Palleschi (CNR-ICCOM, Laboratorio di spettroscopia laser applicata, Pisa) è coautore dell'**articolo fondativo della CF-LIBS**: Ciucci, Corsi, Palleschi, Rastelli, Salvetti, Tognoni, *Appl. Spectrosc.* 53 (1999) 960–964, doi:10.1366/0003702991947612. È anche coinventore del **brevetto CNR US 6,657,721 B1** (priorità italiana del 20/03/1998), che riporta le equazioni del metodo.
+- Rassegne del gruppo: Tognoni et al. 2002 e 2010; Poggialini et al. 2023, *JAAS* 38, 1751, ad accesso aperto, **da leggere per prima**.
+- Equilibrio termodinamico locale (LTE): Cristoforetti et al. 2010 (letto per intero). Il criterio di McWhirter è **necessario ma non sufficiente**.
+- Autoassorbimento: curva di crescita (Bulajic 2002), larghezza Stark (El Sherbini 2005), formula pratica I₀ ≈ I·(Δλ/Δλ₀)^0,85 (Palleschi 2022), grafico di Saha–Boltzmann a densità colonnare e «extended C-sigma» (Safi 2019).
+- Chemometria: graph clustering (LIBS e pXRF), reti neurali, SOM, e un avvertimento sui modelli «scatola nera» (Safi 2018). Palleschi ha curato il libro Wiley *Chemometrics and Numerical Methods in LIBS* (2022).
+- XRF: il gruppo usa i **parametri fondamentali** e poi classifica con SOM o graph clustering (monete d'oro etrusche, necropoli di Chovdar). Lavori combinati XRF + LIBS: Bronzi di Porticello 2007, Senesi et al. 2023.
+- **Attribuzioni da non sbagliare.** I C-sigma graphs sono di **Aragón e Aguilera** (2014), non di Palleschi. Gaudiuso et al., *Sensors* 2010, e il «calibration-free inverse method» sono del gruppo di **Bari**, senza Palleschi. L'«inverse calibration» di Poggialini 2020 è un'altra cosa (regressione inversa).
+
+### 3.2 Articoli verificati
+| # | Autori | Anno | Titolo | Rivista, vol., pagine | DOI | Verifica | OA |
+|---|---|---|---|---|---|---|---|
+| 1 | Ciucci A., Corsi M., Palleschi V., Rastelli S., Salvetti A., Tognoni E. | 1999 | New Procedure for Quantitative Elemental Analysis by Laser-Induced Plasma Spectroscopy | Appl. Spectrosc. 53, 960-964 | 10.1366/0003702991947612 | CR + AB | No |
+| 2 | Ciucci A., Palleschi V., Rastelli S., Salvetti A., Singh D.P., Tognoni E. | 1999 | CF-LIPS: A new approach to LIPS spectra analysis | Laser Part. Beams 17, 793-797 | 10.1017/s0263034699174251 | CR + AB | No |
+| 3 | Palleschi V., Tognoni E., Ciucci A., Rastelli S. (CNR) | 2003 (priorità 1998) | Method for quantitative analysis of atomic components of materials by LIBS spectroscopy measurements | Brevetto US 6,657,721 B1 | (n/a) | Google Patents (FT del brevetto) | Sì (brevetto) |
+| 4 | Bulajic D., Corsi M., Cristoforetti G., Legnaioli S., Palleschi V., Salvetti A., Tognoni E. | 2002 | A procedure for correcting self-absorption in calibration free-laser induced breakdown spectroscopy | Spectrochim. Acta B 57, 339-353 | 10.1016/s0584-8547(01)00398-6 | CR (contenuto WS) | No |
+| 5 | Tognoni E., Palleschi V., Corsi M., Cristoforetti G. | 2002 | Quantitative micro-analysis by laser-induced breakdown spectroscopy: a review of the experimental approaches | Spectrochim. Acta B 57, 1115-1130 | 10.1016/s0584-8547(02)00053-8 | CR | No |
+| 6 | El Sherbini A.M., El Sherbini Th.M., Hegazy H., Cristoforetti G., Legnaioli S., Palleschi V., Pardini L., Salvetti A., Tognoni E. | 2005 | Evaluation of self-absorption coefficients of aluminum emission lines in LIBS measurements | Spectrochim. Acta B 60, 1573-1579 | 10.1016/j.sab.2005.10.011 | CR + FT | Copia su CNR IRIS |
+| 7 | Tognoni E., Cristoforetti G., Legnaioli S., Palleschi V., Salvetti A., Mueller M., Panne U., Gornushkin I. | 2007 | A numerical study of expected accuracy and precision in CF-LIBS analysis | Spectrochim. Acta B 62, 1287-1302 | 10.1016/j.sab.2007.10.005 | CR | No |
+| 8 | Ferretti M., Cristoforetti G., Legnaioli S., Palleschi V., Salvetti A., Tognoni E., Console E., Palaia P. | 2007 | In situ study of the Porticello Bronzes by portable X-ray fluorescence and laser-induced breakdown spectroscopy | Spectrochim. Acta B 62, 1512-1518 | 10.1016/j.sab.2007.09.004 | CR | No |
+| 9 | Tognoni E., Cristoforetti G., Legnaioli S., Palleschi V. | 2010 | Calibration-Free Laser-Induced Breakdown Spectroscopy: State of the art | Spectrochim. Acta B 65, 1-14 | 10.1016/j.sab.2009.11.006 | CR (contenuto WS) | No (IRIS senza file) |
+| 10 | Cristoforetti G., De Giacomo A., Dell'Aglio M., Legnaioli S., Tognoni E., Palleschi V., Omenetto N. | 2010 | Local Thermodynamic Equilibrium in LIBS: Beyond the McWhirter criterion | Spectrochim. Acta B 65, 86-95 | 10.1016/j.sab.2009.11.005 | CR + FT | Copia su CNR IRIS (prod_171806) |
+| 11 | Cavalcanti G.H., Teixeira D.V., Legnaioli S., Lorenzetti G., Pardini L., Palleschi V. | 2013 | One-point calibration for calibration-free LIBS quantitative analysis | Spectrochim. Acta B 87, 51-56 | 10.1016/j.sab.2013.05.016 | CR (contenuto WS) | No |
+| 12 | Pardini L., Legnaioli S., Lorenzetti G., Palleschi V., Gaudiuso R., De Giacomo A., Diaz Pace D.M., Anabitarte Garcia F., de Holanda Cavalcanti G., Parigger C. | 2013 | On the determination of plasma electron number density from Stark broadened hydrogen Balmer series lines in LIBS experiments | Spectrochim. Acta B 88, 98-103 | 10.1016/j.sab.2013.05.030 | CR (contenuto WS) | Bronze (Elsevier), CONICET |
+| 13 | D'Andrea E., Pagnotta S., Grifoni E., Lorenzetti G., Legnaioli S., Palleschi V., Lazzerini B. | 2014 | An artificial neural network approach to LIBS quantitative analysis | Spectrochim. Acta B 99, 52-58 | 10.1016/j.sab.2014.06.012 | CR + FT (preprint) | Green (ARPI 11568/779938) |
+| 14 | D'Andrea E., Pagnotta S., Grifoni E., Legnaioli S., Lorenzetti G., Palleschi V., Lazzerini B. | 2015 | A hybrid calibration-free/artificial neural networks approach to the quantitative analysis of LIBS spectra | Appl. Phys. B 118, 353-360 | 10.1007/s00340-014-5990-z | CR + FT (preprint) | Green (ARPI 11568/780488) |
+| 15 | Scuotto M., Bassi C., Lezzerini M., Grifoni E., Legnaioli S., Lorenzetti G., Pagnotta S., Palleschi V. | 2014 | X-ray fluorescence analysis on a group of coins from the ancient roman city of Tridentum | X-Ray Spectrom. 43, 370-374 | 10.1002/xrs.2567 | CR + AB | No |
+| 16 | Baldassarri M., Cavalcanti G., Ferretti M., Gorghinian A., Grifoni E., Legnaioli S., Lorenzetti G., Pagnotta S., Marras L., Violano E., Lezzerini M., Palleschi V. | 2014 | X-Ray Fluorescence Analysis of XII-XIV Century Italian Gold Coins | J. Archaeology 2014, 1-6 | 10.1155/2014/519218 | CR + AB | Sì (Hindawi) |
+| 17 | Grifoni E., Legnaioli S., Lorenzetti G., Pagnotta S., Palleschi V. | 2016 | Application of Graph Theory to unsupervised classification of materials by LIBS | Spectrochim. Acta B 118, 40-44 | 10.1016/j.sab.2016.02.003 | CR | No |
+| 18 | Grifoni E., Legnaioli S., Lorenzetti G., Pagnotta S., Poggialini F., Palleschi V. | 2016 | From Calibration-Free to Fundamental Parameters Analysis: A comparison of three recently proposed approaches | Spectrochim. Acta B 124, 40-46 | 10.1016/j.sab.2016.08.022 | CR | No |
+| 19 | Arias C., Bani S., Catalli F., Lorenzetti G., Grifoni E., Legnaioli S., Pagnotta S., Palleschi V. | 2016 (vol. 2017) | X-Ray Fluorescence Analysis and Self-Organizing Maps Classification of the Etruscan Gold Coin Collection at the Monetiere of Florence | Appl. Spectrosc. 71, 817-822 | 10.1177/0003702816641421 | CR + AB | No |
+| 20 | Pagnotta S., Lezzerini M., Ripoll-Seguer L., Hidalgo M., Grifoni E., Legnaioli S., Lorenzetti G., Poggialini F., Palleschi V. | 2017 | Micro-LIBS Study on Ancient Roman Mortars | Appl. Spectrosc. 71, 721-727 | 10.1177/0003702817695289 | CR + AB | No |
+| 21 | Safi A., Campanella B., Grifoni E., Legnaioli S., Lorenzetti G., Pagnotta S., Poggialini F., Ripoll-Seguer L., Hidalgo M., Palleschi V. | 2018 | Multivariate calibration in LIBS quantitative analysis: The dangers of a 'black box' approach | Spectrochim. Acta B 144, 46-54 | 10.1016/j.sab.2018.03.007 | CR | No |
+| 22 | Botto A., Campanella B., Legnaioli S., Lezzerini M., Lorenzetti G., Pagnotta S., Poggialini F., Palleschi V. | 2019 | Applications of LIBS in cultural heritage and archaeology: a critical review | JAAS 34, 81-103 | 10.1039/c8ja00319j | CR + AB | Bronze (RSC), ARPI 11568/952349 |
+| 23 | Safi A., Tavassoli S.H., Cristoforetti G., Legnaioli S., Palleschi V., Rezaei F., Tognoni E. | 2019 | Determination of excitation temperature in laser-induced plasmas using columnar density Saha-Boltzmann plot | J. Adv. Res. 18, 1-7 | 10.1016/j.jare.2019.01.008 | CR + FT | Gold (PMC6370548) |
+| 24 | Safi A., Tavassoli S.H., Cristoforetti G., Tognoni E., Campanella B., Legnaioli S., Pagnotta S., Poggialini F., Palleschi V. | 2019 | Exploiting Self-Absorption for Plasma Characterization in LIBS Experiments: A Comparison of Two Recent Approaches | Anal. Chem. 91, 8595-8601 | 10.1021/acs.analchem.9b01885 | CR + AB | Green (INO-CNR openportal) |
+| 25 | Rezaei F., Cristoforetti G., Tognoni E., Legnaioli S., Palleschi V., Safi A. | 2020 | A review of the current analytical approaches for evaluating, compensating and exploiting self-absorption in LIBS | Spectrochim. Acta B 169, 105878 | 10.1016/j.sab.2020.105878 | CR | No |
+| 26 | Messaoud Aberkane S., Safi A., Botto A., Campanella B., Legnaioli S., Poggialini F., Raneri S., Rezaei F., Palleschi V. | 2020 | LIBS for Determination of Spectral Fundamental Parameters | Appl. Sci. 10, 4973 | 10.3390/app10144973 | CR + FT | Gold (MDPI, Zenodo 14451390) |
+| 27 | Poggialini F., Campanella B., Jafer R., Legnaioli S., Bredice F., Raneri S., Palleschi V. | 2020 | Determination of the Stark broadening coefficients of tantalum emission lines by time-independent Extended C-sigma method | Spectrochim. Acta B 167, 105829 | 10.1016/j.sab.2020.105829 | CR | No |
+| 28 | Poggialini F., Campanella B., Legnaioli S., Raneri S., Palleschi V. | 2020 | About the use of inverse calibration in LIBS quantitative analysis | Spectrochim. Acta B 170, 105917 | 10.1016/j.sab.2020.105917 | CR | No |
+| 29 | Odelli E., Palleschi V., Legnaioli S., Cantini F., Raneri S. | 2020 | Graph clustering and portable X-Ray Fluorescence: An application for in situ, fast and preliminary classification of transport amphoras | Spectrochim. Acta B 172, 105966 | 10.1016/j.sab.2020.105966 | CR (contenuto WS) | No |
+| 30 | Safi A., Aberkane S.M., Botto A., Campanella B., Legnaioli S., Poggialini F., Raneri S., Rezaei F., Palleschi V. | 2021 | Determination of Spectroscopic Parameters of Ag(I) and Ag(II) Emission Lines Using Time-Independent Extended C-Sigma Method | Appl. Spectrosc. 75, 654-660 | 10.1177/0003702821999425 | CR + AB | No |
+| 31 | Palleschi V. | 2021 | Effect of plasma inhomogeneity on the determination of Strark [sic, refuso nei metadati] broadening coefficients by LIBS | JQSRT 271, 107714 | 10.1016/j.jqsrt.2021.107714 | CR | No |
+| 32 | Palleschi V. | 2022 | Avoiding Misunderstanding Self-Absorption in LIBS Analysis | Spectroscopy (The Resource Issue 2022-2023), 60-62 | 10.56530/spectroscopy.xq8876v9 | CR + FT | Copia su CNR IRIS (prod_474369); spectroscopyonline.com |
+| 33 | Palleschi V. (ed.); capitoli di Palleschi, Sabsabi, Bredice, Urbina, Poggialini, Legnaioli et al. | 2022 | Chemometrics and Numerical Methods in LIBS (Wiley) | libro, ISBN 9781119759614 | 10.1002/9781119759614 | CR | No |
+| 34 | Jalilov B. et al. (con Legnaioli, Lorenzetti, Campanella ... Palleschi) | 2022 (vol. 2023) | Preliminary X-ray Fluorescence Analysis of Metallic Samples from the Chovdar Necropolis in Azerbaijan | Heritage 6, 199-211 | 10.3390/heritage6010010 | CR + AB | Gold (MDPI) |
+| 35 | Senesi G.S., Mattiello S., Palleschi V., Cocciaro B., Fiorentino G., De Pascale O. | 2023 | Handheld LIBS, portable ED-XRF and Graph Clustering applied to the identification and inner stratigraphy of archaeological metallic artifacts | Proc. IMEKO TC4 MetroArchaeo 2022 | 10.21014/tc4-arc-2023.093 | CR + FT | Sì (PDF IMEKO) |
+| 36 | Poggialini F., Campanella B., Cocciaro B., Lorenzetti G., Palleschi V., Legnaioli S. | 2023 | Catching up on calibration-free LIBS | JAAS 38, 1751-1771 | 10.1039/d3ja00130j | CR + AB | Sì, hybrid CC-BY-NC (PDF RSC; download automatico bloccato da Cloudflare) |
+| 37 | Lellouche N.E., Cocciaro B., Legnaioli S., Lorenzetti G., Palleschi V., Poggialini F., Raneri S., Aberkane S.M. | 2024 | A new method for calibration-free analysis by LIBS using a time-integrated spectrometer | Spectrochim. Acta B 215, 106903 | 10.1016/j.sab.2024.106903 | CR (contenuto WS) | No |
+
+**Riferimenti di controllo (NON di Palleschi):**
+- Aragón C., Aguilera J.A., "CSigma graphs: A new approach for plasma characterization in LIBS", JQSRT 149 (2014) 90-102, DOI 10.1016/j.jqsrt.2014.07.026 (CR).
+- Gaudiuso R., Dell'Aglio M., De Pascale O., Senesi G.S., De Giacomo A., *Sensors* 10 (2010) 7434-7468, DOI 10.3390/s100807434 (CR; Palleschi non è tra gli autori).
+- Gaudiuso R. et al., "LIBS of archaeological findings with calibration-free inverse method", *Anal. Chim. Acta* 813 (2014) 15-24, DOI 10.1016/j.aca.2014.01.020 (CR; gruppo di Bari, senza Palleschi).
+
+Altri lavori pertinenti trovati in Crossref, di cui non ho visto il contenuto:
+- Borgia et al. 2000, *J. Cult. Herit.* 1 S281 (CF-LIPS su pigmenti), 10.1016/s1296-2074(00)00174-6;
+- Corsi et al. 2006, *Appl. Geochem.* 21:748 (DP CF-LIBS), 10.1016/j.apgeochem.2006.02.004;
+- Borges et al. 2014, *Appl. Phys. B* 117:437 (metodo rapido per n_e e T), 10.1007/s00340-014-5852-8;
+- Lezzerini et al. 2014 (malte del campanile di S. Nicola a Pisa), 10.1016/j.conbuildmat.2014.07.051;
+- Palleschi 2020, *ChemTexts* 6 (rassegna introduttiva), 10.1007/s40828-020-00114-x;
+- Palleschi & Ramakrishna 2023, *Laser Part. Beams* (storia della LIBS, OA), 10.1155/2023/2502152.
+
+### 3.3 Parametri e metodi, con la fonte
+| Parametro / metodo | Valore / formula | Condizioni | Fonte (DOI + posizione) | Note |
+|---|---|---|---|---|
+| Intensità di riga (LTE, plasma otticamente sottile) | Ī_ki = F·N_a·g_k·A_ki·exp(−E_k/k_B T)/U_a(T) | Plasma omogeneo, otticamente sottile, in LTE | Brevetto US 6,657,721 (eq. 2 e 4); stessa forma nell'eq. 3 di 10.3390/app10144973 (FT) | F è il fattore sperimentale (geometria, efficienza, massa ablata) |
+| Boltzmann plot (CF-LIBS) | ln(Ī_ki/(g_k A_ki)) = −E_k/(k_B T) + ln(F·C_s/U_s(T)); pendenza = −1/(k_B T); intercetta = ln(F C_s/U_s) | Una retta per ogni specie (I, II) | Brevetto US 6,657,721 (eq. 5-6) | Nel brevetto T è ottenuta per regressione lineare, eventualmente mediata sulle specie |
+| Funzione di partizione | U(T) = Σ_k g_k exp(−E_k/k_B T) | | Brevetto (eq. 3) | |
+| Saha-Eggert | n_e·n_II/n_I = 2Λ^-3·(U_II/U_I)·exp(−E_ion/k_B T), con Λ = sqrt(2πħ²/(m_e k_B T)). Forma del brevetto: N_e·N_II/N_I = 6.0·10^21·(g_II/g_I)·T^3/2·exp(−E_∞/T) | Primo stadio di ionizzazione; stadi superiori < 10^-3 (brevetto) | 10.3390/app10144973 eq. 1-2 (FT); brevetto eq. 1 | Lega le intercette di I e II, quindi la concentrazione totale dell'elemento |
+| Chiusura | C_i = (F C_i)/Σ_j (F C_j), cioè ΣC = 1; in alternativa uno standard interno: F = (F C_el)_LIBS / C_el,nota | Tutti gli elementi maggiori identificati (≥ 0.1% secondo il brevetto) | Brevetto (eq. 7-8) | L'errore è almeno pari alla frazione di elementi non identificati (brevetto) |
+| n_e iterativo nel CF | Valore di partenza n_e ≈ 10^18 cm^-3; si itera chiusura → n_e = Σ N_ioni → Saha fino a convergenza | Quando si misura una sola specie | Brevetto (procedura, passo A iii) | |
+| Temperatura tipica | ~10 eV (~10^5 K) nelle fasi iniziali; ~1 eV (~10^4 K) nel regime di analisi | | Brevetto (descrizione) | Valori indicativi |
+| Irradianza / frequenza (brevetto) | ~10^8 W/cm² (leghe metalliche); ~5·10^9 W/cm² (atmosfera); 10 Hz | | Brevetto | Volume focale ~0.1 mm³ |
+| Criterio di McWhirter | n_e (cm^-3) > 1.6·10^12 · T^1/2 · (ΔE_nm)^3, con T in K, ΔE in eV, ΔE = gap massimo tra livelli adiacenti (di solito fondamentale → primo eccitato) | Plasma stazionario e omogeneo | 10.1016/j.sab.2009.11.005, eq. 12 (FT); ripetuto in 10.3390/app10144973 eq. 6 | Necessario ma non sufficiente; gli autori raccomandano di non usarlo da solo |
+| Criterio di Hey (con fattore di Gaunt) | n_e > 2.55·10^11·⟨ḡ⟩^-1·T^1/2·(ΔE_nm)^3 | | 10.1016/j.sab.2009.11.005, eq. 13 (FT) | Il testo estratto dal PDF è disordinato: verificare la forma esatta sul PDF |
+| Criterio LTE temporale | ΔT/T ≪ 1 e Δn_e/n_e ≪ 1 sull'intervallo τ_rel | Plasma transitorio | 10.1016/j.sab.2009.11.005, eq. 16; τ_rel ≈ 6.3·10^4/(n_e f_12 ⟨ḡ⟩)·ΔE_21·(kT)^1/2·exp(ΔE_21/kT), eq. 18 (FT) | Per plasma parzialmente ionizzato τ_rel va moltiplicato per N_II/(N_I+N_II) |
+| Criterio LTE spaziale | ΔT/T ≪ 1 e Δn_e/n_e ≪ 1 sulla lunghezza di diffusione λ = (D·τ_rel)^1/2, con D ≈ 3·10^19·kT/(N_II·M_A) cm²/s (kT in eV) | Plasma disomogeneo | 10.1016/j.sab.2009.11.005, eq. 19-20 (FT) | La lettura dell'esponente di D dal PDF è incerta: verificare |
+| Verifica LTE consigliata | Confrontare n_e da McWhirter, da Saha e da allargamento Stark | | 10.1016/j.sab.2009.11.005, §3.1 (FT) | |
+| Allargamento Stark (non-H) | Δλ_S ≈ 2w(T,n_e)·(n_e/10^16) (contributo ionico trascurabile); formula completa con parametro ionico A e N_D = 1.72·10^9 T^3/2/n_e^1/2 | | 10.3390/app10144973, eq. 11-13 (FT) | w = coefficiente Stark (tabulato) |
+| n_e da H-alpha | Δλ_S = γ_α(T,n_e)·n_e^(2/3), con Hα a 656.28 nm; formula di El Sherbini 2005: n_e = C(λ,T)·Δλ_1/2^(3/2) (Δλ in Å, C tabulato da Griem) | Idrogeno presente per l'umidità dell'aria | 10.3390/app10144973 eq. 14; 10.1016/j.sab.2005.10.011 eq. 13 (FT) | Con H abbondante Hα è autoassorbita: usare Hβ (Pardini 2013, WS) |
+| n_e da H-beta | Δλ_S = γ_β(T,n_e)·n_e^0.68116 (Gigosos), con Hβ a 486.135 nm | | 10.3390/app10144973, eq. 15 (FT) | |
+| Deconvoluzione strumentale | FWHM_V = FWHM_L·[0.5346 + sqrt(0.2166 + (FWHM_G/FWHM_L)²)] (Olivero, accuratezza ±0.01%), da invertire numericamente per ottenere la componente Lorentziana | Profilo di Voigt | 10.3390/app10144973, eq. 19 (FT) | La forma esatta nel PDF è disordinata: ho usato la formula standard di Olivero, da verificare sul PDF |
+| Autoassorbimento: coefficiente SA dalla larghezza | SA = I(λ0)/I0(λ0); Δλ = Δλ0·SA^α con α = −0.54; Ī/Ī0 = SA^β con β = 0.46; SA = (Δλ/(2w_s n_e))^(1/α) | Plasma omogeneo, n_e noto (per esempio da Hα), w_s noto | 10.1016/j.sab.2005.10.011, eq. 6, 8, 12 (FT) | Nel PDF il segno meno di α è perso nell'estrazione; dal contesto (Δλ > Δλ0 per SA < 1) α è negativo |
+| Autoassorbimento: formula pratica di Palleschi | I0 ≈ I·(Δλ/Δλ0)^0.85, valida anche per autoassorbimento forte; con approssimazione semplice I0 ≈ I·Δλ/Δλ0 | Plasma omogeneo in LTE | 10.56530/spectroscopy.xq8876v9, eq. 6 e Fig. 2 (FT) | In scala log-log la curva di calibrazione passa da pendenza 1 a 1/2 al crescere della concentrazione |
+| Autoreversal vs autoassorbimento | L'autoreversal (dip centrale) richiede gradienti spaziali; la sua assenza non esclude autoassorbimento | | 10.56530/spectroscopy.xq8876v9 (FT) | Esempio: Ag II 243.78 nm, delay 400-2900 ns, gate 500 ns (10.3390/app10144973, Fig. 2) |
+| Curve of growth nel CF-LIBS | Correzione automatica dell'autoassorbimento con curva di crescita per ogni riga (software LIPS++); test su 3 acciai NIST e 3 leghe Au-Ag-Cu; accuratezza CF migliorata di circa un ordine di grandezza | | 10.1016/s0584-8547(01)00398-6 | **WS** (abstract non visto direttamente) |
+| Duplicating mirror | Rapporto di intensità con e senza specchio sferico; senza autoassorbimento il segnale con specchio raddoppia | Nessuna ipotesi su omogeneità o LTE | 10.3390/app10144973, §3 e Fig. 3 (FT) | Metodo di altri gruppi, discusso dal gruppo Palleschi |
+| C-sigma / extended C-sigma | C-sigma (Aragón & Aguilera 2014): intensità di molte righe e specie su una curva universale in funzione di τ(λ0). Extended C-sigma (Safi et al. 2019): unisce il CD-SB plot (Cristoforetti & Tognoni 2013) e il C-sigma. TIECS: variante time-independent per misurare A_ki e coefficienti Stark compensando l'autoassorbimento | | 10.1016/j.jqsrt.2014.07.026 (CR); 10.1021/acs.analchem.9b01885 (AB); 10.3390/app10144973 eq. 30-31 (FT); 10.1177/0003702821999425 (AB) | Attribuzione: il C-sigma è di Aragón & Aguilera |
+| Columnar-density Saha-Boltzmann (CD-SB) plot | T dalle densità colonnari dei livelli fondamentali atomico e ionico, ricavate quantificando l'autoassorbimento di righe di risonanza (Mg I 285.21, Mg II 279.55 e 280.27 nm) | Lega di Al, Nd:YAG 60 mJ, 1064 nm, 10 ns, 5 Hz, in aria; Echelle λ/Δλ = 2100; delay 0.5-5 µs, gate 0.5 µs; n_e = 4.16, 2.4, 1.6, 0.83, 0.55·10^17 cm^-3; soglia di McWhirter < 4·10^16 cm^-3 (ΔE = 4.34 eV) | 10.1016/j.jare.2019.01.008, §Setup e §Risultati (FT) | Dati spettroscopici NIST ASD. A delay lunghi solo il CD-SB è applicabile |
+| OPC-LIBS (one-point calibration) | Un solo standard matrix-matched viene analizzato con CF-LIBS; si calcolano fattori di correzione empirici per riga P(λ) e li si applica alle intensità nei Boltzmann plot del campione | Test su campioni a base di rame (bronzi), composizione da XRF | 10.1016/j.sab.2013.05.016 | **WS**; le formule esatte non sono state viste |
+| Ibrido CF/ANN: parametri di simulazione | T = 1.1 / 1.2 / 1.25 eV e n_e = 3 / 3.5 / 4·10^16 cm^-3 per E_laser = 50 / 100 / 150 mJ; righe Cu I 521.8, Cu I 578.2, Ni I 362.0, Ni II 241.6 nm; A_ki e g_k da NIST | Spettri sintetici Cu-Ni (Ni 0-10%), 1064 nm, 10 ns, spot 200 µm, rumore Poisson, 1000 spettri per campione | 10.1007/s00340-014-5990-z, Tab. I e §2-3 (FT preprint) | Rete feed-forward con 1 strato nascosto di 3-10 neuroni (tanh, uscita lineare), suddivisione 70/15/15 |
+| ANN su bronzi | Modì double pulse, Nd:YAG 1064 nm, 2×60 mJ, ~8 ns, 10 Hz; interpulse 1 µs; delay 260 ns dopo il 2° impulso; lente f = 10 cm; 3606 canali in ingresso, 4 uscite (Cu, Zn, Sn, Pb); feature selection su finestre spettrali | 6 bronzi moderni | 10.1016/j.sab.2014.06.012, §2-3 (FT preprint) | |
+| Strumento Modì (dati 2005) | Double pulse fino a 150 mJ per impulso, ~8 ns, interpulse 0-60 µs; Echelle λ/Δλ = 7500 con ICCD | | 10.1016/j.sab.2005.10.011, §3 (FT) | Esperimento di confronto al Cairo: Nd:YAG 800 mJ, 6 ns, 1064 nm, delay 0.1-5 µs |
+| Graph clustering (LIBS/XRF) | Similarità = prodotto scalare normalizzato tra vettori spettrali (intensità XRF per energia o LIBS per lunghezza d'onda); grafo visualizzato con Gephi 0.8.2, layout Force Atlas | Classificazione non supervisionata | 10.21014/tc4-arc-2023.093 (FT), che cita Grifoni 2016 e Odelli 2020 | Su 73 anfore con pXRF: 75.35% di attribuzioni corrette, confrontato con cluster analysis e PCA (Odelli 2020, **WS**) |
+| pXRF + hLIBS (Senesi 2023) | pED-XRF SciAps X-200, modalità "Alloy", due fasci 40 kV (pesanti) e 10 kV (leggeri), 30 s; hLIBS SciAps Z-903, 1064 nm, 5-6 mJ, ~1 ns, spot 100 µm, 1-50 Hz, 190-950 nm | Leghe di Cu e Fe archeologiche | 10.21014/tc4-arc-2023.093 (FT) | XRF in 3 cluster, LIBS in 4 cluster |
+| XRF quantitativa | Metodo dei parametri fondamentali (FP) applicato agli spettri pED-XRF, poi classificazione con SOM o graph clustering | Monete d'oro etrusche (classificate soprattutto in base all'Ag); necropoli di Chovdar (8 gruppi) | 10.1177/0003702816641421 (AB); 10.3390/heritage6010010 (AB) | Software FP non specificato negli abstract |
+| Micro-LIBS mapping | 4000 spettri su 10 mm², risoluzione laterale 50 µm; elementi H, C, O, Na, Mg, Al, Si, K, Ca, Ti, Mn, Fe; false color, blind separation, SOM | Malta romana (V sec. d.C.) | 10.1177/0003702817695289 (AB) | |
+| Database spettroscopici | NIST ASD per A_ki e g_k (lavori 2015 e 2019, FT); Stark da letteratura (Griem e altri) | | 10.1007/s00340-014-5990-z; 10.1016/j.jare.2019.01.008 | Uso di Kurucz: **non trovato** nei testi visti |
+
+### 3.4 Cercato e non trovato
+- Abstract e full text di Tognoni 2010 (state of the art), Tognoni 2002, Bulajic 2002, Cavalcanti 2013 (OPC), Grifoni 2016 (graph theory e FP), Ferretti 2007 (Porticello), Rezaei 2020: tutti chiusi o bloccati. I contenuti in tabella per Bulajic, OPC e Odelli vengono da WebSearch.
+- Full text di "Catching up on calibration-free LIBS" (JAAS 2023, OA): download bloccato da Cloudflare. Ho visto solo l'abstract. È la fonte principale da leggere a mano.
+- Formula esatta dei fattori P(λ) nell'OPC: non trovata.
+- Valori specifici di delay e gate "standard" raccomandati da Palleschi per il CF-LIBS: non trovati come raccomandazione generale. Ci sono solo valori sperimentali dei singoli lavori (sezione 3).
+- Uso del database Kurucz: non trovato.
+- Lavori di Palleschi su "Roman glass" con XRF quantitativa: non trovati in Crossref.
+- Un articolo specifico "Pagnotta et al., micro-LIBS and micro-XRF": non trovato. Esiste "Micro-LIBS... Ancient Roman Mortars" (solo LIBS).
+- h-index e profili Google Scholar o ResearchGate: non verificati.
+- Dettagli del capitolo "Time-Dependent Spectral Analysis" (Bredice, Urbina, Palleschi, Wiley 2022) e del metodo "3D Boltzmann plot": solo titoli.
+
+### 3.5 Che cosa servirebbe per la CF-LIBS in Acchiappaspettri
+**Procedura** (schema di Ciucci e Palleschi: brevetto US 6,657,721 e rassegne)
+
+1. **Pre-elaborazione.** Sottrarre il fondo e il continuo, calibrare le lunghezze d'onda e la risposta spettrale (F deve essere costante su tutto lo spettro, quindi serve una curva di efficienza).
+2. **Identificazione delle righe** con NIST ASD (λ, A_ki, g_k, E_k, E_i, E_ion). Scegliere righe isolate, con A_ki noto e di buona accuratezza. Evitare le righe di risonanza (E_i = 0) o segnalarle come a rischio di autoassorbimento.
+3. **Fit dei profili** con una Voigt. Rimuovere la componente strumentale (formula di Olivero, eq. 19 di 10.3390/app10144973) e ottenere l'area integrata e la FWHM Lorentziana.
+4. **Densità elettronica.** Calcolare n_e da Hα (656.28 nm) o Hβ (486.13 nm), oppure da una riga con w Stark noto: n_e ≈ Δλ_L·10^16/(2w).
+5. **Autoassorbimento.** Stimare SA o correggere con I0 ≈ I·(Δλ/Δλ0)^0.85, dove Δλ0 = 2w·n_e/10^16 (Palleschi 2022; El Sherbini 2005: α = −0.54, β = 0.46). Scartare le righe con SA molto basso.
+6. **Boltzmann plot o Saha-Boltzmann plot.** Fare un Boltzmann plot per specie, oppure un Saha-Boltzmann plot che porta le righe ioniche sulla scala neutra tramite l'equazione di Saha. Ricavare T dalla pendenza (stessa T per tutte le specie) e le intercette q_s = ln(F C_s/U_s(T)).
+7. **Concentrazioni delle specie e degli elementi.** C_s·F = U_s(T)·e^(q_s). Sommare I e II con Saha, iterando su n_e se manca una delle due specie (partenza n_e ~10^18 cm^-3).
+8. **Chiusura.** Normalizzare con ΣC = 1, oppure usare uno standard interno di concentrazione nota. Riportare che l'errore è almeno pari alla frazione di elementi non rilevati.
+9. **Controlli LTE.**
+   - McWhirter: n_e > 1.6·10^12·T^1/2·ΔE³ (ΔE in eV, T in K), con avviso esplicito che è solo una condizione necessaria.
+   - Confronto tra n_e da Stark e n_e da Saha.
+   - Coerenza tra T(I) e T(II).
+10. **Opzione OPC.** Se è disponibile uno standard matrix-matched, calcolare fattori per riga P(λ) = I_attesa/I_misurata dallo standard e applicarli al campione (Cavalcanti 2013; formula da verificare sul full text).
+11. **Incertezze.** Propagare gli errori su A_ki, sulla regressione e sulla chiusura. Tognoni 2007 (10.1016/j.sab.2007.10.005) è lo studio numerico su accuratezza e precisione del CF-LIBS da leggere.
+
+**Combinazione XRF + LIBS** (come fa il gruppo di Pisa)
+
+- La **XRF con parametri fondamentali** serve per i maggiori e i medi pesanti (Cu, Sn, Pb, Au, Ag, Fe). La **LIBS** serve per gli elementi leggeri (H, C, O, Na, Mg, Al, Si) e per la stratigrafia: colpi ripetuti su patine e corrosione. Esempi: Porticello 2007; Senesi 2023.
+- La **XRF può fornire la composizione dello standard per l'OPC-LIBS**: così sono stati caratterizzati i bronzi di Cavalcanti 2013 (WS). Si può anche usare come vincolo o seed della chiusura CF.
+- **Graph clustering comune ai due tipi di spettro.** Similarità = prodotto scalare normalizzato tra spettri. Si costruisce il grafo con una soglia e si cercano le comunità. Si applica separatamente a XRF e LIBS e si confrontano i cluster (Senesi 2023: 3 cluster XRF e 4 LIBS). In alternativa SOM (Arias 2016; Pagnotta 2017) o PCA come confronto (Odelli 2020).
+- **Cautela sulla chemometria "black box".** Safi 2018 e D'Andrea 2015 raccomandano campioni di training che coprano l'intervallo di concentrazioni degli incogniti e mettono in guardia dall'estrapolazione. L'ANN ibrida usa come input righe scelte per significato fisico (stadi I e II).
+
+**Che cosa manca oggi nell'app per farlo.**
+- `LIBS_LINES` ha solo λ e lo stadio di ionizzazione. Servono A_ki, g_k, E_k, E_i ed E_ion di ogni riga, le funzioni di partizione U(T) e i coefficienti Stark w.
+- La fonte naturale è il **NIST ASD** (Kramida et al.). Prima di includerne una selezione in `index.html` vanno lette le condizioni d'uso: i dati NIST di riferimento ricadono sotto lo *Standard Reference Data Act*. Lo stesso vale per le tabelle Stark (Griem, Konjević e altri).
+- Serve anche la **risposta spettrale** dello strumento (curva di efficienza), che i file LIBS di solito non riportano.
+
+**Lettura consigliata prima di implementare**: Poggialini et al. 2023 (JAAS, accesso aperto), Aberkane et al. 2020 (*Appl. Sci.*, accesso aperto), Cristoforetti et al. 2010, El Sherbini et al. 2005, Palleschi 2022, Tognoni et al. 2007 (accuratezza attesa). I link ai testi aperti sono qui sotto.
+
+- JAAS 2023 "Catching up on CF-LIBS": https://pubs.rsc.org/en/content/articlepdf/2023/ja/d3ja00130j
+- Appl. Sci. 2020 (fondamenti, Stark, autoassorbimento, C-sigma): https://zenodo.org/records/14451390
+- Cristoforetti 2010 (LTE): https://iris.cnr.it/retrieve/0dad71af-6818-4a93-aa8b-65fb7b1962c3/prod_171806-doc_12432.pdf
+- El Sherbini 2005 (SA): https://iris.cnr.it/retrieve/339f814a-0a39-4c94-9283-5df202bfd64b/prod_39780-doc_13746.pdf
+- Palleschi 2022 (autoassorbimento): https://iris.cnr.it/retrieve/c6504b3e-038d-46a8-a4e6-88d6080eda86/prod_474369-doc_193478.pdf
+- JARE 2019 CD-SB: PMC6370548
+- JAAS 2019, rassegna sui beni culturali: ARPI hdl 11568/952349
+- Preprint ANN 2014 e CF/ANN 2015: ARPI hdl 11568/779938 e 11568/780488
+- IMEKO 2023 XRF+LIBS+graph clustering: https://www.imeko.org/publications/tc4-Archaeo-2023/IMEKO-MetroArchaeo-2023-093.pdf
+- Brevetto US 6,657,721 B1: https://patents.google.com/patent/US6657721
 
 ## 4. Confronto e proposta
 
@@ -256,4 +416,4 @@ DOI verificati con l'API di Crossref il 19/11/2026 salvo dove indicato.
 - Cesareo R., Rizzutto M.A., Brunetti A., Rao D.V. (2009). Metal location and thickness in a multilayered sheet by measuring Kα/Kβ, Lα/Lβ and Lα/Lγ X-ray ratios. *Nucl. Instrum. Methods B* 267, 2890–2896. doi:10.1016/j.nimb.2009.06.119. *Nota: il commento di `fpLayerSolve` cita «Cesareo et al. 2008» e «Trojek 2011». Crossref non ha restituito un articolo che corrisponda a questi due riferimenti: vanno controllati.*
 - Lucas-Tooth H.J., Price B.J. (1961). *Metallurgia* 64 (citato dall'app; senza DOI, pagine non verificate).
 
-**Palleschi, LIBS e CF-LIBS**: vedi § 3.
+**Palleschi, LIBS e CF-LIBS**: la bibliografia completa, con DOI e livello di verifica, è la tabella del § 3.2 (37 voci più i riferimenti di controllo), integrata dai lavori elencati sotto quella tabella.
