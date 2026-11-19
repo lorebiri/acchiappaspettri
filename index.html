@@ -3867,7 +3867,7 @@ function xrfFitHyper(c){
   const wf=fwhm(5.895,p)/xrfFWHM(5.895);
   return {peakModel:'hypermet', bgFull:bg, area, sArea, comps:famArea, off:p.off, gain:p.gain, quad:p.quad, wf, wc:p.wc, th:hasC?p.th:null, noise:p.noise, fano:p.fano, p:Object.assign({}, p), det,
     shape:{flags, st:[p.st,p.sts], lt:[p.lt,p.lts], step:p.step}, escape:escNone?'none':escAll?'all':'si', pile:pileA ? {a:pileA, counts:pileMod.reduce((t,v)=>t+v,0), model:pileMod} : null,
-    lm:lm ? {iter:lm.it, nev:lm.nev, chi0:lm.f0, chi:lm.f, free:free.map(f=>f[0])} : null, chi2r:red, lo:c.lo, hi:c.hi, a, b:c.b, model, bkg};
+    lm:lm ? {iter:lm.it, nev:lm.nev, chi0:lm.f0, chi:lm.f, free:free.map(f=>f[0])} : null, chi2r:red, chi:R.chi, dof, lo:c.lo, hi:c.hi, a, b:c.b, model, bkg};
 }
 /* ---- adattamento dello spettro XRF con le famiglie di righe (K, L) di ogni elemento: risolve le sovrapposizioni (Pb Lα / As Kα, …) ----
    fondo a B-spline cubiche (lento, non negativo) adattato insieme alle righe; ogni famiglia è una somma di gaussiane con le intensità relative delle righe (xraylib) e la risoluzione del rivelatore;
@@ -3886,7 +3886,7 @@ function xrfFitLines(xs, ys, els, S, opt){
   const famOf=(s, fam)=>{ const F=FP.el[s].fam[fam], R=opt.ratios&&opt.ratios[s]; if (!F || !R) return F;   // rapporti Kβ/Kα e Lβ/Lα previsti per la matrice
     if (fam==='K' && R.Kb>0){ const a=F.find(q=>q[0]==='Ka'); return F.map(q=>q[0]==='Kb'&&a ? [q[0], q[1], a[2]*R.Kb] : q); }
     if (fam==='L' && R.Lb>0){ const a=F.find(q=>q[0]==='La'), sb=F.filter(q=>q[0].startsWith('Lb')).reduce((t,q)=>t+q[2],0); if (!a || !sb) return F; const f=a[2]*R.Lb/sb;
-      return F.map(q=>q[0].startsWith('Lb')||q[0]==='Ln'||q[0]==='Lg1' ? [q[0], q[1], q[2]*f] : q); }
+      return F.map(q=>q[0].startsWith('Lb')||q[0]==='Ln'||q[0]==='Lg1' ? [q[0], q[1], q[2]*f] : q); }   // Lγ1 e Lβ1 vengono entrambe da L2
     return F; };
   for (const s of els){ const e=FP.el[s]; if (!e) continue;
     for (const fam of ['K','L','M']){ const F=famOf(s, fam), ed=e.ed[EDK[fam]]; if (!F || !ed || ed>=kv) continue;
@@ -3946,7 +3946,7 @@ function xrfFitLines(xs, ys, els, S, opt){
       (area[c.el]=area[c.el]||{})[key]=(area[c.el][key]||0)+R.x[j]*add; (sArea[c.el]=sArea[c.el]||{})[key]=Math.hypot((sArea[c.el][key]||0), sd[j]*add); } });
   const model=new Float64Array(n), bg=Float64Array.from(bkg); for (let i=0;i<m;i++) model[a+i]=R.mod[i]+bkg[a+i];
   const B=build(best.off,best.gain,best.wf,best.wc,best.th); for (let j=comps.length;j<B.length;j++) if (R.x[j]) for (let i=0;i<m;i++) bg[a+i]+=R.x[j]*B[j][i];
-  return {bgFull:bg, area, sArea, comps:famArea, off:best.off, gain:best.gain, wf:best.wf, wc:best.wc, th:hasC?best.th:null, chi2r:red, lo, hi, a, b, model, bkg};
+  return {bgFull:bg, area, sArea, comps:famArea, off:best.off, gain:best.gain, wf:best.wf, wc:best.wc, th:hasC?best.th:null, chi2r:red, chi:R.chi, dof, lo, hi, a, b, model, bkg};
 }
 /* minimi quadrati non negativi in forma normale (Gram): min ½xᵀGx − hᵀx con x ≥ 0 (Lawson & Hanson) */
 function nnlsGram(Gm, h){
@@ -3964,18 +3964,42 @@ function nnlsGram(Gm, h){
 }
 /* analisi FP completa: adattamento → quantificazione → rapporti Kβ/Kα e Lβ/Lα previsti per quella matrice → nuovo adattamento (3 giri) */
 function xrfFP(xs, ys, els, S0, opt){ let S=S0;
-  opt=opt||{}; let fit=xrfFitLines(xs, ys, els, S, opt), Q=null; if (!fit) return null; const bkg=fit.bkg;
+  opt=opt||{}; let fit=xrfFitLines(xs, ys, els, S, opt), Q=null, ratios=null; if (!fit) return null; const bkg=fit.bkg;
   if (opt.autoGeom && fit.th && Math.abs(fit.th-(S.psi1+S.psi2))>4) S=fpSetup(Object.assign({}, S, {psi1:fit.th/2, psi2:fit.th/2}));   // geometria ignota: angoli dal Compton
   const qo=()=>{ if (opt.mode!=='compton' || opt.compton) return opt; const c=fit.comps[xrfComptonId(S)]; return Object.assign({}, opt, {compton: c ? c.area : 0, sCompton: c ? c.sArea : 0}); };
   for (let it=0; it<3; it++){
     const meas=fpMeasure(fit, els, S); Q=fpQuant(meas, S, qo()); if (!Q || Q.err) break;
     const lines=[]; els.forEach(e=>{ for (const l of ['Ka','Kb','La','Lb']) if (fpLineE(e,l)) lines.push([e,l]); });
-    const I=fpIntensities([{comp:Q.comp, t:Infinity}], S, lines, {sec:true}), ratios={};
+    const I=fpIntensities([{comp:Q.comp, t:Infinity}], S, lines, {sec:true}); ratios={};
     els.forEach(e=>{ const r={}; if (I[e+' Ka']>0 && I[e+' Kb']>0) r.Kb=I[e+' Kb']/I[e+' Ka']; if (I[e+' La']>0 && I[e+' Lb']>0) r.Lb=I[e+' Lb']/I[e+' La']; ratios[e]=r; });
     fit=xrfFitLines(xs, ys, els, S, Object.assign({}, opt, {ratios, bkg, fix:fit.peakModel==='hypermet' ? Object.assign({}, fit.p, {th:fit.th||S.psi1+S.psi2}) : {off:fit.off, gain:fit.gain, wf:fit.wf, wc:fit.wc, th:fit.th||S.psi1+S.psi2}})) || fit;
   }
-  const meas=fpMeasure(fit, els, S); Q=fpQuant(meas, S, qo());
+  const meas=fpMeasure(fit, els, S); Q=fpQuant(meas, S, qo()); if (ratios) fit.ratios=ratios;
   return {fit, meas, Q, S};
+}
+/* 3.1: verifica degli elementi con il fit (contro i falsi elementi: Sb e I nello stagno, Pb al posto di As, picchi somma e fughe presi per elementi).
+   Dopo l'analisi FP completa (rapporti fra le righe previsti per la matrice), eliminazione all'indietro: si toglie l'elemento il cui abbandono
+   peggiora meno il χ², finché il peggioramento Δχ²/χ²ᵣ resta sotto la soglia (25, cioè circa 5σ per un parametro in più). Un elemento tolto che,
+   scambiato con uno rimasto con righe vicine, spiega lo spettro quasi altrettanto bene è segnato «non distinguibile» da quello. */
+function xrfConfirm(xs, ys, els, S, opt){
+  opt=Object.assign({mode:'norm'}, opt||{}); els=els.filter(e=>FP.el[e]); if (!els.length) return null;
+  const R=xrfFP(xs, ys, els, S, opt); if (!R || !R.fit) return null; const f=R.fit, S1=R.S||S;
+  const fix=f.peakModel==='hypermet' ? Object.assign({}, f.p, {th:f.th||S1.psi1+S1.psi2}) : {off:f.off, gain:f.gain, wf:f.wf, wc:f.wc, th:f.th||S1.psi1+S1.psi2};
+  const o=Object.assign({}, opt, {fix, ratios:f.ratios, bkg:f.bkg}), memo=new Map();
+  const chiOf=l=>{ const k=l.slice().sort().join(','); if (memo.has(k)) return memo.get(k); const r=l.length ? xrfFitLines(xs, ys, l, S1, o) : null, v=r ? r.chi : Infinity; memo.set(k, v); return v; };
+  const red=Math.max(1, f.chi2r), T=opt.thr||25, keep=opt.keep||[], delta={}, dropped=[], Qr=(R.Q&&R.Q.res)||{};
+  // prima condizione, fisica: la riga analitica (quella della concentrazione) deve essere significativa, oltre 3σ. Le famiglie K, L e M di un elemento
+  // hanno ampiezze indipendenti nel fit: un elemento falso può «riparare» con le sue righe L la zona L di un altro (Sb nello stagno) con la Kα a zero
+  let cur=els.filter(e=>{ const q=Qr[e]; const ok=keep.includes(e) || (q && q.w>0 && (!(q.sw>0) || q.w>3*q.sw)); if (!ok) dropped.push({el:e, d:null, why:'riga', w:q?q.w:0, sw:q?q.sw:0}); return ok; });
+  if (!cur.length){ cur=els.slice(); dropped.length=0; }
+  let c0=chiOf(cur);
+  for (;;){ let best=null; for (const e of cur){ if (cur.length<2 || keep.includes(e)) continue; const d=(chiOf(cur.filter(x=>x!==e))-c0)/red; if (!(e in delta)) delta[e]=d; if (!best || d<best[1]) best=[e,d]; }
+    if (!best || best[1]>=T) break; cur=cur.filter(x=>x!==best[0]); dropped.push({el:best[0], d:best[1], why:'chi2'}); c0=chiOf(cur); }
+  const linesOf=e=>[].concat(...['K','L','M'].map(fm=>(FP.el[e].fam[fm]||[]).filter(q=>q[2]>=0.05 && q[1]>=f.lo && q[1]<=f.hi).map(q=>q[1])));
+  const near=(a,b)=>linesOf(a).some(x=>linesOf(b).some(y=>Math.abs(x-y)<=0.12)), ambiguous=[];
+  for (const {el} of dropped) for (const k of cur){ if (!near(el,k)) continue; const d=(chiOf(cur.filter(x=>x!==k).concat(el))-c0)/red; if (d<T) ambiguous.push({el, with:k, d}); }
+  for (const e of cur) delta[e]=(chiOf(cur.filter(x=>x!==e))-c0)/red;
+  return {kept:cur, dropped, ambiguous, delta, chi2r:f.chi2r, thr:T, model:f.peakModel||'gauss'};
 }
 /* misure per la quantificazione: area della riga analitica di ogni elemento dall'adattamento per famiglie */
 function fpMeasure(fit, els, S){ const out={};
