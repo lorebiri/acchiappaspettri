@@ -172,6 +172,11 @@ Nella versione web il calcolo gira nella pagina: per quei tempi la pagina è fer
    - aggiornata in `package.json`, `tauri.conf.json`, `Cargo.toml` e `Cargo.lock` (app e `acch-core`) e in `APP_VERSION_FULL`;
    - sezione «## 3.1.0-rc.1» nel CHANGELOG e voce 3.1 nelle Novità;
    - è una pre-release: la pipeline la pubblica come pre-release per i tag con «-», e l'aggiornamento automatico legge `releases/latest`, che esclude le pre-release.
+**Esito dei controlli.**
+- In locale: unitari 385 su 391 (6 saltati come prima), benchmark 36/36, validazione numerica 77/77, collaudo dell'interfaccia passato, validazione nell'interfaccia passata dopo le due correzioni dei test (versione scritta a mano nel test della segnalazione; «download» nel testo inglese del desktop).
+- CI su GitHub: verde sul commit 3fbbaf5, compreso il primo scaricamento dei dati dal NIST (4 minuti, poi in cache).
+- Il giro precedente (bba0f73) era fallito solo su I9, la prova dei tempi della chemometria, già nota come instabile: 3 tentativi su 5 con un compito lungo di 69–78 ms contro 50. Ora il messaggio d'errore riporta istante e durata dei compiti lunghi di ogni tentativo, per trovarne la causa la prossima volta; il criterio non è cambiato.
+
 4. Storia di git non riscritta (lo squash lo fa Jarvis). 5. Citazioni bibliografiche brevi lasciate.
 
 ## Raccomandazione
