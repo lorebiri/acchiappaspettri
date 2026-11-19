@@ -3025,6 +3025,11 @@ function baseDefaults(m, xs, y, instr){
 }
 /* fondo dello spettro y (orientato come nel file: in %T i picchi vanno in giù e si lavora sul rovescio). Restituisce null se non si può calcolare.
    info.par riceve i parametri davvero usati. Il calcolo è baseCurveR, funzione pura: nel desktop, con gli spettri lunghi, la fa il worker (app/engine.js) */
+/* 3.1: base consigliata per un Raman con fondo alto. IModPoly (grado 6) resta il consiglio, ma se sottrae troppo (oltre il 5% dei punti sotto −3% del
+   massimo dello spettro corretto) si consiglia SNIP, poi ALS. Sugli spettri Raman veri di pigmenti con fluorescenza (633 nm, validazione 3.1) IModPoly
+   sottraeva troppo in 6 spettri su 13 (21–35% dei punti), SNIP e ALS restavano sotto il 5% e ritrovavano più picchi tabulati. */
+function ramanBaseAdvice(xs, y){ const over=m=>{ try{ const bl=baseCurve(m, baseDefaults(m, xs, y, 'raman'), xs, y, 'raman', 'I'); let mx=-Infinity; const z=Float64Array.from(y,(v,i)=>v-bl[i]); for (const v of z) if (v>mx) mx=v; let k=0; for (const v of z) if (v<-0.03*mx) k++; return k/z.length; }catch(e){ return 1; } };
+  for (const m of ['imodpoly','snip','als']) if (over(m)<=0.05) return m; return 'als'; }
 function baseCurve(m, par, xs, y, instr, kind, info){ const r=baseCurveR(m, par, xs, y, instr, kind); if (info) info.par=r.par; return r.bl; }
 function baseCurveR(m, par, xs, y, instr, kind){ const info={}, bl=baseCurve0(m, par, xs, y, instr, kind, info); return {bl, par:info.par||null}; }
 function baseCurve0(m, par, xs, y, instr, kind, info){
@@ -8028,7 +8033,7 @@ function assess(f, d){
     else if (q.flat>=3 && ['raman','xrf','libs','fluo','hplc','uv','gen'].includes(it)) add('bad', `Il massimo è piatto su ${q.flat} punti: probabile saturazione del rivelatore. L'intensità dei picchi più alti è sottostimata: riduci tempo, potenza o concentrazione.`);
     if (q.bgRatio>0.3 && pBase(f)==='none' && ['raman','fluo','ftir','xrf','libs','gen'].includes(it)){
       // Raman: il polinomio iterativo, più accurato di arPLS automatico sugli spettri puliti con fluorescenza ripida (docs/VALIDAZIONE.md, R12)
-      const m = (it==='xrf'||it==='libs') ? 'snip' : it==='raman' ? 'imodpoly' : 'arpls', mName={snip:'SNIP (Ryan 1988)', imodpoly:'IModPoly (Zhao 2007)', arpls:'arPLS (Baek 2015)'}[m], mShort={snip:'SNIP', imodpoly:'IModPoly', arpls:'arPLS'}[m];
+      const m = (it==='xrf'||it==='libs') ? 'snip' : it==='raman' ? ramanBaseAdvice(f.xs, raw) : 'arpls', mName={snip:'SNIP (Ryan 1988)', imodpoly:'IModPoly (Zhao 2007)', arpls:'arPLS (Baek 2015)', als:'ALS (Eilers 2005)'}[m], mShort={snip:'SNIP', imodpoly:'IModPoly', arpls:'arPLS', als:'ALS'}[m];   // 3.1: IModPoly solo se non sottrae troppo (ramanBaseAdvice)
       const bgp=Math.round(q.bgRatio*100);
       add('warn', it==='raman' ? `Il fondo pesa circa il ${bgp}% del segnale, come è tipico della fluorescenza: altezze e aree dipendono da dove metti la base. Consiglio la base ${mName}.` : `Il fondo pesa circa il ${bgp}% del segnale: altezze e aree dipendono da dove metti la base. Consiglio la base ${mName}.`, {lab:`Applica ${mShort}`, fn:()=>{ baseSnap(); S.base[it]=m; saveS(); renderProc(); renderPreview(); }}); }
     if (q.wPts<4 && !['libs','xrf'].includes(it)) add('info', `Solo ≈${fmtG(q.wPts,2)} punti per larghezza a metà altezza: con un campionamento così rado posizioni e aree hanno un errore digitale. Se puoi, misura con un passo più fine.`);

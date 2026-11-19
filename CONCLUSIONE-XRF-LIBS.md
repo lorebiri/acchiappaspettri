@@ -8,7 +8,8 @@
 - **Niente più elementi inventati nei casi noti.** Prima, in uno stagno puro l'app proponeva anche antimonio e iodio; in un bronzo all'arsenico senza piombo poteva mettere piombo. Ora ogni elemento proposto viene messo alla prova sul fit: se le sue righe sono già spiegate dagli altri elementi, viene tolto dal calcolo e l'app lo scrive.
 - **Il tubo a raggi X è descritto con una formula pubblicata** (Ebel, 1999) invece che con costanti scelte a mano; si possono impostare anodo, tensione, angoli e finestra.
 - **Chi usa PyMca può portare le sue impostazioni**: l'app legge e scrive i file `.cfg` di PyMca.
-- **C'è un confronto automatico con PyMca** che gira a ogni modifica, e una **cartella pronta per i materiali certificati**: quando il collega del CNR manderà gli spettri basterà copiarli dentro e lanciare un comando.
+- **C'è un confronto automatico con PyMca** che gira a ogni modifica, e una **cartella pronta per i materiali certificati**.
+- **Sono arrivati i primi dati veri del CNR** (6 bronzi certificati misurati con un XRF portatile, risultati CF-LIBS del gruppo di Pisa, spettri Raman di polimeri e pigmenti). Hanno subito fatto trovare **tre difetti**, ora corretti: l'app leggeva male la calibrazione dei file di quello strumento (lo stagno risultava 3–6 volte troppo basso), la CF-LIBS ignorava lo zinco, e per il Raman con fluorescenza la base consigliata toglieva troppo segnale. Dopo le correzioni, sui bronzi certificati l'errore medio è di circa il 9–10%, con il rame entro l'1%. I dati restano riservati: qui ci sono solo risultati aggregati ([docs/VALIDAZIONE-DATI-REALI.md](docs/VALIDAZIONE-DATI-REALI.md)).
 - **Prima base per la LIBS senza taratura** (il metodo di Palleschi e colleghi, 1999), segnata «sperimentale»: funziona sugli spettri simulati, non ancora su spettri veri.
 - **I progetti salvati non cambiano**: chi riapre un lavoro fatto con la 3.0 ottiene gli stessi numeri, con un avviso che spiega come passare al nuovo modello.
 
@@ -25,8 +26,9 @@
 | 6 | Pronti per i materiali certificati | fatto, con l'esempio NIST SRM 1155 | [validazione/certificati/](validazione/certificati/README.md), `scripts/valida-certificati.js` |
 | 7 | Base CF-LIBS: dati NIST, Boltzmann e Saha–Boltzmann, Stark, chiusura, autoassorbimento, interfaccia sperimentale, validazione | fatto (sintetici); uno spettro pubblico reale provato | `app/libs-data.js`, `app/libs-cf-core.js`, `app/libs-cf-ui.js`, [docs/CF-LIBS.md](docs/CF-LIBS.md) |
 | 8 | Citazioni Cesareo 2008 e Trojek 2011 | corrette | `fpLayerSolve` e bibliografia dell'app; studio § 5 |
+| — | Dati veri del CNR (arrivati durante il lavoro): XRF sui 6 bronzi certificati, CF-LIBS contro i risultati di Pisa, Raman per la rimozione del fondo | fatto; tre difetti trovati e corretti | [docs/VALIDAZIONE-DATI-REALI.md](docs/VALIDAZIONE-DATI-REALI.md); dati e rapporti dettagliati fuori dal repository |
 
-Lavoro con due agenti (CF-LIBS; file `.cfg` e materiali certificati), uniti nel ramo. 362 test unitari verdi su 368, 6 saltati come prima (prima 305 su 311).
+Lavoro con due agenti (CF-LIBS; file `.cfg` e materiali certificati), uniti nel ramo. 365 test unitari verdi su 371, 6 saltati come prima (prima 305 su 311); validazione numerica 77/77, validazione nell'interfaccia 211/211, collaudo dell'interfaccia 39/39, benchmark 36/36.
 
 ## Risultati prima e dopo
 
@@ -75,6 +77,22 @@ Lettura: su questo spettro il tubo non conta (fascio monocromatico), quindi le c
 
 Con autoassorbimento simulato l'errore medio scende dal 56–57% al 12–16% con la correzione di Palleschi (2022). Sull'unico spettro LIBS pubblico con composizione nota trovato (SuperLIBS 10K, roccia, CC BY 4.0) il calcolo non dà risultati utili: gli autori hanno normalizzato separatamente le regioni dello spettro, quindi la condizione base della CF-LIBS (stessa efficienza su tutto lo spettro) non vale.
 
+### Dati veri del CNR (riservati; risultati aggregati)
+
+**XRF, 6 standard di bronzo certificati, 60 spettri** (errore relativo rispetto al certificato):
+
+| | Errore medio | Mediana | Cu | Zn | Sn | Pb | χ² ridotto |
+|---|---|---|---|---|---|---|---|
+| Prima della correzione del lettore (entrambi i modelli) | — | — | | | **Sn 3–6 volte troppo basso** | | |
+| 3.0 | 9,0% | 10,2% | +1,5% | −10,5% | −7,8% | −7,0% | 7,0 |
+| **3.1** | 9,7% | **8,5%** | **−0,3%** | −10,5% | +9,7% | +1,6% | **6,0** |
+
+Lo Zn ambiguo di uno standard (0,3 o 0,003%) è 0,3%: lo dicono le aree dei picchi tarate sugli altri cinque standard (0,31%). Zn resta sottostimato del 10% da entrambi i modelli; in uno standard il Pb è la metà del certificato con entrambi i modelli, e la misura SEM gli dà ragione.
+
+**CF-LIBS**: la CF-LIBS del gruppo di Pisa sugli spettri veri ha errore medio 21% (Sn e Pb −33%). L'app, su spettri sintetici realistici con le stesse temperature e densità, va bene in plasma otticamente sottile (mediana 6%) ma è fragile con autoassorbimento forte (mediana 18–33%): resta sperimentale.
+
+**Raman**: con le basi consigliate SNIP e ALS si ritrovano il 75–77% dei picchi tabulati dei pigmenti (65% senza base). IModPoly, consigliata dalla 3.0 con fondo alto, toglieva troppo segnale in 6 spettri su 13; ora l'assistente lo evita (sotto-sottrazione dal 18,5% all'1,8%, picchi ritrovati dal 75% al 78%).
+
 ## Confronto con PyMca: che cosa dice e che cosa no
 
 - **Dove i due programmi si possono confrontare in modo pulito** (Steel.spe), le aree coincidono entro l'1% e il fit dell'app è più aderente.
@@ -82,13 +100,16 @@ Con autoassorbimento simulato l'errore medio scende dal 56–57% al 12–16% con
 - Sul **bronzo sintetico** i due programmi, entrambi con il tubo di Ebel, differiscono fino al 17% su Pb: le geometrie (aria, finestre) sono solo approssimativamente uguali.
 - **Il confronto con PyMca non è una validazione**: dice che i due programmi fanno conti simili, non che sono giusti. La validazione la danno i materiali certificati.
 
-## Che cosa aspetta i dati veri
+## Che cosa resta per i prossimi dati
 
-1. **Materiali certificati XRF.** Copiare ogni spettro con il suo certificato (CSV: elemento, valore, incertezza, unità, tipo) e i metadati dello strumento (o il `.cfg` di PyMca) in `validazione/certificati/<campione>/` e lanciare `node scripts/valida-certificati.js`. Il rapporto dice, elemento per elemento, errore relativo, ζ e se i criteri sono rispettati. Le istruzioni sono in [validazione/certificati/README.md](validazione/certificati/README.md).
+1. **Altri materiali certificati XRF** (leghe diverse, vetri, pigmenti, altri strumenti). Copiare ogni spettro con il suo certificato (CSV: elemento, valore, incertezza, unità, tipo) e i metadati dello strumento (o il `.cfg` di PyMca) in `validazione/certificati/<campione>/` e lanciare `node scripts/valida-certificati.js`. Il rapporto dice, elemento per elemento, errore relativo, ζ e se i criteri sono rispettati. Le istruzioni sono in [validazione/certificati/README.md](validazione/certificati/README.md).
 2. **Che cosa decideremo con quei dati.** (a) Se il tubo di Ebel è davvero meglio delle costanti della 3.0 (sui sintetici della 3.0 dà scarti del 3–5%, che misurano solo la differenza fra i modelli). (b) Le soglie della verifica degli elementi (oggi 3σ sulla riga analitica e Δχ²/χ²ᵣ ≥ 25). (c) Se la terziaria approssimata basta per gli acciai o serve il calcolo completo.
-3. **Spettri LIBS.** Servono, per ogni spettro: risposta spettrale dello strumento (curva di efficienza), larghezza strumentale, ritardo e finestra di acquisizione, energia del laser, e la composizione certificata. Senza la risposta spettrale la CF-LIBS non può essere accurata.
+3. **Spettri LIBS veri** (il CNR non li fornirà: servono altre fonti). Servono, per ogni spettro: risposta spettrale dello strumento (curva di efficienza), larghezza strumentale, ritardo e finestra di acquisizione, energia del laser, e la composizione certificata. Senza la risposta spettrale la CF-LIBS non può essere accurata.
 
 ## Punti aperti e decisioni per Lorenzo
+
+- **Dati riservati del CNR.** Sono nel repository privato di validazione; i rapporti dettagliati (per standard e per spettro) e gli script che li producono sono stati scritti fuori dal repository pubblico, sulla macchina di questa sessione (`/home/user/validazione-privata-risultati/`): la sessione aveva solo accesso in lettura al repository privato, quindi non li ha caricati lì. Vanno copiati nel repository privato prima che la sessione venga chiusa.
+- **Zn sottostimato del 10%** sui bronzi veri con entrambi i modelli: da capire (rapporto Kβ/Kα del Cu, coda dei picchi del Cu, efficienza del rivelatore).
 
 - **Dati NIST per la LIBS (da decidere prima di pubblicare).** I dati del NIST Atomic Spectra Database sono protetti dallo Standard Reference Data Act: la pagina del NIST dice di non ridistribuirli senza permesso. Sono nel repository (`app/libs-data.js`), come richiesto, ma prima di pubblicare una versione bisogna chiedere il permesso al NIST oppure distribuire solo lo script che li rigenera.
 - **Modello 3.1 come predefinito per le analisi nuove.** È la scelta fatta, perché sullo spettro reale è migliore; i test e il tutorial costruiti su spettri sintetici della 3.0 usano ora esplicitamente il modello 3.0 dove verificano quei numeri. Se si preferisce aspettare i dati del CNR, basta cambiare il predefinito in `fpCfg` (una riga).
