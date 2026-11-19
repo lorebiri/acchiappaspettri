@@ -13,6 +13,7 @@ Ramo `claude/xrf-libs-3.1`. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md.
 - LIBS: analisi senza taratura (CF-LIBS, sperimentale) con dati atomici del NIST ASD, grafico di Boltzmann e di Saha–Boltzmann, densità elettronica da Hα/Hβ, autoassorbimento; validata solo su spettri sintetici.
 - Citazioni del calcolo degli spessori corrette (Cesareo e Brunetti 2008, Cesareo et al. 2009, Trojek et al. 2010).
 - Validazione su dati reali di laboratorio (6 bronzi certificati, risultati CF-LIBS, spettri Raman; dati riservati, risultati aggregati in docs/VALIDAZIONE-DATI-REALI.md). Corretti tre difetti trovati così: calibrazione dei file .mca con lo slot vuoto «Calibration3: 0 0» (Bruker ELIO: asse spostato, Sn sottostimato di 3–6 volte); CF-LIBS che ignorava i multipletti non risolti (Zn a 0); base consigliata per il Raman con fluorescenza (IModPoly solo se non sottrae troppo, altrimenti SNIP o ALS).
+- Debug indipendente (DEBUG-3.1-INDIPENDENTE.md): il .cfg esportato per PyMca ha ora la calibrazione per canale dello spettro (prima zero sbagliato e guadagno dell'esempio di PyMca); .mca in formato SPEC/PyMca letto come spettro; .cfg in UTF-16 letti; file con molte righe vuote o righe ostili non bloccano più la lettura; .cfg con [DEFAULT] gonfiato non esaurisce più la memoria; CF-LIBS: elementi scelti senza righe segnalati, n_e scritta come 10^17 capita, g·A delle righe di Balmer come nel NIST.
 
 ## 3.0.0 — 18 novembre 2026
 
