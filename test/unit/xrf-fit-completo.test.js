@@ -79,21 +79,21 @@ test('eccitazione a lista di energie: picchi Rayleigh e Compton per ogni energia
   const R=C.xrfFitLines(xs, ys, ['Fe'], S, {lo:2, hi:17.5}); assert.ok(R.comps['Rayleigh 16.00 keV'] && R.comps['Compton 16.00 keV'], 'componenti di diffusione');
 });
 test('lettura .mca con lo slot vuoto «Calibration3: 0 0» (Bruker ELIO): il punto incoerente non entra nella calibrazione; un «0 0» vero sì', ()=>{
-  const body=Array.from({length:4096},(_,i)=>String(i===758?50000:i===2032?9000:i%7)).join('\n');
-  const elio='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# MCA Channels: 4096\n# Calibration1: 758 8,046\n# Calibration2: 2032 22,163\n# Calibration3: 0 0\n#\n'+body;
-  const p=C.parseXRF(elio), at=ch=>{ let b=0; for (let i=0;i<p.ys.length;i++) if (p.ys[i]===(ch===758?50000:9000)) b=i; return p.xs[b]; };
-  assert.ok(Math.abs(at(758)-8.046)<1e-6 && Math.abs(at(2032)-22.163)<1e-6, `canali 758 e 2032: ${at(758)} e ${at(2032)} keV`);
+  const body=Array.from({length:4096},(_,i)=>String(i===760?50000:i===2030?9000:i%7)).join('\n');
+  const elio='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# MCA Channels: 4096\n# Calibration1: 760 8,050\n# Calibration2: 2030 22,150\n# Calibration3: 0 0\n#\n'+body;
+  const p=C.parseXRF(elio), at=ch=>{ let b=0; for (let i=0;i<p.ys.length;i++) if (p.ys[i]===(ch===760?50000:9000)) b=i; return p.xs[b]; };
+  assert.ok(Math.abs(at(760)-8.05)<1e-6 && Math.abs(at(2030)-22.15)<1e-6, `canali 760 e 2030: ${at(760)} e ${at(2030)} keV`);
   const ok='# Tube Anode: Rh\n# MCA Channels: 2048\n# Calibration1: 0 0\n# Calibration2: 2047 40,94\n#\n'+Array.from({length:2048},(_,i)=>String(1+i%5)).join('\n'), q=C.parseXRF(ok);
   assert.ok(Math.abs(q.xs[q.xs.length-1]-40.94)<1e-9 && Math.abs(q.xs[1]-q.xs[0]-0.02)<1e-9, 'calibrazione con «0 0» vero invariata');
 });
 test('export Bruker ELIO: .mca (con «Calibration3: 0 0») e .spt LIDAQ (Coefficients = 0 0 0 0 e due punti) danno lo stesso asse e lo stesso tempo vivo', ()=>{
-  const counts=Array.from({length:4096},(_,i)=>i<30?0:(i===758?9000:i===2032?700:5+(i%3)));
-  const mca='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# Live time: 84,894\n# MCA Channels: 4096\n# Calibration1: 758 8,046\n# Calibration2: 2032 22,163\n# Calibration3: 0 0\n#\n'+counts.join('\n');
-  const spt='[LIDAQ1ch Spectrum]\nStart Time = 05/03/2025 11:28:38\n\nRun Time = 90000 msec\nLive Time = 84894 msec\n\n[CALIBRATION]\nCoefficients = 0 0 0 0\nCoefficients points number = 0\n758 8,046\n2032 22,163\n\n[ROIs]\nROIs Number = 0\n\n[DATA]\n'+counts.join('\n');
+  const counts=Array.from({length:4096},(_,i)=>i<30?0:(i===760?9000:i===2030?700:5+(i%3)));
+  const mca='# S1\n# Tube Anode:  Rh\n# Tube Voltage: 40\n# Live time: 85,125\n# MCA Channels: 4096\n# Calibration1: 760 8,050\n# Calibration2: 2030 22,150\n# Calibration3: 0 0\n#\n'+counts.join('\n');
+  const spt='[LIDAQ1ch Spectrum]\nStart Time = 01/01/2026 10:00:00\n\nRun Time = 90000 msec\nLive Time = 85125 msec\n\n[CALIBRATION]\nCoefficients = 0 0 0 0\nCoefficients points number = 0\n760 8,050\n2030 22,150\n\n[ROIs]\nROIs Number = 0\n\n[DATA]\n'+counts.join('\n');
   const a=C.parseXRF(mca), b=C.parseXRF(spt);
   assert.deepStrictEqual([a.xrf.cal.a, a.xrf.cal.b].map(v=>v.toFixed(9)), [b.xrf.cal.a, b.xrf.cal.b].map(v=>v.toFixed(9)), 'stessa calibrazione');
   assert.strictEqual(a.xs.length, b.xs.length); assert.ok(Math.abs(a.xs[0]-b.xs[0])<1e-12);
-  assert.ok(Math.abs(parseFloat(a.xrf.live.replace(',','.'))-84.894)<1e-9 && b.xrf.liveMs && +b.xrf.live===84894, 'tempo vivo in s (.mca) e in ms (.spt)');
+  assert.ok(Math.abs(parseFloat(a.xrf.live.replace(',','.'))-85.125)<1e-9 && b.xrf.liveMs && +b.xrf.live===85125, 'tempo vivo in s (.mca) e in ms (.spt)');
 });
 test('revisione 3.1: nel fit completo le righe del tubo diffuse non finiscono fra le aree degli elementi (chiave «null»)', ()=>{
   const sp=synth({Fe:5e5}, {seed:9}), R=C.xrfFitLines(sp.xs, sp.ys, ['Fe'], C.fpSetup({anode:'Mo', kv:20, exc:[[17.48,1,1]]}), {model:'hypermet', lo:3, hi:18, pileup:false});
