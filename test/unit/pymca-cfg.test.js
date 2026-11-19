@@ -46,6 +46,7 @@ test('toAcch su Steel.cfg: eccitazione monocromatica 16 keV, geometria, filtri, 
   const n=P.toAcch(P.parse(rd('Steel.cfg')));
   assert.equal(n.version, 'pymca-cfg-1');
   assert.deepEqual(n.excitation, [{E:16, w:1, scatter:true}], 'conta [fit] energy, non [tube]');
+  assert.deepEqual(n.setup.exc, [[16, 1, 1]], 'la stessa eccitazione nel formato di fpSetup');
   const s=n.setup;
   assert.deepEqual({anode:s.anode, kv:s.kv, psi1:s.psi1, psi2:s.psi2, beT:s.beT, eps:s.eps, alphae:s.alphae, alphax:s.alphax, d1:s.d1, d2:s.d2, atm:s.atm, beD:s.beD, si:s.si, det:s.det},
     {anode:'Ag', kv:30, psi1:45, psi2:45, beT:125, eps:90, alphae:90, alphax:90, d1:0, d2:5, atm:'air', beD:20, si:350, det:'Si'});
@@ -108,11 +109,12 @@ test('casi sintetici: ipermetro completo, multistrato, elio, germanio, due filtr
   const n=P.toAcch(txt);
   assert.deepEqual(n.excitation, [{E:17.48, w:0.8, scatter:true}], 'energia con flag 0 esclusa');
   assert.deepEqual(n.fit.hypermet, {gauss:true, st:true, lt:true, step:true}); assert.equal(n.fit.continuum, 'Linear');
+  assert.deepEqual(n.setup.exc, [[17.48, 0.8, 1]]);
   assert.equal(n.setup.atm, 'he'); assert.equal(n.setup.det, 'Ge'); assert.equal(n.setup.si, 5000); assert.equal(n.setup.beD, 8); assert.equal(n.setup.psi1, 60); assert.equal(n.setup.psi2, 30);
   assert.equal(n.setup.filt.comp, 'Cu:63 Zn:37'); assert.equal(n.setup.filt.um, 50);
   assert.equal(n.matrix.name, 'Vernice'); assert.equal(n.matrix.multilayer.length, 2); assert.ok(n.matrix.comp.Pb>0.25 && n.matrix.comp.Pb<0.3);
   const w=n.warnings.map(x=>x.key+' '+x.msg).join('\n');
-  for (const re of [/BeamFilter1.*un solo filtro/, /absorber.*a rete/, /absorber.*non lo prevede/, /\[multilayer\].*2 strati/, /angolo di diffusione fissato/, /germanio/, /coda corta, coda lunga, gradino/, /continuo analitico/, /\[strana\]/]) assert.match(w, re);
+  for (const re of [/BeamFilter1.*un solo filtro/, /absorber.*a rete/, /absorber.*non lo prevede/, /\[multilayer\].*2 strati/, /angolo di diffusione fissato/, /coda corta, coda lunga, gradino/, /continuo analitico/, /\[strana\]/]) assert.match(w, re);
   // fromAcch: ipermetro, intervallo in keV, filtro di lega come materiale, elio
   const cfg=P.fromAcch({setup:{anode:'Rh', kv:40, psi1:60, psi2:30, beT:75, eps:20, atm:'he', d2:0.5, beD:8, si:450, det:'Si', filt:{comp:'Cu:63 Zn:37', rho:8.5, um:50}},
     excitation:[{E:17.48, w:1, scatter:true}], fit:{zero:0.01, gain:0.02, xminE:1.01, xmaxE:20.01, hypermet:{gauss:true, st:true, lt:false, step:true}}, peaks:{Cu:['K'], Pb:['L','M']},

@@ -6,12 +6,13 @@
    COME SI USA
      const cfg = PymcaCfg.parse(testo);          // oggetto annidato come ConfigDict di PyMca: cfg.detector.gain, cfg.materials.Air.Density…
      const n   = PymcaCfg.toAcch(cfg);           // oggetto neutro: n.setup (per fpSetup), n.excitation, n.fit, n.peaks, n.matrix, n.warnings
-     fpSetup(n.setup)                            // nel nucleo: le condizioni di misura (n.excitation va passata a parte: vedi sotto)
+     fpSetup(n.setup)                            // nel nucleo: le condizioni di misura, con n.setup.exc (eccitazione a lista) e n.setup.det
      const cfg2 = PymcaCfg.fromAcch(n);          // di nuovo un .cfg completo per PyMca (modello McaTheory.cfg, cambia solo ciò che è noto)
      const testo2 = PymcaCfg.stringify(cfg2);    // testo da salvare come .cfg e aprire in PyMca; cfg2.warnings (non enumerabile) dice che cosa manca
    Gli avvisi (n.warnings, cfg2.warnings) sono in italiano e vanno mostrati all'utente: ogni chiave senza equivalente o approssimata ne ha uno.
    L'eccitazione: in PyMca conta la lista [fit] energy/energyweight (per esempio Steel.cfg è monocromatico a 16 keV, la sezione [tube]
-   lì è solo un promemoria). Se n.excitation non è nullo, il modello del tubo dell'app (anodo e kV) non descrive la misura.
+   lì è solo un promemoria). Se n.excitation non è nullo, il modello del tubo dell'app (anodo e kV) non descrive la misura: n.setup.exc
+   la porta a fpSetup ([[E, peso, diffusione]]). Il fit (n.fit: ipermetro, Noise, Fano, pile-up…) va passato al nucleo dall'interfaccia.
 
    Formato (PyMca5/PyMcaIO/ConfigDict.py, su configparser di Python): sezioni [nome] e sottosezioni [nome.sotto] («.» nel nome si scrive «_|_»);
    valori convertiti come Python int() o float(), altrimenti stringhe; una virgola fa una lista; più righe (rientrate) fanno una lista di righe;
@@ -213,7 +214,6 @@
     if (dt){ si=um(dt.t); if (!dt.on) warn('[attenuators] Detector', 'nota', 'efficienza del rivelatore disattivata in PyMca (spessore '+si+' µm); l\'app la applica sempre'); }
     const detType=/^ge/i.test(detEl) ? 'Ge' : 'Si';
     if (!/^(si|ge)$/i.test(detEl)) warn('[detector] detele', 'approssimata', 'rivelatore di «'+detEl+'»: l\'app conosce Si e Ge; usato Si');
-    if (detType==='Ge') warn('[detector] detele', 'approssimata', 'rivelatore al germanio: il nucleo oggi calcola efficienza e fughe solo per il silicio');
     const filters=Object.keys(A).filter(k=>/^beamfilter\d$/i.test(k) && A[k].on).map(k=>({k, a:A[k], comp:materialComp(A[k].mat, cfg)}));
     let filt=null;
     if (filters.length){ const f0=filters[0];
@@ -242,7 +242,7 @@
     const excitation=exc.length ? exc : null;
     if (excitation){
       const kind=excitation.length===1 ? 'monocromatica a '+excitation[0].E+' keV' : excitation.length+' energie fra '+Math.min(...excitation.map(x=>x.E))+' e '+Math.max(...excitation.map(x=>x.E))+' keV';
-      warn('[fit] energy', 'nota', 'eccitazione '+kind+': è quella che PyMca usa per il calcolo'+(hasTube?'; la sezione [tube] ('+anode+', '+kv+' kV) serve solo a generare la lista e qui non conta':'')+'. Il modello del tubo dell\'app non la descrive: va passata al nucleo come lista di energie');
+      warn('[fit] energy', 'nota', 'eccitazione '+kind+': è quella che PyMca usa per il calcolo'+(hasTube?'; la sezione [tube] ('+anode+', '+kv+' kV) serve solo a generare la lista e qui non conta':'')+'. Il modello del tubo dell\'app non la descrive: passa al nucleo come lista di energie (setup.exc)');
     } else if (hasTube) warn('[fit] energy', 'approssimata', 'nessuna energia d\'eccitazione: si usa il modello del tubo dell\'app ('+anode+', '+kv+' kV), diverso da quello di Ebel che PyMca userebbe per generare la lista');
     else warn('[fit] energy', 'nota', 'nessuna eccitazione né tubo: restano i valori predefiniti dell\'app');
 
@@ -271,14 +271,14 @@
       continuum:cont==null ? null : (CONTINUUM[cont]===undefined ? String(cont) : CONTINUUM[cont]),
       maxiter:num(get('fit', fit, 'maxiter')), deltachi:num(get('fit', fit, 'deltachi')), linearfit:flag(get('fit', fit, 'linearfitflag'))
     };
-    // scarti di forma e di fit che il nucleo oggi non riproduce (il coordinatore aggiorna questi avvisi quando il nucleo cresce)
-    if (hyper && (hyper.st || hyper.lt || hyper.step)) warn('[fit] hypermetflag', 'approssimata', 'ipermetro con '+[hyper.st&&'coda corta', hyper.lt&&'coda lunga', hyper.step&&'gradino'].filter(Boolean).join(', ')+' (bit '+hf+'): parametri letti in fit.st, fit.lt, fit.stepH; il nucleo attuale usa gaussiane pure');
-    if (fitfunction==='pseudo-voigt') warn('[fit] fitfunction', 'approssimata', 'pseudo-Voigt (eta '+fitN.eta+'): il nucleo attuale usa gaussiane');
-    if (fitN.pileup) warn('[fit] sumflag', 'approssimata', 'picchi somma (pile-up) attivi, Sum = '+fitN.sum+': il nucleo attuale li segnala soltanto');
+    // forma del picco e opzioni del fit: il nucleo 3.1 le ha nel modello completo (xrfFitLines con opt.model='hypermet'), non nel gaussiano predefinito
+    if (hyper && (hyper.st || hyper.lt || hyper.step)) warn('[fit] hypermetflag', 'nota', 'ipermetro con '+[hyper.st&&'coda corta', hyper.lt&&'coda lunga', hyper.step&&'gradino'].filter(Boolean).join(', ')+' (bit '+hf+'; parametri in fit.st, fit.lt, fit.stepH): nell\'app vale solo con il modello completo del picco (ipermetro), non con quello gaussiano');
+    if (fitfunction==='pseudo-voigt') warn('[fit] fitfunction', 'approssimata', 'pseudo-Voigt (eta '+fitN.eta+'): l\'app usa gaussiane o l\'ipermetro');
+    if (fitN.pileup) warn('[fit] sumflag', 'nota', 'picchi somma (pile-up) attivi, Sum = '+fitN.sum+': nell\'app solo con il modello completo del picco');
     if (fitN.stripflag) warn('[fit] stripflag', 'approssimata', 'fondo '+(fitN.stripalgorithm==='snip' ? 'SNIP ('+fitN.snipwidth+' canali)' : 'strip iterativo')+': nell\'app corrisponde al fondo «SNIP» (larghezza in keV), non identico');
     if (fitN.continuum) warn('[fit] continuum', 'ignorata', 'continuo analitico «'+fitN.continuum+'»: l\'app usa B-spline o SNIP');
     if (fitN.linearfit) warn('[fit] linearfitflag', 'approssimata', 'fit lineare (Zero, Gain, Noise, Fano fissi): nell\'app corrisponde a calibrazione fissata');
-    if (quad) warn('[detector] '+[...used.detector].find(k=>/quad|gain2/.test(k)), 'approssimata', 'termine quadratico della calibrazione ('+quad+'): il nucleo attuale ha un asse lineare');
+    if (quad) warn('[detector] '+[...used.detector].find(k=>/quad|gain2/.test(k)), 'approssimata', 'termine quadratico della calibrazione ('+quad+'): nell\'app solo con il modello completo del picco');
 
     // righe
     const peaks={}; for (const [el, v] of Object.entries(sec('peaks'))){ const sh=arr(v).flatMap(x=>String(x).split(/[\s,]+/)).filter(Boolean); if (sh.length) peaks[el]=sh; }
@@ -307,7 +307,8 @@
 
     return {
       version:VERSION,
-      setup:{anode, kv, psi1, psi2, beT, eps:alphax, alphae, alphax, d1:0, d2, atm, beD, si, det:detType, filt},
+      // exc: la stessa eccitazione nel formato di fpSetup ([[E keV, peso, diffusione 0/1]]), così fpSetup(n.setup) la usa direttamente
+      setup:{anode, kv, psi1, psi2, beT, eps:alphax, alphae, alphax, d1:0, d2, atm, beD, si, det:detType, filt, exc:excitation ? excitation.map(x=>[x.E, x.w, x.scatter?1:0]) : null},
       excitation, fit:fitN, peaks, matrix, quant, warnings:W
     };
   }
@@ -492,7 +493,8 @@ CompoundList = H1, C1, O1
     for (const [el, sh] of Object.entries(n.peaks||{})){ const L=arr(sh).map(String).filter(Boolean); if (L.length) cfg.peaks[el]=L.length===1 ? L[0] : L; }
     if (!Object.keys(cfg.peaks).length) warn('[peaks]', 'nota', 'nessun elemento: in PyMca vanno scelti nella tavola periodica prima del fit');
     // eccitazione
-    const exc=arr(n.excitation).filter(x=>x && num(x.E)>0);
+    let exc=arr(n.excitation).filter(x=>x && num(x.E)>0);
+    if (!exc.length && Array.isArray(s.exc)) exc=s.exc.filter(q=>Array.isArray(q) && num(q[0])>0).map(q=>({E:q[0], w:num(q[1])!=null ? q[1] : 1, scatter:q[2]!==0}));
     if (exc.length){ F.energy=exc.map(x=>x.E); F.energyweight=exc.map(x=>num(x.w)!=null ? x.w : 1); F.energyflag=exc.map(()=>1); F.energyscatter=exc.map(x=>x.scatter===false ? 0 : 1); }
     else { F.energy='None'; warn('[fit] energy', 'nota', 'nessuna lista di energie: in PyMca, scheda «ATTENUATORS» → «Matrix», premere «Tube» per generarla dallo spettro del tubo ([tube], modello di Ebel), poi salvare'); }
     // tubo
