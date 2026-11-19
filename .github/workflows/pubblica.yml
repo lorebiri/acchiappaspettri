@@ -1,0 +1,75 @@
+# Pubblica una versione dal cloud, senza il Mac: crea il tag vX.Y.Z sul commit attuale di main e avvia release.yml su quel tag
+# (test anche nativi, pacchetti per i quattro sistemi, release pubblicata, sito aggiornato se è una versione stabile).
+# Si avvia a mano: Actions → «Pubblica una versione» → Run workflow, con la versione (es. 3.1.0 o 3.1.0-rc.1), oppure via API.
+# Un tag creato con il GITHUB_TOKEN non fa partire release.yml da solo: per questo lo si lancia con workflow_dispatch sul tag.
+# Le versioni di prova (con «-», es. 3.1.0-rc.1) escono come pre-release: non diventano «Latest», non arrivano come
+# aggiornamento automatico (l'app legge releases/latest) e il sito non le mostra (pages.yml scrive l'ultima versione stabile).
+name: Pubblica una versione
+
+on:
+  workflow_dispatch:
+    inputs:
+      versione:
+        description: 'Versione da pubblicare, senza la v (es. 3.1.0 o 3.1.0-rc.1). Deve coincidere con package.json su main.'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # crea il tag
+  actions: write    # avvia release.yml
+  checks: read
+
+concurrency:
+  group: pubblica
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Controlla, crea il tag e avvia la release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSIONE: ${{ inputs.versione }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { ref: main }
+      - name: Versione, file di versione e CHANGELOG
+        run: |
+          set -e
+          if ! printf '%s' "$VERSIONE" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then echo "::error::versione non valida: «$VERSIONE» (es. 3.1.0 o 3.1.0-rc.1, senza la v)"; exit 1; fi
+          v="$(node -p "require('./package.json').version")"
+          if [ "$v" != "$VERSIONE" ]; then echo "::error::package.json su main è $v, non $VERSIONE"; exit 1; fi
+          # package.json, tauri.conf.json, Cargo.toml, versione della pagina, voce delle Novità e sezione «## X.Y.Z» del CHANGELOG
+          node scripts/check-version.js "v$VERSIONE"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSIONE" >/dev/null; then echo "::error::il tag v$VERSIONE esiste già"; exit 1; fi
+          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: La CI del commit di main è completata e verde (aspetta quella in corso)
+        run: |
+          set -e
+          echo "commit di main: $SHA"
+          for i in $(seq 1 90); do
+            # l'ultima esecuzione del workflow CI per questo commit (push o avvio a mano)
+            riga=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$SHA&per_page=100" --jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml")] | sort_by(.created_at) | last | if . == null then "nessuna" else "\(.status) \(.conclusion) \(.html_url)" end')
+            echo "$(date -u +%H:%M) CI: $riga"
+            case "$riga" in
+              nessuna) echo "::error::nessuna CI per il commit $SHA di main: avviala da Actions → CI → Run workflow su main, poi riprova"; exit 1 ;;
+              "completed success "*) echo "CI verde"; exit 0 ;;
+              completed*) echo "::error::la CI del commit $SHA non è verde: $riga"; exit 1 ;;
+            esac
+            sleep 60
+          done
+          echo "::error::la CI del commit $SHA è ancora in corso dopo 90 minuti"; exit 1
+      - name: Crea il tag
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSIONE" "$SHA" -m "Acchiappaspettri $VERSIONE"
+          git push origin "v$VERSIONE"
+      - name: Avvia release.yml sul tag
+        run: |
+          set -e
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "v$VERSIONE"
+          case "$VERSIONE" in *-*) tipo="pre-release (non Latest, sito invariato)" ;; *) tipo="Latest, poi il sito con pages.yml" ;; esac
+          echo "::notice::tag v$VERSIONE su $SHA; release.yml avviato: $tipo"

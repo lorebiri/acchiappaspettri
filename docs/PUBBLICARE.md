@@ -13,11 +13,17 @@ node scripts/set-version.js 2.3.0
 ```
 1. Aggiungi la voce in cima a `NOVITA` in `index.html` (regola del progetto: ogni novità si annuncia) e la sezione `## 2.3.0` in `CHANGELOG.md`: diventa le note di rilascio.
 2. `npm test`, poi commit su `main`.
-3. Pubblica:
+3. Pubblica, in uno dei due modi:
+   - **dal cloud, senza il Mac** (consigliato): *Actions → «Pubblica una versione» → Run workflow*, con la versione (es. `2.3.0` o `2.3.0-rc.1`). Il workflow `.github/workflows/pubblica.yml`:
+     1. controlla che la versione coincida con `package.json`, con i file di Tauri e con il CHANGELOG (`scripts/check-version.js`) e che il tag non esista già;
+     2. aspetta che la CI del commit di `main` sia completata e verde;
+     3. crea il tag `v2.3.0` e avvia `release.yml` su quel tag (un tag creato con il `GITHUB_TOKEN` non fa partire altri workflow da solo);
+   - a mano:
 ```bash
 git tag v2.3.0
 git push origin main v2.3.0
 ```
+   Una versione con «-» (`2.3.0-rc.1`) esce come **pre-release**: non diventa «Latest», non arriva come aggiornamento automatico e il sito non la mostra. Una stabile diventa «Latest» e alla fine `release.yml` lancia `pages.yml`, che aggiorna il sito.
 
 La pipeline `.github/workflows/release.yml`:
 1. controlla che tag e versioni coincidano e che la firma sia configurata;

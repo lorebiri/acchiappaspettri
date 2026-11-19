@@ -158,3 +158,19 @@ test('desktop.js: con una risposta in errore dell\'updater non si dice che non c
   assert.ok(!/Non c'è ancora nessuna versione pubblicata/.test(s)); assert.ok(!/function compare\(/.test(s));
   const msg=/say\(\/valid release JSON\|404\/i\.test\(String\(e\)\) \? '([^']+(?:\\'[^']*)*)'/.exec(s); assert.ok(msg,'messaggio per la risposta senza release');
   const it=msg[1].replace(/\\'/g,"'"); assert.match(it,/riprova/i); const en=JSON.parse(rd('i18n/en-app.json'))[it]; assert.ok(en && /try again/i.test(en), 'traduzione inglese'); });
+test('pubblica.yml: pubblicazione dal cloud (controlli, CI verde e completata, tag, release.yml avviato sul tag); release.yml accetta l\'avvio a mano e le rc restano pre-release', ()=>{
+  const y=rd('.github/workflows/pubblica.yml'), r=rd('.github/workflows/release.yml'), p=rd('scripts/publish-release.js');
+  assert.match(y,/workflow_dispatch:\s*\n\s*inputs:\s*\n\s*versione:/); assert.doesNotMatch(y.slice(0,y.indexOf('jobs:')),/\bpush:/, 'solo a mano');
+  assert.match(y,/node scripts\/check-version\.js "v\$VERSIONE"/, 'package.json, Tauri, Cargo, pagina, Novità e CHANGELOG');
+  assert.match(y,/require\('\.\/package\.json'\)\.version/); assert.match(y,/git ls-remote --exit-code --tags origin "refs\/tags\/v\$VERSIONE"/, 'tag già esistente');
+  assert.match(y,/actions\/runs\?head_sha=\$SHA/); assert.match(y,/completed success/); assert.match(y,/sleep 60/, 'aspetta la CI in corso invece di fallire subito');
+  const iCI=y.indexOf('completed success'), iTag=y.indexOf('git push origin "v$VERSIONE"'), iRel=y.indexOf('gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "v$VERSIONE"');
+  assert.ok(iCI>0 && iTag>iCI && iRel>iTag, 'prima la CI, poi il tag, poi release.yml sul tag');
+  assert.match(y,/GH_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/); assert.match(y,/contents: write/); assert.match(y,/actions: write/);
+  for (const u of y.match(/uses: [^\s]+/g)) assert.match(u, /@[0-9a-f]{40}$/, `${u}: azione fissata a un commit`);
+  assert.match(r,/on:\s*\n\s*push:\s*\n\s*tags: \["v\*\.\*\.\*"\]\s*\n\s*workflow_dispatch:/, 'release.yml: push del tag o avvio a mano');
+  assert.match(r,/GITHUB_REF_TYPE" != tag/, 'avvio a mano solo su un tag');
+  assert.match(r,/prerelease: \$\{\{ contains\(github\.ref_name, '-'\) \}\}/);
+  assert.match(r,/if: \$\{\{ !contains\(github\.ref_name, '-'\) \}\}[^\n]*\n[^\n]*\n[^\n]*\n\s*run: gh workflow run pages\.yml/, 'il sito si aggiorna solo per le stabili');
+  assert.ok(p.includes("beta?['--prerelease','--latest=false']:['--prerelease=false','--latest']"), 'rc: pre-release mai «Latest»; stabile: «Latest»');
+});
