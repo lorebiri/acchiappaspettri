@@ -215,7 +215,9 @@ test('sito: versione più nuova su GitHub aggiorna la pagina; una più vecchia n
   assert.strictEqual((await principale(o)).testo, `Scarica per Windows versione ${VS} · 2,7 MB`);
   assert.strictEqual(await o.p.evaluate(() => document.documentElement.dataset.release), 'github');
   await o.ctx.close();
-  o = await apri({ sistema: 'windows', versione: '2.2.0' });
+  // pagina con i dati di una versione già pubblicata (fonte GitHub, come la scrive pages.yml): una versione più vecchia su GitHub non la sostituisce.
+  // Subito dopo il cambio di versione, prima della pubblicazione, nel repo la pagina ha fonte package.json: qui la si porta a «github».
+  o = await apri({ sistema: 'windows', versione: '2.2.0', pagina: (h) => h.replace(/"fonte":"package\.json"/g, '"fonte":"github"') });
   assert.strictEqual((await principale(o)).href, STATICI.file.win.url);
   assert.strictEqual(await o.p.evaluate(() => document.documentElement.dataset.release), 'github');
   assert.strictEqual(await o.p.evaluate(() => document.querySelector('#nota-versione').hidden), true, 'nessun avviso «in arrivo» con la 3.x nella pagina');
