@@ -1,10 +1,20 @@
 # Novità delle versioni
 
+## 3.1.0 — 20 novembre 2026
+
+Versione pubblicata per tutti. Chi arriva dalla 3.0 trova:
+
+- XRF più aderente agli spettri veri (modello 3.1, predefinito per le analisi nuove): picchi con code e gradino, fughe del rivelatore al silicio o al germanio, picchi somma facoltativi, spettro del tubo calcolato con la formula di Ebel (14 anodi). Un elemento proposto resta nel calcolo solo se il fit lo conferma: spariscono gli elementi inventati, per esempio antimonio e iodio nelle leghe di stagno.
+- I progetti e le impostazioni salvati con la 3.0 si riaprono con gli stessi numeri (modello 3.0, con un avviso); il modello 3.1 si sceglie nel pannello.
+- File di configurazione del fit (.cfg): si importano condizioni di misura, eccitazione, rivelatore e fit, e si esportano; si leggono anche i file degli strumenti portatili con calibrazione e tempo vivo.
+- Raman con fluorescenza forte: se il polinomio iterativo toglierebbe troppo segnale, l'assistente consiglia SNIP o ALS.
+- LIBS: prima analisi senza taratura (CF-LIBS, sperimentale): temperatura, densità elettronica e concentrazioni, con grafico di Boltzmann e di Saha–Boltzmann. Provata solo su spettri sintetici. I dati atomici si scaricano dal NIST la prima volta che servono e restano salvati.
+- App online più immediata e chiara.
+- Molte correzioni da due revisioni indipendenti e dalla prova su misure reali di laboratorio. Il dettaglio tecnico è nella sezione 3.1.0-rc.1 qui sotto.
+
 ## 3.1.0-rc.1 — 19 novembre 2026
 
-Versione di prova (pre-release): non viene proposta come aggiornamento automatico. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md e DEBUG-3.1-INDIPENDENTE.md. Le novità sono quelle della 3.1.0, qui sotto.
-
-## 3.1.0 — in preparazione
+Versione di prova (pre-release), uscita prima della 3.1.0. Sintesi per non tecnici in CONCLUSIONE-XRF-LIBS.md e DEBUG-3.1-INDIPENDENTE.md. Dettaglio tecnico delle novità della 3.1:
 
 - XRF, modello 3.1 (predefinito per le analisi nuove): picchi con code e gradino (ipermetro, come PyMca), fughe Kα e Kβ del silicio o del germanio per tutte le righe, picchi somma facoltativi, Noise e Fano liberi o fissati, termine quadratico dell'asse dell'energia, parametri adattati con Levenberg–Marquardt; spettro del tubo di Ebel (1999) con anodo, kV, angoli e finestra configurabili e 14 anodi; fluorescenza terziaria approssimata; eccitazione monocromatica o a lista di energie; rivelatore al germanio. Sull'acciaio NIST SRM 1155 distribuito con PyMca il χ² ridotto scende da 15,2 a 7,9 (PyMca 13,1).
 - XRF, verifica degli elementi con il fit: un elemento proposto entra nel calcolo solo se la sua riga analitica è significativa e se migliora davvero il fit. Spariscono Sb e I falsi nelle leghe di stagno e Pb al posto di As; gli elementi tolti sono elencati negli avvisi.

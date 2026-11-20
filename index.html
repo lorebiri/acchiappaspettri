@@ -9652,13 +9652,12 @@ function renderRecipes(f){
    Regola per gli sviluppi futuri: ogni novità visibile all'utente va aggiunta in cima a NOVITA con un numero di versione
    più alto in APP_VERSION. Chi ha già usato lo strumento la vede al primo ingresso; chi arriva per la prima volta vede il benvenuto. */
 const APP_VERSION='3.1';
-const APP_VERSION_FULL=()=>'3.1.0-rc.1';
+const APP_VERSION_FULL=()=>'3.1.0';
 const NOVITA=[
-  {v:'3.1', data:'19 novembre 2026', voci:[
+  {v:'3.1', data:'20 novembre 2026', voci:[
     ['🔬','XRF più aderente agli spettri veri','Picchi con code e gradino come in PyMca, fughe e picchi somma, tubo descritto con la formula di Ebel. Gli elementi proposti restano solo se il fit li conferma: niente più antimonio e iodio inventati nello stagno. I progetti della 3.0 si riaprono con gli stessi numeri.',null],
     ['🔁','File .cfg di PyMca','Porti le condizioni di misura da PyMca nelle concentrazioni XRF, e le riporti indietro con «Esporta .cfg di PyMca».',null],
-    ['⚗️','CF-LIBS sperimentale','Per gli spettri LIBS una prima analisi senza taratura (temperatura, densità elettronica, concentrazioni), provata solo su spettri sintetici. I dati atomici si scaricano dal NIST la prima volta che li chiedi.',null],
-    ['🧾','Versione di prova','È una versione di prova (3.1.0-rc.1): non arriva come aggiornamento automatico.',null]]},
+    ['⚗️','CF-LIBS sperimentale','Per gli spettri LIBS una prima analisi senza taratura (temperatura, densità elettronica, concentrazioni), provata solo su spettri sintetici. I dati atomici si scaricano dal NIST la prima volta che li chiedi.',null]]},
   {v:'3.0', data:'18 novembre 2026', voci:[
     ['📍','Picchi scritti per posizione','Nella scheda Picchi scrivi una o più posizioni (anche con larghezza e forma) e io le aggiungo, agganciandole al massimo vicino se vuoi. Contano come i picchi trovati da me per nomi, aree, deconvoluzione e quantificazione.', ()=>{ go(2); openTab('peaks'); setTimeout(()=>{ reveal('#pkAddBox'); $('#pkAddTxt').focus(); }, 80); }],
     ['〰️','Fondo tolto come vuoi tu','Per il Raman con fluorescenza e non solo: ALS, arPLS, polinomio iterativo, SNIP, rolling ball o punti scelti da te, con i parametri regolabili e il fondo stimato sul grafico mentre li muovi. Per uno spettro o per tutti, e si torna indietro quando vuoi.', ()=>{ go(2); openTab('proc'); setTimeout(()=>reveal('#baseBox'), 80); }],

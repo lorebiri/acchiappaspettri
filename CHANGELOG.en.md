@@ -2,9 +2,9 @@
 
 English version of the published releases in [CHANGELOG.md](CHANGELOG.md), used by the English page of the website (`scarica/en/`). Only stable versions are listed here; when a version is not translated, the website shows the Italian text.
 
-## 3.1.0-rc.1 — 19 November 2026
+## 3.1.0 — 20 November 2026
 
-Test version (pre-release): it is not offered as an automatic update. The website shows only published versions.
+Published for everyone. Coming from 3.0 you get:
 
 - XRF, 3.1 model (default for new analyses): peaks with tails and step (hypermet), detector Kα and Kβ escapes for all lines, optional sum peaks, free or fixed noise and Fano, quadratic energy term, Levenberg–Marquardt; tube spectrum after Ebel (1999) with configurable anode, kV, angles and window; fit weights that stay correct with few counts per channel. Settings and projects saved with 3.0 keep the 3.0 model and the same numbers, with a note.
 - XRF, element check: a proposed element enters the calculation only if its analytical line is significant and it really improves the fit; removed elements are listed.

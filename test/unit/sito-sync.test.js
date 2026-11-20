@@ -309,7 +309,9 @@ test('sito-sync: schede delle funzioni nuove già nelle pagine ma spente fino al
     // la scheda CF-LIBS e il suo link nell'indice escono insieme, con la 3.1.0 stabile
     const con31 = mostraPerVersione(html, '3.1.0');
     assert.match(con31, /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0">/, lingua); assert.match(con31, /<li data-dalla-versione="3\.1\.0"><a href="#f-libs">/, lingua);
-    assert.match(html, /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0" hidden>/, `${lingua}: spenta con la ${dati.versione}`);
+    // accesa solo quando la pagina mostra la 3.1.0 stabile o successiva, spenta prima (rc comprese)
+    const accesa = versioneRaggiunta(dati.versione, '3.1.0');
+    assert.match(html, accesa ? /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0">/ : /<article class="funzione" id="f-libs"[^>]*data-dalla-versione="3\.1\.0" hidden>/, `${lingua}: ${accesa ? 'accesa' : 'spenta'} con la ${dati.versione}`);
     assert.ok(mostraPerVersione(con31, dati.versione) === html, `${lingua}: si spengono di nuovo identiche`);
     assert.ok(applica(con31, dati, lingua, cl) === html, `${lingua}: applica spegne le schede secondo la versione scritta`);
     assert.doesNotMatch(html, /Palleschi|Legnaioli|PyMca/, `${lingua}: nomi non ammessi`);
